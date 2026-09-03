@@ -510,12 +510,14 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .motivo-select{ position:relative; }
   .motivo-select .filtro-select-btn{ padding:6px 10px; font-size:12.5px; }
   .motivo-select .filtro-select-dropdown{ min-width:220px; }
+  .motivo-select .filtro-select-btn{ padding-right:34px; }
+  .motivo-select .btn-borrar-motivos{
+  position:absolute; top:50%; right:24px; transform:translateY(-50%);
+  padding:2px 3px; font-size:11.5px; line-height:1; z-index:2;
+  }
   .motivo-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
   .motivo-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
   .motivo-select.open .filtro-select-dropdown{ display:block; }
-  .motivo-celda{ display:flex; align-items:center; gap:6px; }
-  .motivo-celda .motivo-select{ flex:1; min-width:0; }
-  .btn-borrar-motivos{ flex:0 0 auto; font-size:13px; }
 
   /* ---------- Modal (sustituye alert / confirm / prompt) ---------- */
   .modal-overlay{
