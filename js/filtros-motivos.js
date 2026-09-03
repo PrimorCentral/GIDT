@@ -313,11 +313,10 @@
 
   // Texto corto que se muestra en el botón del desplegable de motivos de cada fila.
   function resumenMotivos(motivos) {
-    const arr = motivos || [];
-    if (!arr.length) return '— Sin incidencia —';
-    if (arr.length === 1) return arr[0].charAt(0) + arr[0].slice(1).toLowerCase();
-    return `${arr.length} motivos seleccionados`;
-  }
+  const arr = motivos || [];
+  if (!arr.length) return '— Sin incidencia —';
+  return arr.map(m => m.charAt(0) + m.slice(1).toLowerCase()).join(', ');
+}
 
   // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
   function motivosChecklistHtml(seleccionados) {
