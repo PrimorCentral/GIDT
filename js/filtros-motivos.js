@@ -315,7 +315,9 @@
   function resumenMotivos(motivos) {
   const arr = motivos || [];
   if (!arr.length) return '— Sin incidencia —';
-  return arr.map(m => m.charAt(0) + m.slice(1).toLowerCase()).join(', ');
+  return arr
+    .map(m => m.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()))
+    .join(', ');
 }
 
   // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
