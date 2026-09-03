@@ -73,10 +73,13 @@
   // ---------------------------------------------------------------
   // Fecha de hoy (cabecera Inicio)
   // ---------------------------------------------------------------
-  const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-  const hoy = new Date();
-  document.getElementById('fechaHoyTexto').textContent =
-    dias[hoy.getDay()] + ", " + hoy.toLocaleDateString('es-ES');
+   const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  let hoy = new Date();
+  function actualizarFechaHoyTexto() {
+    document.getElementById('fechaHoyTexto').textContent =
+      dias[hoy.getDay()] + ", " + hoy.toLocaleDateString('es-ES');
+  }
+  actualizarFechaHoyTexto();
 
   // ---------------------------------------------------------------
   // Carga inicial: KPIs desde Supabase (smoke test de conexión)
