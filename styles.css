@@ -513,6 +513,9 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .motivo-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
   .motivo-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
   .motivo-select.open .filtro-select-dropdown{ display:block; }
+  .motivo-celda{ display:flex; align-items:center; gap:6px; }
+  .motivo-celda .motivo-select{ flex:1; min-width:0; }
+  .btn-borrar-motivos{ flex:0 0 auto; font-size:13px; }
 
   /* ---------- Modal (sustituye alert / confirm / prompt) ---------- */
   .modal-overlay{
