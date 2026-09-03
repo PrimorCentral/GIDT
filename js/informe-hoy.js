@@ -1,6 +1,6 @@
   // Informe diario de hoy
   // ---------------------------------------------------------------
-  const fechaHoyISO = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+    let fechaHoyISO = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
 
   let informeHoyCache = null; // null = aún no comprobado / no existe
   let incidenciasHoyCache = []; // filas de la tabla `incidencias` del informe de hoy
@@ -101,6 +101,39 @@
       incidenciasHoyCache = [];
     }
   }
+
+  // ---------------------------------------------------------------
+  // Comprobación de cambio de día (por si el dispositivo/pestaña se
+  // queda abierto de un día para otro sin recargar la página)
+  // ---------------------------------------------------------------
+  function comprobarCambioDeDia() {
+    const ahora = new Date();
+    const fechaActualISO = ahora.toISOString().slice(0, 10);
+    if (fechaActualISO === fechaHoyISO) return; // sigue siendo el mismo día
+
+    hoy = ahora;
+    fechaHoyISO = fechaActualISO;
+    actualizarFechaHoyTexto();
+    historialFechaInput.max = fechaHoyISO;
+    historialSiniestrosFechaInput.max = fechaHoyISO;
+
+    if (!getSesion()) return; // en la pantalla de login, no hay nada que refrescar
+
+    cargarInformeHoy();
+    cargarKPIs();
+
+    if (document.getElementById('view-incidencias')?.classList.contains('active')) {
+      renderVistaIncidencias();
+    }
+    if (document.getElementById('view-siniestros')?.classList.contains('active')) {
+      renderVistaSiniestros();
+    }
+  }
+
+  setInterval(comprobarCambioDeDia, 60 * 1000); // revisa cada minuto
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') comprobarCambioDeDia();
+  });
 
   // ---------------------------------------------------------------
   // Historial de informes diarios
