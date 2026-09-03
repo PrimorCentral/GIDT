@@ -309,7 +309,7 @@
                 </div>
               </div>
             </td>
-            <td class="col-obs"><input type="text" class="form-input i-obs" placeholder="Observaciones…" value="${escapeHtml(inc?.observaciones || '')}"></td>
+            <td class="col-obs"><input type="text" class="form-input i-obs" placeholder="Observaciones…" value="${escapeHtml(inc?.observaciones || '')}" ${marcada ? '' : 'disabled'}></td>
           </tr>`;
       }).join('');
 
@@ -348,7 +348,10 @@
       const inputObs = tr.querySelector('.i-obs');
 
       const guardar = () => guardarIncidencia(tiendaId, tr);
-      tr.querySelectorAll('.i-motivo-check').forEach(cb => cb.addEventListener('change', guardar));
+      tr.querySelectorAll('.i-motivo-check').forEach(cb => cb.addEventListener('change', () => {
+        inputObs.disabled = tr.querySelectorAll('.i-motivo-check:checked').length === 0;
+        guardar();
+      }));
       inputObs.addEventListener('input', () => {
         const pos = inputObs.selectionStart;
         inputObs.value = inputObs.value.toUpperCase();
