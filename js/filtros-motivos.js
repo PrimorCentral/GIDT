@@ -189,16 +189,16 @@
   });
 
   async function guardarIncidencia(tiendaId, tr) {
-    const motivo = tr.querySelector('.i-motivo').value;
+    const motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
     const observaciones = tr.querySelector('.i-obs').value.trim().toUpperCase();
-    const marcada = motivo !== '';
-    const tipo = calcularTipo(motivo);
+    const marcada = motivos.length > 0;
+    const tipo = calcularTipo(motivos);
 
     try {
       const { error } = await sb.from('incidencias').upsert({
         informe_id: informeHoyCache.id,
         tienda_id: tiendaId,
-        marcada, tipo, motivo, observaciones,
+        marcada, tipo, motivo: motivos, observaciones,
         usuario: sesionActual?.nombre || sesionActual?.usuario || null,
         actualizado_en: new Date().toISOString()
       }, { onConflict: 'informe_id,tienda_id' });
@@ -223,9 +223,9 @@
   // reconstruir el acordeón entero, para no perder el desplegado/scroll.
   function actualizarFilaIncidencia(tiendaId, tr) {
     const inc = incidenciaDeTienda(tiendaId);
-    const motivoActual = inc?.motivo || '';
-    const marcada = motivoActual !== '';
-    const tipoCalc = calcularTipo(motivoActual);
+    const motivosActuales = inc?.motivo || [];
+    const marcada = motivosActuales.length > 0;
+    const tipoCalc = calcularTipo(motivosActuales);
     const esPendiente = marcada && !tipoCalc;
     const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
 
@@ -238,6 +238,11 @@
         ? '<span class="pill pendiente">Pendiente</span>'
         : `<span class="pill ${tipoCalc.toLowerCase()}">${tipoCalc.charAt(0)+tipoCalc.slice(1).toLowerCase()}</span>`;
     tr.querySelector('.col-tipo').innerHTML = badgeTipo;
+
+    // Etiqueta del desplegable de motivos (el desplegable en sí se deja abierto
+    // si el usuario lo tenía abierto, para poder seguir marcando varios motivos seguidos).
+    const valorEl = tr.querySelector('.motivo-select-valor');
+    if (valorEl) valorEl.textContent = resumenMotivos(motivosActuales);
 
     const bloque = tr.closest('.agencia-block');
     if (bloque) {
@@ -295,20 +300,33 @@
   const RE_MODERADO = /rotura confirmada|palets sin vigilancia|mezclan fechas|retraso importante|adelantan entrega|incompleto/i;
   const RE_LEVE = /rotura sin incidencia|rotura almacen|retraso leve|descarga manual|palets no retirados/i;
 
-  function calcularTipo(motivo) {
-    if (!motivo) return null;
-    if (RE_GRAVE.test(motivo)) return 'GRAVE';
-    if (RE_MODERADO.test(motivo)) return 'MODERADO';
-    if (RE_LEVE.test(motivo)) return 'LEVE';
+  // Calcula el tipo (GRAVE/MODERADO/LEVE/null) a partir de uno o varios motivos.
+  // Si hay varios motivos seleccionados, se queda con el más grave de todos.
+  function calcularTipo(motivos) {
+    const arr = Array.isArray(motivos) ? motivos : (motivos ? [motivos] : []);
+    if (!arr.length) return null;
+    if (arr.some(m => RE_GRAVE.test(m))) return 'GRAVE';
+    if (arr.some(m => RE_MODERADO.test(m))) return 'MODERADO';
+    if (arr.some(m => RE_LEVE.test(m))) return 'LEVE';
     return null; // motivos "pendientes" (RETRASO PDTE CONFIRMAR / REVISANDO POSIBLE INCIDENCIA)
   }
 
-  function opcionesMotivoHtml(seleccionado) {
-    let html = `<option value="">— Sin incidencia —</option>`;
-    html += MOTIVOS.map(m =>
-      `<option value="${m.v}" ${m.v === seleccionado ? 'selected' : ''}>${m.v}</option>`
-    ).join('');
-    return html;
+  // Texto corto que se muestra en el botón del desplegable de motivos de cada fila.
+  function resumenMotivos(motivos) {
+    const arr = motivos || [];
+    if (!arr.length) return '— Sin incidencia —';
+    if (arr.length === 1) return arr[0].charAt(0) + arr[0].slice(1).toLowerCase();
+    return `${arr.length} motivos seleccionados`;
+  }
+
+  // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
+  function motivosChecklistHtml(seleccionados) {
+    const sel = seleccionados || [];
+    return MOTIVOS.map(m => `
+      <label class="filtro-check">
+        <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}" ${sel.includes(m.v) ? 'checked' : ''}>
+        <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
+      </label>`).join('');
   }
 
   // ---------------------------------------------------------------

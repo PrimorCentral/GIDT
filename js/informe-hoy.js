@@ -213,7 +213,7 @@
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
             <td class="col-tienda">${escapeHtml(t.nombre || '—')}</td>
             <td class="col-tipo">${badgeTipo}</td>
-            <td class="col-motivo">${escapeHtml(inc.motivo || '')}</td>
+            <td class="col-motivo">${escapeHtml((inc.motivo || []).join(', '))}</td>
             <td class="col-obs">${escapeHtml(inc.observaciones || '')}</td>
           </tr>`;
       }).join('');

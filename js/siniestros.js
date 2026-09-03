@@ -3,6 +3,15 @@
   const MOTIVOS_SINIESTRO = { 'FALTAS': 'FALTA', 'ROTURA CONFIRMADA': 'ROTURA' };
   let siniestrosHoyCache = []; // [{ id, tipo, estado, fotos, fecha_limite, incidencia:{...,tiendas:{...,agencias:{...}}} }]
 
+  // A partir del array de motivos de una incidencia, decide si genera un siniestro
+  // de tipo FALTA o ROTURA (si ambos motivos están presentes, prioriza FALTA por ser más grave).
+  function tipoSiniestroDeMotivos(motivos) {
+    const arr = motivos || [];
+    if (arr.includes('FALTAS')) return 'FALTA';
+    if (arr.includes('ROTURA CONFIRMADA')) return 'ROTURA';
+    return null;
+  }
+
   async function renderVistaSiniestros() {
     const cont = document.getElementById('contenidoSiniestros');
     if (!informeHoyCache) {
@@ -20,7 +29,7 @@
     cont.innerHTML = `<div class="card"><div class="empty"><p>Buscando roturas y faltas de hoy…</p></div></div>`;
 
     try {
-      // 1. Incidencias de hoy cuyo motivo es FALTAS o ROTURA CONFIRMADA
+      // 1. Incidencias de hoy cuyo motivo incluye FALTAS o ROTURA CONFIRMADA
       const { data: incs, error: e1 } = await sb
         .from('incidencias')
         .select(`
@@ -30,7 +39,7 @@
           )
         `)
         .eq('informe_id', informeHoyCache.id)
-        .in('motivo', Object.keys(MOTIVOS_SINIESTRO));
+        .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
       if (e1) throw e1;
 
       if (!incs.length) {
@@ -66,7 +75,7 @@
 
         const nuevos = faltantes.map(i => ({
           incidencia_id: i.id,
-          tipo: MOTIVOS_SINIESTRO[i.motivo],
+          tipo: tipoSiniestroDeMotivos(i.motivo),
           estado: 'PENDIENTE',
           fecha_limite: fechaLimiteISO
         }));
@@ -247,7 +256,7 @@
 
     const asunto = `RECLAMACIÓN ${s.tipo === 'ROTURA' ? 'ROTURA' : 'FALTA'} – ${t.nombre} – ${informeHoyCache.fecha}`;
     let cuerpo = `Buenas,\n\nLes informamos de la siguiente incidencia registrada en el reparto de hoy (${informeHoyCache.fecha}):\n\n` +
-      `Tienda: ${t.nombre}\nMotivo: ${s.incidencia.motivo}\n` +
+      `Tienda: ${t.nombre}\nMotivo: ${(s.incidencia.motivo || []).join(', ')}\n` +
       (s.incidencia.observaciones ? `Observaciones: ${s.incidencia.observaciones}\n` : '') +
       `Fecha límite de reclamación: ${s.fecha_limite ? new Date(s.fecha_limite+'T00:00:00').toLocaleDateString('es-ES') : ''}\n`;
     if ((s.fotos || []).length) {

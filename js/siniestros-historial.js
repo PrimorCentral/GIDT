@@ -50,7 +50,7 @@
           )
         `)
         .eq('informe_id', informe.id)
-        .in('motivo', Object.keys(MOTIVOS_SINIESTRO));
+        .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
       if (eInc) throw eInc;
 
       if (!incs.length) {
@@ -262,14 +262,14 @@
       if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias) {
         tds = tds.filter(t => {
           const inc = incidenciaDeTienda(t.id);
-          const motivoActual = inc?.motivo || '';
-          const marcada = motivoActual !== '';
-          const tipoCalc = calcularTipo(motivoActual);
+          const motivosActuales = inc?.motivo || [];
+          const marcada = motivosActuales.length > 0;
+          const tipoCalc = calcularTipo(motivosActuales);
           const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
 
           if (filtrosIncidencias.soloConIncidencias && !marcada) return false;
           if (filtrosIncidencias.tipos.size && (!tipoEfectivo || !filtrosIncidencias.tipos.has(tipoEfectivo))) return false;
-          if (filtrosIncidencias.motivos.size && !filtrosIncidencias.motivos.has(motivoActual)) return false;
+          if (filtrosIncidencias.motivos.size && !motivosActuales.some(m => filtrosIncidencias.motivos.has(m))) return false;
           return true;
         });
       }
@@ -280,9 +280,9 @@
 
       const filas = tds.map(t => {
         const inc = incidenciaDeTienda(t.id);
-        const motivoActual = inc?.motivo || '';
-        const marcada = motivoActual !== '';
-        const tipoCalc = calcularTipo(motivoActual);
+        const motivosActuales = inc?.motivo || [];
+        const marcada = motivosActuales.length > 0;
+        const tipoCalc = calcularTipo(motivosActuales);
         const esPendiente = marcada && !tipoCalc;
         const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
 
@@ -299,7 +299,15 @@
             <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}</td>
             <td class="col-tipo">${badgeTipo}</td>
             <td class="col-motivo">
-              <select class="form-input i-motivo">${opcionesMotivoHtml(motivoActual)}</select>
+              <div class="motivo-select">
+                <button type="button" class="filtro-select-btn">
+                  <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="filtro-select-dropdown">
+                  <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
+                </div>
+              </div>
             </td>
             <td class="col-obs"><input type="text" class="form-input i-obs" placeholder="Observaciones…" value="${escapeHtml(inc?.observaciones || '')}"></td>
           </tr>`;
@@ -337,18 +345,36 @@
 
     cont.querySelectorAll('tr[data-tienda]').forEach(tr => {
       const tiendaId = Number(tr.dataset.tienda);
-      const selectMotivo = tr.querySelector('.i-motivo');
       const inputObs = tr.querySelector('.i-obs');
 
       const guardar = () => guardarIncidencia(tiendaId, tr);
-      selectMotivo.addEventListener('change', guardar);
+      tr.querySelectorAll('.i-motivo-check').forEach(cb => cb.addEventListener('change', guardar));
       inputObs.addEventListener('input', () => {
         const pos = inputObs.selectionStart;
         inputObs.value = inputObs.value.toUpperCase();
         inputObs.setSelectionRange(pos, pos);
       });
       inputObs.addEventListener('blur', guardar);
+
+      // Abrir/cerrar el desplegable de motivos de esta fila (sin cerrar al marcar checkboxes)
+      const motivoSel = tr.querySelector('.motivo-select');
+      if (motivoSel) {
+        const btn = motivoSel.querySelector('.filtro-select-btn');
+        const dropdown = motivoSel.querySelector('.filtro-select-dropdown');
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const yaAbierto = motivoSel.classList.contains('open');
+          document.querySelectorAll('.motivo-select.open').forEach(o => { if (o !== motivoSel) o.classList.remove('open'); });
+          motivoSel.classList.toggle('open', !yaAbierto);
+        });
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+      }
     });
   }
+
+  // Cierra cualquier desplegable de motivos abierto al hacer clic fuera
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
+  });
 
   // ---------------------------------------------------------------
