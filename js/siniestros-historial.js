@@ -299,17 +299,15 @@
             <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}</td>
             <td class="col-tipo">${badgeTipo}</td>
                         <td class="col-motivo">
-              <div class="motivo-celda">
-                <div class="motivo-select">
-                  <button type="button" class="filtro-select-btn">
-                    <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                  <div class="filtro-select-dropdown">
-                    <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
-                  </div>
-                </div>
+              <div class="motivo-select">
+                <button type="button" class="filtro-select-btn">
+                  <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
                 <button type="button" class="mini-btn btn-borrar-motivos" title="Quitar todos los motivos" style="${marcada ? '' : 'display:none;'}">🗑️</button>
+                <div class="filtro-select-dropdown">
+                  <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
+                </div>
               </div>
             </td>
             <td class="col-obs"><input type="text" class="form-input i-obs" placeholder="Observaciones…" value="${escapeHtml(inc?.observaciones || '')}" ${marcada ? '' : 'disabled'}></td>
