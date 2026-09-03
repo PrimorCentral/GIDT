@@ -18,15 +18,154 @@
       return;
     }
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando siniestros del ${fecha}…</p></div></div>`;
-    // TODO: conectar con Supabase en cuanto exista la tabla de siniestros.
-    cont.innerHTML = `
-      <div class="card">
-        <div class="empty">
-          <div class="glyph">🚧</div>
-          <h3>Consulta pendiente de conectar</h3>
-          <p>La búsqueda de siniestros del ${fecha} está lista en la interfaz; falta conectarla con Supabase (todavía no existe el módulo de Siniestros).</p>
+
+    try {
+      // 1. Informe diario de esa fecha
+      const { data: informe, error: eInf } = await sb
+        .from('informes_diarios')
+        .select('id, fecha')
+        .eq('fecha', fecha)
+        .maybeSingle();
+      if (eInf) throw eInf;
+
+      if (!informe) {
+        cont.innerHTML = `
+          <div class="card">
+            <div class="empty">
+              <div class="glyph">🕓</div>
+              <h3>Sin informe ese día</h3>
+              <p>No se generó ningún informe diario para el ${fecha}, así que no puede haber siniestros.</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      // 2. Incidencias de ese informe cuyo motivo es FALTAS o ROTURA CONFIRMADA
+      const { data: incs, error: eInc } = await sb
+        .from('incidencias')
+        .select(`
+          id, motivo, observaciones,
+          tiendas ( id, nombre, hora_prevista,
+            agencias ( id, nombre )
+          )
+        `)
+        .eq('informe_id', informe.id)
+        .in('motivo', Object.keys(MOTIVOS_SINIESTRO));
+      if (eInc) throw eInc;
+
+      if (!incs.length) {
+        cont.innerHTML = `
+          <div class="card">
+            <div class="empty">
+              <div class="glyph">✅</div>
+              <h3>Sin roturas ni faltas ese día</h3>
+              <p>No se detectó ninguna tienda con "FALTAS" o "ROTURA CONFIRMADA" el ${fecha}.</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      // 3. Filas de siniestros asociadas a esas incidencias
+      const idsIncidencias = incs.map(i => i.id);
+      const { data: sins, error: eSin } = await sb
+        .from('siniestros')
+        .select('id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por')
+        .in('incidencia_id', idsIncidencias);
+      if (eSin) throw eSin;
+
+      const sinPorIncidencia = new Map(sins.map(s => [s.incidencia_id, s]));
+
+      // Combinamos: solo incidencias que ya tienen su fila de siniestro creada
+      const combinados = incs
+        .filter(i => sinPorIncidencia.has(i.id))
+        .map(i => ({ ...sinPorIncidencia.get(i.id), incidencia: i }));
+
+      renderHistorialSiniestros(informe, combinados);
+    } catch (err) {
+      console.error('Error cargando historial de siniestros:', err);
+      cont.innerHTML = `
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">⚠️</div>
+            <h3>Error al cargar</h3>
+            <p>No se pudo consultar los siniestros de ese día.</p>
+          </div>
+        </div>`;
+    }
+  }
+
+  function renderHistorialSiniestros(informe, siniestros) {
+    const cont = document.getElementById('contenidoHistorialSiniestros');
+    const fechaTexto = new Date(informe.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
+      weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+
+    if (!siniestros.length) {
+      cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px; padding:16px 20px;">
+          <b style="text-transform:capitalize;">${fechaTexto}</b>
         </div>
-      </div>`;
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">✅</div>
+            <h3>Sin siniestros registrados</h3>
+            <p>No hay roturas ni faltas con seguimiento ese día.</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const pendientes = siniestros.filter(s => s.estado === 'PENDIENTE').length;
+    const enviados = siniestros.length - pendientes;
+
+    // Agrupar por agencia
+    const porAgencia = {};
+    siniestros.forEach(s => {
+      const ag = s.incidencia.tiendas?.agencias;
+      const agId = ag?.id ?? 'sin-agencia';
+      if (!porAgencia[agId]) porAgencia[agId] = { nombre: ag?.nombre || 'Sin agencia', filas: [] };
+      porAgencia[agId].filas.push(s);
+    });
+
+    const tarjeta = (s) => {
+      const t = s.incidencia.tiendas || {};
+      const numFotos = (s.fotos || []).length;
+      return `
+        <div class="siniestro-card" style="cursor:default;">
+          <div class="fila-top">
+            <b>${escapeHtml(t.nombre || '—')}</b>
+            <span class="badge-envio ${s.estado === 'ENVIADO' ? 'enviado' : 'pendiente'}">${s.estado === 'ENVIADO' ? 'Enviado' : 'Pendiente'}</span>
+          </div>
+          <div class="agencia">
+            <span class="pill ${s.tipo === 'ROTURA' ? 'grave' : 'moderado'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
+            · ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}
+          </div>
+          ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
+          <div class="fotos-mini">📷 ${numFotos} foto${numFotos===1?'':'s'}</div>
+          ${s.estado === 'ENVIADO'
+            ? `<div class="fotos-mini">✉️ Enviado ${s.enviado_en ? new Date(s.enviado_en).toLocaleString('es-ES') : ''}${s.enviado_por ? ' · ' + escapeHtml(s.enviado_por) : ''}</div>`
+            : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? new Date(s.fecha_limite+'T00:00:00').toLocaleDateString('es-ES') : '—'}</div>`}
+        </div>`;
+    };
+
+    const bloques = Object.values(porAgencia).map(grupo => `
+      <div class="agencia-block">
+        <div class="agencia-head open" style="cursor:default;">
+          <b>${escapeHtml(grupo.nombre)}</b>
+          <span class="count">${grupo.filas.length} siniestro${grupo.filas.length===1?'':'s'}</span>
+        </div>
+        <div class="agencia-body open" style="padding:14px 16px;">
+          ${grupo.filas.map(tarjeta).join('')}
+        </div>
+      </div>`).join('');
+
+    cont.innerHTML = `
+      <div class="card" style="margin-bottom:14px; padding:16px 20px;">
+        <b style="text-transform:capitalize;">${fechaTexto}</b>
+        · <span style="color:var(--grave); font-weight:700;">${pendientes} pendiente${pendientes===1?'':'s'}</span>
+        · <span style="color:var(--ok); font-weight:700;">${enviados} enviado${enviados===1?'':'s'}</span>
+      </div>
+      ${bloques}`;
   }
 
   async function renderVistaIncidencias() {
