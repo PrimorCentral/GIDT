@@ -381,12 +381,12 @@
             const { error: eInc } = await sb.from('incidencias').delete().eq('id', inc.id);
             if (eInc) throw eInc;
 
-            tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
+                       tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
             inputObs.value = '';
             inputObs.disabled = true;
-            btnBorrarMotivos.style.display = 'none';
 
             await cargarIncidenciasHoy();
+            actualizarFilaIncidencia(tiendaId, tr);
             actualizarKpiIncidencias();
 
             // Si la vista de Siniestros ya se había cargado, refrescamos su caché y KPI
