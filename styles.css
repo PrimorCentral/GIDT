@@ -506,6 +506,14 @@
   .filtro-check .pill{ margin:0; pointer-events:none; }
   .filtro-check.oculto{ display:none; }
 
+  /* ---------- Desplegable de motivos (multi-selección) en Informe del día ---------- */
+  .motivo-select{ position:relative; }
+  .motivo-select .filtro-select-btn{ padding:6px 10px; font-size:12.5px; }
+  .motivo-select .filtro-select-dropdown{ min-width:220px; }
+  .motivo-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
+  .motivo-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
+  .motivo-select.open .filtro-select-dropdown{ display:block; }
+
   /* ---------- Modal (sustituye alert / confirm / prompt) ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:300;
