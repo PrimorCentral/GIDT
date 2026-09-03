@@ -406,12 +406,12 @@
   table.tabla-incidencias tr.con-incidencia.moderado{ background:var(--moderado-bg); }
   table.tabla-incidencias tr.con-incidencia.pendiente td{ background:#FFFDF4; border-bottom:2px solid #F0C420; }
   .pill.pendiente{ background:#FDE2DD; color:#B23A28; }
-  table.tabla-incidencias col.cg-estado{ width:34px; }
-  table.tabla-incidencias col.cg-hora{ width:60px; }
-  table.tabla-incidencias col.cg-tienda{ width:150px; }
-  table.tabla-incidencias col.cg-tipo{ width:130px; }
-  table.tabla-incidencias col.cg-motivo{ width:290px; }
-  table.tabla-incidencias col.cg-obs{ width:auto; }
+ table.tabla-incidencias col.cg-estado{ width:34px; }
+table.tabla-incidencias col.cg-hora{ width:60px; }
+table.tabla-incidencias col.cg-tienda{ width:150px; }
+table.tabla-incidencias col.cg-tipo{ width:130px; }
+table.tabla-incidencias col.cg-motivo{ width:460px; }
+table.tabla-incidencias col.cg-obs{ width:auto; }
   table.tabla-incidencias td.col-hora{ color:var(--ink-soft); font-family:var(--font-mono); font-size:12px; white-space:nowrap; }
   table.tabla-incidencias td.col-tienda{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .marca-badge{
