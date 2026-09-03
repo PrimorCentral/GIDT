@@ -515,6 +515,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   position:absolute; top:50%; right:24px; transform:translateY(-50%);
   padding:2px 3px; font-size:11.5px; line-height:1; z-index:2;
   }
+  .motivo-select .btn-borrar-motivos{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
+  .motivo-select .btn-borrar-motivos:hover{ color:var(--grave); }
   .motivo-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
   .motivo-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
   .motivo-select.open .filtro-select-dropdown{ display:block; }
