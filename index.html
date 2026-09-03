@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#12181F">
+<title>GIDT · Gestión de Incidencias de Transporte</title>
+<link rel="manifest" href="manifest.json">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="mark">GT</div>
+    <h2>GIDT</h2>
+    <p class="sub">Gestión de Incidencias de Transporte</p>
+
+    <label for="loginUsuario">Usuario</label>
+    <input id="loginUsuario" type="text" inputmode="numeric" autocomplete="username" placeholder="Usuario">
+
+    <label for="loginPin">PIN</label>
+    <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" maxlength="10">
+
+    <button id="btnLogin">Entrar</button>
+    <p class="err" id="loginErr">Usuario incorrecto.</p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+
+  <header class="top">
+    <div class="mark">GT</div>
+    <span class="app-name">GIDT</span>
+
+    <nav class="tabs">
+      <div class="tabs-scroll">
+        <button class="tab-btn active" data-view="inicio">🏠 Inicio</button>
+        <button class="tab-btn" id="btnInformesDropdown">📋 Informes diarios<span class="dot" id="dotIncidencias"></span><span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnSiniestrosDropdown">📦 Siniestros<span class="dot" id="dotSiniestros"></span><span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnConfigDropdown">⚙️ Configuración<span class="caret">▾</span></button>
+        <button class="tab-btn" data-view="analisis">📈 Análisis</button>
+      </div>
+      <div class="dropdown" id="informesDropdown">
+        <button data-view="incidencias">📅 Informe del día</button>
+        <button data-view="historial-informes">🕓 Historial de informes</button>
+      </div>
+      <div class="dropdown" id="siniestrosDropdown">
+        <button data-view="siniestros">📦 Siniestros del día</button>
+        <button data-view="historial-siniestros">🕓 Historial de siniestros</button>
+      </div>
+      <div class="dropdown" id="configDropdown">
+        <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
+        <button data-view="config-emails">✉️ Emails por agencia</button>
+        <button data-view="config-usuarios">👤 Usuarios</button>
+      </div>
+    </nav>
+
+    <div class="status" id="statusWrap" title="Conectando…"><i></i><span id="statusText" style="display:none;">Conectando…</span></div>
+    <div class="user-chip" id="userChip" title="Cerrar sesión">👤 <span id="userChipName">—</span> · Salir</div>
+  </header>
+
+  <main>
+
+    <!-- ============ INICIO ============ -->
+    <section class="view active" id="view-inicio">
+      <div class="page-head">
+        <div>
+          <h1>Inicio</h1>
+          <p id="fechaHoyTexto">—</p>
+        </div>
+        <button class="btn primary" id="btnNuevoInforme">📝 Nuevo informe de hoy</button>
+      </div>
+
+      <div class="grid-kpi">
+        <div class="kpi"><b id="kpiAgencias">—</b><span>Agencias activas</span></div>
+        <div class="kpi"><b id="kpiTiendas">—</b><span>Tiendas totales</span></div>
+        <div class="kpi warn"><b id="kpiIncidenciasHoy">—</b><span>Incidencias de hoy</span></div>
+        <div class="kpi"><b id="kpiSiniestrosPend">—</b><span>Siniestros pendientes de envio</span></div>
+      </div>
+
+      <div class="card" id="cardEstadoInforme">
+        <div class="empty">
+          <div class="glyph">📋</div>
+          <h3>Cargando estado del informe…</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INCIDENCIAS ============ -->
+    <section class="view" id="view-incidencias">
+      <div class="page-head">
+        <div class="informe-titulo-row">
+          <h1 class="informe-titulo">Informe del día<span class="informe-titulo-fecha" id="informeTituloFecha"></span></h1>
+          <span class="badge-palets" id="badgePaletsPrevistos" style="display:none;">
+            <span id="badgePaletsTexto">—</span>
+            <button class="badge-palets-editar" id="btnEditarPalets" title="Editar palets previstos" aria-label="Editar palets previstos">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </span>
+        </div>
+        <div class="incidencias-toolbar" id="incidenciasToolbar" style="display:none;">
+          <div class="filtros-wrap">
+            <button class="btn" id="btnFiltrosIncidencias">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="filtrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="filtrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar incidencias</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                  <div class="filtros-grid">
+                    <div class="filtro-campo filtros-span2">
+                      <label>Agencia</label>
+                      <div class="filtro-select" data-grupo="agencia">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-search">
+                            <input type="text" placeholder="Buscar agencia…">
+                          </div>
+                          <div class="filtro-select-lista" id="filtrosAgenciasLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Tipo</label>
+                      <div class="filtro-select" data-grupo="tipo">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-lista" id="filtrosTiposLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Motivo</label>
+                      <div class="filtro-select" data-grupo="motivo">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-search">
+                            <input type="text" placeholder="Buscar motivo…">
+                          </div>
+                          <div class="filtro-select-lista" id="filtrosMotivosLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo filtros-span2">
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="filtroSoloConIncidencias">
+                        <span>Solo con incidencias</span>
+                      </label>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+          <input type="text" id="buscarTiendaIncidencias" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
+        </div>
+      </div>
+      <div id="contenidoIncidencias">
+        <div class="card">
+          <div class="empty"><p>Cargando…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORIAL DE INFORMES DIARIOS ============ -->
+    <section class="view" id="view-historial-informes">
+      <div class="page-head" style="align-items:center; margin-bottom:14px;">
+        <div>
+          <h1 style="margin-bottom:2px;">🕓 Historial de informes diarios</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
+          <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
+        </div>
+      </div>
+      <div id="contenidoHistorial">
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">🕓</div>
+            <h3>Elige una fecha</h3>
+            <p>Selecciona un día en el calendario para consultar el informe y las incidencias registradas ese día.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SINIESTROS ============ -->
+    <section class="view" id="view-siniestros">
+      <div class="page-head">
+        <div>
+          <h1>📦 Siniestros del día</h1>
+          <p>Roturas confirmadas y faltas detectadas hoy, pendientes de reclamar a la agencia.</p>
+        </div>
+      </div>
+      <div id="contenidoSiniestros">
+        <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORIAL DE SINIESTROS ============ -->
+    <section class="view" id="view-historial-siniestros">
+      <div class="page-head" style="align-items:center; margin-bottom:14px;">
+        <div>
+          <h1 style="margin-bottom:2px;">🕓 Historial de siniestros</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="date" id="historialSiniestrosFechaInput" class="form-input" style="width:150px;">
+          <button class="btn primary" id="btnBuscarHistorialSiniestros">Consultar</button>
+        </div>
+      </div>
+      <div id="contenidoHistorialSiniestros">
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">🕓</div>
+            <h3>Elige una fecha</h3>
+            <p>Selecciona un día en el calendario para consultar los siniestros registrados ese día.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: TIENDAS ============ -->
+    <section class="view" id="view-config-tiendas">
+      <div class="page-head">
+        <div>
+          <h1>🏪 Gestión de tiendas</h1>
+          <p>Alta, baja y reordenación por agencia.</p>
+        </div>
+        <button class="btn primary" id="btnNuevaTienda">➕ Nueva tienda</button>
+      </div>
+
+      <div class="card" id="formNuevaTienda" style="display:none; padding:18px 20px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
+          <div>
+            <label class="form-label">Nombre tienda</label>
+            <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
+          </div>
+          <div>
+            <label class="form-label">Agencia</label>
+            <select id="ntAgencia" class="form-input"></select>
+          </div>
+          <div>
+            <label class="form-label">Hora prevista</label>
+            <input type="time" id="ntHora" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Marca</label>
+            <select id="ntMarca" class="form-input">
+              <option value="HABITUAL">Habitual</option>
+              <option value="SABADO">Sábado</option>
+              <option value="PRUEBA">Prueba</option>
+              <option value="ESPECIAL">Especial</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn primary" id="btnGuardarTienda">Guardar tienda</button>
+          <button class="btn" id="btnCancelarTienda">Cancelar</button>
+        </div>
+        <p class="err" id="ntError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+      </div>
+
+      <div id="acordeonAgencias"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: EMAILS ============ -->
+    <section class="view" id="view-config-emails">
+      <div class="page-head">
+        <div>
+          <h1>✉️ Emails por agencia</h1>
+          <p>Destinatarios de los informes e incidencias.</p>
+        </div>
+      </div>
+
+      <div id="listaEmailsAgencias"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
+    <section class="view" id="view-config-usuarios">
+      <div class="page-head">
+        <div>
+          <h1>👤 Usuarios</h1>
+          <p>Alta y gestión de accesos al sistema.</p>
+        </div>
+        <button class="btn primary" id="btnNuevoUsuario">➕ Nuevo usuario</button>
+      </div>
+
+      <div class="card" id="formNuevoUsuario" style="display:none; padding:18px 20px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
+          <div>
+            <label class="form-label">Nombre</label>
+            <input type="text" id="nuNombre" class="form-input" placeholder="Nombre y apellidos">
+          </div>
+          <div>
+            <label class="form-label">Usuario</label>
+            <input type="text" id="nuUsuario" class="form-input" placeholder="Usuario" inputmode="numeric">
+          </div>
+          <div>
+            <label class="form-label">PIN</label>
+            <input type="password" id="nuPin" class="form-input" placeholder="••••" maxlength="10">
+          </div>
+          <div>
+            <label class="form-label">Rol</label>
+            <select id="nuRol" class="form-input">
+              <option value="operador">Operador</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn primary" id="btnGuardarUsuario">Guardar usuario</button>
+          <button class="btn" id="btnCancelarUsuario">Cancelar</button>
+        </div>
+        <p class="err" id="nuError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Última conexión</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tablaUsuariosBody">
+            <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando usuarios…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ ANÁLISIS ============ -->
+    <section class="view" id="view-analisis">
+      <div class="page-head">
+        <div>
+          <h1>📈 Análisis</h1>
+          <p>Incidencias mensuales, tiendas y agencias con más incidencias.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="empty">
+          <div class="glyph">🚧</div>
+          <h3>En construcción</h3>
+          <p>Aquí irán las estadísticas: incidencias por mes, top de tiendas y agencias, y consultas por rango de fechas.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="build-note">GIDT v0.1 · esqueleto inicial</footer>
+  </main>
+</div>
+
+<!-- Modal genérico (reemplaza alert / confirm / prompt nativos) -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-icon" id="modalIcon" style="display:none;"></div>
+    <h3 class="modal-title" id="modalTitle"></h3>
+    <p class="modal-message" id="modalMessage"></p>
+    <input type="text" class="form-input modal-input" id="modalInput" style="display:none;">
+    <div class="modal-footer">
+      <button class="btn" id="modalBtnCancel">Cancelar</button>
+      <button class="btn primary" id="modalBtnOk">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de detalle de siniestro (fotos + envío) -->
+<div class="modal-overlay" id="siniestroModalOverlay">
+  <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarSiniestroModal" style="position:absolute; right:16px; top:16px;">✕</button>
+    <span class="pill" id="siniestroModalTipo" style="margin-bottom:8px;"></span>
+    <h3 class="modal-title" id="siniestroModalTitulo"></h3>
+    <p class="modal-message" id="siniestroModalInfo"></p>
+
+    <div class="siniestro-fotos-grid" id="siniestroFotosGrid"></div>
+
+    <label class="btn" style="width:100%; justify-content:center; margin-top:4px; cursor:pointer;">
+      📷 Añadir fotos
+      <input type="file" id="siniestroFotosInput" accept="image/*" multiple style="display:none;">
+    </label>
+    <p class="err" id="siniestroFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin:8px 0 0;"></p>
+
+    <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
+      <span id="siniestroModalEstado" style="font-size:12.5px; color:var(--ink-soft);"></span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="btnReabrirSiniestro" style="display:none;">Reabrir</button>
+        <button class="btn primary" id="btnEnviarSiniestro">✉️ Marcar como enviado</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase JS client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui-modal.js"></script>
+<script src="js/navegacion.js"></script>
+<script src="js/usuarios.js"></script>
+<script src="js/tiendas.js"></script>
+<script src="js/emails.js"></script>
+<script src="js/informe-hoy.js"></script>
+<script src="js/siniestros-historial.js"></script>
+<script src="js/filtros-motivos.js"></script>
+<script src="js/siniestros.js"></script>
+
+</body>
+</html>
