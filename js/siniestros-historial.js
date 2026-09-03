@@ -360,14 +360,47 @@
         guardar();
       }));
 
-            if (btnBorrarMotivos) {
-        btnBorrarMotivos.addEventListener('click', (e) => {
+                  if (btnBorrarMotivos) {
+        btnBorrarMotivos.addEventListener('click', async (e) => {
           e.stopPropagation();
-          tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
-          inputObs.value = '';
-          inputObs.disabled = true;
-          btnBorrarMotivos.style.display = 'none';
-          guardar();
+          const inc = incidenciaDeTienda(tiendaId);
+          if (!inc) return; // no había fila en Supabase, nada que borrar
+
+          const ok = await modalConfirm(
+            '¿Eliminar por completo esta incidencia? Si tiene un siniestro asociado (rotura/falta), también se eliminará.',
+            { titulo: 'Eliminar incidencia', danger: true, textoOk: 'Eliminar' }
+          );
+          if (!ok) return;
+
+          try {
+            // 1. Si tenía siniestro asociado, se borra primero (por la FK incidencia_id)
+            const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', inc.id);
+            if (eSin) throw eSin;
+
+            // 2. Borramos la incidencia
+            const { error: eInc } = await sb.from('incidencias').delete().eq('id', inc.id);
+            if (eInc) throw eInc;
+
+            tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
+            inputObs.value = '';
+            inputObs.disabled = true;
+            btnBorrarMotivos.style.display = 'none';
+
+            await cargarIncidenciasHoy();
+            actualizarKpiIncidencias();
+
+            // Si la vista de Siniestros ya se había cargado, refrescamos su caché y KPI
+            if (typeof siniestrosHoyCache !== 'undefined') {
+              siniestrosHoyCache = siniestrosHoyCache.filter(s => s.incidencia.id !== inc.id);
+              if (typeof actualizarKpiSiniestros === 'function') actualizarKpiSiniestros();
+              if (document.getElementById('view-siniestros')?.classList.contains('active')) {
+                renderKanbanSiniestros();
+              }
+            }
+          } catch (err) {
+            console.error('Error eliminando incidencia:', err);
+            await modalAlert('No se pudo eliminar la incidencia.', { titulo: 'Error' });
+          }
         });
       }
       inputObs.addEventListener('input', () => {
