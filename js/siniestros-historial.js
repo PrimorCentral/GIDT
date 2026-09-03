@@ -360,10 +360,11 @@
         guardar();
       }));
 
-      if (btnBorrarMotivos) {
+            if (btnBorrarMotivos) {
         btnBorrarMotivos.addEventListener('click', (e) => {
           e.stopPropagation();
           tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
+          inputObs.value = '';
           inputObs.disabled = true;
           btnBorrarMotivos.style.display = 'none';
           guardar();
