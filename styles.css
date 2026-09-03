@@ -507,19 +507,24 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .filtro-check.oculto{ display:none; }
 
   /* ---------- Desplegable de motivos (multi-selección) en Informe del día ---------- */
-  .motivo-select{ position:relative; }
-  .motivo-select .filtro-select-btn{ padding:6px 10px; font-size:12.5px; }
-  .motivo-select .filtro-select-dropdown{ min-width:220px; }
-  .motivo-select .filtro-select-btn{ padding-right:34px; }
-  .motivo-select .btn-borrar-motivos{
-  position:absolute; top:50%; right:24px; transform:translateY(-50%);
-  padding:2px 3px; font-size:11.5px; line-height:1; z-index:2;
+    .motivo-select{
+    position:relative; display:flex; align-items:center;
+    border:1px solid var(--border); border-radius:9px; background:#fff;
   }
-  .motivo-select .btn-borrar-motivos{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
-  .motivo-select .btn-borrar-motivos:hover{ color:var(--grave); }
-  .motivo-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
+  .motivo-select .filtro-select-btn{
+    flex:1; min-width:0; border:0; background:transparent;
+    padding:6px 6px 6px 10px; font-size:12.5px;
+  }
+  .motivo-select .filtro-select-dropdown{ min-width:220px; }
+  .motivo-select.open{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
   .motivo-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
   .motivo-select.open .filtro-select-dropdown{ display:block; }
+  .motivo-select .btn-borrar-motivos{
+    flex:0 0 auto; padding:4px 8px 4px 4px; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent; border:0; color:var(--ink-soft);
+  }
+  .motivo-select .btn-borrar-motivos:hover{ color:var(--grave); background:var(--panel-muted); border-radius:5px; }
 
   /* ---------- Modal (sustituye alert / confirm / prompt) ---------- */
   .modal-overlay{
