@@ -298,15 +298,18 @@
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
             <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}</td>
             <td class="col-tipo">${badgeTipo}</td>
-            <td class="col-motivo">
-              <div class="motivo-select">
-                <button type="button" class="filtro-select-btn">
-                  <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <div class="filtro-select-dropdown">
-                  <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
+                        <td class="col-motivo">
+              <div class="motivo-celda">
+                <div class="motivo-select">
+                  <button type="button" class="filtro-select-btn">
+                    <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="filtro-select-dropdown">
+                    <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
+                  </div>
                 </div>
+                <button type="button" class="mini-btn btn-borrar-motivos" title="Quitar todos los motivos" style="${marcada ? '' : 'display:none;'}">🗑️</button>
               </div>
             </td>
             <td class="col-obs"><input type="text" class="form-input i-obs" placeholder="Observaciones…" value="${escapeHtml(inc?.observaciones || '')}" ${marcada ? '' : 'disabled'}></td>
@@ -347,11 +350,25 @@
       const tiendaId = Number(tr.dataset.tienda);
       const inputObs = tr.querySelector('.i-obs');
 
-      const guardar = () => guardarIncidencia(tiendaId, tr);
+            const guardar = () => guardarIncidencia(tiendaId, tr);
+      const btnBorrarMotivos = tr.querySelector('.btn-borrar-motivos');
+
       tr.querySelectorAll('.i-motivo-check').forEach(cb => cb.addEventListener('change', () => {
-        inputObs.disabled = tr.querySelectorAll('.i-motivo-check:checked').length === 0;
+        const hayMotivo = tr.querySelectorAll('.i-motivo-check:checked').length > 0;
+        inputObs.disabled = !hayMotivo;
+        if (btnBorrarMotivos) btnBorrarMotivos.style.display = hayMotivo ? '' : 'none';
         guardar();
       }));
+
+      if (btnBorrarMotivos) {
+        btnBorrarMotivos.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
+          inputObs.disabled = true;
+          btnBorrarMotivos.style.display = 'none';
+          guardar();
+        });
+      }
       inputObs.addEventListener('input', () => {
         const pos = inputObs.selectionStart;
         inputObs.value = inputObs.value.toUpperCase();
