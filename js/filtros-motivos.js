@@ -231,6 +231,8 @@
 
     tr.className = claseFila ? 'con-incidencia ' + claseFila : '';
     tr.querySelector('.col-estado').textContent = marcada ? '🔴' : '—';
+    const inputObs = tr.querySelector('.i-obs');
+    if (inputObs) inputObs.disabled = !marcada;
 
     const badgeTipo = !marcada
       ? '<span style="color:var(--ink-soft); font-size:12px;">—</span>'
