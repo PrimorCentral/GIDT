@@ -40,15 +40,13 @@
         return;
       }
 
-      // 2. Incidencias de ese informe cuyo motivo es FALTAS o ROTURA CONFIRMADA
+      // 2. Incidencias de ese informe cuyo motivo es FALTAS o ROTURA CONFIRMADA.
+      // Usamos el snapshot guardado en la propia incidencia en vez de un join
+      // en vivo a tiendas/agencias, para que este histórico no cambie si
+      // más adelante se edita la tienda o la agencia.
       const { data: incs, error: eInc } = await sb
         .from('incidencias')
-        .select(`
-          id, motivo, observaciones,
-          tiendas ( id, nombre, hora_prevista,
-            agencias ( id, nombre )
-          )
-        `)
+        .select('id, motivo, observaciones, tienda_nombre, tienda_hora_prevista, agencia_id, agencia_nombre')
         .eq('informe_id', informe.id)
         .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
       if (eInc) throw eInc;
@@ -117,27 +115,25 @@
     const pendientes = siniestros.filter(s => s.estado === 'PENDIENTE').length;
     const enviados = siniestros.length - pendientes;
 
-    // Agrupar por agencia
+    // Agrupar por agencia (usando el snapshot guardado en la incidencia)
     const porAgencia = {};
     siniestros.forEach(s => {
-      const ag = s.incidencia.tiendas?.agencias;
-      const agId = ag?.id ?? 'sin-agencia';
-      if (!porAgencia[agId]) porAgencia[agId] = { nombre: ag?.nombre || 'Sin agencia', filas: [] };
+      const agId = s.incidencia.agencia_id ?? 'sin-agencia';
+      if (!porAgencia[agId]) porAgencia[agId] = { nombre: s.incidencia.agencia_nombre || 'Sin agencia', filas: [] };
       porAgencia[agId].filas.push(s);
     });
 
     const tarjeta = (s) => {
-      const t = s.incidencia.tiendas || {};
       const numFotos = (s.fotos || []).length;
       return `
         <div class="siniestro-card" style="cursor:default;">
           <div class="fila-top">
-            <b>${escapeHtml(t.nombre || '—')}</b>
+            <b>${escapeHtml(s.incidencia.tienda_nombre || '—')}</b>
             <span class="badge-envio ${s.estado === 'ENVIADO' ? 'enviado' : 'pendiente'}">${s.estado === 'ENVIADO' ? 'Enviado' : 'Pendiente'}</span>
           </div>
           <div class="agencia">
             <span class="pill ${s.tipo === 'ROTURA' ? 'grave' : 'moderado'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
-            · ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}
+            · ${s.incidencia.tienda_hora_prevista ? s.incidencia.tienda_hora_prevista.slice(0,5) : '—'}
           </div>
           ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
           <div class="fotos-mini">📷 ${numFotos} foto${numFotos===1?'':'s'}</div>

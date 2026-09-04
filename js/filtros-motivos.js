@@ -195,12 +195,23 @@
     const tipo = calcularTipo(motivos);
 
     try {
+      // Snapshot: guardamos cómo es la tienda/agencia HOY, en el momento de
+      // guardar la incidencia. Así, si más adelante se edita la tienda
+      // (hora, nombre, agencia...), el histórico de este día no cambia.
+      const tienda = tiendasCache.find(t => t.id === tiendaId);
+      const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
+
       const { error } = await sb.from('incidencias').upsert({
         informe_id: informeHoyCache.id,
         tienda_id: tiendaId,
         marcada, tipo, motivo: motivos, observaciones,
         usuario: sesionActual?.nombre || sesionActual?.usuario || null,
-        actualizado_en: new Date().toISOString()
+        actualizado_en: new Date().toISOString(),
+        tienda_nombre: tienda?.nombre || null,
+        tienda_hora_prevista: tienda?.hora_prevista || null,
+        tienda_marca: tienda?.marca || null,
+        agencia_id: tienda?.agencia_id || null,
+        agencia_nombre: agencia?.nombre || null
       }, { onConflict: 'informe_id,tienda_id' });
       if (error) throw error;
 

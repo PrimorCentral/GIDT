@@ -180,15 +180,14 @@
         return;
       }
 
-      // Solo incidencias activas (marcada = true) de ese informe
+      // Solo incidencias activas (marcada = true) de ese informe.
+      // Usamos el snapshot guardado en la propia incidencia (tienda_nombre,
+      // tienda_hora_prevista, agencia_id, agencia_nombre) en vez de un join
+      // en vivo a tiendas/agencias, para que este histórico no cambie si
+      // más adelante se edita la tienda o la agencia.
       const { data: incs, error: eInc } = await sb
         .from('incidencias')
-        .select(`
-          id, tipo, motivo, observaciones, actualizado_en, usuario,
-          tiendas ( id, nombre, hora_prevista, marca,
-            agencias ( id, nombre )
-          )
-        `)
+        .select('id, tipo, motivo, observaciones, actualizado_en, usuario, tienda_nombre, tienda_hora_prevista, tienda_marca, agencia_id, agencia_nombre')
         .eq('informe_id', informe.id)
         .eq('marcada', true);
       if (eInc) throw eInc;
@@ -229,18 +228,16 @@
       return;
     }
 
-    // Agrupar por agencia
+    // Agrupar por agencia (usando el snapshot guardado en la incidencia)
     const porAgencia = {};
     incidenciasActivas.forEach(inc => {
-      const ag = inc.tiendas?.agencias;
-      const agId = ag?.id ?? 'sin-agencia';
-      if (!porAgencia[agId]) porAgencia[agId] = { nombre: ag?.nombre || 'Sin agencia', filas: [] };
+      const agId = inc.agencia_id ?? 'sin-agencia';
+      if (!porAgencia[agId]) porAgencia[agId] = { nombre: inc.agencia_nombre || 'Sin agencia', filas: [] };
       porAgencia[agId].filas.push(inc);
     });
 
     const bloques = Object.values(porAgencia).map(grupo => {
       const filas = grupo.filas.map(inc => {
-        const t = inc.tiendas || {};
         const tipo = inc.tipo;
         const claseFila = tipo ? tipo.toLowerCase() : 'pendiente';
         const badgeTipo = tipo
@@ -248,8 +245,8 @@
           : `<span class="pill pendiente">Pendiente</span>`;
         return `
           <tr class="con-incidencia ${claseFila}">
-            <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${escapeHtml(t.nombre || '—')}</td>
+            <td class="col-hora">${inc.tienda_hora_prevista ? inc.tienda_hora_prevista.slice(0,5) : '—'}</td>
+            <td class="col-tienda">${escapeHtml(inc.tienda_nombre || '—')}</td>
             <td class="col-tipo">${badgeTipo}</td>
             <td class="col-motivo">${escapeHtml((inc.motivo || []).join(', '))}</td>
             <td class="col-obs">${escapeHtml(inc.observaciones || '')}</td>
