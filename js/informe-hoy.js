@@ -1,6 +1,6 @@
   // Informe diario de hoy
   // ---------------------------------------------------------------
-    let fechaHoyISO = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+        let fechaHoyISO = fechaLocalISO(hoy); // YYYY-MM-DD, en hora LOCAL
 
   let informeHoyCache = null; // null = aún no comprobado / no existe
   let incidenciasHoyCache = []; // filas de la tabla `incidencias` del informe de hoy
@@ -108,7 +108,7 @@
   // ---------------------------------------------------------------
   function comprobarCambioDeDia() {
     const ahora = new Date();
-    const fechaActualISO = ahora.toISOString().slice(0, 10);
+    const fechaActualISO = fechaLocalISO(ahora);
     if (fechaActualISO === fechaHoyISO) return; // sigue siendo el mismo día
 
     hoy = ahora;
