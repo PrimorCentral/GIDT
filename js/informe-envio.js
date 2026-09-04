@@ -37,14 +37,15 @@ function construirGruposInformeHoy() {
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
   const th = 'text-align:left; padding:6px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0;';
-  const td = 'padding:6px 12px; border-bottom:1px solid #f1f5f9; font-size:13px; color:#475569; line-height:1.35;';
+  const td = 'padding:4px 12px; border-bottom:1px solid #f1f5f9; font-size:13px; color:#475569; line-height:1.35;';
 
-  const filasHtml = filas.map(({ tienda, inc }) => {
+  const filasHtml = filas.map(({ tienda, inc }, idx) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
     const motivos = (inc.motivo || []).map(m => escapeHtml(m)).join('<br>');
+    const fondoFila = idx % 2 === 1 ? 'background:#f4f6f8;' : '';
 
     return `
-      <tr>
+      <tr style="${fondoFila}">
         <td style="${td} white-space:nowrap; vertical-align:top;">${hora}</td>
         <td style="${td} color:#1e293b; font-weight:600; vertical-align:top;">${escapeHtml(tienda.nombre)}</td>
         <td style="${td} vertical-align:top;">${motivos}</td>
