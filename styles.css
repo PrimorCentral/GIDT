@@ -85,6 +85,22 @@
     width:8px; height:8px; border-radius:50%;
     background:var(--ok); box-shadow:0 0 0 3px rgba(30,142,62,.25);
   }
+  header.top .auto-refresh-indicator{
+    display:none;
+    align-items:center; gap:3px;
+    font-size:11px; color:#9AA6B4;
+    user-select:none;
+  }
+  header.top .auto-refresh-indicator.show{ display:inline-flex; }
+  header.top .auto-refresh-indicator .hourglass{
+    display:inline-block;
+    font-size:11px;
+    transition:transform .5s ease;
+  }
+  header.top .auto-refresh-indicator #autoRefreshCountdown{
+    font-variant-numeric:tabular-nums;
+    min-width:11px; text-align:right;
+  }
 
   nav.tabs{
     flex:1 1 auto;

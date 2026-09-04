@@ -58,7 +58,12 @@
       </div>
     </nav>
 
-    <div class="status" id="statusWrap" title="Conectando…"><i></i><span id="statusText" style="display:none;">Conectando…</span></div>
+    <div class="status" id="statusWrap" title="Conectando…">
+      <span class="auto-refresh-indicator" id="autoRefreshIndicator" title="Actualización automática del informe del día">
+        <span class="hourglass" id="autoRefreshHourglass">⏳</span><span id="autoRefreshCountdown">20</span>s
+      </span>
+      <i></i><span id="statusText" style="display:none;">Conectando…</span>
+    </div>
     <div class="user-chip" id="userChip" title="Cerrar sesión">👤 <span id="userChipName">—</span> · Salir</div>
   </header>
 
@@ -533,6 +538,7 @@
 <script src="js/informe-envio.js"></script>
 <script src="js/siniestros.js"></script>
 <script src="js/informe-pdf.js"></script>
+<script src="js/informe-autorefresh.js"></script>
 
 </body>
 </html>
