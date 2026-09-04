@@ -40,9 +40,9 @@
       card.innerHTML = `
         <div class="empty">
           <div class="glyph">✅</div>
-          <h3>Informe de hoy abierto</h3>
-          <p>${informeHoyCache.total_palets ? informeHoyCache.total_palets + ' palets previstos · ' : ''}Estado: ${informeHoyCache.estado}</p>
-          <button class="btn primary" data-view="incidencias">Ir a Incidencias</button>
+          <h3>Informe de hoy creado</h3>
+          <p>${informeHoyCache.total_palets ? informeHoyCache.total_palets + ' palets previstos de entrega en tiendas · ' : ''}Estado del informe: ${informeHoyCache.estado}</p>
+          <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
         </div>`;
       card.querySelector('[data-view="incidencias"]').addEventListener('click', () => {
         activarVista('incidencias');
