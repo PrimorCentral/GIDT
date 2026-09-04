@@ -99,6 +99,112 @@ function plantillaInformeAgencia(agenciaNombre, nombreHoja, tabla) {
   return { subject, html };
 }
 
+// Motivos que indican que una incidencia aún está pendiente de revisar/confirmar
+// (no son un tipo de incidencia en sí, sino un estado provisional).
+const MOTIVOS_SIN_REVISAR = ['RETRASO PDTE CONFIRMAR', 'REVISANDO POSIBLE INCIDENCIA'];
+
+// Recorre las filas {tienda, inc} de los grupos que se van a enviar y devuelve
+// las que tienen algún motivo aún "sin revisar".
+function listarIncidenciasSinRevisar(grupos) {
+  const items = [];
+  grupos.forEach(g => {
+    g.filas.forEach(({ tienda, inc }) => {
+      if ((inc.motivo || []).some(m => MOTIVOS_SIN_REVISAR.includes(m))) {
+        items.push({ agencia: g.agenciaNombre, tienda: tienda.nombre, hora: tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—' });
+      }
+    });
+  });
+  return items;
+}
+
+// Modal de confirmación de envío: lista de agencias/incidencias, agencias
+// omitidas por falta de email, aviso de reenvío y aviso de incidencias sin
+// revisar. Devuelve una promesa que resuelve a true (enviar) o false (cancelar).
+function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar }) {
+  return new Promise(resolve => {
+    const overlay        = document.getElementById('envioInformeModalOverlay');
+    const sub             = document.getElementById('envioModalSub');
+    const lista           = document.getElementById('envioListaAgencias');
+    const alertaPend      = document.getElementById('envioAlertaPendientes');
+    const alertaPendTexto = document.getElementById('envioAlertaPendientesTexto');
+    const alertaPendLista = document.getElementById('envioAlertaPendientesLista');
+    const alertaReenvio   = document.getElementById('envioAlertaReenvio');
+    const alertaOmitidas  = document.getElementById('envioAlertaOmitidas');
+    const alertaOmitTexto = document.getElementById('envioAlertaOmitidasTexto');
+    const btnOk           = document.getElementById('envioModalBtnOk');
+    const btnCancel       = document.getElementById('envioModalBtnCancel');
+    const btnCerrar       = document.getElementById('btnCerrarEnvioModal');
+
+    const totalInc = conEmails.reduce((s, g) => s + g.filas.length, 0);
+    sub.textContent = `${totalInc} incidencia${totalInc === 1 ? '' : 's'} en ${conEmails.length} agencia${conEmails.length === 1 ? '' : 's'}.`;
+
+    lista.innerHTML = conEmails.map(g => {
+      const pendientesAg = g.filas.filter(({ inc }) => (inc.motivo || []).some(m => MOTIVOS_SIN_REVISAR.includes(m))).length;
+      return `
+        <div class="envio-agencia-row">
+          <b>${escapeHtml(g.agenciaNombre)}</b>
+          <span class="envio-agencia-count${pendientesAg ? ' tiene-pendientes' : ''}">
+            ${g.filas.length} incidencia${g.filas.length === 1 ? '' : 's'}${pendientesAg ? ` · ${pendientesAg} sin revisar` : ''}
+          </span>
+        </div>`;
+    }).join('');
+
+    if (sinRevisar.length) {
+      alertaPendTexto.textContent = `${sinRevisar.length} incidencia${sinRevisar.length === 1 ? '' : 's'} ${sinRevisar.length === 1 ? 'tiene' : 'tienen'} el motivo "Retraso Pdte Confirmar" o "Revisando posible incidencia". Si envías ahora, se incluirán tal cual en el informe.`;
+      alertaPendLista.innerHTML = sinRevisar.map(it => `<li><b>${escapeHtml(it.tienda)}</b> (${escapeHtml(it.agencia)}, ${it.hora})</li>`).join('');
+      alertaPend.style.display = '';
+      btnOk.textContent = '⚠️ Enviar de todos modos';
+    } else {
+      alertaPend.style.display = 'none';
+      alertaPendLista.innerHTML = '';
+      btnOk.textContent = '✉️ Enviar informe';
+    }
+
+    alertaReenvio.style.display = reenvio ? '' : 'none';
+
+    if (sinEmails.length) {
+      alertaOmitTexto.textContent = `${sinEmails.map(g => g.agenciaNombre).join(', ')} (sin emails configurados en Configuración → Emails por agencia).`;
+      alertaOmitidas.style.display = '';
+    } else {
+      alertaOmitidas.style.display = 'none';
+    }
+
+    overlay.classList.add('show');
+
+    const cerrar = (resultado) => {
+      overlay.classList.remove('show');
+      btnOk.removeEventListener('click', onOk);
+      btnCancel.removeEventListener('click', onCancel);
+      btnCerrar.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(resultado);
+    };
+    const onOk = () => cerrar(true);
+    const onCancel = () => cerrar(false);
+    const onOverlay = (e) => { if (e.target === overlay) onCancel(); };
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel.addEventListener('click', onCancel);
+    btnCerrar.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+
+// Modal de carga (spinner) que se muestra mientras se están enviando los
+// correos, para que quede claro que el envío está en curso.
+function mostrarCargandoEnvio(texto) {
+  const overlay = document.getElementById('cargandoEnvioOverlay');
+  actualizarCargandoEnvio(texto);
+  overlay?.classList.add('show');
+}
+function actualizarCargandoEnvio(texto) {
+  const textoEl = document.getElementById('cargandoEnvioTexto');
+  if (textoEl) textoEl.textContent = texto || 'Enviando informe…';
+}
+function ocultarCargandoEnvio() {
+  document.getElementById('cargandoEnvioOverlay')?.classList.remove('show');
+}
+
 // Pinta el estado (badge) de envío del informe de hoy junto al botón.
 function renderBotonEnviarInforme() {
   const badge = document.getElementById('informeEnviadoBadge');
@@ -154,54 +260,57 @@ async function enviarInformeDelDia() {
     return;
   }
 
-  const resumen = conEmails.map(g => `• ${g.agenciaNombre} (${g.filas.length} incidencia${g.filas.length === 1 ? '' : 's'})`).join('\n');
-  const avisoOmitidas = sinEmails.length
-    ? `\n\nNo se enviará a (sin emails configurados): ${sinEmails.map(g => g.agenciaNombre).join(', ')}.`
-    : '';
-  const avisoReenvio = informeHoyCache.informe_enviado
-    ? '\n\n⚠️ El informe de hoy ya se había enviado antes. Esto lo volverá a enviar.'
-    : '';
-
-  const ok = await modalConfirm(
-    `Se enviará el informe de incidencias a:\n\n${resumen}${avisoOmitidas}${avisoReenvio}`,
-    { titulo: 'Enviar informe del día', textoOk: 'Enviar' }
-  );
+  const ok = await mostrarModalEnvioInforme({
+    conEmails,
+    sinEmails,
+    reenvio: !!informeHoyCache.informe_enviado,
+    sinRevisar: listarIncidenciasSinRevisar(conEmails)
+  });
   if (!ok) return;
 
   const nombreHoja = fechaEs(informeHoyCache.fecha);
   const resultados = [];
+  let errorGuardandoEstado = null;
 
-  for (const g of conEmails) {
-    const tabla = tablaHtmlIncidencias(g.filas);
-    const { subject, html } = plantillaInformeAgencia(g.agenciaNombre, nombreHoja, tabla);
-    try {
-      await enviarEmail({ to: g.emails, subject, html });
-      resultados.push({ agencia: g.agenciaNombre, ok: true });
-    } catch (err) {
-      console.error(`Error enviando informe a ${g.agenciaNombre}:`, err);
-      resultados.push({ agencia: g.agenciaNombre, ok: false, error: err.message });
+  mostrarCargandoEnvio('Enviando informe…');
+  try {
+    let i = 0;
+    for (const g of conEmails) {
+      i++;
+      actualizarCargandoEnvio(`Enviando a ${g.agenciaNombre}… (${i}/${conEmails.length})`);
+      const tabla = tablaHtmlIncidencias(g.filas);
+      const { subject, html } = plantillaInformeAgencia(g.agenciaNombre, nombreHoja, tabla);
+      try {
+        await enviarEmail({ to: g.emails, subject, html });
+        resultados.push({ agencia: g.agenciaNombre, ok: true });
+      } catch (err) {
+        console.error(`Error enviando informe a ${g.agenciaNombre}:`, err);
+        resultados.push({ agencia: g.agenciaNombre, ok: false, error: err.message });
+      }
     }
+
+    if (resultados.some(r => r.ok)) {
+      actualizarCargandoEnvio('Actualizando estado del informe…');
+      try {
+        const { data, error } = await sb.from('informes_diarios').update({
+          estado: 'EMITIDO',
+          informe_enviado: true,
+          informe_enviado_en: new Date().toISOString(),
+          informe_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+        }).eq('id', informeHoyCache.id).select().single();
+        if (error) throw error;
+        informeHoyCache = data;
+      } catch (err) {
+        console.error('Error marcando informe como enviado:', err);
+        errorGuardandoEstado = err.message || 'Error desconocido';
+      }
+    }
+  } finally {
+    ocultarCargandoEnvio();
   }
 
   const exitosos = resultados.filter(r => r.ok);
   const fallidos = resultados.filter(r => !r.ok);
-
-  let errorGuardandoEstado = null;
-  if (exitosos.length) {
-    try {
-      const { data, error } = await sb.from('informes_diarios').update({
-        estado: 'EMITIDO',
-        informe_enviado: true,
-        informe_enviado_en: new Date().toISOString(),
-        informe_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
-      }).eq('id', informeHoyCache.id).select().single();
-      if (error) throw error;
-      informeHoyCache = data;
-    } catch (err) {
-      console.error('Error marcando informe como enviado:', err);
-      errorGuardandoEstado = err.message || 'Error desconocido';
-    }
-  }
 
   renderBotonEnviarInforme();
 
@@ -212,7 +321,7 @@ async function enviarInformeDelDia() {
   if (errorGuardandoEstado) {
     mensajeFinal += `\n\n⚠️ Los correos se enviaron, pero no se pudo actualizar el estado del informe en la base de datos: ${errorGuardandoEstado}`;
   }
-  await modalAlert(mensajeFinal, { titulo: (fallidos.length || errorGuardandoEstado) ? 'Envío con errores' : 'Informe enviado' });
+  await modalAlert(mensajeFinal, { titulo: (fallidos.length || errorGuardandoEstado) ? 'Envío con errores' : '✅ Informe enviado' });
 }
 
 document.getElementById('btnEnviarInforme')?.addEventListener('click', enviarInformeDelDia);
