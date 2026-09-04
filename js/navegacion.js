@@ -8,6 +8,8 @@
 
     if (nombreVista.startsWith('config-')) {
       document.getElementById('btnConfigDropdown').classList.add('active');
+    } else if (nombreVista.startsWith('analisis-')) {
+      document.getElementById('btnAnalisisDropdown').classList.add('active');
     } else if (nombreVista === 'incidencias' || nombreVista === 'historial-informes') {
       document.getElementById('btnInformesDropdown').classList.add('active');
     } else if (nombreVista === 'siniestros' || nombreVista === 'historial-siniestros') {
@@ -28,7 +30,8 @@
   const dropdownsNav = [
     { btn: document.getElementById('btnInformesDropdown'),  panel: document.getElementById('informesDropdown') },
     { btn: document.getElementById('btnSiniestrosDropdown'), panel: document.getElementById('siniestrosDropdown') },
-    { btn: document.getElementById('btnConfigDropdown'),     panel: document.getElementById('configDropdown') }
+    { btn: document.getElementById('btnConfigDropdown'),     panel: document.getElementById('configDropdown') },
+    { btn: document.getElementById('btnAnalisisDropdown'),   panel: document.getElementById('analisisDropdown') }
   ];
 
   function cerrarTodosLosDropdowns(excepto = null) {
@@ -61,6 +64,7 @@
         if (item.dataset.view === 'historial-informes') renderVistaHistorialInformes();
         if (item.dataset.view === 'historial-siniestros') renderVistaHistorialSiniestros();
         if (item.dataset.view === 'siniestros') renderVistaSiniestros();
+        if (item.dataset.view === 'analisis-ranking') renderVistaAnalisisRanking();
       });
     });
   });
