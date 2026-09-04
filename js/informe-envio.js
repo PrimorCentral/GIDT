@@ -186,6 +186,7 @@ async function enviarInformeDelDia() {
   const exitosos = resultados.filter(r => r.ok);
   const fallidos = resultados.filter(r => !r.ok);
 
+  let errorGuardandoEstado = null;
   if (exitosos.length) {
     try {
       const { data, error } = await sb.from('informes_diarios').update({
@@ -194,9 +195,11 @@ async function enviarInformeDelDia() {
         informe_enviado_en: new Date().toISOString(),
         informe_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
       }).eq('id', informeHoyCache.id).select().single();
-      if (!error) informeHoyCache = data;
+      if (error) throw error;
+      informeHoyCache = data;
     } catch (err) {
       console.error('Error marcando informe como enviado:', err);
+      errorGuardandoEstado = err.message || 'Error desconocido';
     }
   }
 
@@ -206,7 +209,10 @@ async function enviarInformeDelDia() {
   if (fallidos.length) {
     mensajeFinal += `\n\nFallos:\n` + fallidos.map(f => `• ${f.agencia}: ${f.error}`).join('\n');
   }
-  await modalAlert(mensajeFinal, { titulo: fallidos.length ? 'Envío con errores' : 'Informe enviado' });
+  if (errorGuardandoEstado) {
+    mensajeFinal += `\n\n⚠️ Los correos se enviaron, pero no se pudo actualizar el estado del informe en la base de datos: ${errorGuardandoEstado}`;
+  }
+  await modalAlert(mensajeFinal, { titulo: (fallidos.length || errorGuardandoEstado) ? 'Envío con errores' : 'Informe enviado' });
 }
 
 document.getElementById('btnEnviarInforme')?.addEventListener('click', enviarInformeDelDia);
