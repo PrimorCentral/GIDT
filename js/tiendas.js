@@ -54,6 +54,9 @@
                   <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                   <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
                   <button class="mini-btn" data-editar title="Editar">✏️</button>
+                  <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
                   <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
                 </span>
                 <span class="e-acciones" style="display:none;">
@@ -111,6 +114,13 @@
         guardarEdicionTienda(btn.closest('tr'));
       });
     });
+    cont.querySelectorAll('[data-cambiar-agencia]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        cambiarAgenciaTienda(Number(tr.dataset.tienda));
+      });
+    });
     cont.querySelectorAll('[data-borrar]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -165,6 +175,35 @@
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error moviendo tienda:', err);
+    }
+  }
+
+  async function cambiarAgenciaTienda(id) {
+    const t = tiendasCache.find(x => x.id === id);
+    if (!t) return;
+
+    const opciones = agenciasCache.map(a => ({ id: a.id, nombre: a.nombre }));
+    const destinoId = await modalSeleccionar(
+      `Selecciona la agencia a la que quieres mover "${t.nombre}":`,
+      opciones,
+      { titulo: 'Mover tienda de agencia', textoOk: 'Mover', valorInicial: t.agencia_id }
+    );
+    if (!destinoId || destinoId === t.agencia_id) return;
+
+    try {
+      const hermanasDestino = tiendasCache.filter(x => x.agencia_id === destinoId && x.activo);
+      const nuevoOrden = hermanasDestino.length
+        ? Math.max(...hermanasDestino.map(x => x.orden)) + 1
+        : 1;
+
+      const { error } = await sb.from('tiendas')
+        .update({ agencia_id: destinoId, orden: nuevoOrden })
+        .eq('id', id);
+      if (error) throw error;
+      cargarAgenciasYTiendas();
+    } catch (err) {
+      console.error('Error moviendo tienda de agencia:', err);
+      await modalAlert('No se pudo mover la tienda a la otra agencia.', { titulo: 'Error' });
     }
   }
 

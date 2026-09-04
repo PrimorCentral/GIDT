@@ -92,6 +92,36 @@
     });
   }
 
+  function modalSeleccionar(mensaje, opciones, { titulo = 'Seleccionar', textoOk = 'Aceptar', valorInicial = null } = {}) {
+    return new Promise(resolve => {
+      const modalSelectEl = document.getElementById('modalSelect');
+      modalIconEl.style.display = 'none';
+      modalTitleEl.textContent = titulo;
+      modalMessageEl.textContent = mensaje;
+      modalInputEl.style.display = 'none';
+      modalSelectEl.innerHTML = opciones.map(o =>
+        `<option value="${o.id}" ${valorInicial === o.id ? 'selected' : ''}>${o.nombre}</option>`
+      ).join('');
+      modalSelectEl.style.display = '';
+      modalBtnCancel.style.display = '';
+      modalBtnCancel.textContent = 'Cancelar';
+      modalBtnOk.textContent = textoOk;
+      modalBtnOk.className = 'btn primary';
+      _abrirModal();
+
+      const onOk = () => { const v = Number(modalSelectEl.value); limpiar(); resolve(v); };
+      const onCancel = () => { limpiar(); resolve(null); };
+      function limpiar() {
+        _cerrarModal();
+        modalSelectEl.style.display = 'none';
+        modalBtnOk.removeEventListener('click', onOk);
+        modalBtnCancel.removeEventListener('click', onCancel);
+      }
+      modalBtnOk.addEventListener('click', onOk);
+      modalBtnCancel.addEventListener('click', onCancel);
+    });
+  }
+
   // Cerrar al pulsar fuera del cuadro (equivale a cancelar)
   modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) {
