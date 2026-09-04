@@ -88,6 +88,22 @@
         creados.forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
       }
 
+      // 3.5. Si los motivos de una incidencia cambiaron después de crear su siniestro
+      // (ej: era solo ROTURA y ahora también tiene FALTAS), recalculamos y sincronizamos
+      // el tipo — solo mientras esté PENDIENTE, para no tocar uno ya enviado.
+      const desincronizados = incs.filter(i => {
+        const s = existentesPorIncidencia.get(i.id);
+        return s && s.estado === 'PENDIENTE' && s.tipo !== tipoSiniestroDeMotivos(i.motivo);
+      });
+      if (desincronizados.length) {
+        await Promise.all(desincronizados.map(i => {
+          const s = existentesPorIncidencia.get(i.id);
+          const nuevoTipo = tipoSiniestroDeMotivos(i.motivo);
+          s.tipo = nuevoTipo;
+          return sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
+        }));
+      }
+
       // 4. Combinar todo para pintar
       siniestrosHoyCache = incs.map(i => ({
         ...existentesPorIncidencia.get(i.id),
