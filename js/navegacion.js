@@ -75,7 +75,6 @@
   // ---------------------------------------------------------------
    const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
   let hoy = new Date();
-
   // Devuelve YYYY-MM-DD según la fecha LOCAL del dispositivo, no UTC.
   // (toISOString() convierte a UTC, lo que da la fecha equivocada de
   // madrugada en horario de verano/invierno español).
@@ -86,9 +85,24 @@
     return `${y}-${m}-${d}`;
   }
 
+  // Formatea una fecha (objeto Date) como DD/MM/AAAA, siempre con ceros delante
+  function formatearFechaCorta(fecha) {
+    const d = String(fecha.getDate()).padStart(2, '0');
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const y = fecha.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+
+  // Igual, pero con hora HH:MM
+  function formatearFechaHoraCorta(fecha) {
+    const h = String(fecha.getHours()).padStart(2, '0');
+    const min = String(fecha.getMinutes()).padStart(2, '0');
+    return `${formatearFechaCorta(fecha)} ${h}:${min}`;
+  }
+
   function actualizarFechaHoyTexto() {
     document.getElementById('fechaHoyTexto').textContent =
-      dias[hoy.getDay()] + ", " + hoy.toLocaleDateString('es-ES');
+      dias[hoy.getDay()] + ", " + formatearFechaCorta(hoy);
   }
   actualizarFechaHoyTexto();
 
