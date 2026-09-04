@@ -69,9 +69,9 @@
       // 3. Crear los que falten
       const faltantes = incs.filter(i => !existentesPorIncidencia.has(i.id));
       if (faltantes.length) {
-        const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
+                const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
         fechaLimite.setDate(fechaLimite.getDate() + 15);
-        const fechaLimiteISO = fechaLimite.toISOString().slice(0, 10);
+        const fechaLimiteISO = fechaLocalISO(fechaLimite);
 
         const nuevos = faltantes.map(i => ({
           incidencia_id: i.id,
