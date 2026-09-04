@@ -36,23 +36,16 @@ function construirGruposInformeHoy() {
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const COLOR_TIPO = { GRAVE: '#ef4444', MODERADO: '#f59e0b', LEVE: '#eab308' };
   const th = 'text-align:left; padding:8px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0;';
   const td = 'padding:8px 12px; border-bottom:1px solid #f1f5f9; font-size:13px; color:#475569;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
-    const tipo = inc.tipo;
-    const colorBadge = tipo ? (COLOR_TIPO[tipo] || '#64748b') : '#94a3b8';
-    const labelTipo = tipo ? tipo.charAt(0) + tipo.slice(1).toLowerCase() : 'Pendiente';
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
 
     return `
       <tr>
         <td style="${td} white-space:nowrap;">${hora}</td>
         <td style="${td} color:#1e293b; font-weight:600;">${escapeHtml(tienda.nombre)}</td>
-        <td style="${td}">
-          <span style="display:inline-block; padding:2px 10px; border-radius:99px; font-size:11px; font-weight:700; color:#fff; background:${colorBadge};">${labelTipo}</span>
-        </td>
         <td style="${td}">${escapeHtml((inc.motivo || []).join(', '))}</td>
         <td style="${td}">${escapeHtml(inc.observaciones || '')}</td>
       </tr>`;
@@ -64,7 +57,6 @@ function tablaHtmlIncidencias(filas) {
         <tr>
           <th style="${th}">Hora</th>
           <th style="${th}">Tienda</th>
-          <th style="${th}">Tipo</th>
           <th style="${th}">Motivo</th>
           <th style="${th}">Observaciones</th>
         </tr>
