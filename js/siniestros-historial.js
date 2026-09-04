@@ -308,6 +308,9 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="filtro-select-dropdown">
+                  <div class="filtro-select-search">
+                    <input type="text" placeholder="🔎 Buscar motivo…" class="i-buscar-motivo">
+                  </div>
                   <div class="filtro-select-lista">${motivosChecklistHtml(motivosActuales)}</div>
                 </div>
               </div>
@@ -420,15 +423,57 @@
           const yaAbierto = motivoSel.classList.contains('open');
           document.querySelectorAll('.motivo-select.open').forEach(o => { if (o !== motivoSel) o.classList.remove('open'); });
           motivoSel.classList.toggle('open', !yaAbierto);
+          if (!yaAbierto) posicionarDropdownMotivo(motivoSel, dropdown);
         });
         dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        const buscadorMotivo = dropdown.querySelector('.i-buscar-motivo');
+        if (buscadorMotivo) {
+          buscadorMotivo.addEventListener('click', (e) => e.stopPropagation());
+          buscadorMotivo.addEventListener('input', () => {
+            const q = buscadorMotivo.value.trim().toUpperCase();
+            dropdown.querySelectorAll('.filtro-check').forEach(row => {
+              const texto = row.textContent.trim().toUpperCase();
+              row.classList.toggle('oculto', q && !texto.includes(q));
+            });
+          });
+        }
       }
     });
   }
 
-  // Cierra cualquier desplegable de motivos abierto al hacer clic fuera
+  // Calcula la posición del desplegable de motivos con JS y lo pone en
+  // position:fixed, para que no lo recorte el overflow:hidden de
+  // .agencia-block (esto pasaba con la última fila de cada agencia).
+  // Si no cabe hacia abajo, se abre hacia arriba.
+  function posicionarDropdownMotivo(motivoSel, dropdown) {
+    const rect = motivoSel.getBoundingClientRect();
+    const margen = 6;
+    const alturaEstim = Math.min(dropdown.scrollHeight || 260, 260);
+    const espacioAbajo = window.innerHeight - rect.bottom;
+    const abrirArriba = espacioAbajo < alturaEstim && rect.top > espacioAbajo;
+
+    dropdown.style.position = 'fixed';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    dropdown.style.right = 'auto';
+
+    if (abrirArriba) {
+      dropdown.style.top = 'auto';
+      dropdown.style.bottom = (window.innerHeight - rect.top + margen) + 'px';
+    } else {
+      dropdown.style.bottom = 'auto';
+      dropdown.style.top = (rect.bottom + margen) + 'px';
+    }
+  }
+
+  // Cierra cualquier desplegable de motivos abierto al hacer clic fuera,
+  // o al hacer scroll (para que no se quede flotando en un sitio erróneo)
   document.addEventListener('click', () => {
     document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
   });
+  document.addEventListener('scroll', () => {
+    document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
+  }, true);
 
   // ---------------------------------------------------------------
