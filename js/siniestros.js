@@ -247,44 +247,50 @@
     const s = siniestroPorId(siniestroActivoId);
     const t = s.incidencia.tiendas || {};
     const ag = t.agencias || {};
-    const emails = (ag.emails || []).join(',');
+    const emails = ag.emails || [];
 
-    if (!emails) {
+    if (!emails.length) {
       await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
       return;
     }
 
-    const asunto = `RECLAMACIÓN ${s.tipo === 'ROTURA' ? 'ROTURA' : 'FALTA'} – ${t.nombre} – ${informeHoyCache.fecha}`;
-    let cuerpo = `Buenas,\n\nLes informamos de la siguiente incidencia registrada en el reparto de hoy (${informeHoyCache.fecha}):\n\n` +
-      `Tienda: ${t.nombre}\nMotivo: ${(s.incidencia.motivo || []).join(', ')}\n` +
-      (s.incidencia.observaciones ? `Observaciones: ${s.incidencia.observaciones}\n` : '') +
-      `Fecha límite de reclamación: ${s.fecha_limite ? new Date(s.fecha_limite+'T00:00:00').toLocaleDateString('es-ES') : ''}\n`;
-    if ((s.fotos || []).length) {
-      cuerpo += `\nFotos adjuntas (descárgalas y adjúntalas manualmente al correo):\n` + s.fotos.join('\n');
-    }
-    cuerpo += `\n\nAtentamente,\nDepartamento de Transporte`;
-
-    const mailto = `mailto:${emails}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
-    window.open(mailto, '_blank');
-
-    const ok = await modalConfirm('¿Confirmas que has enviado el correo de reclamación? Se marcará este siniestro como enviado.', { titulo: 'Marcar como enviado' });
+    const ok = await modalConfirm('¿Enviar el correo de reclamación a la agencia ahora?', { titulo: 'Enviar reclamación' });
     if (!ok) return;
 
+    const btn = document.getElementById('btnEnviarSiniestro');
+    const textoOriginalBtn = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
     try {
+      const { subject, html, text } = plantillaSiniestro(s, informeHoyCache.fecha);
+
+      await enviarEmail({
+        to: emails,
+        subject,
+        html,
+        text,
+        attachmentUrls: s.fotos || []
+      });
+
       const { error } = await sb.from('siniestros').update({
         estado: 'ENVIADO',
         enviado_en: new Date().toISOString(),
         enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
       }).eq('id', s.id);
       if (error) throw error;
+
       s.estado = 'ENVIADO';
       s.enviado_en = new Date().toISOString();
       pintarModalSiniestro();
       renderKanbanSiniestros();
       actualizarKpiSiniestros();
     } catch (err) {
-      console.error('Error marcando siniestro como enviado:', err);
-      await modalAlert('No se pudo actualizar el estado del siniestro.', { titulo: 'Error' });
+      console.error('Error enviando siniestro:', err);
+      await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginalBtn;
     }
   });
 
