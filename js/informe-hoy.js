@@ -154,13 +154,13 @@
 
   async function cargarInformeHistorial(fecha) {
     const cont = document.getElementById('contenidoHistorial');
-    const btnPdf = document.getElementById('btnPdfHistorial');
+    const wrapExportar = document.getElementById('exportarWrapHistorial');
     if (!fecha) {
       await modalAlert('Selecciona primero una fecha.', { titulo: 'Historial' });
       return;
     }
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
-    if (btnPdf) btnPdf.style.display = 'none';
+    if (wrapExportar) wrapExportar.style.display = 'none';
     historialInformeActual = null;
     historialIncidenciasActual = [];
 
@@ -198,7 +198,7 @@
 
       historialInformeActual = informe;
       historialIncidenciasActual = incs || [];
-      if (btnPdf) btnPdf.style.display = '';
+      if (wrapExportar) wrapExportar.style.display = '';
 
       renderHistorialInforme(informe, incs || []);
     } catch (err) {
