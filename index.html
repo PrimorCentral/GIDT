@@ -101,6 +101,7 @@
           </span>
         </div>
         <div class="incidencias-toolbar" id="incidenciasToolbar" style="display:none;">
+          <button class="btn" id="btnPdfInforme" title="Descargar el informe de hoy en PDF">📄 PDF</button>
           <div class="filtros-wrap">
             <button class="btn" id="btnFiltrosIncidencias">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -190,6 +191,7 @@
         <div style="display:flex; align-items:center; gap:8px;">
           <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
+          <button class="btn" id="btnPdfHistorial" title="Descargar este informe en PDF" style="display:none;">📄 PDF</button>
         </div>
       </div>
       <div id="contenidoHistorial">
@@ -415,6 +417,9 @@
 
 <!-- Supabase JS client -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Generación de PDF (exportar informes) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf-autotable.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/ui-modal.js"></script>
@@ -430,6 +435,7 @@
 <script src="js/email-service.js"></script>
 <script src="js/informe-envio.js"></script>
 <script src="js/siniestros.js"></script>
+<script src="js/informe-pdf.js"></script>
 
 </body>
 </html>
