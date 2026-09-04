@@ -80,11 +80,11 @@
               : { textColor: [0, 0, 0] };
 
           filasCuerpo.push([
-            { content: f.hora || '—', styles: { halign: 'center' } },
-            { content: f.tienda || '—', styles: { fontStyle: 'bold' } },
+            { content: f.hora || '—', styles: { halign: 'center', textColor: [0, 0, 0] } },
+            { content: f.tienda || '—', styles: { halign: 'center', fontStyle: 'bold', textColor: [0, 0, 0] } },
             { content: tipo ? (tipo.charAt(0) + tipo.slice(1).toLowerCase()) : 'Pendiente', styles: { halign: 'center', ...estilo } },
-            { content: (f.motivo || []).join(', '), styles: { ...estilo } },
-            { content: f.observaciones || '', styles: { halign: 'center', fontStyle: 'italic', textColor: [90, 98, 110] } }
+            { content: (f.motivo || []).join('\n'), styles: { halign: 'center', ...estilo } },
+            { content: f.observaciones || '', styles: { halign: 'center', fontStyle: 'italic', textColor: [0, 0, 0] } }
           ]);
         });
       });
@@ -99,10 +99,10 @@
       head: [['HORA', 'TIENDA', 'TIPO', 'MOTIVO INCIDENCIA', 'OBSERVACIONES']],
       headStyles: { fillColor: PDF_COLOR_HEADER, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 9.5 },
       columnStyles: {
-        0: { cellWidth: 46 },
+        0: { cellWidth: 40 },
         1: { cellWidth: 130 },
-        2: { cellWidth: 80 },
-        3: { cellWidth: 230 }
+        2: { cellWidth: 60 },
+        3: { cellWidth: 210 }
         // OBSERVACIONES (col. 4): ancho automático con el resto del sitio.
       },
       body: filasCuerpo
