@@ -163,7 +163,7 @@
     try {
       const { data: informe, error: eInf } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en')
         .eq('fecha', fecha)
         .maybeSingle();
       if (eInf) throw eInf;
@@ -210,12 +210,13 @@
   function renderHistorialInforme(informe, incidenciasActivas) {
     const cont = document.getElementById('contenidoHistorial');
     const fechaTexto = new Date(informe.fecha + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const estadoTexto = informe.informe_enviado ? 'ENVIADO' : informe.estado;
 
     if (!incidenciasActivas.length) {
       cont.innerHTML = `
         <div class="card" style="margin-bottom:14px; padding:16px 20px;">
           <b style="text-transform:capitalize;">${fechaTexto}</b>
-          ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${informe.estado}
+          ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${estadoTexto}
         </div>
         <div class="card">
           <div class="empty">
@@ -276,7 +277,7 @@
     cont.innerHTML = `
       <div class="card" style="margin-bottom:14px; padding:16px 20px;">
         <b style="text-transform:capitalize;">${fechaTexto}</b>
-        ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${informe.estado}
+        ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${estadoTexto}
         · <span style="color:var(--grave); font-weight:700;">${incidenciasActivas.length} incidencia${incidenciasActivas.length===1?'':'s'} activa${incidenciasActivas.length===1?'':'s'}</span>
       </div>
       ${bloques}`;
