@@ -140,18 +140,20 @@
         </div>`;
     };
 
+    const dot = `<svg width="9" height="9" viewBox="0 0 9 9" style="flex:0 0 auto;"><circle cx="4.5" cy="4.5" r="4.5" fill="currentColor"/></svg>`;
+
     cont.innerHTML = `
       <div class="siniestros-kanban">
         <div class="kanban-col roturas">
-          <div class="kanban-col-head">🔴 Roturas confirmadas <span class="count">${roturas.length}</span></div>
+          <div class="kanban-col-head">${dot} Roturas confirmadas <span class="count">${roturas.length}</span></div>
           ${roturas.length ? roturas.map(tarjeta).join('') : '<div class="card"><div class="empty" style="padding:24px;"><p>Sin roturas hoy.</p></div></div>'}
         </div>
         <div class="kanban-col faltas">
-          <div class="kanban-col-head">🟠 Faltas <span class="count">${faltas.length}</span></div>
+          <div class="kanban-col-head">${dot} Faltas <span class="count">${faltas.length}</span></div>
           ${faltas.length ? faltas.map(tarjeta).join('') : '<div class="card"><div class="empty" style="padding:24px;"><p>Sin faltas hoy.</p></div></div>'}
         </div>
         <div class="kanban-col mixtos">
-          <div class="kanban-col-head">🟣 Roturas y Faltas <span class="count">${mixtos.length}</span></div>
+          <div class="kanban-col-head">${dot} Roturas y Faltas <span class="count">${mixtos.length}</span></div>
           ${mixtos.length ? mixtos.map(tarjeta).join('') : '<div class="card"><div class="empty" style="padding:24px;"><p>Sin casos mixtos hoy.</p></div></div>'}
         </div>
       </div>`;
