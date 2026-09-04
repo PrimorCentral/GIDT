@@ -231,10 +231,6 @@
   .pill.grave{ background:var(--grave-bg); color:var(--grave); }
   .pill.leve{ background:#EEF0F3; color:var(--leve); }
 
-  footer.build-note{
-    text-align:center; color:#AEB6C0; font-size:11.5px; margin-top:34px;
-  }
-
   /* ---------- Login ---------- */
   #loginScreen{
     position:fixed; inset:0; z-index:100;
