@@ -1,4 +1,4 @@
-  :root{
+:root{
     --bg:            #12181F;   /* carbon */
     --bg-elev:       #1B232D;
     --panel:         #FFFFFF;
@@ -505,6 +505,21 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .filtro-check input{ margin:0; flex:0 0 auto; }
   .filtro-check .pill{ margin:0; pointer-events:none; }
   .filtro-check.oculto{ display:none; }
+
+  /* ---------- Modal "Exportar informe" (PDF / Excel) ---------- */
+  .export-formato-toggle{ display:flex; gap:8px; }
+  .export-formato-btn{
+    flex:1; padding:10px; border:1px solid var(--border); border-radius:9px;
+    background:#fff; cursor:pointer; font-size:13px; font-weight:700; color:var(--ink-soft);
+  }
+  .export-formato-btn:hover{ border-color:var(--accent); }
+  .export-formato-btn.activo{ border-color:var(--accent); color:var(--accent-ink); background:#FFEEDF; }
+  .export-tipos-grid{ display:flex; flex-wrap:wrap; gap:6px 10px; }
+  .exportar-select{ position:relative; }
+  .exportar-select.open .filtro-select-dropdown{ display:block; }
+  .exportar-select.open .filtro-select-btn{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,122,26,.15); }
+  .exportar-select.open .filtro-select-btn svg{ transform:rotate(180deg); }
+  .exportar-select.activo .filtro-select-valor{ color:var(--accent-ink); font-weight:700; }
 
   /* ---------- Desplegable de motivos (multi-selección) en Informe del día ---------- */
     .motivo-select{
