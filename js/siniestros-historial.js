@@ -472,7 +472,10 @@
   document.addEventListener('click', () => {
     document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
   });
-  document.addEventListener('scroll', () => {
+  document.addEventListener('scroll', (e) => {
+    // Si el scroll ocurre dentro del propio desplegable (la lista de motivos
+    // tiene su propio scroll interno), no lo cerramos.
+    if (e.target && e.target.closest && e.target.closest('.filtro-select-dropdown')) return;
     document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
   }, true);
 
