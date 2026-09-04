@@ -1,4 +1,4 @@
-  // Informe diario de hoy
+// Informe diario de hoy
   // ---------------------------------------------------------------
         let fechaHoyISO = fechaLocalISO(hoy); // YYYY-MM-DD, en hora LOCAL
 
@@ -75,11 +75,6 @@
       await modalAlert('No se pudo generar el informe de hoy.', { titulo: 'Error' });
     }
   }
-
-  document.getElementById('btnNuevoInforme').addEventListener('click', () => {
-    if (informeHoyCache) { activarVista('incidencias'); renderVistaIncidencias(); return; }
-    generarInformeHoy();
-  });
 
   async function actualizarKpiIncidencias() {
     document.getElementById('kpiIncidenciasHoy').textContent = informeHoyCache
