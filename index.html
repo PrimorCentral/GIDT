@@ -101,7 +101,55 @@
           </span>
         </div>
         <div class="incidencias-toolbar" id="incidenciasToolbar" style="display:none;">
-          <button class="btn" id="btnPdfInforme" title="Descargar el informe de hoy en PDF">📄 PDF</button>
+          <div class="filtros-wrap" id="exportarWrapHoy">
+            <button class="btn" id="btnExportarInforme" title="Exportar el informe de hoy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+            <div class="filtros-modal-overlay" id="exportarPanelHoy">
+              <div class="filtros-modal-header">
+                <b>Exportar informe</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarExportarHoy">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarExportarHoy" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <button type="button" class="btn primary" id="btnExportarCompletoHoy" style="width:100%; justify-content:center; margin-bottom:18px;">📋 Exportar informe completo</button>
+                <div class="filtros-grid">
+                  <div class="filtro-campo filtros-span2">
+                    <label>Formato</label>
+                    <div class="export-formato-toggle" id="exportarFormatoHoy">
+                      <button type="button" class="export-formato-btn activo" data-formato="pdf">📄 PDF</button>
+                      <button type="button" class="export-formato-btn" data-formato="excel">📊 Excel</button>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tipo de incidencia</label>
+                    <div class="export-tipos-grid" id="exportarTiposHoy"></div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Agencias</label>
+                    <div class="exportar-select" id="exportarAgenciaSelectHoy">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="exportarAgenciasListaHoy"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:20px;">
+                  <button type="button" class="btn primary" id="btnExportarSeleccionHoy">Exportar seleccionado</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="filtros-wrap">
             <button class="btn" id="btnFiltrosIncidencias">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -191,7 +239,55 @@
         <div style="display:flex; align-items:center; gap:8px;">
           <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
-          <button class="btn" id="btnPdfHistorial" title="Descargar este informe en PDF" style="display:none;">📄 PDF</button>
+          <div class="filtros-wrap" id="exportarWrapHistorial" style="display:none;">
+            <button class="btn" id="btnExportarHistorial" title="Exportar este informe">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+            <div class="filtros-modal-overlay" id="exportarPanelHistorial">
+              <div class="filtros-modal-header">
+                <b>Exportar informe</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarExportarHistorial">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarExportarHistorial" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <button type="button" class="btn primary" id="btnExportarCompletoHistorial" style="width:100%; justify-content:center; margin-bottom:18px;">📋 Exportar informe completo</button>
+                <div class="filtros-grid">
+                  <div class="filtro-campo filtros-span2">
+                    <label>Formato</label>
+                    <div class="export-formato-toggle" id="exportarFormatoHistorial">
+                      <button type="button" class="export-formato-btn activo" data-formato="pdf">📄 PDF</button>
+                      <button type="button" class="export-formato-btn" data-formato="excel">📊 Excel</button>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tipo de incidencia</label>
+                    <div class="export-tipos-grid" id="exportarTiposHistorial"></div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Agencias</label>
+                    <div class="exportar-select" id="exportarAgenciaSelectHistorial">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="exportarAgenciasListaHistorial"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:20px;">
+                  <button type="button" class="btn primary" id="btnExportarSeleccionHistorial">Exportar seleccionado</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="contenidoHistorial">
@@ -420,6 +516,7 @@
 <!-- Generación de PDF (exportar informes) -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/ui-modal.js"></script>
