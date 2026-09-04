@@ -1,4 +1,4 @@
-  // Selects desplegables (Agencia / Tipo / Motivo) dentro del panel
+// Selects desplegables (Agencia / Tipo / Motivo) dentro del panel
   // ---------------------------------------------------------------
   const NOMBRES_FILTRO_GRUPO = { agencia: 'agencia', tipo: 'tipo', motivo: 'motivo' };
 
@@ -147,6 +147,9 @@
   }
 
   function abrirFiltrosPanel() {
+    // Si el panel de "Exportar" está abierto, lo cerramos primero para que
+    // no se solapen los dos paneles a la vez.
+    if (typeof cerrarTodosLosExportarPaneles === 'function') cerrarTodosLosExportarPaneles();
     posicionarFiltrosPanel();
     filtrosPanel.classList.add('show');
     btnFiltrosIncidencias.classList.add('open');
