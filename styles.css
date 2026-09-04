@@ -556,7 +556,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .modal-footer .btn.danger:hover{ filter:brightness(1.08); }
 
   /* ---------- Siniestros (kanban) ---------- */
-  .siniestros-kanban{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  .siniestros-kanban{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:1100px){ .siniestros-kanban{ grid-template-columns:1fr 1fr; } }
   @media (max-width:800px){ .siniestros-kanban{ grid-template-columns:1fr; } }
   .kanban-col-head{
     display:flex; align-items:center; gap:8px; padding:0 2px 10px;
@@ -568,6 +569,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   }
   .kanban-col.roturas .kanban-col-head{ color:var(--grave); }
   .kanban-col.faltas .kanban-col-head{ color:var(--accent-ink); }
+  .kanban-col.mixtos .kanban-col-head{ color:#7c3aed; }
 
   .siniestro-card{
     background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
