@@ -490,6 +490,57 @@
   </div>
 </div>
 
+<!-- Modal de envío del informe del día -->
+<div class="modal-overlay" id="envioInformeModalOverlay">
+  <div class="modal-box envio-modal-box" role="dialog" aria-modal="true" aria-labelledby="envioModalTitulo">
+    <button class="filtros-modal-close" id="btnCerrarEnvioModal" style="position:absolute; right:16px; top:16px;">✕</button>
+    <div class="envio-modal-head">
+      <div class="envio-modal-icon">✉️</div>
+      <div>
+        <h3 class="modal-title" id="envioModalTitulo">Enviar informe del día</h3>
+        <p class="envio-modal-sub" id="envioModalSub"></p>
+      </div>
+    </div>
+
+    <div class="envio-alerta envio-alerta-pendientes" id="envioAlertaPendientes" style="display:none;">
+      <span class="envio-alerta-icon">⚠️</span>
+      <div>
+        <b>Hay incidencias aún sin revisar</b>
+        <p id="envioAlertaPendientesTexto"></p>
+        <ul id="envioAlertaPendientesLista"></ul>
+      </div>
+    </div>
+
+    <div class="envio-lista" id="envioListaAgencias"></div>
+
+    <div class="envio-alerta envio-alerta-omitidas" id="envioAlertaOmitidas" style="display:none;">
+      <span class="envio-alerta-icon">🚫</span>
+      <div>
+        <b>No se enviará a estas agencias</b>
+        <p id="envioAlertaOmitidasTexto"></p>
+      </div>
+    </div>
+
+    <div class="envio-alerta envio-alerta-reenvio" id="envioAlertaReenvio" style="display:none;">
+      <span class="envio-alerta-icon">🔁</span>
+      <p>El informe de hoy ya se había enviado antes. Esto lo volverá a enviar.</p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" id="envioModalBtnCancel">Cancelar</button>
+      <button class="btn primary" id="envioModalBtnOk">✉️ Enviar informe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de carga (envío del informe en curso) -->
+<div class="modal-overlay" id="cargandoEnvioOverlay">
+  <div class="modal-box cargando-modal-box" role="alert" aria-live="assertive">
+    <div class="spinner"></div>
+    <p class="cargando-texto" id="cargandoEnvioTexto">Enviando informe…</p>
+  </div>
+</div>
+
 <!-- Modal de detalle de siniestro (fotos + envío) -->
 <div class="modal-overlay" id="siniestroModalOverlay">
   <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
