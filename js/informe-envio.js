@@ -189,6 +189,7 @@ async function enviarInformeDelDia() {
   if (exitosos.length) {
     try {
       const { data, error } = await sb.from('informes_diarios').update({
+        estado: 'ENVIADO',
         informe_enviado: true,
         informe_enviado_en: new Date().toISOString(),
         informe_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
