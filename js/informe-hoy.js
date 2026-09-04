@@ -21,6 +21,7 @@
     renderCardEstadoInforme();
     if (informeHoyCache) await cargarIncidenciasHoy();
     actualizarKpiIncidencias();
+    if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
   }
 
   function renderCardEstadoInforme() {

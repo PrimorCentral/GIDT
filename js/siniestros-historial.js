@@ -400,6 +400,8 @@
                 renderKanbanSiniestros();
               }
             }
+            // Refresca el KPI de Inicio contra la BD, funcione o no la caché anterior
+            if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
           } catch (err) {
             console.error('Error eliminando incidencia:', err);
             await modalAlert('No se pudo eliminar la incidencia.', { titulo: 'Error' });

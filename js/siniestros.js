@@ -169,6 +169,80 @@
     document.getElementById('dotSiniestros').classList.toggle('show', pendientes > 0);
   }
 
+  // Refresca el KPI "Siniestros pendientes de envío" de Inicio y el punto rojo
+  // de la pestaña, consultando directamente la base de datos — funciona aunque
+  // el usuario nunca haya entrado en la pestaña Siniestros en esta sesión.
+  async function actualizarKpiSiniestrosDesdeDB() {
+    const kpiEl = document.getElementById('kpiSiniestrosPend');
+    const dotEl = document.getElementById('dotSiniestros');
+    if (!informeHoyCache) {
+      if (kpiEl) kpiEl.textContent = '0';
+      if (dotEl) dotEl.classList.remove('show');
+      return;
+    }
+    try {
+      const { count, error } = await sb
+        .from('siniestros')
+        .select('id, incidencias!inner(informe_id)', { count: 'exact', head: true })
+        .eq('estado', 'PENDIENTE')
+        .eq('incidencias.informe_id', informeHoyCache.id);
+      if (error) throw error;
+      if (kpiEl) kpiEl.textContent = count ?? 0;
+      if (dotEl) dotEl.classList.toggle('show', (count ?? 0) > 0);
+    } catch (err) {
+      console.error('Error actualizando KPI de siniestros:', err);
+    }
+  }
+
+  // Crea, actualiza o elimina la fila de `siniestros` de una incidencia justo
+  // al guardarla (sin esperar a que el usuario entre en la pestaña Siniestros),
+  // y refresca el KPI de Inicio y el kanban si ya está abierto.
+  async function sincronizarSiniestroIncidencia(incidenciaId, motivos) {
+    if (!informeHoyCache) return;
+    const tipo = tipoSiniestroDeMotivos(motivos);
+
+    try {
+      const { data: existente, error: eSel } = await sb
+        .from('siniestros')
+        .select('id, tipo, estado')
+        .eq('incidencia_id', incidenciaId)
+        .maybeSingle();
+      if (eSel) throw eSel;
+
+      if (!tipo) {
+        // Ya no hay ROTURA CONFIRMADA ni FALTAS en esta incidencia:
+        // si tenía un siniestro PENDIENTE asociado, lo quitamos.
+        if (existente && existente.estado === 'PENDIENTE') {
+          const { error: eDel } = await sb.from('siniestros').delete().eq('id', existente.id);
+          if (eDel) throw eDel;
+        }
+      } else if (!existente) {
+        const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
+        fechaLimite.setDate(fechaLimite.getDate() + 15);
+        const { error: eIns } = await sb.from('siniestros').insert({
+          incidencia_id: incidenciaId,
+          tipo,
+          estado: 'PENDIENTE',
+          fecha_limite: fechaLocalISO(fechaLimite)
+        });
+        if (eIns) throw eIns;
+      } else if (existente.estado === 'PENDIENTE' && existente.tipo !== tipo) {
+        const { error: eUpd } = await sb.from('siniestros').update({ tipo }).eq('id', existente.id);
+        if (eUpd) throw eUpd;
+      }
+    } catch (err) {
+      console.error('Error sincronizando siniestro de la incidencia:', err);
+    }
+
+    await actualizarKpiSiniestrosDesdeDB();
+
+    // Si la pestaña Siniestros ya está abierta, refrescamos su kanban también
+    // para que se vea el cambio al instante sin tener que volver a entrar.
+    if (document.getElementById('view-siniestros')?.classList.contains('active')) {
+      renderVistaSiniestros();
+    }
+  }
+
   // ---- Modal de detalle de siniestro ----
   let siniestroActivoId = null;
 

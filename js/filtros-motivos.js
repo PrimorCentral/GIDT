@@ -205,6 +205,14 @@
       if (error) throw error;
 
       await cargarIncidenciasHoy();
+
+      // Crea/actualiza/borra el siniestro asociado (ROTURA/FALTA/MIXTO) al instante,
+      // sin esperar a que se entre en la pestaña Siniestros.
+      const incGuardada = incidenciaDeTienda(tiendaId);
+      if (incGuardada && typeof sincronizarSiniestroIncidencia === 'function') {
+        sincronizarSiniestroIncidencia(incGuardada.id, motivos);
+      }
+
       if (filtrosActivos()) {
         // Con filtros activos, la fila podría dejar de cumplirlos: recalculamos el listado
         // (el estado de agencias desplegadas ya se conserva, así que no se cierra nada).
