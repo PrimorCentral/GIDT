@@ -15,6 +15,77 @@
     return null;
   }
 
+  // Revisa TODAS las incidencias de hoy con ROTURA CONFIRMADA/FALTAS y crea,
+  // actualiza o deja igual su siniestro asociado. No toca el DOM — se puede
+  // llamar tanto desde la pestaña Siniestros como en segundo plano al cargar
+  // la app, para arrastrar incidencias marcadas antes de abrir esa pestaña.
+  // Devuelve { incs, existentesPorIncidencia } para quien quiera pintar con ello.
+  async function sincronizarSiniestrosDelDia() {
+    if (!informeHoyCache) return { incs: [], existentesPorIncidencia: new Map() };
+
+    // 1. Incidencias de hoy cuyo motivo incluye FALTAS o ROTURA CONFIRMADA
+    const { data: incs, error: e1 } = await sb
+      .from('incidencias')
+      .select(`
+        id, motivo, observaciones,
+        tiendas ( id, nombre, hora_prevista,
+          agencias ( id, nombre, emails )
+        )
+      `)
+      .eq('informe_id', informeHoyCache.id)
+      .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
+    if (e1) throw e1;
+
+    if (!incs.length) return { incs: [], existentesPorIncidencia: new Map() };
+
+    // 2. Siniestros ya existentes para esas incidencias
+    const idsIncidencias = incs.map(i => i.id);
+    const { data: existentes, error: e2 } = await sb
+      .from('siniestros')
+      .select('id, incidencia_id, tipo, estado, fotos, fecha_limite')
+      .in('incidencia_id', idsIncidencias);
+    if (e2) throw e2;
+
+    const existentesPorIncidencia = new Map(existentes.map(s => [s.incidencia_id, s]));
+
+    // 3. Crear los que falten (incluye las marcadas antes de tener esta sincronización)
+    const faltantes = incs.filter(i => !existentesPorIncidencia.has(i.id));
+    if (faltantes.length) {
+      const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
+      fechaLimite.setDate(fechaLimite.getDate() + 15);
+      const fechaLimiteISO = fechaLocalISO(fechaLimite);
+
+      const nuevos = faltantes.map(i => ({
+        incidencia_id: i.id,
+        tipo: tipoSiniestroDeMotivos(i.motivo),
+        estado: 'PENDIENTE',
+        fecha_limite: fechaLimiteISO
+      }));
+
+      const { data: creados, error: e3 } = await sb.from('siniestros').insert(nuevos).select('id, incidencia_id, tipo, estado, fotos, fecha_limite');
+      if (e3) throw e3;
+      creados.forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
+    }
+
+    // 3.5. Si los motivos de una incidencia cambiaron después de crear su siniestro
+    // (ej: era solo ROTURA y ahora también tiene FALTAS), recalculamos y sincronizamos
+    // el tipo — solo mientras esté PENDIENTE, para no tocar uno ya enviado.
+    const desincronizados = incs.filter(i => {
+      const s = existentesPorIncidencia.get(i.id);
+      return s && s.estado === 'PENDIENTE' && s.tipo !== tipoSiniestroDeMotivos(i.motivo);
+    });
+    if (desincronizados.length) {
+      await Promise.all(desincronizados.map(i => {
+        const s = existentesPorIncidencia.get(i.id);
+        const nuevoTipo = tipoSiniestroDeMotivos(i.motivo);
+        s.tipo = nuevoTipo;
+        return sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
+      }));
+    }
+
+    return { incs, existentesPorIncidencia };
+  }
+
   async function renderVistaSiniestros() {
     const cont = document.getElementById('contenidoSiniestros');
     if (!informeHoyCache) {
@@ -32,18 +103,7 @@
     cont.innerHTML = `<div class="card"><div class="empty"><p>Buscando roturas y faltas de hoy…</p></div></div>`;
 
     try {
-      // 1. Incidencias de hoy cuyo motivo incluye FALTAS o ROTURA CONFIRMADA
-      const { data: incs, error: e1 } = await sb
-        .from('incidencias')
-        .select(`
-          id, motivo, observaciones,
-          tiendas ( id, nombre, hora_prevista,
-            agencias ( id, nombre, emails )
-          )
-        `)
-        .eq('informe_id', informeHoyCache.id)
-        .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
-      if (e1) throw e1;
+      const { incs, existentesPorIncidencia } = await sincronizarSiniestrosDelDia();
 
       if (!incs.length) {
         siniestrosHoyCache = [];
@@ -59,52 +119,7 @@
         return;
       }
 
-      // 2. Siniestros ya existentes para esas incidencias
-      const idsIncidencias = incs.map(i => i.id);
-      const { data: existentes, error: e2 } = await sb
-        .from('siniestros')
-        .select('id, incidencia_id, tipo, estado, fotos, fecha_limite')
-        .in('incidencia_id', idsIncidencias);
-      if (e2) throw e2;
-
-      const existentesPorIncidencia = new Map(existentes.map(s => [s.incidencia_id, s]));
-
-      // 3. Crear los que falten
-      const faltantes = incs.filter(i => !existentesPorIncidencia.has(i.id));
-      if (faltantes.length) {
-                const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
-        fechaLimite.setDate(fechaLimite.getDate() + 15);
-        const fechaLimiteISO = fechaLocalISO(fechaLimite);
-
-        const nuevos = faltantes.map(i => ({
-          incidencia_id: i.id,
-          tipo: tipoSiniestroDeMotivos(i.motivo),
-          estado: 'PENDIENTE',
-          fecha_limite: fechaLimiteISO
-        }));
-
-        const { data: creados, error: e3 } = await sb.from('siniestros').insert(nuevos).select('id, incidencia_id, tipo, estado, fotos, fecha_limite');
-        if (e3) throw e3;
-        creados.forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
-      }
-
-      // 3.5. Si los motivos de una incidencia cambiaron después de crear su siniestro
-      // (ej: era solo ROTURA y ahora también tiene FALTAS), recalculamos y sincronizamos
-      // el tipo — solo mientras esté PENDIENTE, para no tocar uno ya enviado.
-      const desincronizados = incs.filter(i => {
-        const s = existentesPorIncidencia.get(i.id);
-        return s && s.estado === 'PENDIENTE' && s.tipo !== tipoSiniestroDeMotivos(i.motivo);
-      });
-      if (desincronizados.length) {
-        await Promise.all(desincronizados.map(i => {
-          const s = existentesPorIncidencia.get(i.id);
-          const nuevoTipo = tipoSiniestroDeMotivos(i.motivo);
-          s.tipo = nuevoTipo;
-          return sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
-        }));
-      }
-
-      // 4. Combinar todo para pintar
+      // Combinar todo para pintar
       siniestrosHoyCache = incs.map(i => ({
         ...existentesPorIncidencia.get(i.id),
         incidencia: i
@@ -181,14 +196,13 @@
       return;
     }
     try {
-      const { count, error } = await sb
-        .from('siniestros')
-        .select('id, incidencias!inner(informe_id)', { count: 'exact', head: true })
-        .eq('estado', 'PENDIENTE')
-        .eq('incidencias.informe_id', informeHoyCache.id);
-      if (error) throw error;
-      if (kpiEl) kpiEl.textContent = count ?? 0;
-      if (dotEl) dotEl.classList.toggle('show', (count ?? 0) > 0);
+      // Primero sincroniza (crea/actualiza siniestros que falten, incluidas
+      // incidencias marcadas antes de entrar nunca en la pestaña Siniestros),
+      // y cuenta directamente sobre el resultado — sin una segunda consulta.
+      const { existentesPorIncidencia } = await sincronizarSiniestrosDelDia();
+      const pendientes = Array.from(existentesPorIncidencia.values()).filter(s => s.estado === 'PENDIENTE').length;
+      if (kpiEl) kpiEl.textContent = pendientes;
+      if (dotEl) dotEl.classList.toggle('show', pendientes > 0);
     } catch (err) {
       console.error('Error actualizando KPI de siniestros:', err);
     }
