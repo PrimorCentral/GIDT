@@ -265,9 +265,16 @@
   // Modal "Exportar informe" — estado y wiring, uno por contexto
   // ('hoy' = Informe del día, 'historial' = Historial de informes)
   // ---------------------------------------------------------------
+  // Por defecto se exportan todos los tipos de incidencia (los 4 checks
+  // marcados) — funcionalmente equivale a no filtrar, pero deja claro de
+  // un vistazo que se va a incluir todo.
+  function todosLosTipos() {
+    return new Set(TIPOS_FILTRO.map(t => t.v));
+  }
+
   const exportarEstado = {
-    hoy: { formato: 'pdf', tipos: new Set(), agencias: new Set() },
-    historial: { formato: 'pdf', tipos: new Set(), agencias: new Set() }
+    hoy: { formato: 'pdf', tipos: todosLosTipos(), agencias: new Set() },
+    historial: { formato: 'pdf', tipos: todosLosTipos(), agencias: new Set() }
   };
 
   function sufijoContexto(contexto) {
@@ -352,7 +359,7 @@
   }
 
   function limpiarSeleccionExport(contexto) {
-    exportarEstado[contexto].tipos.clear();
+    exportarEstado[contexto].tipos = todosLosTipos();
     exportarEstado[contexto].agencias.clear();
     construirTiposExport(contexto);
     construirListaAgenciasExport(contexto);
@@ -385,7 +392,7 @@
   async function ejecutarExportacion(contexto, { completo }) {
     const estado = exportarEstado[contexto];
     if (completo) {
-      exportarEstado[contexto].tipos.clear();
+      exportarEstado[contexto].tipos = todosLosTipos();
       exportarEstado[contexto].agencias.clear();
     }
 
