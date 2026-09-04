@@ -9,7 +9,7 @@
     try {
       const { data, error } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por')
         .eq('fecha', fechaHoyISO)
         .maybeSingle();
       if (error) throw error;
@@ -22,6 +22,7 @@
     if (informeHoyCache) await cargarIncidenciasHoy();
     actualizarKpiIncidencias();
     if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
+    if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
   }
 
   function renderCardEstadoInforme() {
@@ -67,6 +68,7 @@
       informeHoyCache = data;
       renderCardEstadoInforme();
       cargarKPIs();
+      if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
       renderVistaIncidencias();
     } catch (err) {
       console.error('Error generando informe:', err);
