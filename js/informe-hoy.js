@@ -139,6 +139,11 @@
   const historialFechaInput = document.getElementById('historialFechaInput');
   historialFechaInput.max = fechaHoyISO;
 
+  // Último informe consultado en "Historial de informes diarios" (para poder
+  // exportarlo a PDF sin volver a pedirlo a Supabase).
+  let historialInformeActual = null;
+  let historialIncidenciasActual = [];
+
   function renderVistaHistorialInformes() {
     if (!historialFechaInput.value) historialFechaInput.focus();
   }
@@ -149,11 +154,15 @@
 
   async function cargarInformeHistorial(fecha) {
     const cont = document.getElementById('contenidoHistorial');
+    const btnPdf = document.getElementById('btnPdfHistorial');
     if (!fecha) {
       await modalAlert('Selecciona primero una fecha.', { titulo: 'Historial' });
       return;
     }
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
+    if (btnPdf) btnPdf.style.display = 'none';
+    historialInformeActual = null;
+    historialIncidenciasActual = [];
 
     try {
       const { data: informe, error: eInf } = await sb
@@ -186,6 +195,10 @@
         .eq('informe_id', informe.id)
         .eq('marcada', true);
       if (eInc) throw eInc;
+
+      historialInformeActual = informe;
+      historialIncidenciasActual = incs || [];
+      if (btnPdf) btnPdf.style.display = '';
 
       renderHistorialInforme(informe, incs || []);
     } catch (err) {
