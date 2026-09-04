@@ -41,7 +41,7 @@ function tablaHtmlIncidencias(filas) {
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
-    const motivos = (inc.motivo || []).map(m => `<div style="margin:0;">${escapeHtml(m)}</div>`).join('');
+    const motivos = (inc.motivo || []).map(m => escapeHtml(m)).join('<br>');
 
     return `
       <tr>
