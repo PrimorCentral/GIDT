@@ -20,6 +20,8 @@
 
     async function comprobarVersionInicial() {
       versionActual = await obtenerVersionRemota();
+      const tag = document.getElementById('appVersionTag');
+      if (tag && versionActual) tag.textContent = 'v' + versionActual;
     }
 
     async function comprobarActualizacion() {
