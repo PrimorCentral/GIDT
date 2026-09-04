@@ -370,6 +370,9 @@
     const els = elsExportar(contexto);
     if (!els.panel) return;
     cerrarTodosLosExportarPaneles(contexto);
+    // Si el panel de "Filtros" está abierto (vista "Informe del día"), lo
+    // cerramos primero para que no se solapen los dos paneles a la vez.
+    if (typeof cerrarFiltrosPanel === 'function') cerrarFiltrosPanel();
 
     await ensureAgenciasYTiendasCargadas();
     construirTiposExport(contexto);
