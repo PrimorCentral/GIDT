@@ -4,11 +4,14 @@
   let siniestrosHoyCache = []; // [{ id, tipo, estado, fotos, fecha_limite, incidencia:{...,tiendas:{...,agencias:{...}}} }]
 
   // A partir del array de motivos de una incidencia, decide si genera un siniestro
-  // de tipo FALTA o ROTURA (si ambos motivos están presentes, prioriza FALTA por ser más grave).
+  // de tipo FALTA, ROTURA o MIXTO (si están presentes ambos motivos a la vez).
   function tipoSiniestroDeMotivos(motivos) {
     const arr = motivos || [];
-    if (arr.includes('FALTAS')) return 'FALTA';
-    if (arr.includes('ROTURA CONFIRMADA')) return 'ROTURA';
+    const tieneFalta = arr.includes('FALTAS');
+    const tieneRotura = arr.includes('ROTURA CONFIRMADA');
+    if (tieneFalta && tieneRotura) return 'MIXTO';
+    if (tieneFalta) return 'FALTA';
+    if (tieneRotura) return 'ROTURA';
     return null;
   }
 
@@ -103,6 +106,7 @@
     const cont = document.getElementById('contenidoSiniestros');
     const roturas = siniestrosHoyCache.filter(s => s.tipo === 'ROTURA');
     const faltas = siniestrosHoyCache.filter(s => s.tipo === 'FALTA');
+    const mixtos = siniestrosHoyCache.filter(s => s.tipo === 'MIXTO');
 
     const tarjeta = (s) => {
       const t = s.incidencia.tiendas || {};
@@ -129,6 +133,10 @@
         <div class="kanban-col faltas">
           <div class="kanban-col-head">🟠 Faltas <span class="count">${faltas.length}</span></div>
           ${faltas.length ? faltas.map(tarjeta).join('') : '<div class="card"><div class="empty" style="padding:24px;"><p>Sin faltas hoy.</p></div></div>'}
+        </div>
+        <div class="kanban-col mixtos">
+          <div class="kanban-col-head">🟣 Roturas y Faltas <span class="count">${mixtos.length}</span></div>
+          ${mixtos.length ? mixtos.map(tarjeta).join('') : '<div class="card"><div class="empty" style="padding:24px;"><p>Sin casos mixtos hoy.</p></div></div>'}
         </div>
       </div>`;
 
@@ -167,8 +175,8 @@
     const t = s.incidencia.tiendas || {};
     const ag = t.agencias || {};
 
-    document.getElementById('siniestroModalTipo').textContent = s.tipo === 'ROTURA' ? 'Rotura confirmada' : 'Falta';
-    document.getElementById('siniestroModalTipo').className = 'pill ' + (s.tipo === 'ROTURA' ? 'grave' : 'moderado');
+    document.getElementById('siniestroModalTipo').textContent = s.tipo === 'ROTURA' ? 'Rotura confirmada' : (s.tipo === 'MIXTO' ? 'Rotura y Falta' : 'Falta');
+    document.getElementById('siniestroModalTipo').className = 'pill ' + (s.tipo === 'ROTURA' || s.tipo === 'MIXTO' ? 'grave' : 'moderado');
     document.getElementById('siniestroModalTitulo').textContent = t.nombre || '—';
     document.getElementById('siniestroModalInfo').textContent =
       `${ag.nombre || 'Sin agencia'} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}` +
