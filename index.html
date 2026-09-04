@@ -41,7 +41,7 @@
         <button class="tab-btn" id="btnInformesDropdown">📋 Informes diarios<span class="dot" id="dotIncidencias"></span><span class="caret">▾</span></button>
         <button class="tab-btn" id="btnSiniestrosDropdown">📦 Siniestros<span class="dot" id="dotSiniestros"></span><span class="caret">▾</span></button>
         <button class="tab-btn" id="btnConfigDropdown">⚙️ Configuración<span class="caret">▾</span></button>
-        <button class="tab-btn" data-view="analisis">📈 Análisis</button>
+        <button class="tab-btn" id="btnAnalisisDropdown">📈 Análisis<span class="caret">▾</span></button>
       </div>
       <div class="dropdown" id="informesDropdown">
         <button data-view="incidencias">📅 Informe del día</button>
@@ -55,6 +55,9 @@
         <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
         <button data-view="config-emails">✉️ Emails por agencia</button>
         <button data-view="config-usuarios">👤 Usuarios</button>
+      </div>
+      <div class="dropdown" id="analisisDropdown">
+        <button data-view="analisis-ranking">🏆 Ranking de tiendas y agencias</button>
       </div>
     </nav>
 
@@ -455,20 +458,56 @@
       </div>
     </section>
 
-    <!-- ============ ANÁLISIS ============ -->
-    <section class="view" id="view-analisis">
+    <!-- ============ ANÁLISIS: RANKING DE TIENDAS Y AGENCIAS ============ -->
+    <section class="view" id="view-analisis-ranking">
       <div class="page-head">
         <div>
-          <h1>📈 Análisis</h1>
-          <p>Incidencias mensuales, tiendas y agencias con más incidencias.</p>
+          <h1>🏆 Ranking de tiendas y agencias</h1>
+          <p>Incidencias y siniestros por tienda y por agencia en el periodo seleccionado.</p>
         </div>
       </div>
-      <div class="card">
-        <div class="empty">
-          <div class="glyph">🚧</div>
-          <h3>En construcción</h3>
-          <p>Aquí irán las estadísticas: incidencias por mes, top de tiendas y agencias, y consultas por rango de fechas.</p>
+
+      <div class="card" style="padding:16px 18px; margin-bottom:16px;">
+        <div class="analisis-filtros">
+          <div class="toggle-seg" id="analisisRangoRapido">
+            <button type="button" class="toggle-seg-btn" data-rango="mes">Mes en curso</button>
+            <button type="button" class="toggle-seg-btn" data-rango="30d">Últimos 30 días</button>
+            <button type="button" class="toggle-seg-btn" data-rango="todo">Todo el histórico</button>
+          </div>
+          <div class="analisis-fechas">
+            <div>
+              <label class="form-label">Desde</label>
+              <input type="date" id="analisisDesde" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Hasta</label>
+              <input type="date" id="analisisHasta" class="form-input">
+            </div>
+            <button class="btn primary" id="btnAnalisisConsultar">Consultar</button>
+          </div>
         </div>
+      </div>
+
+      <div class="grid-kpi">
+        <div class="kpi"><b id="akIncidencias">—</b><span>Incidencias en el periodo</span></div>
+        <div class="kpi warn"><b id="akGraves">—</b><span>Incidencias graves</span></div>
+        <div class="kpi"><b id="akSiniestros">—</b><span>Siniestros generados</span></div>
+        <div class="kpi"><b id="akSiniestrosPend">—</b><span>Siniestros pendientes</span></div>
+      </div>
+
+      <div class="analisis-toolbar">
+        <div class="toggle-seg" id="analisisEntidadToggle">
+          <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
+          <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
+        </div>
+        <div class="toggle-seg" id="analisisOrdenToggle">
+          <button type="button" class="toggle-seg-btn activo" data-orden="incidencias">Ordenar por incidencias</button>
+          <button type="button" class="toggle-seg-btn" data-orden="siniestros">Ordenar por siniestros</button>
+        </div>
+      </div>
+
+      <div id="contenidoAnalisisRanking">
+        <div class="card"><div class="empty"><p>Elige un periodo y pulsa "Consultar".</p></div></div>
       </div>
     </section>
 
@@ -590,6 +629,7 @@
 <script src="js/siniestros.js"></script>
 <script src="js/informe-pdf.js"></script>
 <script src="js/informe-autorefresh.js"></script>
+<script src="js/analisis.js"></script>
 
 </body>
 </html>
