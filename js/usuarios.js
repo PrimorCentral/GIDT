@@ -23,7 +23,7 @@
           <td><b>${escapeHtml(u.nombre)}</b></td>
           <td>${escapeHtml(u.usuario)}</td>
           <td><span class="badge-rol ${u.rol}">${u.rol}</span></td>
-          <td>${u.ultima_conexion ? new Date(u.ultima_conexion).toLocaleString('es-ES') : '—'}</td>
+          <td>${u.ultima_conexion ? formatearFechaHoraCorta(new Date(u.ultima_conexion)) : '—'}</td>
           <td>
             <span class="badge-estado ${u.activo ? 'activo' : 'inactivo'}">
               <i></i>${u.activo ? 'Activo' : 'Desactivado'}

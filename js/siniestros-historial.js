@@ -96,9 +96,8 @@
 
   function renderHistorialSiniestros(informe, siniestros) {
     const cont = document.getElementById('contenidoHistorialSiniestros');
-    const fechaTexto = new Date(informe.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
-      weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
-    });
+    const fechaInforme = new Date(informe.fecha + 'T00:00:00');
+    const fechaTexto = `${dias[fechaInforme.getDay()]}, ${formatearFechaCorta(fechaInforme)}`;
 
     if (!siniestros.length) {
       cont.innerHTML = `
@@ -143,8 +142,8 @@
           ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
           <div class="fotos-mini">📷 ${numFotos} foto${numFotos===1?'':'s'}</div>
           ${s.estado === 'ENVIADO'
-            ? `<div class="fotos-mini">✉️ Enviado ${s.enviado_en ? new Date(s.enviado_en).toLocaleString('es-ES') : ''}${s.enviado_por ? ' · ' + escapeHtml(s.enviado_por) : ''}</div>`
-            : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? new Date(s.fecha_limite+'T00:00:00').toLocaleDateString('es-ES') : '—'}</div>`}
+            ? `<div class="fotos-mini">✉️ Enviado ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}${s.enviado_por ? ' · ' + escapeHtml(s.enviado_por) : ''}</div>`
+            : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00')) : '—'}</div>`}
         </div>`;
     };
 
@@ -191,7 +190,7 @@
     await ensureAgenciasYTiendasCargadas();
     await cargarIncidenciasHoy();
     document.getElementById('informeTituloFecha').textContent =
-      `${dias[hoy.getDay()]}, ${hoy.toLocaleDateString('es-ES')}`;
+      `${dias[hoy.getDay()]}, ${formatearFechaCorta(hoy)}`;
     actualizarBadgePaletsPrevistos();
 
     construirPanelFiltrosIncidencias();

@@ -287,7 +287,7 @@
     document.getElementById('siniestroModalInfo').textContent =
       `${ag.nombre || 'Sin agencia'} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}` +
       (s.incidencia.observaciones ? `\n${s.incidencia.observaciones}` : '') +
-      (s.fecha_limite ? `\nFecha límite de reclamación: ${new Date(s.fecha_limite+'T00:00:00').toLocaleDateString('es-ES')}` : '');
+      (s.fecha_limite ? `\nFecha límite de reclamación: ${formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00'))}` : '');
 
     const grid = document.getElementById('siniestroFotosGrid');
     grid.innerHTML = (s.fotos || []).map((url, idx) => `
@@ -300,7 +300,7 @@
     });
 
     document.getElementById('siniestroModalEstado').textContent = s.estado === 'ENVIADO'
-      ? `Enviado el ${s.enviado_en ? new Date(s.enviado_en).toLocaleString('es-ES') : ''}`
+      ? `Enviado el ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}`
       : 'Pendiente de envío';
     document.getElementById('btnReabrirSiniestro').style.display = s.estado === 'ENVIADO' ? '' : 'none';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'ENVIADO' ? 'none' : '';

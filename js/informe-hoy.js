@@ -209,7 +209,8 @@
 
   function renderHistorialInforme(informe, incidenciasActivas) {
     const cont = document.getElementById('contenidoHistorial');
-    const fechaTexto = new Date(informe.fecha + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const fechaInforme = new Date(informe.fecha + 'T00:00:00');
+    const fechaTexto = `${dias[fechaInforme.getDay()]}, ${formatearFechaCorta(fechaInforme)}`;
     const estadoTexto = informe.informe_enviado ? 'ENVIADO' : informe.estado;
 
     if (!incidenciasActivas.length) {

@@ -6,7 +6,7 @@
   // Formatea una fecha ISO (YYYY-MM-DD) al formato es-ES (DD/MM/AAAA)
   function fechaEs(fechaISO) {
     if (!fechaISO) return '—';
-    return new Date(fechaISO + 'T00:00:00').toLocaleDateString('es-ES');
+    return formatearFechaCorta(new Date(fechaISO + 'T00:00:00'));
   }
 
   function plantillaHtmlRotura(tienda, fechaInformeStr, fechaLimite) {
