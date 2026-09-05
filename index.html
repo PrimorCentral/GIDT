@@ -764,6 +764,7 @@
 <!-- Modal: completar datos de un siniestro (Panel siniestros) -->
 <div class="modal-overlay" id="psModalOverlay">
   <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Eliminar siniestro">🗑️</button>
     <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
     <span class="pill" id="psTipoPill" style="margin-bottom:8px;"></span>
     <h3 class="modal-title" id="psAgenciaTienda">—</h3>
@@ -832,8 +833,7 @@
       </div>
     </div>
 
-    <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
-      <button class="btn danger" id="btnBorrarPanelSiniestro">🗑️ Eliminar fila</button>
+    <div class="modal-footer" style="justify-content:flex-end; margin-top:18px;">
       <span class="ps-guardado-estado" id="psGuardadoEstado"></span>
     </div>
   </div>
