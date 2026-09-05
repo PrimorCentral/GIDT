@@ -285,6 +285,14 @@ async function guardarPanelSiniestro() {
   const errEl = document.getElementById('psError');
   errEl.style.display = 'none';
 
+  const s = psSiniestroPorId(panelActivoId);
+
+  // Si hay un albarán adjunto que aún no se ha mandado a Facturación,
+  // se pregunta aquí, como parte de guardar (no al subir el archivo).
+  if (s && s.albaran_url && !s.enviado_facturacion) {
+    await ofrecerEnvioFacturacion(s);
+  }
+
   const valorTxt = document.getElementById('psValor').value;
   const datos = {
     origen: document.getElementById('psOrigen').value || null,
@@ -403,7 +411,10 @@ function pintarFacturaModal(s) {
       <button type="button" class="mini-btn" id="btnQuitarFactura" title="Quitar factura">✕</button>`;
     document.getElementById('btnQuitarFactura').addEventListener('click', quitarFacturaPanel);
   } else {
-    cont.innerHTML = `<p class="ps-sin-archivos">Todavía no se ha adjuntado la factura.</p>`;
+    cont.innerHTML = `
+      <p class="ps-sin-archivos">Todavía no se ha adjuntado la factura.</p>
+      <button type="button" class="btn" id="btnAdjuntarFactura" style="cursor:pointer;">📎 Adjuntar factura</button>`;
+    document.getElementById('btnAdjuntarFactura').addEventListener('click', () => document.getElementById('psFacturaInput').click());
   }
 }
 
@@ -456,7 +467,10 @@ async function quitarFacturaPanel() {
 function pintarAlbaranModal(s) {
   const cont = document.getElementById('psAlbaranZona');
   if (!s.albaran_url) {
-    cont.innerHTML = `<p class="ps-sin-archivos">Todavía no se ha adjuntado el albarán.</p>`;
+    cont.innerHTML = `
+      <p class="ps-sin-archivos">Todavía no se ha adjuntado el albarán.</p>
+      <button type="button" class="btn" id="btnAdjuntarAlbaran" style="cursor:pointer;">📎 Adjuntar albarán</button>`;
+    document.getElementById('btnAdjuntarAlbaran').addEventListener('click', () => document.getElementById('psAlbaranInput').click());
     return;
   }
   const estado = s.enviado_facturacion
@@ -492,8 +506,7 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     s.albaran_url = pub.publicUrl;
     s.albaran_nombre = file.name;
     pintarAlbaranModal(s);
-    // Recién adjuntado: preguntamos directamente si se envía a Facturación
-    await ofrecerEnvioFacturacion(s);
+    // Ya no preguntamos aquí: se pregunta al pulsar "Guardar" (ver guardarPanelSiniestro)
   } catch (err) {
     console.error('Error subiendo el albarán:', err);
     errEl.textContent = 'No se pudo subir el albarán.';
