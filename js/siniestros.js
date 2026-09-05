@@ -346,6 +346,7 @@
 
   async function quitarFotoSiniestro(idx) {
     const s = siniestroPorId(siniestroActivoId);
+    const urlAEliminar = (s.fotos || [])[idx];
     const fotosActualizadas = (s.fotos || []).filter((_, i) => i !== idx);
     try {
       const { error } = await sb.from('siniestros').update({ fotos: fotosActualizadas }).eq('id', s.id);
@@ -353,6 +354,19 @@
       s.fotos = fotosActualizadas;
       pintarModalSiniestro();
       renderKanbanSiniestros();
+      if (urlAEliminar) {
+        try {
+          const marcador = '/object/public/siniestros-fotos/';
+          const idxUrl = urlAEliminar.indexOf(marcador);
+          if (idxUrl !== -1) {
+            const path = decodeURIComponent(urlAEliminar.slice(idxUrl + marcador.length));
+            const { error: eStorage } = await sb.storage.from('siniestros-fotos').remove([path]);
+            if (eStorage) console.error('No se pudo borrar la foto del storage:', eStorage);
+          }
+        } catch (errStorage) {
+          console.error('Error borrando foto del storage:', errStorage);
+        }
+      }
     } catch (err) {
       console.error('Error quitando foto:', err);
     }

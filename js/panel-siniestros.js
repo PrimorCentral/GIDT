@@ -386,9 +386,27 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
   }
 });
 
+// Borra un archivo del storage a partir de su URL pública (…/object/public/{bucket}/{path}).
+// Es un "best effort": si no se puede borrar (o la URL no tiene ese formato)
+// no bloqueamos al usuario, solo lo dejamos en el log.
+async function borrarDeStoragePorUrl(bucket, url) {
+  if (!url) return;
+  try {
+    const marcador = `/object/public/${bucket}/`;
+    const idx = url.indexOf(marcador);
+    if (idx === -1) return;
+    const path = decodeURIComponent(url.slice(idx + marcador.length));
+    const { error } = await sb.storage.from(bucket).remove([path]);
+    if (error) console.error(`No se pudo borrar del storage (${bucket}/${path}):`, error);
+  } catch (err) {
+    console.error('Error borrando archivo del storage:', err);
+  }
+}
+
 async function quitarFotoPanel(idx) {
   const s = psSiniestroPorId(panelActivoId);
   if (!s) return;
+  const urlAEliminar = (s.fotos || [])[idx];
   const fotosActualizadas = (s.fotos || []).filter((_, i) => i !== idx);
   try {
     const { error } = await sb.from('panel_siniestros').update({ fotos: fotosActualizadas }).eq('id', panelActivoId);
@@ -396,6 +414,7 @@ async function quitarFotoPanel(idx) {
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
     renderPanelSiniestros();
+    await borrarDeStoragePorUrl(BUCKET_FOTOS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando foto:', err);
   }
@@ -450,13 +469,15 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
 async function quitarFacturaPanel() {
   const ok = await modalConfirm('¿Quitar la factura adjunta?', { titulo: 'Quitar factura', danger: true, textoOk: 'Quitar' });
   if (!ok) return;
+  const s = psSiniestroPorId(panelActivoId);
+  const urlAEliminar = s?.factura_url;
   try {
     const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null }).eq('id', panelActivoId);
     if (error) throw error;
-    const s = psSiniestroPorId(panelActivoId);
-    s.factura_url = null; s.factura_nombre = null;
+    if (s) { s.factura_url = null; s.factura_nombre = null; }
     pintarFacturaModal(s);
     renderPanelSiniestros();
+    await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando factura:', err);
   }
@@ -553,13 +574,15 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
 async function quitarAlbaranPanel() {
   const ok = await modalConfirm('¿Quitar el albarán adjunto?', { titulo: 'Quitar albarán', danger: true, textoOk: 'Quitar' });
   if (!ok) return;
+  const s = psSiniestroPorId(panelActivoId);
+  const urlAEliminar = s?.albaran_url;
   try {
     const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null }).eq('id', panelActivoId);
     if (error) throw error;
-    const s = psSiniestroPorId(panelActivoId);
-    s.albaran_url = null; s.albaran_nombre = null;
+    if (s) { s.albaran_url = null; s.albaran_nombre = null; }
     pintarAlbaranModal(s);
     aplicarEstadoCampoAlbaran(s); // libera el campo Nº Albarán para poder editarlo a mano
+    await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando el albarán:', err);
   }
