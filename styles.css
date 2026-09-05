@@ -862,7 +862,7 @@ table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700;
 .ps-badge-estado.pendiente{ color:#C77700; }
 .ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
-.ps-modal-box{ width:100%; max-width:920px; max-height:88vh; overflow-y:auto; position:relative; }
+.ps-modal-box{ width:100%; max-width:1040px; max-height:88vh; overflow-y:auto; position:relative; }
 .ps-form-grid{
   display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-top:6px;
 }
