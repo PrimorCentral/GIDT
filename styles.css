@@ -707,6 +707,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .badge-envio{ font-size:10.5px; font-weight:800; text-transform:uppercase; padding:2px 8px; border-radius:99px; letter-spacing:.3px; }
   .badge-envio.pendiente{ background:#FFEEDF; color:var(--accent-ink); }
   .badge-envio.enviado{ background:var(--ok-bg); color:var(--ok); }
+  .badge-envio.anulado{ background:var(--panel-muted); color:var(--ink-soft); }
+  .siniestro-card.anulado{ opacity:.6; }
 
   .siniestro-modal-box{ max-width:480px; position:relative; }
   .siniestro-fotos-grid{
