@@ -157,15 +157,19 @@
         mapa.set(clave, {
           nombre: entidad === 'tiendas' ? (i.tienda_nombre || '—') : (i.agencia_nombre || 'Sin agencia'),
           agenciaNombre: entidad === 'tiendas' ? (i.agencia_nombre || null) : null,
-          leve: 0, moderado: 0, grave: 0, incidencias: 0,
+          leve: 0, moderado: 0, grave: 0, pendiente: 0, incidencias: 0,
           sinPend: 0, sinEnv: 0, siniestros: 0
         });
       }
       const e = mapa.get(clave);
       e.incidencias++;
+      // Una incidencia "marcada" puede no tener tipo todavía (motivo aún sin
+      // confirmar, ej. "RETRASO PDTE CONFIRMAR"/"REVISANDO POSIBLE INCIDENCIA").
+      // Se cuenta como "pendiente" para que el desglose siempre sume el total.
       if (i.tipo === 'LEVE') e.leve++;
       else if (i.tipo === 'MODERADO') e.moderado++;
       else if (i.tipo === 'GRAVE') e.grave++;
+      else e.pendiente++;
     });
 
     sins.forEach(s => {
@@ -231,7 +235,8 @@
           ${f.grave ? `<span class="pill grave">${f.grave} grave${f.grave === 1 ? '' : 's'}</span>` : ''}
           ${f.moderado ? `<span class="pill moderado">${f.moderado} moderada${f.moderado === 1 ? '' : 's'}</span>` : ''}
           ${f.leve ? `<span class="pill leve">${f.leve} leve${f.leve === 1 ? '' : 's'}</span>` : ''}
-          ${!f.grave && !f.moderado && !f.leve ? '—' : ''}
+          ${f.pendiente ? `<span class="pill pendiente">${f.pendiente} pdte. confirmar</span>` : ''}
+          ${!f.grave && !f.moderado && !f.leve && !f.pendiente ? '—' : ''}
         </td>
         <td class="col-num">${f.siniestros}</td>
         <td class="col-desglose">
