@@ -33,8 +33,7 @@
         )
       `)
       .eq('informe_id', informeHoyCache.id)
-      .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO))
-      .eq('siniestro_omitido', false);
+      .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
     if (e1) throw e1;
 
     if (!incs.length) return { incs: [], existentesPorIncidencia: new Map() };
@@ -140,15 +139,21 @@
     const faltas = siniestrosHoyCache.filter(s => s.tipo === 'FALTA');
     const mixtos = siniestrosHoyCache.filter(s => s.tipo === 'MIXTO');
 
+    const badgeEstado = (estado) => {
+      if (estado === 'ENVIADO') return '<span class="badge-envio enviado">Enviado</span>';
+      if (estado === 'ANULADO') return '<span class="badge-envio anulado">Anulado</span>';
+      return '<span class="badge-envio pendiente">Pendiente</span>';
+    };
+
     const tarjeta = (s) => {
       const t = s.incidencia.tiendas || {};
       const ag = t.agencias || {};
       const numFotos = (s.fotos || []).length;
       return `
-        <div class="siniestro-card" data-siniestro="${s.id}">
+        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}" data-siniestro="${s.id}">
           <div class="fila-top">
             <b>${escapeHtml(t.nombre || '—')}</b>
-            <span class="badge-envio ${s.estado === 'ENVIADO' ? 'enviado' : 'pendiente'}">${s.estado === 'ENVIADO' ? 'Enviado' : 'Pendiente'}</span>
+            ${badgeEstado(s.estado)}
           </div>
           <div class="agencia">${escapeHtml(ag.nombre || 'Sin agencia')} · ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</div>
           ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
@@ -300,11 +305,14 @@
       btn.addEventListener('click', () => quitarFotoSiniestro(Number(btn.dataset.quitarFoto)));
     });
 
-    document.getElementById('siniestroModalEstado').textContent = s.estado === 'ENVIADO'
-      ? `Enviado el ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}`
+    document.getElementById('siniestroModalEstado').textContent =
+      s.estado === 'ENVIADO' ? `Enviado el ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}`
+      : s.estado === 'ANULADO' ? '🚫 Anulado desde el Panel siniestros'
       : 'Pendiente de envío';
     document.getElementById('btnReabrirSiniestro').style.display = s.estado === 'ENVIADO' ? '' : 'none';
-    document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'ENVIADO' ? 'none' : '';
+    document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
+    const labelFotos = document.getElementById('siniestroFotosLabel');
+    if (labelFotos) labelFotos.style.display = s.estado === 'ANULADO' ? 'none' : '';
   }
 
   document.getElementById('btnCerrarSiniestroModal').addEventListener('click', cerrarModalSiniestro);

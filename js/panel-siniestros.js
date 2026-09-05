@@ -422,7 +422,7 @@ async function eliminarPanelSiniestro() {
   const s = psSiniestroPorId(panelActivoId);
 
   const ok = await modalConfirm(
-    'Se borrará todo lo relacionado con este siniestro: las fotos, la factura, el albarán, y también el registro original de "Siniestros del día" (no volverá a aparecer como pendiente). Esta acción no se puede deshacer.',
+    'Se borrará todo lo relacionado con este siniestro (fotos, factura y albarán) y se quitará del Panel. El registro original de "Siniestros del día" se marcará como ANULADO en vez de desaparecer, para que quede constancia. Esta acción no se puede deshacer.',
     { titulo: 'CONFIRMAR BORRAR SINIESTRO', danger: true, textoOk: 'Sí, borrar definitivamente' }
   );
   if (!ok) return;
@@ -437,24 +437,19 @@ async function eliminarPanelSiniestro() {
     if (s?.albaran_url) urls.push(s.albaran_url);
 
     if (s?.siniestro_id) {
-      const { data: sinOriginal } = await sb.from('siniestros').select('fotos, incidencia_id').eq('id', s.siniestro_id).maybeSingle();
+      const { data: sinOriginal } = await sb.from('siniestros').select('fotos').eq('id', s.siniestro_id).maybeSingle();
       (sinOriginal?.fotos || []).forEach(u => { if (!urls.includes(u)) urls.push(u); });
 
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
 
-      const { error: eSin } = await sb.from('siniestros').delete().eq('id', s.siniestro_id);
-      if (eSin) console.error('No se pudo borrar el siniestro original:', eSin);
-
-      // Marcamos la incidencia como "omitida" para que la próxima
-      // sincronización de Siniestros del día no vuelva a crear un siniestro
-      // para ella (si no, resucitaría como PENDIENTE aunque ya se hubiera
-      // enviado la reclamación).
-      if (sinOriginal?.incidencia_id) {
-        const { error: eInc } = await sb.from('incidencias')
-          .update({ siniestro_omitido: true })
-          .eq('id', sinOriginal.incidencia_id);
-        if (eInc) console.error('No se pudo marcar la incidencia como omitida:', eInc);
-      }
+      // No se borra la fila de "siniestros": se marca como ANULADO y se le
+      // vacían las fotos (ya borradas del storage). Así sigue apareciendo en
+      // "Siniestros del día" como constancia, pero ya no cuenta como
+      // pendiente ni puede volver a crearse duplicada en la sincronización.
+      const { error: eAnular } = await sb.from('siniestros')
+        .update({ estado: 'ANULADO', fotos: [] })
+        .eq('id', s.siniestro_id);
+      if (eAnular) console.error('No se pudo anular el siniestro original:', eAnular);
     } else {
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
     }
