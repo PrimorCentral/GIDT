@@ -806,14 +806,26 @@
       <p class="err" id="psFotosError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
     </div>
 
-    <div class="ps-archivos-bloque">
-      <label class="form-label">Factura</label>
-      <div id="psFacturaZona"></div>
-      <label class="btn" style="cursor:pointer;">
-        📎 Adjuntar factura
-        <input type="file" id="psFacturaInput" accept=".pdf,image/*" style="display:none;">
-      </label>
-      <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+    <div class="ps-archivos-fila">
+      <div class="ps-archivos-col">
+        <label class="form-label">Factura</label>
+        <div id="psFacturaZona"></div>
+        <label class="btn" style="cursor:pointer;">
+          📎 Adjuntar factura
+          <input type="file" id="psFacturaInput" accept=".pdf,image/*" style="display:none;">
+        </label>
+        <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+      </div>
+
+      <div class="ps-archivos-col">
+        <label class="form-label">Albarán (PDF)</label>
+        <div id="psAlbaranZona"></div>
+        <label class="btn" style="cursor:pointer;">
+          📎 Adjuntar albarán
+          <input type="file" id="psAlbaranInput" accept=".pdf" style="display:none;">
+        </label>
+        <p class="err" id="psAlbaranError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+      </div>
     </div>
 
     <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
