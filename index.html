@@ -496,9 +496,100 @@
       </div>
 
       <div class="analisis-toolbar">
-        <div class="toggle-seg" id="analisisEntidadToggle">
-          <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
-          <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div class="filtros-wrap">
+            <button class="btn" id="btnAnalisisFiltros">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="analisisFiltrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="analisisFiltrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar ranking</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnAnalisisLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnAnalisisCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <div class="filtros-grid">
+                  <div class="filtro-campo">
+                    <label>Agencia</label>
+                    <div class="filtro-select" data-grupo="agencia">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar agencia…"></div>
+                        <div class="filtro-select-lista" id="analisisFiltrosAgenciasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tienda</label>
+                    <div class="filtro-select" data-grupo="tienda">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar tienda…"></div>
+                        <div class="filtro-select-lista" id="analisisFiltrosTiendasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tipo de incidencia</label>
+                    <div class="filtro-select" data-grupo="tipo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="analisisFiltrosTiposLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Motivo</label>
+                    <div class="filtro-select" data-grupo="motivo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar motivo…"></div>
+                        <div class="filtro-select-lista" id="analisisFiltrosMotivosLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tipo de siniestro</label>
+                    <div class="filtro-select" data-grupo="siniestro">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="analisisFiltrosSiniestroTiposLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label class="filtro-check" style="padding:2px 0;">
+                      <input type="checkbox" id="analisisFiltroSoloConSiniestros">
+                      <span>Solo con siniestros</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="toggle-seg" id="analisisEntidadToggle">
+            <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
+            <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
+          </div>
         </div>
         <div class="toggle-seg" id="analisisOrdenToggle">
           <button type="button" class="toggle-seg-btn activo" data-orden="incidencias">Ordenar por incidencias</button>
