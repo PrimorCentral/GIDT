@@ -820,3 +820,60 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .pill.agencia-detalle{ background:var(--panel-muted); color:var(--ink-soft); font-weight:600; }
   .detalle-motivo{ color:var(--ink-soft); font-size:12px; }
   .detalle-vacio{ margin:0; padding:14px 13px; font-size:12.5px; color:var(--ink-soft); text-align:center; }
+
+/* ========== Panel de siniestros (se rellena automáticamente al enviar) ========== */
+
+.panel-siniestros-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+
+table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
+table.tabla-panel-siniestros th{
+  text-align:left; padding:10px 14px; font-size:11px; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.3px; font-weight:700; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+table.tabla-panel-siniestros td{ padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+table.tabla-panel-siniestros tr:last-child td{ border-bottom:0; }
+table.tabla-panel-siniestros tr.ps-fila{ cursor:pointer; }
+table.tabla-panel-siniestros tr.ps-fila:hover{ background:var(--panel-muted); }
+table.tabla-panel-siniestros td.ps-col-info{
+  max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700; }
+
+.pill.mixto{ background:#FDECD8; color:#A2530B; }
+
+.ps-badge-estado{ font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.ps-badge-estado.cobrado{ color:var(--ok); }
+.ps-badge-estado.pendiente{ color:#C77700; }
+.ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+.ps-modal-box{ width:100%; max-width:640px; max-height:88vh; overflow-y:auto; position:relative; }
+.ps-form-grid{
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-top:6px;
+}
+.ps-form-grid textarea{ resize:vertical; font-family:inherit; }
+
+.ps-archivos-bloque{
+  margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+}
+.ps-fotos-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:8px; margin:8px 0 10px;
+}
+.ps-foto-thumb{ position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
+.ps-foto-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.ps-foto-quitar{
+  position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:50%;
+  border:0; background:rgba(18,24,31,.65); color:#fff; font-size:11px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.ps-sin-archivos{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 10px; }
+
+.ps-factura-chip{
+  display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px;
+  background:var(--panel-muted); border:1px solid var(--border); font-size:12.5px; font-weight:600;
+  color:var(--ink); text-decoration:none; margin-right:8px;
+}
+
+@media (max-width: 640px){
+  .ps-form-grid{ grid-template-columns:1fr; }
+}

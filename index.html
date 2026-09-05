@@ -50,6 +50,7 @@
       <div class="dropdown" id="siniestrosDropdown">
         <button data-view="siniestros">📦 Siniestros del día</button>
         <button data-view="historial-siniestros">🕓 Historial de siniestros</button>
+        <button data-view="panel-siniestros">🗂️ Panel siniestros</button>
       </div>
       <div class="dropdown" id="configDropdown">
         <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
@@ -341,6 +342,48 @@
             <p>Selecciona un día en el calendario para consultar los siniestros registrados ese día.</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ PANEL DE SINIESTROS (se rellena solo) ============ -->
+    <section class="view" id="view-panel-siniestros">
+      <div class="page-head">
+        <div>
+          <h1>🗂️ Panel siniestros</h1>
+          <p>Se rellena automáticamente al enviar cada siniestro. Aquí completas nº albarán, factura, valor y estado de cobro.</p>
+        </div>
+      </div>
+
+      <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
+        <div class="kpi warn"><b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span></div>
+        <div class="kpi"><b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span></div>
+      </div>
+
+      <div class="card" style="padding:14px 16px; margin-bottom:14px;">
+        <div class="panel-siniestros-toolbar">
+          <input type="text" id="psFiltroTexto" class="form-input" placeholder="🔎 Buscar por tienda, información, albarán…" style="flex:1; min-width:200px;">
+          <select id="psFiltroAgencia" class="form-input" style="max-width:200px;"><option value="">Todas las agencias</option></select>
+          <select id="psFiltroEstado" class="form-input" style="max-width:170px;">
+            <option value="">Todos los estados</option>
+            <option value="COBRADO">COBRADO</option>
+            <option value="PDTE COBRO">PDTE COBRO</option>
+          </select>
+          <select id="psFiltroAnio" class="form-input" style="max-width:140px;"><option value="">Todos los años</option></select>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0; overflow-x:auto;">
+        <table class="tabla-panel-siniestros">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Agencia</th><th>Tienda</th><th>Tipo</th><th>Información</th>
+              <th>Nº Alb.</th><th>Fotos</th><th>Factura</th><th>Valor</th><th>Estado</th><th>Recogida límite</th>
+            </tr>
+          </thead>
+          <tbody id="panelSiniestrosBody">
+            <tr><td colspan="11" style="text-align:center; padding:30px;">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -709,6 +752,77 @@
   </div>
 </div>
 
+<!-- Modal: completar datos de un siniestro (Panel siniestros) -->
+<div class="modal-overlay" id="psModalOverlay">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
+    <span class="pill" id="psTipoPill" style="margin-bottom:8px;"></span>
+    <h3 class="modal-title" id="psAgenciaTienda">—</h3>
+    <p class="modal-message" id="psFechaTexto"></p>
+
+    <div class="ps-form-grid">
+      <div>
+        <label class="form-label">Origen mercancía</label>
+        <select id="psOrigen" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Nº Albarán</label>
+        <input type="text" id="psAlbaran" class="form-input" placeholder="Cuando se conozca…">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label class="form-label">Información</label>
+        <textarea id="psInformacion" class="form-input" rows="2" placeholder="Texto libre…"></textarea>
+      </div>
+      <div>
+        <label class="form-label">Valor (€)</label>
+        <input type="number" step="0.01" id="psValor" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Estado</label>
+        <select id="psEstado" class="form-input">
+          <option value="PDTE COBRO">PDTE COBRO</option>
+          <option value="COBRADO">COBRADO</option>
+        </select>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label class="form-label">Recogida límite</label>
+        <input type="date" id="psRecogida" class="form-input">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label class="form-label">I.</label>
+        <input type="text" id="psCampoI" class="form-input" placeholder="Texto libre…">
+      </div>
+    </div>
+
+    <p class="err" id="psError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+
+    <div class="ps-archivos-bloque">
+      <label class="form-label">Carpeta (fotos)</label>
+      <div class="ps-fotos-grid" id="psFotosGrid"></div>
+      <label class="btn" style="cursor:pointer;">
+        📷 Añadir fotos
+        <input type="file" id="psFotosInput" accept="image/*" multiple style="display:none;">
+      </label>
+      <p class="err" id="psFotosError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+    </div>
+
+    <div class="ps-archivos-bloque">
+      <label class="form-label">Factura</label>
+      <div id="psFacturaZona"></div>
+      <label class="btn" style="cursor:pointer;">
+        📎 Adjuntar factura
+        <input type="file" id="psFacturaInput" accept=".pdf,image/*" style="display:none;">
+      </label>
+      <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+    </div>
+
+    <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
+      <button class="btn danger" id="btnBorrarPanelSiniestro">🗑️ Eliminar fila</button>
+      <button class="btn primary" id="btnGuardarPanelSiniestro">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de detalle de tienda/agencia (Ranking de Análisis) -->
 <div class="modal-overlay" id="analisisDetalleModalOverlay">
   <div class="modal-box detalle-modal-box" role="dialog" aria-modal="true" aria-labelledby="analisisDetalleTitulo">
@@ -749,6 +863,7 @@
 <script src="js/email-service.js"></script>
 <script src="js/informe-envio.js"></script>
 <script src="js/siniestros.js"></script>
+<script src="js/panel-siniestros.js"></script>
 <script src="js/informe-pdf.js"></script>
 <script src="js/informe-autorefresh.js"></script>
 <script src="js/analisis.js"></script>
