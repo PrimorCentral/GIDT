@@ -777,6 +777,7 @@
       <div>
         <label class="form-label">Nº Albarán</label>
         <input type="text" id="psAlbaran" class="form-input" placeholder="Cuando se conozca…">
+        <p class="ps-campo-hint" id="psAlbaranNumHint" style="display:none;"></p>
       </div>
       <div style="grid-column:1/-1;">
         <label class="form-label">Información</label>
@@ -893,8 +894,11 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- Lectura de texto de PDF (detectar el nº de albarán automáticamente) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/comprimir-imagen.js"></script>
+<script src="js/extraer-albaran.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/ui-modal.js"></script>
 <script src="js/actualizaciones.js"></script>
