@@ -787,23 +787,36 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   }
 
   /* ---------- Modal de detalle (tienda/agencia del Ranking) ---------- */
-  .detalle-modal-box{ max-width:560px; position:relative; max-height:min(640px, 82vh); display:flex; flex-direction:column; }
-  .detalle-modal-box .modal-title{ padding-right:30px; }
-  .detalle-seccion{ min-height:0; display:flex; flex-direction:column; margin-bottom:16px; }
+  .detalle-modal-box{ max-width:600px; position:relative; max-height:min(680px, 84vh); display:flex; flex-direction:column; }
+  .detalle-modal-box .modal-title{ padding-right:30px; font-size:18px; }
+  .detalle-seccion{ min-height:0; display:flex; flex-direction:column; margin-bottom:20px; }
   .detalle-seccion:last-child{ margin-bottom:0; }
   .detalle-seccion-titulo{
-    margin:0 0 8px; font-size:12.5px; font-weight:800; color:var(--ink-soft);
+    margin:0 0 9px; font-size:12.5px; font-weight:800; color:var(--ink-soft);
     text-transform:uppercase; letter-spacing:.3px;
   }
   .detalle-lista{
-    max-height:210px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius);
+    max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius);
   }
   .detalle-fila{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:9px 13px; font-size:12.5px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:13px 15px; font-size:12.5px;
+    border-left:4px solid transparent;
   }
   .detalle-fila + .detalle-fila{ border-top:1px solid var(--border); }
+  .detalle-fila-izq{ display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  .detalle-fila-icono{ font-size:12px; line-height:1; flex:0 0 auto; }
   .detalle-fila-fecha{ color:var(--ink); font-weight:600; flex:0 0 auto; }
   .detalle-fila-info{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; justify-content:flex-end; text-align:right; }
+
+  /* Franja de color a la izquierda + fondo muy suave, según severidad/tipo —
+     mismo criterio de color que usan ya los pills y las filas de la tabla de
+     incidencias, para poder distinguir de un vistazo sin tener que leer el pill. */
+  .detalle-fila.detalle-fila-grave{ border-left-color:var(--grave); background:var(--grave-bg); }
+  .detalle-fila.detalle-fila-moderado{ border-left-color:var(--moderado); background:var(--moderado-bg); }
+  .detalle-fila.detalle-fila-leve{ border-left-color:var(--leve); background:#F4F5F7; }
+  .detalle-fila.detalle-fila-pendiente{ border-left-color:#F0C420; background:#FFFDF4; }
+
+  .pill.agencia-detalle{ background:var(--panel-muted); color:var(--ink-soft); font-weight:600; }
   .detalle-motivo{ color:var(--ink-soft); font-size:12px; }
   .detalle-vacio{ margin:0; padding:14px 13px; font-size:12.5px; color:var(--ink-soft); text-align:center; }
