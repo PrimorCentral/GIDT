@@ -582,6 +582,34 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .modal-footer .btn.danger{ background:var(--grave); border-color:var(--grave); color:#fff; }
   .modal-footer .btn.danger:hover{ filter:brightness(1.08); }
 
+  /* ---------- Modal de actualización disponible ---------- */
+  .actualizacion-overlay{
+    background:rgba(10,14,19,.72);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    z-index:400; /* por encima de cualquier otro modal que pudiera estar abierto */
+  }
+  .actualizacion-modal-box{
+    max-width:420px;
+    padding:34px 30px 28px;
+    text-align:center;
+  }
+  .actualizacion-modal-icon{
+    font-size:42px; line-height:1; margin:0 auto 16px;
+    width:76px; height:76px; border-radius:50%;
+    background:#FFEEDF; color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center;
+    animation:actualizacionGiro 2.4s linear infinite;
+  }
+  @keyframes actualizacionGiro{ from{ transform:rotate(0); } to{ transform:rotate(360deg); } }
+  .actualizacion-modal-box .modal-title{ font-size:19px; margin-bottom:10px; }
+  .actualizacion-modal-box .modal-message{ font-size:14.5px; margin-bottom:24px; }
+  .actualizacion-modal-box .modal-footer{ justify-content:center; }
+  .actualizacion-modal-box .btn.primary{
+    width:100%; justify-content:center; padding:13px; font-size:14.5px;
+  }
+  .actualizacion-modal-box .btn.primary:disabled{ opacity:.7; cursor:default; }
+
   /* ---------- Modal de envío del informe del día ---------- */
   .envio-modal-box{ max-width:460px; padding:22px 22px 18px; position:relative; }
   .envio-modal-head{ display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; padding-right:22px; }
