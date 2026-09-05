@@ -113,7 +113,8 @@
     }
 
     const pendientes = siniestros.filter(s => s.estado === 'PENDIENTE').length;
-    const enviados = siniestros.length - pendientes;
+    const enviados = siniestros.filter(s => s.estado === 'ENVIADO').length;
+    const anulados = siniestros.filter(s => s.estado === 'ANULADO').length;
 
     // Agrupar por agencia (usando el snapshot guardado en la incidencia)
     const porAgencia = {};
@@ -123,13 +124,19 @@
       porAgencia[agId].filas.push(s);
     });
 
+    const badgeEstado = (estado) => {
+      if (estado === 'ENVIADO') return '<span class="badge-envio enviado">Enviado</span>';
+      if (estado === 'ANULADO') return '<span class="badge-envio anulado">Anulado</span>';
+      return '<span class="badge-envio pendiente">Pendiente</span>';
+    };
+
     const tarjeta = (s) => {
       const numFotos = (s.fotos || []).length;
       return `
-        <div class="siniestro-card" style="cursor:default;">
+        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}" style="cursor:default;">
           <div class="fila-top">
             <b>${escapeHtml(s.incidencia.tienda_nombre || '—')}</b>
-            <span class="badge-envio ${s.estado === 'ENVIADO' ? 'enviado' : 'pendiente'}">${s.estado === 'ENVIADO' ? 'Enviado' : 'Pendiente'}</span>
+            ${badgeEstado(s.estado)}
           </div>
           <div class="agencia">
             <span class="pill ${s.tipo === 'ROTURA' ? 'grave' : 'moderado'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
@@ -139,7 +146,9 @@
           <div class="fotos-mini">📷 ${numFotos} foto${numFotos===1?'':'s'}</div>
           ${s.estado === 'ENVIADO'
             ? `<div class="fotos-mini">✉️ Enviado ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}${s.enviado_por ? ' · ' + escapeHtml(s.enviado_por) : ''}</div>`
-            : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00')) : '—'}</div>`}
+            : s.estado === 'ANULADO'
+              ? `<div class="fotos-mini">🚫 Anulado desde el Panel siniestros</div>`
+              : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00')) : '—'}</div>`}
         </div>`;
     };
 
@@ -159,6 +168,7 @@
         <b style="text-transform:capitalize;">${fechaTexto}</b>
         · <span style="color:var(--grave); font-weight:700;">${pendientes} pendiente${pendientes===1?'':'s'}</span>
         · <span style="color:var(--ok); font-weight:700;">${enviados} enviado${enviados===1?'':'s'}</span>
+        ${anulados ? `· <span style="color:var(--ink-soft); font-weight:700;">${anulados} anulado${anulados===1?'':'s'}</span>` : ''}
       </div>
       ${bloques}`;
   }
