@@ -256,7 +256,7 @@ async function abrirModalPanelSiniestro(id) {
 
   rellenarSelectOrigen(s.origen);
   document.getElementById('psInformacion').value = s.informacion || '';
-  document.getElementById('psAlbaran').value = s.num_albaran || '';
+  aplicarEstadoCampoAlbaran(s);
   document.getElementById('psValor').value = s.valor ?? '';
   document.getElementById('psEstado').value = s.estado || 'PDTE COBRO';
   document.getElementById('psCampoI').value = s.campo_i || '';
@@ -464,6 +464,31 @@ async function quitarFacturaPanel() {
 
 // ---------------- Albarán (PDF) ----------------
 
+// Muestra el nº de albarán en el campo y lo bloquea cuando se ha detectado
+// automáticamente del PDF (con un enlace pequeño para corregirlo a mano
+// por si la lectura del PDF se equivocase alguna vez).
+function aplicarEstadoCampoAlbaran(s) {
+  const input = document.getElementById('psAlbaran');
+  const hint = document.getElementById('psAlbaranNumHint');
+  const bloqueado = !!(s.albaran_url && s.num_albaran);
+
+  input.value = s.num_albaran || '';
+  input.disabled = bloqueado;
+  input.placeholder = bloqueado ? '' : 'Cuando se conozca…';
+
+  if (bloqueado) {
+    hint.innerHTML = `🔒 Detectado automáticamente del PDF · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
+    hint.style.display = 'block';
+    document.getElementById('btnEditarNumAlbaran').addEventListener('click', () => {
+      input.disabled = false;
+      input.focus();
+      hint.style.display = 'none';
+    });
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
 function pintarAlbaranModal(s) {
   const cont = document.getElementById('psAlbaranZona');
   if (!s.albaran_url) {
@@ -498,14 +523,23 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, file);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
-    const { error: eDb } = await sb.from('panel_siniestros')
-      .update({ albaran_url: pub.publicUrl, albaran_nombre: file.name })
-      .eq('id', panelActivoId);
+
+    // Intentamos leer el nº de albarán del propio PDF ("Num.Entrada")
+    const numeroDetectado = await extraerNumAlbaranDePdf(file);
+
+    const cambios = { albaran_url: pub.publicUrl, albaran_nombre: file.name };
+    if (numeroDetectado) cambios.num_albaran = numeroDetectado;
+
+    const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
     if (eDb) throw eDb;
+
     const s = psSiniestroPorId(panelActivoId);
     s.albaran_url = pub.publicUrl;
     s.albaran_nombre = file.name;
+    if (numeroDetectado) s.num_albaran = numeroDetectado;
     pintarAlbaranModal(s);
+    aplicarEstadoCampoAlbaran(s);
+    renderPanelSiniestros();
     // Ya no preguntamos aquí: se pregunta al pulsar "Guardar" (ver guardarPanelSiniestro)
   } catch (err) {
     console.error('Error subiendo el albarán:', err);
@@ -525,6 +559,7 @@ async function quitarAlbaranPanel() {
     const s = psSiniestroPorId(panelActivoId);
     s.albaran_url = null; s.albaran_nombre = null;
     pintarAlbaranModal(s);
+    aplicarEstadoCampoAlbaran(s); // libera el campo Nº Albarán para poder editarlo a mano
   } catch (err) {
     console.error('Error quitando el albarán:', err);
   }
