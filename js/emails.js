@@ -10,14 +10,13 @@
       cont.innerHTML = data.map(ag => `
         <div class="email-card" data-agencia-email="${ag.id}">
           <div class="cabecera">
-            <b>${escapeHtml(ag.nombre)}</b>
-            <span style="font-size:12px; color:var(--ink-soft);">${(ag.emails||[]).length} destinatario${(ag.emails||[]).length===1?'':'s'}</span>
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px;">Nombre comercial</label>
-            <input type="text" class="form-input" data-nombre-comercial
-                   value="${escapeHtml(ag.nombre_comercial || '')}"
-                   placeholder="Ej: DHL PARCEL IBERIA, S.L.U">
+            <div class="email-card-titulos">
+              <b>${escapeHtml(ag.nombre)}</b>
+              <input type="text" class="email-comercial-input" data-nombre-comercial
+                     value="${escapeHtml(ag.nombre_comercial || '')}"
+                     placeholder="+ Nombre comercial (opcional)">
+            </div>
+            <span style="font-size:12px; color:var(--ink-soft); white-space:nowrap;">${(ag.emails||[]).length} destinatario${(ag.emails||[]).length===1?'':'s'}</span>
           </div>
           <div class="email-chips">
             ${(ag.emails||[]).map(em => `
