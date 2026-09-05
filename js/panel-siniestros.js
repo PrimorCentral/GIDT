@@ -67,7 +67,10 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
         informacion: s.incidencia?.observaciones || null,
         fotos: s.fotos || [],
         estado: 'PDTE COBRO',
-        recogida_limite: s.fecha_limite || null,
+        // La recogida solo aplica si hay algo roto físicamente que recoger
+        // en tienda (ROTURA o FALTAS Y ROTURAS). Una FALTA pura no tiene
+        // mercancía que recoger, así que no se le pone fecha límite.
+        recogida_limite: (PS_TIPO_DESDE_SINIESTRO[s.tipo] || 'ROTURA') !== 'FALTAS' ? (s.fecha_limite || null) : null,
         creado_por: sesionActual?.nombre || sesionActual?.usuario || null
       });
       if (eIns) throw eIns;
@@ -176,7 +179,8 @@ function renderPanelSiniestros() {
   tbody.innerHTML = filas.map(s => {
     const numFotos = (s.fotos || []).length;
     const tieneFactura = !!s.factura_url;
-    const limite = s.recogida_limite ? new Date(s.recogida_limite + 'T00:00:00') : null;
+    const aplicaRecogida = s.tipo !== 'FALTAS';
+    const limite = (aplicaRecogida && s.recogida_limite) ? new Date(s.recogida_limite + 'T00:00:00') : null;
     const vencido = limite && limite < hoy && s.estado !== 'COBRADO';
     return `
       <tr data-id="${s.id}" class="ps-fila">
@@ -190,7 +194,7 @@ function renderPanelSiniestros() {
         <td style="text-align:center;">${tieneFactura ? '📄' : '—'}</td>
         <td style="text-align:right;">${psFormatearValor(s.valor)}</td>
         <td>${psBadgeEstado(s.estado)}</td>
-        <td class="${vencido ? 'ps-vencido' : ''}">${psFormatearFecha(s.recogida_limite)}</td>
+        <td class="${vencido ? 'ps-vencido' : ''}">${aplicaRecogida ? psFormatearFecha(s.recogida_limite) : '—'}</td>
       </tr>`;
   }).join('');
 
@@ -255,9 +259,14 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psAlbaran').value = s.num_albaran || '';
   document.getElementById('psValor').value = s.valor ?? '';
   document.getElementById('psEstado').value = s.estado || 'PDTE COBRO';
-  document.getElementById('psRecogida').value = s.recogida_limite || '';
   document.getElementById('psCampoI').value = s.campo_i || '';
   document.getElementById('psError').style.display = 'none';
+
+  // Solo hay algo que "recoger" en tienda si es ROTURA o FALTAS Y ROTURAS.
+  // Una FALTA pura no tiene mercancía física, así que no aplica.
+  const aplicaRecogida = s.tipo !== 'FALTAS';
+  document.getElementById('psRecogidaBloque').style.display = aplicaRecogida ? '' : 'none';
+  document.getElementById('psRecogida').value = aplicaRecogida ? (s.recogida_limite || '') : '';
 
   pintarFotosModal(s);
   pintarFacturaModal(s);
@@ -283,7 +292,9 @@ async function guardarPanelSiniestro() {
     num_albaran: document.getElementById('psAlbaran').value.trim() || null,
     valor: valorTxt ? Number(valorTxt) : null,
     estado: document.getElementById('psEstado').value,
-    recogida_limite: document.getElementById('psRecogida').value || null,
+    recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
+      ? (document.getElementById('psRecogida').value || null)
+      : null,
     campo_i: document.getElementById('psCampoI').value.trim() || null
   };
 
