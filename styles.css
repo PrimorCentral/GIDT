@@ -898,6 +898,19 @@ table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700;
 }
 .ps-guardado-estado.error button:hover{ color:var(--ink); }
 .ps-btn-borrar-fila:hover{ background:var(--grave-bg); color:var(--grave); }
+.ps-kpi-detalle-btn{
+  position:absolute; right:14px; bottom:12px; border:0; background:transparent; padding:0; cursor:pointer;
+  font-size:11.5px; font-weight:600; color:var(--accent-ink); text-decoration:underline;
+}
+.ps-kpi-detalle-btn:hover{ opacity:.8; }
+.ps-detalle-fila{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 0; border-bottom:1px solid var(--border);
+}
+.ps-detalle-fila:last-child{ border-bottom:0; }
+.ps-detalle-fila .agencia{ font-weight:700; font-size:13.5px; }
+.ps-detalle-fila .count{ font-size:11.5px; color:var(--ink-soft); }
+.ps-detalle-fila .valor{ font-weight:700; color:var(--grave); white-space:nowrap; }
 .ps-campo-hint{ font-size:11.5px; color:var(--ink-soft); margin:5px 0 0; }
 .ps-campo-hint button{ border:0; background:transparent; padding:0; cursor:pointer; color:var(--ink-soft); text-decoration:underline; font-size:11.5px; }
 .ps-campo-hint button:hover{ color:var(--ink); }

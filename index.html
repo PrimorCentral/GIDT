@@ -355,8 +355,14 @@
       </div>
 
       <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
-        <div class="kpi warn"><b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span></div>
-        <div class="kpi"><b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span></div>
+        <div class="kpi warn" style="position:relative;">
+          <b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span>
+          <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesCount">Ver detalle →</button>
+        </div>
+        <div class="kpi" style="position:relative;">
+          <b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span>
+          <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesValor">Ver detalle →</button>
+        </div>
       </div>
 
       <div class="card" style="padding:14px 16px; margin-bottom:14px;">
@@ -832,6 +838,15 @@
     <div class="modal-footer" style="justify-content:flex-end; margin-top:18px;">
       <span class="ps-guardado-estado" id="psGuardadoEstado"></span>
     </div>
+  </div>
+</div>
+
+<!-- Modal: detalle de pendientes de cobro por agencia -->
+<div class="modal-overlay" id="psDetalleModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarPsDetalle" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">📠 Pendiente de cobro por agencia</h3>
+    <div id="psDetalleLista" style="margin-top:6px;"></div>
   </div>
 </div>
 
