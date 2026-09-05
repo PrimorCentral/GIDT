@@ -276,22 +276,53 @@ async function abrirModalPanelSiniestro(id) {
 }
 
 function cerrarModalPanelSiniestro() {
+  flushAutoguardadoPanel();
   document.getElementById('psModalOverlay').classList.remove('show');
   panelActivoId = null;
 }
 
-async function guardarPanelSiniestro() {
+// ---------------- Autoguardado de los campos del formulario ----------------
+// Cada campo se guarda solo, sin botón: los de texto/número con un pequeño
+// debounce (para no lanzar una petición por cada letra), los select/fecha
+// al cambiar. El aviso "Guardando… / ✓ Guardado" es solo un indicador
+// visual discreto.
+
+let guardadoPanelTimer = null;
+
+function marcarGuardandoPanel() {
+  const el = document.getElementById('psGuardadoEstado');
+  if (!el) return;
+  clearTimeout(el._fadeTimer);
+  el.classList.remove('ok');
+  el.textContent = 'Guardando…';
+}
+
+function marcarGuardadoOkPanel() {
+  const el = document.getElementById('psGuardadoEstado');
+  if (!el) return;
+  el.classList.add('ok');
+  el.textContent = '✓ Guardado';
+  clearTimeout(el._fadeTimer);
+  el._fadeTimer = setTimeout(() => { el.textContent = ''; el.classList.remove('ok'); }, 1800);
+}
+
+function marcarErrorGuardadoPanel() {
+  const el = document.getElementById('psGuardadoEstado');
+  if (!el) return;
+  el.classList.remove('ok');
+  el.textContent = '⚠️ No se pudo guardar';
+}
+
+function programarAutoguardadoPanel() {
   if (!panelActivoId) return;
-  const errEl = document.getElementById('psError');
-  errEl.style.display = 'none';
+  marcarGuardandoPanel();
+  clearTimeout(guardadoPanelTimer);
+  guardadoPanelTimer = setTimeout(guardarCamposPanelAhora, 600);
+}
 
-  const s = psSiniestroPorId(panelActivoId);
-
-  // Si hay un albarán adjunto que aún no se ha mandado a Facturación,
-  // se pregunta aquí, como parte de guardar (no al subir el archivo).
-  if (s && s.albaran_url && !s.enviado_facturacion) {
-    await ofrecerEnvioFacturacion(s);
-  }
+async function guardarCamposPanelAhora() {
+  if (!panelActivoId) return;
+  guardadoPanelTimer = null;
 
   const valorTxt = document.getElementById('psValor').value;
   const datos = {
@@ -306,21 +337,35 @@ async function guardarPanelSiniestro() {
     campo_i: document.getElementById('psCampoI').value.trim() || null
   };
 
-  const btn = document.getElementById('btnGuardarPanelSiniestro');
-  btn.disabled = true;
   try {
     const { error } = await sb.from('panel_siniestros').update(datos).eq('id', panelActivoId);
     if (error) throw error;
-    await cargarPanelSiniestros();
-    cerrarModalPanelSiniestro();
+    const s = psSiniestroPorId(panelActivoId);
+    if (s) Object.assign(s, datos);
+    renderPanelSiniestros();
+    renderPanelKpis();
+    marcarGuardadoOkPanel();
   } catch (err) {
-    console.error('Error guardando siniestro:', err);
-    errEl.textContent = 'No se pudo guardar el cambio.';
-    errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false;
+    console.error('Error guardando cambios del panel:', err);
+    marcarErrorGuardadoPanel();
   }
 }
+
+// Si se cierra el modal con un guardado pendiente (p.ej. recién escrito y
+// cerrado enseguida), lo lanzamos ya mismo en vez de perder el cambio.
+function flushAutoguardadoPanel() {
+  if (guardadoPanelTimer) {
+    clearTimeout(guardadoPanelTimer);
+    guardarCamposPanelAhora();
+  }
+}
+
+['psOrigen', 'psEstado', 'psRecogida'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', programarAutoguardadoPanel);
+});
+['psInformacion', 'psAlbaran', 'psValor', 'psCampoI'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
+});
 
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
@@ -561,7 +606,9 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     pintarAlbaranModal(s);
     aplicarEstadoCampoAlbaran(s);
     renderPanelSiniestros();
-    // Ya no preguntamos aquí: se pregunta al pulsar "Guardar" (ver guardarPanelSiniestro)
+    // Recién adjuntado: preguntamos directamente si se envía a Facturación
+    // (ya no hay botón "Guardar" que sirva de punto de corte para preguntar).
+    await ofrecerEnvioFacturacion(s);
   } catch (err) {
     console.error('Error subiendo el albarán:', err);
     errEl.textContent = 'No se pudo subir el albarán.';
@@ -675,7 +722,6 @@ document.getElementById('btnCerrarPsModal')?.addEventListener('click', cerrarMod
 document.getElementById('psModalOverlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'psModalOverlay') cerrarModalPanelSiniestro();
 });
-document.getElementById('btnGuardarPanelSiniestro')?.addEventListener('click', guardarPanelSiniestro);
 document.getElementById('btnBorrarPanelSiniestro')?.addEventListener('click', eliminarPanelSiniestro);
 
 // Carga perezosa: solo la primera vez que se entra en la pestaña
