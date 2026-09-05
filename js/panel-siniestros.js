@@ -249,6 +249,11 @@ async function abrirModalPanelSiniestro(id) {
   const s = psSiniestroPorId(id);
   if (!s) return;
   panelActivoId = id;
+  ultimoGuardadoConError = false;
+  clearTimeout(guardadoPanelTimer);
+  guardadoPanelTimer = null;
+  const estadoEl = document.getElementById('psGuardadoEstado');
+  if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error'); }
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
   document.getElementById('psFechaTexto').textContent = `Recepción: ${psFormatearFecha(s.fecha)}`;
@@ -275,10 +280,19 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psModalOverlay').classList.add('show');
 }
 
-function cerrarModalPanelSiniestro() {
-  flushAutoguardadoPanel();
+async function cerrarModalPanelSiniestro() {
+  if (guardadoPanelTimer) {
+    flushAutoguardadoPanel(); // hay un cambio reciente sin lanzar: lo intentamos ya
+  } else if (ultimoGuardadoConError) {
+    const salir = await modalConfirm(
+      'El último cambio no se pudo guardar. ¿Salir igualmente y perderlo?',
+      { titulo: 'Cambios sin guardar', danger: true, textoOk: 'Salir sin guardar' }
+    );
+    if (!salir) return;
+  }
   document.getElementById('psModalOverlay').classList.remove('show');
   panelActivoId = null;
+  ultimoGuardadoConError = false;
 }
 
 // ---------------- Autoguardado de los campos del formulario ----------------
@@ -288,18 +302,21 @@ function cerrarModalPanelSiniestro() {
 // visual discreto.
 
 let guardadoPanelTimer = null;
+let ultimoGuardadoConError = false;
 
 function marcarGuardandoPanel() {
   const el = document.getElementById('psGuardadoEstado');
   if (!el) return;
   clearTimeout(el._fadeTimer);
-  el.classList.remove('ok');
+  el.classList.remove('ok', 'error');
   el.textContent = 'Guardando…';
 }
 
 function marcarGuardadoOkPanel() {
+  ultimoGuardadoConError = false;
   const el = document.getElementById('psGuardadoEstado');
   if (!el) return;
+  el.classList.remove('error');
   el.classList.add('ok');
   el.textContent = '✓ Guardado';
   clearTimeout(el._fadeTimer);
@@ -307,10 +324,14 @@ function marcarGuardadoOkPanel() {
 }
 
 function marcarErrorGuardadoPanel() {
+  ultimoGuardadoConError = true;
   const el = document.getElementById('psGuardadoEstado');
   if (!el) return;
+  clearTimeout(el._fadeTimer);
   el.classList.remove('ok');
-  el.textContent = '⚠️ No se pudo guardar';
+  el.classList.add('error');
+  el.innerHTML = `⚠️ No se pudo guardar · <button type="button" id="btnReintentarGuardado">reintentar</button>`;
+  document.getElementById('btnReintentarGuardado').addEventListener('click', guardarCamposPanelAhora);
 }
 
 function programarAutoguardadoPanel() {
