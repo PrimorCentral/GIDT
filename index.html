@@ -438,6 +438,7 @@
           <h1>✉️ Emails por agencia</h1>
           <p>Destinatarios de los informes e incidencias.</p>
         </div>
+        <button class="btn primary" id="btnNuevaAgencia">➕ Nueva agencia</button>
       </div>
 
       <div id="listaEmailsAgencias"></div>
@@ -839,6 +840,36 @@
     <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
       <button class="btn danger" id="btnBorrarPanelSiniestro">🗑️ Eliminar fila</button>
       <button class="btn primary" id="btnGuardarPanelSiniestro">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nueva agencia -->
+<div class="modal-overlay" id="nuevaAgenciaModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarNuevaAgencia" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">➕ Nueva agencia</h3>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div>
+        <label class="form-label">Nombre de la agencia</label>
+        <input type="text" id="naNombre" class="form-input" placeholder="Ej: DHL">
+      </div>
+      <div>
+        <label class="form-label">Nombre comercial</label>
+        <input type="text" id="naNombreComercial" class="form-input" placeholder="Ej: DHL PARCEL IBERIA, S.L.U (opcional)">
+      </div>
+      <div>
+        <label class="form-label">Emails de destinatario</label>
+        <textarea id="naEmails" class="form-input" rows="3" placeholder="uno@email.com, otro@email.com&#10;(uno por línea o separados por comas)"></textarea>
+      </div>
+    </div>
+
+    <p class="err" id="naError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarNuevaAgencia">Cancelar</button>
+      <button class="btn primary" id="btnGuardarNuevaAgencia">💾 Crear agencia</button>
     </div>
   </div>
 </div>

@@ -393,15 +393,14 @@
   .email-card .cabecera{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; gap:12px; }
   .email-card-titulos{ min-width:0; }
   .email-card b{ font-size:13.5px; }
-  .email-comercial-input{
-    display:block; width:100%; max-width:340px; margin:2px 0 0 -7px;
-    border:1px solid transparent; background:transparent; border-radius:6px;
-    padding:2px 7px; font-size:12px; color:var(--ink-soft);
-    transition:background .15s, border-color .15s;
+  .email-comercial-linea{ display:flex; align-items:center; gap:6px; margin-top:3px; }
+  .email-comercial-texto{ font-size:12px; color:var(--ink-soft); }
+  .email-comercial-anadir{
+    border:0; background:transparent; padding:0; cursor:pointer;
+    font-size:12px; font-style:italic; color:var(--ink-soft); opacity:.75;
   }
-  .email-comercial-input::placeholder{ color:var(--ink-soft); opacity:.55; font-style:italic; }
-  .email-comercial-input:hover{ background:var(--panel-muted); }
-  .email-comercial-input:focus{ outline:none; background:var(--panel-muted); border-color:var(--border); color:var(--ink); }
+  .email-comercial-anadir:hover{ opacity:1; text-decoration:underline; }
+  .email-comercial-linea .mini-btn{ width:22px; height:22px; font-size:11px; padding:0; }
   .email-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
   .email-chip{
     display:flex; align-items:center; gap:6px; background:var(--panel-muted);
