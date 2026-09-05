@@ -212,6 +212,54 @@ function renderPanelKpis() {
   if (elValor) elValor.textContent = psFormatearValor(totalPend);
 }
 
+function abrirModalDetallePendientes() {
+  const pend = panelCache.filter(s => s.estado === 'PDTE COBRO');
+  const cont = document.getElementById('psDetalleLista');
+
+  if (!pend.length) {
+    cont.innerHTML = `<p class="ps-sin-archivos">No hay ningún siniestro pendiente de cobro.</p>`;
+  } else {
+    const porAgencia = {};
+    pend.forEach(s => {
+      const clave = s.agencia_nombre || 'Sin agencia';
+      if (!porAgencia[clave]) porAgencia[clave] = { count: 0, valor: 0 };
+      porAgencia[clave].count += 1;
+      porAgencia[clave].valor += Number(s.valor) || 0;
+    });
+
+    const filas = Object.entries(porAgencia)
+      .sort((a, b) => b[1].valor - a[1].valor)
+      .map(([nombre, d]) => `
+        <div class="ps-detalle-fila">
+          <div>
+            <div class="agencia">${escapeHtml(nombre)}</div>
+            <div class="count">${d.count} siniestro${d.count === 1 ? '' : 's'}</div>
+          </div>
+          <div class="valor">${psFormatearValor(d.valor)}</div>
+        </div>`).join('');
+
+    const totalCount = pend.length;
+    const totalValor = pend.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
+
+    cont.innerHTML = filas + `
+      <div class="ps-detalle-fila" style="border-top:2px solid var(--border); margin-top:4px; padding-top:12px;">
+        <div class="agencia">Total</div>
+        <div class="valor">${totalCount} · ${psFormatearValor(totalValor)}</div>
+      </div>`;
+  }
+
+  document.getElementById('psDetalleModalOverlay').classList.add('show');
+}
+
+document.getElementById('btnDetallePendientesCount')?.addEventListener('click', abrirModalDetallePendientes);
+document.getElementById('btnDetallePendientesValor')?.addEventListener('click', abrirModalDetallePendientes);
+document.getElementById('btnCerrarPsDetalle')?.addEventListener('click', () => {
+  document.getElementById('psDetalleModalOverlay').classList.remove('show');
+});
+document.getElementById('psDetalleModalOverlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'psDetalleModalOverlay') e.currentTarget.classList.remove('show');
+});
+
 // ---------------- Filtros ----------------
 
 document.getElementById('psFiltroTexto')?.addEventListener('input', (e) => {
