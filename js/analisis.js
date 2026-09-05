@@ -158,7 +158,7 @@
           nombre: entidad === 'tiendas' ? (i.tienda_nombre || '—') : (i.agencia_nombre || 'Sin agencia'),
           agenciaNombre: entidad === 'tiendas' ? (i.agencia_nombre || null) : null,
           leve: 0, moderado: 0, grave: 0, pendiente: 0, incidencias: 0,
-          sinPend: 0, sinEnv: 0, siniestros: 0
+          sinFalta: 0, sinRotura: 0, sinMixto: 0, siniestros: 0
         });
       }
       const e = mapa.get(clave);
@@ -179,7 +179,9 @@
       if (clave == null || !mapa.has(clave)) return;
       const e = mapa.get(clave);
       e.siniestros++;
-      if (s.estado === 'PENDIENTE') e.sinPend++; else e.sinEnv++;
+      if (s.tipo === 'FALTA') e.sinFalta++;
+      else if (s.tipo === 'ROTURA') e.sinRotura++;
+      else if (s.tipo === 'MIXTO') e.sinMixto++;
     });
 
     return Array.from(mapa.values());
@@ -240,9 +242,10 @@
         </td>
         <td class="col-num">${f.siniestros}</td>
         <td class="col-desglose">
-          ${f.sinPend ? `<span class="badge-envio pendiente">${f.sinPend} pdte.</span>` : ''}
-          ${f.sinEnv ? `<span class="badge-envio enviado">${f.sinEnv} enviado${f.sinEnv === 1 ? '' : 's'}</span>` : ''}
-          ${!f.sinPend && !f.sinEnv ? '—' : ''}
+          ${f.sinRotura ? `<span class="pill grave">${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinFalta ? `<span class="pill moderado">${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinMixto ? `<span class="pill grave">${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}</span>` : ''}
+          ${!f.sinRotura && !f.sinFalta && !f.sinMixto ? '—' : ''}
         </td>
       </tr>`).join('');
 
@@ -261,7 +264,7 @@
               <th class="col-num">Incidencias</th>
               <th>Desglose incidencias</th>
               <th class="col-num">Siniestros</th>
-              <th>Estado siniestros</th>
+              <th>Tipo de siniestro</th>
             </tr>
           </thead>
           <tbody>${filasTabla}</tbody>
