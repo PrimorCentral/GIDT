@@ -396,6 +396,7 @@
 
       s.estado = 'ENVIADO';
       s.enviado_en = new Date().toISOString();
+      registrarSiniestroEnPanelAutomatico(s, informeHoyCache.fecha);
       pintarModalSiniestro();
       renderKanbanSiniestros();
       actualizarKpiSiniestros();
