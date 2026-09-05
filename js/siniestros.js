@@ -33,7 +33,8 @@
         )
       `)
       .eq('informe_id', informeHoyCache.id)
-      .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
+      .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO))
+      .eq('siniestro_omitido', false);
     if (e1) throw e1;
 
     if (!incs.length) return { incs: [], existentesPorIncidencia: new Map() };
