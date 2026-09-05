@@ -321,8 +321,9 @@
     try {
       const urls = [];
       for (const file of files) {
-        const path = `siniestro-${s.id}/${Date.now()}-${file.name}`;
-        const { error: eUp } = await sb.storage.from('siniestros-fotos').upload(path, file);
+        const comprimido = await comprimirImagenParaSubida(file);
+        const path = `siniestro-${s.id}/${Date.now()}-${comprimido.name}`;
+        const { error: eUp } = await sb.storage.from('siniestros-fotos').upload(path, comprimido);
         if (eUp) throw eUp;
         const { data: pub } = sb.storage.from('siniestros-fotos').getPublicUrl(path);
         urls.push(pub.publicUrl);

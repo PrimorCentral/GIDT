@@ -344,8 +344,9 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
     const s = psSiniestroPorId(panelActivoId);
     const urls = [];
     for (const file of files) {
-      const path = `panel/${panelActivoId}/${Date.now()}-${file.name}`;
-      const { error: eUp } = await sb.storage.from(BUCKET_FOTOS_PANEL).upload(path, file);
+      const comprimido = await comprimirImagenParaSubida(file);
+      const path = `panel/${panelActivoId}/${Date.now()}-${comprimido.name}`;
+      const { error: eUp } = await sb.storage.from(BUCKET_FOTOS_PANEL).upload(path, comprimido);
       if (eUp) throw eUp;
       const { data: pub } = sb.storage.from(BUCKET_FOTOS_PANEL).getPublicUrl(path);
       urls.push(pub.publicUrl);
@@ -400,17 +401,18 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
   const errEl = document.getElementById('psFacturaError');
   errEl.style.display = 'none';
   try {
-    const path = `panel/${panelActivoId}/${Date.now()}-${file.name}`;
-    const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, file);
+    const comprimido = await comprimirImagenParaSubida(file);
+    const path = `panel/${panelActivoId}/${Date.now()}-${comprimido.name}`;
+    const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
     const { error: eDb } = await sb.from('panel_siniestros')
-      .update({ factura_url: pub.publicUrl, factura_nombre: file.name })
+      .update({ factura_url: pub.publicUrl, factura_nombre: comprimido.name })
       .eq('id', panelActivoId);
     if (eDb) throw eDb;
     const s = psSiniestroPorId(panelActivoId);
     s.factura_url = pub.publicUrl;
-    s.factura_nombre = file.name;
+    s.factura_nombre = comprimido.name;
     pintarFacturaModal(s);
     renderPanelSiniestros();
   } catch (err) {
