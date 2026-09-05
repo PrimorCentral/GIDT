@@ -11,6 +11,48 @@
   let analisisDatos = null;           // { incidencias:[...], siniestros:[...] } del último rango consultado
   let analisisInicializado = false;
 
+  // Filtros del panel "Filtrar ranking" (agencia/tienda/tipo/motivo/tipo de
+  // siniestro + "solo con siniestros"). Independientes de los filtros del
+  // Informe del día, aunque reutilizan el mismo componente visual.
+  const filtrosAnalisis = {
+    agencias: new Set(),
+    tiendas: new Set(),
+    tipos: new Set(),
+    motivos: new Set(),
+    siniestroTipos: new Set(),
+    soloConSiniestros: false
+  };
+  const TIPOS_SINIESTRO_FILTRO = [
+    { v: 'ROTURA', label: 'Rotura' },
+    { v: 'FALTA', label: 'Falta' },
+    { v: 'MIXTO', label: 'Mixto' }
+  ];
+
+  // ¿Esta incidencia pasa los filtros de agencia/tienda/tipo/motivo?
+  function pasaFiltrosIncidencia(i) {
+    if (filtrosAnalisis.agencias.size && !filtrosAnalisis.agencias.has(i.agencia_id)) return false;
+    if (filtrosAnalisis.tiendas.size && !filtrosAnalisis.tiendas.has(i.tienda_id)) return false;
+    if (filtrosAnalisis.tipos.size && !filtrosAnalisis.tipos.has(i.tipo || 'PENDIENTE')) return false;
+    if (filtrosAnalisis.motivos.size) {
+      const motivos = i.motivo || [];
+      if (!motivos.some(m => filtrosAnalisis.motivos.has(m))) return false;
+    }
+    return true;
+  }
+
+  function incidenciasFiltradas() {
+    return (analisisDatos?.incidencias || []).filter(pasaFiltrosIncidencia);
+  }
+
+  // Siniestros cuya incidencia asociada pasa los filtros de arriba, y que
+  // además cumplen el filtro de "Tipo de siniestro" si hay alguno marcado.
+  function siniestrosFiltrados(idsIncidenciasFiltradas) {
+    return (analisisDatos?.siniestros || []).filter(s =>
+      idsIncidenciasFiltradas.has(s.incidencia_id) &&
+      (!filtrosAnalisis.siniestroTipos.size || filtrosAnalisis.siniestroTipos.has(s.tipo))
+    );
+  }
+
   const analisisDesdeInput = document.getElementById('analisisDesde');
   const analisisHastaInput = document.getElementById('analisisHasta');
 
@@ -126,7 +168,6 @@
       }
 
       analisisDatos = { incidencias: incs || [], siniestros: sins };
-      pintarKpisAnalisis(analisisDatos);
       renderAnalisisRanking();
     } catch (err) {
       console.error('Error cargando ranking de análisis:', err);
@@ -135,18 +176,27 @@
   }
 
   function pintarKpisAnalisis(datos) {
-    const incs = datos?.incidencias || [];
-    const sins = datos?.siniestros || [];
-    document.getElementById('akIncidencias').textContent = datos ? incs.length : '—';
-    document.getElementById('akGraves').textContent = datos ? incs.filter(i => i.tipo === 'GRAVE').length : '—';
-    document.getElementById('akSiniestros').textContent = datos ? sins.length : '—';
-    document.getElementById('akSiniestrosPend').textContent = datos ? sins.filter(s => s.estado === 'PENDIENTE').length : '—';
+    if (!datos) {
+      document.getElementById('akIncidencias').textContent = '—';
+      document.getElementById('akGraves').textContent = '—';
+      document.getElementById('akSiniestros').textContent = '—';
+      document.getElementById('akSiniestrosPend').textContent = '—';
+      return;
+    }
+    // Los KPI respetan los filtros de agencia/tienda/tipo/motivo/tipo de
+    // siniestro (así no muestran un total distinto al de la tabla de abajo).
+    const incs = incidenciasFiltradas();
+    const sins = siniestrosFiltrados(new Set(incs.map(i => i.id)));
+    document.getElementById('akIncidencias').textContent = incs.length;
+    document.getElementById('akGraves').textContent = incs.filter(i => i.tipo === 'GRAVE').length;
+    document.getElementById('akSiniestros').textContent = sins.length;
+    document.getElementById('akSiniestrosPend').textContent = sins.filter(s => s.estado === 'PENDIENTE').length;
   }
 
-  // Agrupa incidencias + siniestros por tienda o por agencia.
+  // Agrupa incidencias + siniestros por tienda o por agencia, ya filtradas.
   function agregarAnalisis(entidad) {
-    const incs = analisisDatos?.incidencias || [];
-    const sins = analisisDatos?.siniestros || [];
+    const incs = incidenciasFiltradas();
+    const sins = siniestrosFiltrados(new Set(incs.map(i => i.id)));
     const porIncidencia = new Map(incs.map(i => [i.id, i]));
     const mapa = new Map();
 
@@ -190,15 +240,18 @@
   function renderAnalisisRanking() {
     const cont = document.getElementById('contenidoAnalisisRanking');
     if (!analisisDatos) return;
+    pintarKpisAnalisis(analisisDatos);
 
-    const filas = agregarAnalisis(analisisEntidad);
+    let filas = agregarAnalisis(analisisEntidad);
+    if (filtrosAnalisis.soloConSiniestros) filas = filas.filter(f => f.siniestros > 0);
+
     if (!filas.length) {
       cont.innerHTML = `
         <div class="card">
           <div class="empty">
             <div class="glyph">✅</div>
-            <h3>Sin incidencias en ese periodo</h3>
-            <p>No hay datos de ${analisisEntidad === 'tiendas' ? 'tiendas' : 'agencias'} que mostrar.</p>
+            <h3>Sin resultados</h3>
+            <p>No hay ${analisisEntidad === 'tiendas' ? 'tiendas' : 'agencias'} que coincidan con el periodo y los filtros elegidos.</p>
           </div>
         </div>`;
       return;
@@ -273,3 +326,182 @@
 
     cont.innerHTML = chart + tabla;
   }
+
+  // ---------------------------------------------------------------
+  // Panel "Filtrar ranking" (mismo componente visual que el de Informe del
+  // día: botón + panel flotante con selects de checkboxes buscables).
+  // ---------------------------------------------------------------
+  async function construirPanelFiltrosAnalisis() {
+    await ensureAgenciasYTiendasCargadas();
+
+    const listaAg = document.getElementById('analisisFiltrosAgenciasLista');
+    const listaTd = document.getElementById('analisisFiltrosTiendasLista');
+    const listaTipos = document.getElementById('analisisFiltrosTiposLista');
+    const listaMotivos = document.getElementById('analisisFiltrosMotivosLista');
+    const listaSin = document.getElementById('analisisFiltrosSiniestroTiposLista');
+
+    if (!listaAg.dataset.built) {
+      listaAg.innerHTML = agenciasCache.map(ag => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${ag.id}" data-filtro="agencia">
+          <span>${escapeHtml(ag.nombre)}</span>
+        </label>`).join('');
+      listaAg.dataset.built = '1';
+    }
+    if (!listaTd.dataset.built) {
+      listaTd.innerHTML = tiendasCache.filter(t => t.activo).map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.id}" data-filtro="tienda">
+          <span>${escapeHtml(t.nombre)}</span>
+        </label>`).join('');
+      listaTd.dataset.built = '1';
+    }
+    if (!listaTipos.dataset.built) {
+      listaTipos.innerHTML = TIPOS_FILTRO.map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.v}" data-filtro="tipo">
+          <span class="pill ${t.v.toLowerCase()}">${t.label}</span>
+        </label>`).join('');
+      listaTipos.dataset.built = '1';
+    }
+    if (!listaMotivos.dataset.built) {
+      listaMotivos.innerHTML = MOTIVOS.map(m => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${escapeHtml(m.v)}" data-filtro="motivo">
+          <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
+        </label>`).join('');
+      listaMotivos.dataset.built = '1';
+    }
+    if (!listaSin.dataset.built) {
+      listaSin.innerHTML = TIPOS_SINIESTRO_FILTRO.map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.v}" data-filtro="siniestro">
+          <span class="pill ${t.v === 'FALTA' ? 'moderado' : 'grave'}">${t.label}</span>
+        </label>`).join('');
+      listaSin.dataset.built = '1';
+    }
+
+    const panel = document.getElementById('analisisFiltrosPanel');
+    if (!panel.dataset.wired) {
+      panel.addEventListener('change', (e) => {
+        const cb = e.target;
+        if (!cb.matches('input[type="checkbox"]')) return;
+        if (cb.id === 'analisisFiltroSoloConSiniestros') {
+          filtrosAnalisis.soloConSiniestros = cb.checked;
+          actualizarBadgeFiltrosAnalisis();
+          renderAnalisisRanking();
+          return;
+        }
+        const grupo = cb.dataset.filtro;
+        const set = grupo === 'agencia' ? filtrosAnalisis.agencias
+                  : grupo === 'tienda' ? filtrosAnalisis.tiendas
+                  : grupo === 'tipo' ? filtrosAnalisis.tipos
+                  : grupo === 'siniestro' ? filtrosAnalisis.siniestroTipos
+                  : filtrosAnalisis.motivos;
+        const val = (grupo === 'agencia' || grupo === 'tienda') ? Number(cb.value) : cb.value;
+        if (cb.checked) set.add(val); else set.delete(val);
+        actualizarBadgeFiltrosAnalisis();
+        actualizarValoresSelectsAnalisis();
+        renderAnalisisRanking();
+      });
+      panel.dataset.wired = '1';
+    }
+  }
+
+  function actualizarValoresSelectsAnalisis() {
+    document.querySelectorAll('#analisisFiltrosPanel .filtro-select').forEach(sel => {
+      const grupo = sel.dataset.grupo;
+      const set = grupo === 'agencia' ? filtrosAnalisis.agencias
+                : grupo === 'tienda' ? filtrosAnalisis.tiendas
+                : grupo === 'tipo' ? filtrosAnalisis.tipos
+                : grupo === 'siniestro' ? filtrosAnalisis.siniestroTipos
+                : filtrosAnalisis.motivos;
+      const valor = sel.querySelector('.filtro-select-valor');
+      if (set.size === 0) {
+        valor.textContent = grupo === 'agencia' || grupo === 'tienda' ? 'Todas' : 'Todos';
+        sel.classList.remove('activo');
+      } else if (set.size === 1) {
+        const cb = sel.querySelector('input[type="checkbox"]:checked');
+        valor.textContent = cb ? cb.closest('.filtro-check').textContent.trim() : `${set.size} seleccionados`;
+        sel.classList.add('activo');
+      } else {
+        valor.textContent = `${set.size} seleccionados`;
+        sel.classList.add('activo');
+      }
+    });
+  }
+
+  function actualizarBadgeFiltrosAnalisis() {
+    const total = filtrosAnalisis.agencias.size + filtrosAnalisis.tiendas.size + filtrosAnalisis.tipos.size
+      + filtrosAnalisis.motivos.size + filtrosAnalisis.siniestroTipos.size + (filtrosAnalisis.soloConSiniestros ? 1 : 0);
+    const badge = document.getElementById('analisisFiltrosCount');
+    const btn = document.getElementById('btnAnalisisFiltros');
+    if (total > 0) {
+      badge.textContent = total;
+      badge.style.display = '';
+      btn.classList.add('activo');
+    } else {
+      badge.style.display = 'none';
+      btn.classList.remove('activo');
+    }
+  }
+
+  const btnAnalisisFiltros = document.getElementById('btnAnalisisFiltros');
+  const analisisFiltrosPanel = document.getElementById('analisisFiltrosPanel');
+
+  function posicionarAnalisisFiltrosPanel() {
+    const wrap = btnAnalisisFiltros.closest('.filtros-wrap');
+    const wrapRect = wrap.getBoundingClientRect();
+    const margen = 12;
+    const ancho = Math.min(560, window.innerWidth - margen * 2);
+    analisisFiltrosPanel.style.width = ancho + 'px';
+    let left = 0;
+    const desbordeDerecha = (wrapRect.left + left + ancho) - (window.innerWidth - margen);
+    if (desbordeDerecha > 0) left -= desbordeDerecha;
+    if (wrapRect.left + left < margen) left = margen - wrapRect.left;
+    analisisFiltrosPanel.style.left = left + 'px';
+  }
+
+  async function abrirAnalisisFiltrosPanel() {
+    await construirPanelFiltrosAnalisis();
+    posicionarAnalisisFiltrosPanel();
+    analisisFiltrosPanel.classList.add('show');
+    btnAnalisisFiltros.classList.add('open');
+  }
+  function cerrarAnalisisFiltrosPanel() {
+    analisisFiltrosPanel.classList.remove('show');
+    btnAnalisisFiltros.classList.remove('open');
+  }
+
+  window.addEventListener('resize', () => {
+    if (analisisFiltrosPanel.classList.contains('show')) posicionarAnalisisFiltrosPanel();
+  });
+
+  btnAnalisisFiltros.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (analisisFiltrosPanel.classList.contains('show')) cerrarAnalisisFiltrosPanel();
+    else abrirAnalisisFiltrosPanel();
+  });
+
+  analisisFiltrosPanel.addEventListener('click', (e) => e.stopPropagation());
+
+  document.addEventListener('click', (e) => {
+    if (!analisisFiltrosPanel.contains(e.target) && !btnAnalisisFiltros.contains(e.target)) {
+      cerrarAnalisisFiltrosPanel();
+    }
+  });
+
+  document.getElementById('btnAnalisisCerrarFiltros').addEventListener('click', cerrarAnalisisFiltrosPanel);
+
+  document.getElementById('btnAnalisisLimpiarFiltros').addEventListener('click', () => {
+    filtrosAnalisis.agencias.clear();
+    filtrosAnalisis.tiendas.clear();
+    filtrosAnalisis.tipos.clear();
+    filtrosAnalisis.motivos.clear();
+    filtrosAnalisis.siniestroTipos.clear();
+    filtrosAnalisis.soloConSiniestros = false;
+    document.querySelectorAll('#analisisFiltrosPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    actualizarBadgeFiltrosAnalisis();
+    actualizarValoresSelectsAnalisis();
+    renderAnalisisRanking();
+  });
