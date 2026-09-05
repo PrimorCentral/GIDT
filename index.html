@@ -580,6 +580,18 @@
   </div>
 </div>
 
+<!-- Modal de actualización disponible (no se cierra clicando fuera: la actualización no es opcional) -->
+<div class="modal-overlay actualizacion-overlay" id="actualizacionModalOverlay">
+  <div class="modal-box actualizacion-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="actualizacionModalTitulo">
+    <div class="actualizacion-modal-icon">🔄</div>
+    <h3 class="modal-title" id="actualizacionModalTitulo">Actualización disponible</h3>
+    <p class="modal-message">Hay una nueva versión de GIDT disponible. La aplicación se va a actualizar ahora.</p>
+    <div class="modal-footer">
+      <button class="btn primary" id="btnActualizarAhora">🔄 Actualizar ahora</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de detalle de siniestro (fotos + envío) -->
 <div class="modal-overlay" id="siniestroModalOverlay">
   <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
