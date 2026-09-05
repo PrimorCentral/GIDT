@@ -264,7 +264,6 @@ async function abrirModalPanelSiniestro(id) {
   aplicarEstadoCampoAlbaran(s);
   document.getElementById('psValor').value = s.valor ?? '';
   document.getElementById('psEstado').value = s.estado || 'PDTE COBRO';
-  document.getElementById('psCampoI').value = s.campo_i || '';
   document.getElementById('psError').style.display = 'none';
 
   // Solo hay algo que "recoger" en tienda si es ROTURA o FALTAS Y ROTURAS.
@@ -354,8 +353,7 @@ async function guardarCamposPanelAhora() {
     estado: document.getElementById('psEstado').value,
     recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
       ? (document.getElementById('psRecogida').value || null)
-      : null,
-    campo_i: document.getElementById('psCampoI').value.trim() || null
+      : null
   };
 
   try {
@@ -384,7 +382,7 @@ function flushAutoguardadoPanel() {
 ['psOrigen', 'psEstado', 'psRecogida'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', programarAutoguardadoPanel);
 });
-['psInformacion', 'psAlbaran', 'psValor', 'psCampoI'].forEach(id => {
+['psInformacion', 'psAlbaran', 'psValor'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
 });
 
