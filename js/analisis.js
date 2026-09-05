@@ -214,11 +214,19 @@
           clave,
           nombre: entidad === 'tiendas' ? (i.tienda_nombre || '—') : (i.agencia_nombre || 'Sin agencia'),
           agenciaNombre: entidad === 'tiendas' ? (i.agencia_nombre || null) : null,
+          variasAgencias: false,
           leve: 0, moderado: 0, grave: 0, pendiente: 0, incidencias: 0,
           sinFalta: 0, sinRotura: 0, sinMixto: 0, siniestros: 0
         });
       }
       const e = mapa.get(clave);
+      // Una tienda puede haber cambiado de agencia dentro del periodo
+      // consultado — cada incidencia conserva la agencia que tenía en su
+      // momento (snapshot), así que si aparecen nombres distintos se avisa
+      // en vez de mostrar solo la primera agencia encontrada.
+      if (entidad === 'tiendas' && i.agencia_nombre && e.agenciaNombre && i.agencia_nombre !== e.agenciaNombre) {
+        e.variasAgencias = true;
+      }
       e.incidencias++;
       // Una incidencia "marcada" puede no tener tipo todavía (motivo aún sin
       // confirmar, ej. "RETRASO PDTE CONFIRMAR"/"REVISANDO POSIBLE INCIDENCIA").
@@ -290,7 +298,7 @@
         <td class="col-pos">${idx + 1}</td>
         <td>
           <b>${escapeHtml(f.nombre)}</b>
-          ${f.agenciaNombre ? `<div style="font-size:11.5px; color:var(--ink-soft);">${escapeHtml(f.agenciaNombre)}</div>` : ''}
+          ${f.agenciaNombre ? `<div style="font-size:11.5px; color:var(--ink-soft);">${f.variasAgencias ? '⚠️ Varias agencias en el periodo' : escapeHtml(f.agenciaNombre)}</div>` : ''}
         </td>
         <td class="col-num">${f.incidencias}</td>
         <td class="col-desglose">
@@ -540,6 +548,11 @@
     return `${dias[d.getDay()]}, ${formatearFechaCorta(d)}`;
   }
 
+  // Icono + clase de color por severidad/tipo, para poder identificar cada
+  // fila del detalle de un vistazo (color del borde + icono) además del pill.
+  const ICONO_TIPO_INCIDENCIA = { GRAVE: '🔴', MODERADO: '🔵', LEVE: '⚪', PENDIENTE: '🟡' };
+  const ICONO_TIPO_SINIESTRO = { ROTURA: '🔴', FALTA: '🔵', MIXTO: '🟣' };
+
   function pillTipoIncidencia(tipo) {
     const t = tipo || 'PENDIENTE';
     const clase = t.toLowerCase();
@@ -551,6 +564,11 @@
     const clase = tipo === 'FALTA' ? 'moderado' : 'grave';
     const label = tipo === 'FALTA' ? 'Falta' : tipo === 'ROTURA' ? 'Rotura' : 'Mixto';
     return `<span class="pill ${clase}">${label}</span>`;
+  }
+
+  function pillAgenciaDetalle(nombre) {
+    if (!nombre) return '';
+    return `<span class="pill agencia-detalle">🏢 ${escapeHtml(nombre)}</span>`;
   }
 
   function capitalizar(str) {
@@ -569,23 +587,38 @@
       return fb.localeCompare(fa);
     });
 
-    const listaIncs = incs.length ? incs.map(i => `
-      <div class="detalle-fila">
-        <div class="detalle-fila-fecha">${fechaBonitaISO(i.fecha)}</div>
+    // La agencia de cada incidencia solo se muestra cuando se está viendo el
+    // detalle "por tienda" (si es "por agencia" todas comparten la misma).
+    const mostrarAgenciaPorFila = entidad === 'tiendas';
+
+    const listaIncs = incs.length ? incs.map(i => {
+      const t = i.tipo || 'PENDIENTE';
+      return `
+      <div class="detalle-fila detalle-fila-${t.toLowerCase()}">
+        <div class="detalle-fila-izq">
+          <span class="detalle-fila-icono">${ICONO_TIPO_INCIDENCIA[t]}</span>
+          <div class="detalle-fila-fecha">${fechaBonitaISO(i.fecha)}</div>
+        </div>
         <div class="detalle-fila-info">
           ${pillTipoIncidencia(i.tipo)}
           ${(i.motivo || []).length ? `<span class="detalle-motivo">${(i.motivo || []).map(m => escapeHtml(capitalizar(m))).join(', ')}</span>` : ''}
+          ${mostrarAgenciaPorFila ? pillAgenciaDetalle(i.agencia_nombre) : ''}
         </div>
-      </div>`).join('') : `<p class="detalle-vacio">Sin incidencias en el periodo y filtros elegidos.</p>`;
+      </div>`;
+    }).join('') : `<p class="detalle-vacio">Sin incidencias en el periodo y filtros elegidos.</p>`;
 
     const listaSins = sins.length ? sins.map(s => {
       const inc = porIncidencia.get(s.incidencia_id);
       return `
-      <div class="detalle-fila">
-        <div class="detalle-fila-fecha">${fechaBonitaISO(inc?.fecha)}</div>
+      <div class="detalle-fila detalle-fila-${s.tipo === 'FALTA' ? 'moderado' : 'grave'}">
+        <div class="detalle-fila-izq">
+          <span class="detalle-fila-icono">${ICONO_TIPO_SINIESTRO[s.tipo] || '⚪'}</span>
+          <div class="detalle-fila-fecha">${fechaBonitaISO(inc?.fecha)}</div>
+        </div>
         <div class="detalle-fila-info">
           ${pillTipoSiniestro(s.tipo)}
           <span class="badge-envio ${s.estado === 'PENDIENTE' ? 'pendiente' : 'enviado'}">${s.estado === 'PENDIENTE' ? 'Pendiente' : 'Enviado'}</span>
+          ${mostrarAgenciaPorFila ? pillAgenciaDetalle(inc?.agencia_nombre) : ''}
         </div>
       </div>`;
     }).join('') : `<p class="detalle-vacio">Sin siniestros en el periodo y filtros elegidos.</p>`;
