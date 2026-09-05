@@ -4,7 +4,7 @@
     const cont = document.getElementById('listaEmailsAgencias');
     cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';
     try {
-      const { data, error } = await sb.from('agencias').select('id, nombre, emails, orden').order('orden');
+      const { data, error } = await sb.from('agencias').select('id, nombre, nombre_comercial, emails, orden').order('orden');
       if (error) throw error;
 
       cont.innerHTML = data.map(ag => `
@@ -12,6 +12,12 @@
           <div class="cabecera">
             <b>${escapeHtml(ag.nombre)}</b>
             <span style="font-size:12px; color:var(--ink-soft);">${(ag.emails||[]).length} destinatario${(ag.emails||[]).length===1?'':'s'}</span>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px;">Nombre comercial</label>
+            <input type="text" class="form-input" data-nombre-comercial
+                   value="${escapeHtml(ag.nombre_comercial || '')}"
+                   placeholder="Ej: DHL PARCEL IBERIA, S.L.U">
           </div>
           <div class="email-chips">
             ${(ag.emails||[]).map(em => `
@@ -27,6 +33,12 @@
 
       cont.querySelectorAll('[data-agencia-email]').forEach(card => {
         const agenciaId = Number(card.dataset.agenciaEmail);
+
+        const inputComercial = card.querySelector('[data-nombre-comercial]');
+        let timerComercial;
+        const guardarComercial = () => guardarNombreComercialAgencia(agenciaId, inputComercial.value.trim());
+        inputComercial.addEventListener('input', () => { clearTimeout(timerComercial); timerComercial = setTimeout(guardarComercial, 700); });
+        inputComercial.addEventListener('blur', () => { clearTimeout(timerComercial); guardarComercial(); });
 
         card.querySelectorAll('[data-quitar]').forEach(btn => {
           btn.addEventListener('click', () => actualizarEmailsAgencia(agenciaId, card, 'quitar', btn.dataset.quitar));
@@ -45,6 +57,15 @@
     } catch (err) {
       console.error('Error cargando emails de agencias:', err);
       cont.innerHTML = '<div class="card"><div class="empty"><p style="color:var(--grave);">Error al cargar.</p></div></div>';
+    }
+  }
+
+  async function guardarNombreComercialAgencia(agenciaId, valor) {
+    try {
+      const { error } = await sb.from('agencias').update({ nombre_comercial: valor || null }).eq('id', agenciaId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error guardando nombre comercial:', err);
     }
   }
 
