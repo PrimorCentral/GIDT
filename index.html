@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#12181F">
-<title>Primor</title>
+<title>GIDT · Gestión de Incidencias de Transporte</title>
 <link rel="manifest" href="manifest.json">
 
 <link rel="stylesheet" href="styles.css">
@@ -705,6 +705,25 @@
         <button class="btn" id="btnReabrirSiniestro" style="display:none;">Reabrir</button>
         <button class="btn primary" id="btnEnviarSiniestro">✉️ Marcar como enviado</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de detalle de tienda/agencia (Ranking de Análisis) -->
+<div class="modal-overlay" id="analisisDetalleModalOverlay">
+  <div class="modal-box detalle-modal-box" role="dialog" aria-modal="true" aria-labelledby="analisisDetalleTitulo">
+    <button class="filtros-modal-close" id="btnAnalisisDetalleCerrar" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" id="analisisDetalleTitulo"></h3>
+    <p class="envio-modal-sub" id="analisisDetalleSubtitulo" style="margin-bottom:18px;"></p>
+
+    <div class="detalle-seccion">
+      <h4 class="detalle-seccion-titulo">📋 Incidencias</h4>
+      <div class="detalle-lista" id="analisisDetalleIncidenciasLista"></div>
+    </div>
+
+    <div class="detalle-seccion">
+      <h4 class="detalle-seccion-titulo">📦 Siniestros</h4>
+      <div class="detalle-lista" id="analisisDetalleSiniestrosLista"></div>
     </div>
   </div>
 </div>
