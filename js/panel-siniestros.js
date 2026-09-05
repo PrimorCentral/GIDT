@@ -455,14 +455,23 @@ async function quitarFacturaPanel() {
 
 function pintarAlbaranModal(s) {
   const cont = document.getElementById('psAlbaranZona');
-  if (s.albaran_url) {
-    cont.innerHTML = `
-      <a class="ps-factura-chip" href="${s.albaran_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</a>
-      <button type="button" class="mini-btn" id="btnQuitarAlbaran" title="Quitar albarán">✕</button>`;
-    document.getElementById('btnQuitarAlbaran').addEventListener('click', quitarAlbaranPanel);
-  } else {
+  if (!s.albaran_url) {
     cont.innerHTML = `<p class="ps-sin-archivos">Todavía no se ha adjuntado el albarán.</p>`;
+    return;
   }
+  const estado = s.enviado_facturacion
+    ? `<span class="ps-fact-enviado">✅ Enviado a Facturación${s.facturacion_enviado_en ? ' · ' + psFormatearFecha(s.facturacion_enviado_en.slice(0, 10)) : ''}</span>`
+    : '';
+  const textoBoton = s.enviado_facturacion ? '↻ Reenviar a Facturación' : '✉️ Enviar a Facturación';
+  cont.innerHTML = `
+    <a class="ps-factura-chip" href="${s.albaran_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</a>
+    <button type="button" class="mini-btn" id="btnQuitarAlbaran" title="Quitar albarán">✕</button>
+    <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      ${estado}
+      <button type="button" class="btn" id="btnEnviarFacturacion" style="padding:5px 12px; font-size:12.5px;">${textoBoton}</button>
+    </div>`;
+  document.getElementById('btnQuitarAlbaran').addEventListener('click', quitarAlbaranPanel);
+  document.getElementById('btnEnviarFacturacion').addEventListener('click', () => ofrecerEnvioFacturacion(s));
 }
 
 document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) => {
@@ -483,6 +492,8 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     s.albaran_url = pub.publicUrl;
     s.albaran_nombre = file.name;
     pintarAlbaranModal(s);
+    // Recién adjuntado: preguntamos directamente si se envía a Facturación
+    await ofrecerEnvioFacturacion(s);
   } catch (err) {
     console.error('Error subiendo el albarán:', err);
     errEl.textContent = 'No se pudo subir el albarán.';
@@ -503,6 +514,87 @@ async function quitarAlbaranPanel() {
     pintarAlbaranModal(s);
   } catch (err) {
     console.error('Error quitando el albarán:', err);
+  }
+}
+
+// ---------------- Envío del albarán a Facturación ----------------
+
+const PS_TIPO_ASUNTO_FACTURACION = { ROTURA: 'ROTURAS', FALTAS: 'FALTAS', 'FALTAS Y ROTURAS': 'FALTAS Y ROTURAS' };
+const PS_TIPO_CUERPO_FACTURACION = {
+  ROTURA: (tienda) => `todas las fotos de la rotura en la tienda de ${tienda}`,
+  FALTAS: (tienda) => `todas las fotos y productos que han faltado en la tienda de ${tienda}`,
+  'FALTAS Y ROTURAS': (tienda) => `todas las fotos y productos afectados (roturas y faltas) en la tienda de ${tienda}`
+};
+
+// Construye el correo tal cual lo redactáis a mano hoy: asunto con el nombre
+// comercial de la agencia, cuerpo sencillo en texto plano, fotos + PDF adjuntos.
+function plantillaFacturacionAlbaran(s, nombreComercialAgencia) {
+  const fecha = fechaEs(s.fecha);
+  const tienda = s.tienda_nombre || '';
+  const tipoAsunto = PS_TIPO_ASUNTO_FACTURACION[s.tipo] || s.tipo;
+  const agenciaAsunto = nombreComercialAgencia || s.agencia_nombre || '';
+
+  const subject = `${tipoAsunto} EN EL ENVIO DE ${tienda.toUpperCase()} - ${fecha} ${agenciaAsunto}`.trim();
+
+  const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
+  const infoHtml = s.informacion ? `<p style="margin:0 0 14px;">${escapeHtml(s.informacion)}</p>` : '';
+  const infoTxt = s.informacion ? `\n${s.informacion}\n` : '';
+
+  const html = `
+    <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
+      <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
+      ${infoHtml}
+      <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
+      <p style="margin:0;">Gracias, un saludo.</p>
+    </div>`;
+
+  const text = `Buenas, aquí adjuntamos ${linea}\n${infoTxt}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
+
+  return { subject, html, text };
+}
+
+async function ofrecerEnvioFacturacion(s) {
+  const ok = await modalConfirm(
+    s.enviado_facturacion
+      ? '¿Reenviar este albarán a Facturación por correo?'
+      : '¿Quieres enviar este albarán a Facturación por correo?',
+    { titulo: 'Enviar a Facturación', textoOk: 'Enviar' }
+  );
+  if (!ok) return;
+
+  try {
+    const { data: dest, error: eDest } = await sb.from('facturacion_emails').select('email').eq('activo', true);
+    if (eDest) throw eDest;
+    const destinatarios = (dest || []).map(d => d.email);
+    if (!destinatarios.length) {
+      await modalAlert('No hay destinatarios de Facturación configurados. Añádelos en Configuración → Emails.', { titulo: 'Sin destinatarios' });
+      return;
+    }
+
+    let nombreComercial = null;
+    if (s.agencia_id) {
+      const { data: ag } = await sb.from('agencias').select('nombre_comercial').eq('id', s.agencia_id).maybeSingle();
+      nombreComercial = ag?.nombre_comercial || null;
+    }
+
+    const { subject, html, text } = plantillaFacturacionAlbaran(s, nombreComercial);
+    const adjuntos = [...(s.fotos || []), s.albaran_url].filter(Boolean);
+
+    await enviarEmail({ to: destinatarios, subject, html, text, attachmentUrls: adjuntos });
+
+    const { error: eUpd } = await sb.from('panel_siniestros').update({
+      enviado_facturacion: true,
+      facturacion_enviado_en: new Date().toISOString(),
+      facturacion_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+    }).eq('id', s.id);
+    if (eUpd) throw eUpd;
+
+    s.enviado_facturacion = true;
+    s.facturacion_enviado_en = new Date().toISOString();
+    pintarAlbaranModal(s);
+  } catch (err) {
+    console.error('Error enviando el albarán a Facturación:', err);
+    await modalAlert(`No se pudo enviar el correo a Facturación: ${err.message}`, { titulo: 'Error de envío' });
   }
 }
 
