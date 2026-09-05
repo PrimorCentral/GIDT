@@ -573,6 +573,10 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
     display:none; align-items:center; justify-content:center;
     padding:20px;
   }
+  /* El modal genérico (alert/confirm/prompt) puede invocarse desde dentro
+     de otro modal ya abierto (p.ej. "¿Quitar el albarán?" desde el Panel
+     siniestros), así que siempre debe quedar por encima de cualquier otro. */
+  #modalOverlay{ z-index:500; }
   .modal-overlay.show{ display:flex; }
   .modal-box{
     width:100%; max-width:380px;
