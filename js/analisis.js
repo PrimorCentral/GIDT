@@ -148,13 +148,19 @@
       }
 
       const idsInformes = informes.map(i => i.id);
+      const mapaFechaInforme = new Map(informes.map(i => [i.id, i.fecha]));
 
-      const { data: incs, error: eInc } = await sb
+      const { data: incsRaw, error: eInc } = await sb
         .from('incidencias')
-        .select('id, tipo, motivo, tienda_id, tienda_nombre, agencia_id, agencia_nombre')
+        .select('id, informe_id, tipo, motivo, tienda_id, tienda_nombre, agencia_id, agencia_nombre')
         .in('informe_id', idsInformes)
         .eq('marcada', true);
       if (eInc) throw eInc;
+
+      // Se añade la fecha del informe a cada incidencia (para el detalle por
+      // tienda/agencia) — las incidencias no guardan su propia fecha, solo el
+      // informe_id al que pertenecen.
+      const incs = (incsRaw || []).map(i => ({ ...i, fecha: mapaFechaInforme.get(i.informe_id) || null }));
 
       const idsIncidencias = (incs || []).map(i => i.id);
       let sins = [];
@@ -205,6 +211,7 @@
       if (clave == null) return;
       if (!mapa.has(clave)) {
         mapa.set(clave, {
+          clave,
           nombre: entidad === 'tiendas' ? (i.tienda_nombre || '—') : (i.agencia_nombre || 'Sin agencia'),
           agenciaNombre: entidad === 'tiendas' ? (i.agencia_nombre || null) : null,
           leve: 0, moderado: 0, grave: 0, pendiente: 0, incidencias: 0,
@@ -300,6 +307,11 @@
           ${f.sinMixto ? `<span class="pill grave">${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}</span>` : ''}
           ${!f.sinRotura && !f.sinFalta && !f.sinMixto ? '—' : ''}
         </td>
+        <td class="col-detalle">
+          <button type="button" class="btn-lupa" data-detalle-clave="${f.clave}" title="Ver detalle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </td>
       </tr>`).join('');
 
     const tabla = `
@@ -309,6 +321,7 @@
             <col class="cg-pos"><col class="cg-nombre">
             <col class="cg-num"><col class="cg-desglose">
             <col class="cg-num"><col class="cg-desglose">
+            <col class="cg-detalle">
           </colgroup>
           <thead>
             <tr>
@@ -318,6 +331,7 @@
               <th>Desglose incidencias</th>
               <th class="col-num">Siniestros</th>
               <th>Tipo de siniestro</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>${filasTabla}</tbody>
@@ -504,4 +518,99 @@
     actualizarBadgeFiltrosAnalisis();
     actualizarValoresSelectsAnalisis();
     renderAnalisisRanking();
+  });
+
+  // ---------------------------------------------------------------
+  // Modal de detalle: al pulsar la lupa de una fila se listan, con su
+  // fecha, todas las incidencias y siniestros de esa tienda/agencia (ya
+  // con los filtros y el periodo activos aplicados).
+  // ---------------------------------------------------------------
+  function detalleDeEntidad(entidad, clave) {
+    const todasIncs = incidenciasFiltradas();
+    const incs = todasIncs.filter(i => (entidad === 'tiendas' ? i.tienda_id : i.agencia_id) === clave);
+    const idsIncs = new Set(incs.map(i => i.id));
+    const sins = siniestrosFiltrados(idsIncs);
+    const porIncidencia = new Map(incs.map(i => [i.id, i]));
+    return { incs, sins, porIncidencia };
+  }
+
+  function fechaBonitaISO(iso) {
+    if (!iso) return 'Fecha desconocida';
+    const d = new Date(iso + 'T00:00:00');
+    return `${dias[d.getDay()]}, ${formatearFechaCorta(d)}`;
+  }
+
+  function pillTipoIncidencia(tipo) {
+    const t = tipo || 'PENDIENTE';
+    const clase = t.toLowerCase();
+    const label = t === 'GRAVE' ? 'Grave' : t === 'MODERADO' ? 'Moderado' : t === 'LEVE' ? 'Leve' : 'Pdte. confirmar';
+    return `<span class="pill ${clase}">${label}</span>`;
+  }
+
+  function pillTipoSiniestro(tipo) {
+    const clase = tipo === 'FALTA' ? 'moderado' : 'grave';
+    const label = tipo === 'FALTA' ? 'Falta' : tipo === 'ROTURA' ? 'Rotura' : 'Mixto';
+    return `<span class="pill ${clase}">${label}</span>`;
+  }
+
+  function capitalizar(str) {
+    return str.charAt(0) + str.slice(1).toLowerCase();
+  }
+
+  function abrirDetalleAnalisis(claveStr, nombre) {
+    const entidad = analisisEntidad;
+    const clave = Number(claveStr);
+    const { incs, sins, porIncidencia } = detalleDeEntidad(entidad, clave);
+
+    incs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+    sins.sort((a, b) => {
+      const fa = porIncidencia.get(a.incidencia_id)?.fecha || '';
+      const fb = porIncidencia.get(b.incidencia_id)?.fecha || '';
+      return fb.localeCompare(fa);
+    });
+
+    const listaIncs = incs.length ? incs.map(i => `
+      <div class="detalle-fila">
+        <div class="detalle-fila-fecha">${fechaBonitaISO(i.fecha)}</div>
+        <div class="detalle-fila-info">
+          ${pillTipoIncidencia(i.tipo)}
+          ${(i.motivo || []).length ? `<span class="detalle-motivo">${(i.motivo || []).map(m => escapeHtml(capitalizar(m))).join(', ')}</span>` : ''}
+        </div>
+      </div>`).join('') : `<p class="detalle-vacio">Sin incidencias en el periodo y filtros elegidos.</p>`;
+
+    const listaSins = sins.length ? sins.map(s => {
+      const inc = porIncidencia.get(s.incidencia_id);
+      return `
+      <div class="detalle-fila">
+        <div class="detalle-fila-fecha">${fechaBonitaISO(inc?.fecha)}</div>
+        <div class="detalle-fila-info">
+          ${pillTipoSiniestro(s.tipo)}
+          <span class="badge-envio ${s.estado === 'PENDIENTE' ? 'pendiente' : 'enviado'}">${s.estado === 'PENDIENTE' ? 'Pendiente' : 'Enviado'}</span>
+        </div>
+      </div>`;
+    }).join('') : `<p class="detalle-vacio">Sin siniestros en el periodo y filtros elegidos.</p>`;
+
+    document.getElementById('analisisDetalleTitulo').textContent = nombre;
+    document.getElementById('analisisDetalleSubtitulo').textContent =
+      `${incs.length} incidencia${incs.length === 1 ? '' : 's'} · ${sins.length} siniestro${sins.length === 1 ? '' : 's'} en el periodo y filtros elegidos`;
+    document.getElementById('analisisDetalleIncidenciasLista').innerHTML = listaIncs;
+    document.getElementById('analisisDetalleSiniestrosLista').innerHTML = listaSins;
+
+    document.getElementById('analisisDetalleModalOverlay').classList.add('show');
+  }
+
+  document.getElementById('contenidoAnalisisRanking').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-detalle-clave]');
+    if (!btn) return;
+    const nombre = btn.closest('tr').querySelector('td:nth-child(2) b').textContent.trim();
+    abrirDetalleAnalisis(btn.dataset.detalleClave, nombre);
+  });
+
+  document.getElementById('btnAnalisisDetalleCerrar').addEventListener('click', () => {
+    document.getElementById('analisisDetalleModalOverlay').classList.remove('show');
+  });
+
+  // Cerrar al pulsar fuera del cuadro, igual que el resto de modales de la app.
+  document.getElementById('analisisDetalleModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'analisisDetalleModalOverlay') e.currentTarget.classList.remove('show');
   });
