@@ -185,7 +185,7 @@ function renderPanelSiniestros() {
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
         <td>${psPillTipo(s.tipo)}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
-        <td>${escapeHtml(s.num_albaran || '—')}</td>
+        <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td style="text-align:center;">${numFotos ? `📷 ${numFotos}` : '—'}</td>
         <td style="text-align:center;">${tieneFactura ? '📄' : '—'}</td>
         <td style="text-align:right;">${psFormatearValor(s.valor)}</td>
@@ -261,6 +261,7 @@ async function abrirModalPanelSiniestro(id) {
 
   pintarFotosModal(s);
   pintarFacturaModal(s);
+  pintarAlbaranModal(s);
 
   document.getElementById('psModalOverlay').classList.add('show');
 }
@@ -436,6 +437,61 @@ async function quitarFacturaPanel() {
     renderPanelSiniestros();
   } catch (err) {
     console.error('Error quitando factura:', err);
+  }
+}
+
+// ---------------- Albarán (PDF) ----------------
+
+function pintarAlbaranModal(s) {
+  const cont = document.getElementById('psAlbaranZona');
+  if (s.albaran_url) {
+    cont.innerHTML = `
+      <a class="ps-factura-chip" href="${s.albaran_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</a>
+      <button type="button" class="mini-btn" id="btnQuitarAlbaran" title="Quitar albarán">✕</button>`;
+    document.getElementById('btnQuitarAlbaran').addEventListener('click', quitarAlbaranPanel);
+  } else {
+    cont.innerHTML = `<p class="ps-sin-archivos">Todavía no se ha adjuntado el albarán.</p>`;
+  }
+}
+
+document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file || !panelActivoId) return;
+  const errEl = document.getElementById('psAlbaranError');
+  errEl.style.display = 'none';
+  try {
+    const path = `panel/${panelActivoId}/albaran-${Date.now()}-${file.name}`;
+    const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, file);
+    if (eUp) throw eUp;
+    const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
+    const { error: eDb } = await sb.from('panel_siniestros')
+      .update({ albaran_url: pub.publicUrl, albaran_nombre: file.name })
+      .eq('id', panelActivoId);
+    if (eDb) throw eDb;
+    const s = psSiniestroPorId(panelActivoId);
+    s.albaran_url = pub.publicUrl;
+    s.albaran_nombre = file.name;
+    pintarAlbaranModal(s);
+  } catch (err) {
+    console.error('Error subiendo el albarán:', err);
+    errEl.textContent = 'No se pudo subir el albarán.';
+    errEl.style.display = 'block';
+  } finally {
+    e.target.value = '';
+  }
+});
+
+async function quitarAlbaranPanel() {
+  const ok = await modalConfirm('¿Quitar el albarán adjunto?', { titulo: 'Quitar albarán', danger: true, textoOk: 'Quitar' });
+  if (!ok) return;
+  try {
+    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null }).eq('id', panelActivoId);
+    if (error) throw error;
+    const s = psSiniestroPorId(panelActivoId);
+    s.albaran_url = null; s.albaran_nombre = null;
+    pintarAlbaranModal(s);
+  } catch (err) {
+    console.error('Error quitando el albarán:', err);
   }
 }
 
