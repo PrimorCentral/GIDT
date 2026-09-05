@@ -388,20 +388,74 @@ function flushAutoguardadoPanel() {
   document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
 });
 
+// Borra un archivo del storage detectando el bucket a partir de su propia
+// URL pública (…/object/public/{bucket}/{path}). Es un "best effort": si no
+// se puede borrar no bloqueamos al usuario, solo queda en el log.
+async function borrarDeStoragePorUrlGenerico(url) {
+  if (!url) return;
+  try {
+    const marcador = '/object/public/';
+    const idx = url.indexOf(marcador);
+    if (idx === -1) return;
+    const resto = url.slice(idx + marcador.length); // "{bucket}/{resto-del-path}"
+    const barra = resto.indexOf('/');
+    if (barra === -1) return;
+    const bucket = decodeURIComponent(resto.slice(0, barra));
+    const path = decodeURIComponent(resto.slice(barra + 1));
+    const { error } = await sb.storage.from(bucket).remove([path]);
+    if (error) console.error(`No se pudo borrar del storage (${bucket}/${path}):`, error);
+  } catch (err) {
+    console.error('Error borrando archivo del storage:', err);
+  }
+}
+
+function cerrarModalPanelSiniestroForzado() {
+  clearTimeout(guardadoPanelTimer);
+  guardadoPanelTimer = null;
+  ultimoGuardadoConError = false;
+  document.getElementById('psModalOverlay').classList.remove('show');
+  panelActivoId = null;
+}
+
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
-  const ok = await modalConfirm('¿Eliminar esta fila del panel? El siniestro original de "Siniestros del día" no se verá afectado.', {
-    titulo: 'Eliminar fila', danger: true, textoOk: 'Eliminar'
-  });
+  const s = psSiniestroPorId(panelActivoId);
+
+  const ok = await modalConfirm(
+    'Se borrará todo lo relacionado con este siniestro: las fotos, la factura, el albarán, y también el registro original de "Siniestros del día". Esta acción no se puede deshacer.',
+    { titulo: 'CONFIRMAR BORRAR SINIESTRO', danger: true, textoOk: 'Sí, borrar definitivamente' }
+  );
   if (!ok) return;
+
   try {
+    // Reunimos todas las URLs de archivos a borrar del storage: las del
+    // panel (fotos, factura, albarán) y, si hay un siniestro original
+    // enlazado, también las suyas propias (por si se le añadieron fotos
+    // después de haberse creado la fila del panel).
+    const urls = [...(s?.fotos || [])];
+    if (s?.factura_url) urls.push(s.factura_url);
+    if (s?.albaran_url) urls.push(s.albaran_url);
+
+    if (s?.siniestro_id) {
+      const { data: sinOriginal } = await sb.from('siniestros').select('fotos').eq('id', s.siniestro_id).maybeSingle();
+      (sinOriginal?.fotos || []).forEach(u => { if (!urls.includes(u)) urls.push(u); });
+    }
+
+    await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
+
+    if (s?.siniestro_id) {
+      const { error: eSin } = await sb.from('siniestros').delete().eq('id', s.siniestro_id);
+      if (eSin) console.error('No se pudo borrar el siniestro original:', eSin);
+    }
+
     const { error } = await sb.from('panel_siniestros').delete().eq('id', panelActivoId);
     if (error) throw error;
-    cerrarModalPanelSiniestro();
+
+    cerrarModalPanelSiniestroForzado();
     await cargarPanelSiniestros();
   } catch (err) {
-    console.error('Error eliminando fila del panel:', err);
-    await modalAlert('No se pudo eliminar la fila.', { titulo: 'Error' });
+    console.error('Error eliminando siniestro:', err);
+    await modalAlert('No se pudo eliminar el siniestro.', { titulo: 'Error' });
   }
 }
 
