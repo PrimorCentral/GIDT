@@ -1,4 +1,4 @@
-  // ---------------------------------------------------------------
+// ---------------------------------------------------------------
   // Comprobación de versión y aviso de actualización de la PWA
   // ---------------------------------------------------------------
   (function () {
@@ -34,12 +34,18 @@
       }
     }
 
-    async function mostrarAvisoActualizacion() {
-      await modalAlert(
-        'Hay una nueva versión de GIDT disponible. La aplicación se va a actualizar ahora.',
-        { titulo: 'Actualización disponible', icono: '🔄' }
-      );
-      forzarActualizacion();
+    // Modal dedicado (no el genérico de modalAlert/modalConfirm): a propósito
+    // no se puede cerrar haciendo click fuera ni con Escape, porque la
+    // actualización no es opcional — solo se sale de aquí actualizando.
+    function mostrarAvisoActualizacion() {
+      const overlay = document.getElementById('actualizacionModalOverlay');
+      const btn = document.getElementById('btnActualizarAhora');
+      overlay.classList.add('show');
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        btn.textContent = 'Actualizando…';
+        forzarActualizacion();
+      }, { once: true });
     }
 
     async function forzarActualizacion() {
@@ -52,6 +58,18 @@
           const claves = await caches.keys();
           await Promise.all(claves.map((k) => caches.delete(k)));
         }
+        // Lo anterior limpia el Service Worker y su caché interna, pero el
+        // propio navegador puede seguir teniendo el HTML/CSS/JS de la app
+        // guardados en su caché HTTP normal (independiente del Service
+        // Worker) y servirlos tal cual en el recargado siguiente — por eso
+        // antes se veía la versión antigua hasta cerrar y reabrir la app.
+        // Se refresca explícitamente esa caché para cada archivo propio de
+        // la página (mismo origen) antes de recargar.
+        const urlsPropias = Array.from(document.querySelectorAll('link[href], script[src]'))
+          .map(el => el.href || el.src)
+          .filter(url => url && url.startsWith(location.origin));
+        urlsPropias.push(location.origin + location.pathname);
+        await Promise.all(urlsPropias.map(url => fetch(url, { cache: 'reload' }).catch(() => {})));
       } catch (err) {
         console.error('Error limpiando caché al actualizar:', err);
       } finally {
