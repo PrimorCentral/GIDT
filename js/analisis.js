@@ -1,4 +1,4 @@
-  // ---------------------------------------------------------------
+// ---------------------------------------------------------------
   // Análisis · Ranking de tiendas y agencias
   // ---------------------------------------------------------------
   // Cuenta incidencias (activas, marcada=true) y siniestros generados en un
@@ -249,13 +249,18 @@
     const tabla = `
       <div class="card" style="overflow-x:auto;">
         <table class="tabla-ranking">
+          <colgroup>
+            <col class="cg-pos"><col class="cg-nombre">
+            <col class="cg-num"><col class="cg-desglose">
+            <col class="cg-num"><col class="cg-desglose">
+          </colgroup>
           <thead>
             <tr>
               <th>#</th>
               <th>${analisisEntidad === 'tiendas' ? 'Tienda' : 'Agencia'}</th>
-              <th>Incidencias</th>
+              <th class="col-num">Incidencias</th>
               <th>Desglose incidencias</th>
-              <th>Siniestros</th>
+              <th class="col-num">Siniestros</th>
               <th>Estado siniestros</th>
             </tr>
           </thead>
