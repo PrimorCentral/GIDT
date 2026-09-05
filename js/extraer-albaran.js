@@ -41,11 +41,16 @@ async function extraerNumAlbaranDePdf(fuente) {
       texto += ' ' + contenido.items.map(it => it.str).join(' ');
     }
 
-    // "Num.Entrada" / "Núm. Entrada" / "Nº Entrada"... seguido, a poca
-    // distancia, del primer número de 5 o más cifras seguidas (las fechas
-    // tipo 28.08.2026 no llegan a 5 dígitos corridos por los puntos).
-    const match = texto.match(/n[uú°º]?m?\.?\s*\.?\s*entrada[^0-9]{0,60}(\d{5,})/i);
-    return match ? match[1] : null;
+    // "Num.Entrada" (cabecera de la tabla) puede ir seguida de una línea
+    // separadora larga y del resto de cabeceras de columna antes de llegar
+    // al número real, así que buscamos el ancla y luego el primer número
+    // de 5+ cifras seguidas en una ventana amplia después de ella (las
+    // fechas tipo 28.08.2026 no cuentan, los puntos rompen la racha).
+    const ancla = texto.match(/n[uú°º]?m?\.?\s*\.?\s*entrada/i);
+    if (!ancla) return null;
+    const desdeAncla = texto.slice(ancla.index + ancla[0].length, ancla.index + ancla[0].length + 1500);
+    const numero = desdeAncla.match(/\d{5,}/);
+    return numero ? numero[0] : null;
   } catch (err) {
     console.error('Error leyendo el PDF del albarán:', err);
     return null;
