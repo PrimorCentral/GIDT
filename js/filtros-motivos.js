@@ -3,7 +3,10 @@
   const NOMBRES_FILTRO_GRUPO = { agencia: 'agencia', tipo: 'tipo', motivo: 'motivo' };
 
   function actualizarValoresSelects() {
-    document.querySelectorAll('.filtro-select').forEach(sel => {
+    // Ojo: solo los selects DEL PANEL de Informe del día — de lo contrario
+    // tocaría también los .filtro-select de otros paneles (p. ej. el de
+    // Análisis), que usan los mismos nombres de grupo pero sus propios Sets.
+    document.querySelectorAll('#filtrosPanel .filtro-select').forEach(sel => {
       const grupo = sel.dataset.grupo;
       const set = grupo === 'agencia' ? filtrosIncidencias.agencias
                 : grupo === 'tipo' ? filtrosIncidencias.tipos
