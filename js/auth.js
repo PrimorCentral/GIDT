@@ -3,6 +3,11 @@
   // ---------------------------------------------------------------
   const SESSION_KEY = 'gidt_sesion';
 
+  // Se declara aquí (muy pronto, antes que permisos.js/ui-modal.js/navegacion.js
+  // la necesiten al arrancar la app) y se rellena de verdad más abajo, en
+  // intentarLogin(), o al final de siniestros.js si ya había sesión guardada.
+  let sesionActual = null;
+
   async function sha256(texto) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -14,6 +19,7 @@
   }
 
   function mostrarApp(usuario) {
+    sesionActual = usuario;
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     document.getElementById('userChipName').textContent = usuario.nombre || usuario.usuario;

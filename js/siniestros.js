@@ -443,5 +443,5 @@
     }
   });
 
-  let sesionActual = sesionActiva;
+  sesionActual = sesionActiva;
   if (sesionActiva) cargarInformeHoy();
