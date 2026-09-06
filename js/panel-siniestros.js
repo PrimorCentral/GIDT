@@ -25,7 +25,7 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
@@ -122,6 +122,7 @@ function siniestrosPanelFiltrados() {
     if (f.fechaDesde && (s.fecha || '') < f.fechaDesde) return false;
     if (f.fechaHasta && (s.fecha || '') > f.fechaHasta) return false;
     if (f.tipo && s.tipo !== f.tipo) return false;
+    if (f.origen && s.origen !== f.origen) return false;
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
     if (f.recogida) {
@@ -161,6 +162,15 @@ function psBadgeEstado(estado) {
 function psFormatearFecha(fechaStr) {
   if (!fechaStr) return '—';
   return formatearFechaCorta(new Date(fechaStr + 'T00:00:00'));
+}
+
+// Para timestamps completos (creado_en / actualizado_en), no solo fechas.
+function psFormatearFechaHora(isoStr) {
+  if (!isoStr) return '—';
+  const f = new Date(isoStr);
+  const fechaTxt = formatearFechaCorta(f);
+  const horaTxt = f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return `${fechaTxt} a las ${horaTxt}h`;
 }
 
 function psFormatearValor(v) {
@@ -340,6 +350,10 @@ document.getElementById('psFiltroTipo')?.addEventListener('change', (e) => {
   panelFiltros.tipo = e.target.value;
   renderPanelSiniestros();
 });
+document.getElementById('psFiltroOrigen')?.addEventListener('change', (e) => {
+  panelFiltros.origen = e.target.value;
+  renderPanelSiniestros();
+});
 document.getElementById('psFiltroRecogida')?.addEventListener('change', (e) => {
   panelFiltros.recogida = e.target.value;
   renderPanelSiniestros();
@@ -491,6 +505,13 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
 
+  document.getElementById('psCreadoTexto').textContent = s.creado_en
+    ? `Creado por: ${s.creado_por || '—'} · ${psFormatearFechaHora(s.creado_en)}`
+    : '';
+  document.getElementById('psActualizadoTexto').textContent = (s.actualizado_en && s.actualizado_por)
+    ? `Actualizado por: ${s.actualizado_por} · ${psFormatearFechaHora(s.actualizado_en)}`
+    : '';
+
   rellenarSelectOrigen(s.origen);
   document.getElementById('psInformacion').value = s.informacion || '';
   aplicarEstadoCampoAlbaran(s);
@@ -581,6 +602,8 @@ async function guardarCamposPanelAhora() {
   guardadoPanelTimer = null;
 
   const valorTxt = document.getElementById('psValor').value;
+  const ahora = new Date().toISOString();
+  const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
   const datos = {
     origen: document.getElementById('psOrigen').value || null,
     informacion: document.getElementById('psInformacion').value.trim() || null,
@@ -590,14 +613,21 @@ async function guardarCamposPanelAhora() {
     recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
       ? (document.getElementById('psRecogida').value || null)
       : null,
-    recogida_estado: document.getElementById('psRecogidaEstado').value || null
+    recogida_estado: document.getElementById('psRecogidaEstado').value || null,
+    actualizado_por: usuarioActual
   };
 
   try {
     const { error } = await sb.from('panel_siniestros').update(datos).eq('id', panelActivoId);
     if (error) throw error;
     const s = psSiniestroPorId(panelActivoId);
-    if (s) Object.assign(s, datos);
+    if (s) {
+      Object.assign(s, datos);
+      s.actualizado_en = ahora;
+      document.getElementById('psActualizadoTexto').textContent = usuarioActual
+        ? `Actualizado por: ${usuarioActual} · ${psFormatearFechaHora(ahora)}`
+        : '';
+    }
     renderPanelSiniestros();
     renderPanelKpis();
     marcarGuardadoOkPanel();
@@ -775,7 +805,7 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
       urls.push(pub.publicUrl);
     }
     const fotosActualizadas = [...(s.fotos || []), ...urls];
-    const { error: eDb } = await sb.from('panel_siniestros').update({ fotos: fotosActualizadas }).eq('id', panelActivoId);
+    const { error: eDb } = await sb.from('panel_siniestros').update({ fotos: fotosActualizadas, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (eDb) throw eDb;
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
@@ -813,7 +843,7 @@ async function quitarFotoPanel(idx) {
   const urlAEliminar = (s.fotos || [])[idx];
   const fotosActualizadas = (s.fotos || []).filter((_, i) => i !== idx);
   try {
-    const { error } = await sb.from('panel_siniestros').update({ fotos: fotosActualizadas }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ fotos: fotosActualizadas, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
@@ -863,7 +893,7 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
       totalDetectado = await extraerTotalFacturaDePdf(file);
     }
 
-    const cambios = { factura_url: pub.publicUrl, factura_nombre: comprimido.name };
+    const cambios = { factura_url: pub.publicUrl, factura_nombre: comprimido.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
     if (totalDetectado !== null) cambios.valor = totalDetectado;
 
     const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
@@ -894,7 +924,7 @@ async function quitarFacturaPanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.factura_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
     if (s) { s.factura_url = null; s.factura_nombre = null; }
     pintarFacturaModal(s);
@@ -996,7 +1026,7 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     // Intentamos leer el nº de albarán del propio PDF ("Num.Entrada")
     const numeroDetectado = await extraerNumAlbaranDePdf(file);
 
-    const cambios = { albaran_url: pub.publicUrl, albaran_nombre: file.name };
+    const cambios = { albaran_url: pub.publicUrl, albaran_nombre: file.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
     if (numeroDetectado) cambios.num_albaran = numeroDetectado;
 
     const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
@@ -1027,7 +1057,7 @@ async function quitarAlbaranPanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.albaran_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
     if (s) { s.albaran_url = null; s.albaran_nombre = null; }
     pintarAlbaranModal(s);
@@ -1071,7 +1101,7 @@ document.getElementById('psJustificanteInput')?.addEventListener('change', async
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
     const { error: eDb } = await sb.from('panel_siniestros')
-      .update({ justificante_recogida_url: pub.publicUrl, justificante_recogida_nombre: comprimido.name })
+      .update({ justificante_recogida_url: pub.publicUrl, justificante_recogida_nombre: comprimido.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null })
       .eq('id', panelActivoId);
     if (eDb) throw eDb;
     const s = psSiniestroPorId(panelActivoId);
@@ -1093,7 +1123,7 @@ async function quitarJustificantePanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.justificante_recogida_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ justificante_recogida_url: null, justificante_recogida_nombre: null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ justificante_recogida_url: null, justificante_recogida_nombre: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
     if (s) { s.justificante_recogida_url = null; s.justificante_recogida_nombre = null; }
     pintarJustificanteModal(s);
