@@ -19,7 +19,7 @@
   // refresco, visible solo mientras se está en "Informe del día".
   // ---------------------------------------------------------------
   (function () {
-    const INTERVALO_SEGUNDOS = 20;
+    const INTERVALO_SEGUNDOS = 5;
 
     const indicador = document.getElementById('autoRefreshIndicator');
     const hourglassEl = document.getElementById('autoRefreshHourglass');
