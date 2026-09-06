@@ -822,13 +822,13 @@
               <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
             </select>
           </div>
+          <div style="display:none;" id="psJustificanteBloque">
+            <label class="form-label">Justificante de recogida</label>
+            <div id="psJustificanteZona"></div>
+            <input type="file" id="psJustificanteInput" accept=".pdf,image/*" style="display:none;">
+            <p class="err" id="psJustificanteError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+          </div>
         </div>
-      </div>
-      <div style="grid-column:1/-1; display:none;" id="psJustificanteBloque">
-        <label class="form-label">Justificante de recogida</label>
-        <div id="psJustificanteZona"></div>
-        <input type="file" id="psJustificanteInput" accept=".pdf,image/*" style="display:none;">
-        <p class="err" id="psJustificanteError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
       </div>
     </div>
 

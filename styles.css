@@ -854,6 +854,8 @@ table.tabla-panel-siniestros td.ps-col-info{
   max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700; }
+table.tabla-panel-siniestros th:nth-child(n+6),
+table.tabla-panel-siniestros td:nth-child(n+6){ text-align:center; }
 .ps-recogida-mini{ font-size:11px; color:var(--ink-soft); font-weight:600; }
 
 .pill.mixto{ background:#FDECD8; color:#A2530B; }
@@ -875,7 +877,7 @@ table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700;
 }
 .ps-archivos-col{ min-width:0; }
 
-.ps-recogida-fila{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.ps-recogida-fila{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
 
 .ps-archivos-bloque{
   margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
