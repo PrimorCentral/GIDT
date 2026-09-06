@@ -258,6 +258,7 @@
         <div style="display:flex; align-items:center; gap:8px;">
           <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
+          <button class="btn" id="btnEditarHistorial" style="display:none;" title="Editar este informe">✏️ Editar informe</button>
           <div class="filtros-wrap" id="exportarWrapHistorial" style="display:none;">
             <button class="btn" id="btnExportarHistorial" title="Exportar este informe">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -940,6 +941,24 @@
   </div>
 </div>
 
+<!-- Modal: añadir fotos al convertir una incidencia de un día pasado en siniestro -->
+<div class="modal-overlay" id="historialFotosModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:440px; position:relative;">
+    <h3 class="modal-title" id="historialFotosTitulo">📷 Añadir fotos al siniestro</h3>
+    <p class="modal-message" id="historialFotosSub"></p>
+    <div class="ps-fotos-grid" id="historialFotosGrid" style="margin-top:10px;"></div>
+    <label class="btn" style="cursor:pointer; width:100%; justify-content:center; margin-top:6px;">
+      📷 Añadir fotos
+      <input type="file" id="historialFotosInput" accept="image/*" multiple style="display:none;">
+    </label>
+    <p class="err" id="historialFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin-top:8px;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnHistorialFotosOmitir">Sin fotos por ahora</button>
+      <button class="btn primary" id="btnHistorialFotosListo">Listo</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="psDetalleModalOverlay">
   <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
     <button class="filtros-modal-close" id="btnCerrarPsDetalle" style="position:absolute; right:16px; top:16px;">✕</button>
@@ -1228,6 +1247,7 @@
 <script src="js/facturacion-config.js"></script>
 <script src="js/informe-hoy.js"></script>
 <script src="js/siniestros-historial.js"></script>
+<script src="js/historial-editar.js"></script>
 <script src="js/filtros-motivos.js"></script>
 <script src="js/email-plantillas.js"></script>
 <script src="js/email-service.js"></script>
