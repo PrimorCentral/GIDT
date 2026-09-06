@@ -1015,6 +1015,9 @@ body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ displa
 body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
 body:not(.perm-borrar) .agencia-body [data-borrar]{ display:none !important; }
 
+/* Sin permiso de "Editar informes pasados" */
+body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ display:none !important; }
+
 /* Sin permiso de "Informe del día" */
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
 body:not(.perm-informe_dia) #btnGenerarInformeDesdeIncidencias,
