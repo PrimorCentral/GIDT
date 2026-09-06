@@ -811,6 +811,7 @@
       <div>
         <label class="form-label">Valor (€)</label>
         <input type="number" step="0.01" id="psValor" class="form-input">
+        <p class="ps-campo-hint" id="psValorNumHint" style="display:none;"></p>
       </div>
       <div>
         <label class="form-label">Estado</label>
@@ -857,7 +858,7 @@
 
     <div class="ps-archivos-fila">
       <div class="ps-archivos-col">
-        <label class="form-label">Factura</label>
+        <label class="form-label">Factura (PDF)</label>
         <div id="psFacturaZona"></div>
         <input type="file" id="psFacturaInput" accept=".pdf" style="display:none;">
         <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
