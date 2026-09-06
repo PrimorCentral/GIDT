@@ -851,7 +851,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 
 table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
 .ps-tabla-scroll{
-  padding:0; overflow:auto; height:calc(100vh - 330px); min-height:320px;
+  box-sizing:border-box; padding:0; overflow:auto;
+  height:calc(100vh - 380px); min-height:280px;
 }
 table.tabla-panel-siniestros th{
   position:sticky; top:0; z-index:5; background:var(--panel);
