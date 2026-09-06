@@ -41,7 +41,12 @@ async function activarEdicionHistorial() {
 
 function desactivarEdicionHistorial() {
   historialEditando = false;
-  if (historialInformeActual) renderHistorialInforme(historialInformeActual, historialIncidenciasActual);
+  if (!historialInformeActual) return;
+  // historialTodasIncidencias sí está al día con lo editado (cada línea se
+  // guarda al momento); historialIncidenciasActual era la lista que se
+  // cargó al pulsar "Consultar" y se había quedado desactualizada.
+  historialIncidenciasActual = historialTodasIncidencias.filter(i => i.marcada);
+  renderHistorialInforme(historialInformeActual, historialIncidenciasActual);
 }
 
 function renderAcordeonHistorialEditable() {
@@ -125,12 +130,14 @@ function renderAcordeonHistorialEditable() {
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
         <span style="font-size:12px; color:var(--ink-soft); font-weight:700;">✏️ Editando — no se envía nada a las agencias</span>
+        <button class="btn" id="btnSalirEdicionHistorial">Salir</button>
         <button class="btn primary" id="btnTerminarEdicionHistorial">Terminar de editar</button>
       </div>
     </div>
     ${bloques}`;
 
   document.getElementById('btnTerminarEdicionHistorial').addEventListener('click', desactivarEdicionHistorial);
+  document.getElementById('btnSalirEdicionHistorial').addEventListener('click', desactivarEdicionHistorial);
 
   cont.querySelectorAll('.agencia-head').forEach(head => {
     head.addEventListener('click', () => {
