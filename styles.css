@@ -851,7 +851,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 
 table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
 .ps-tabla-scroll{
-  padding:0; overflow:auto; max-height:calc(100vh - 330px); min-height:220px;
+  padding:0; overflow:auto; height:calc(100vh - 330px); min-height:320px;
 }
 table.tabla-panel-siniestros th{
   position:sticky; top:0; z-index:5; background:var(--panel);
@@ -879,19 +879,17 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
 .ps-modal-box{ width:100%; max-width:1040px; max-height:88vh; overflow-y:auto; position:relative; }
+.ps-modal-titulo-principal{
+  margin:0 0 16px; text-align:center; font-size:18px; font-weight:800; color:var(--ink);
+}
 .ps-modal-cabecera{
-  margin:0 0 18px; padding:16px 60px 16px 0;
+  margin:0 0 18px; padding:0 60px 16px 0;
   border-bottom:1px solid var(--border);
 }
-.ps-modal-kicker{
-  margin:0 0 4px; font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.4px; color:var(--ink-soft);
-}
 .ps-modal-meta{
-  display:flex; flex-wrap:wrap; gap:4px 16px; margin-top:8px;
+  display:flex; flex-direction:column; gap:6px; margin-top:12px;
   font-size:11.5px; color:var(--ink-soft);
 }
-.ps-modal-meta span:empty{ display:none; }
 .ps-form-grid{
   display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-top:6px;
 }
