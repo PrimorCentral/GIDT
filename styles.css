@@ -856,7 +856,16 @@ table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12
   position:sticky; top:0; z-index:15;
   background:var(--panel-muted);
   margin:0 -18px; padding:0 18px 4px;
+  flex:0 0 auto;
 }
+/* La vista del Panel siniestros se estira para ocupar todo lo disponible;
+   así, con pocas filas, el blanco de la tabla llega hasta abajo, y con
+   muchas, simplemente sigue creciendo hacia abajo como antes (es <main>
+   quien scrollea, con la cabecera fija de arriba). */
+.view.active#view-panel-siniestros{
+  display:flex; flex-direction:column; min-height:100%;
+}
+.ps-tabla-flex{ flex:1 0 auto; }
 table.tabla-panel-siniestros th{
   text-align:left; padding:10px 14px; font-size:11px; color:var(--ink-soft);
   text-transform:uppercase; letter-spacing:.3px; font-weight:700; border-bottom:1px solid var(--border);

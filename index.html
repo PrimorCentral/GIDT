@@ -347,73 +347,75 @@
 
     <!-- ============ PANEL DE SINIESTROS (se rellena solo) ============ -->
     <section class="view" id="view-panel-siniestros">
-      <div class="page-head">
-        <div>
-          <h1>🗂️ Panel siniestros</h1>
-          <p>Cada siniestro enviado a una agencia aparece aquí solo. Completa el nº de albarán, adjunta la factura y marca cuándo se cobra y se recoge.</p>
+      <div class="ps-panel-fijo">
+        <div class="page-head">
+          <div>
+            <h1>🗂️ Panel siniestros</h1>
+            <p>Cada siniestro enviado a una agencia aparece aquí solo. Completa el nº de albarán, adjunta la factura y marca cuándo se cobra y se recoge.</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="ps-btn-icon" id="btnRefrescarPanelSiniestros" title="Refrescar"><span class="ps-refresh-icon">🔄</span></button>
+            <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
+          </div>
         </div>
-        <div style="display:flex; gap:10px;">
-          <button class="ps-btn-icon" id="btnRefrescarPanelSiniestros" title="Refrescar"><span class="ps-refresh-icon">🔄</span></button>
-          <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
+
+        <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
+          <div class="kpi warn" style="position:relative;">
+            <b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesCount" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi" style="position:relative;">
+            <b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesValor" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi" style="position:relative;">
+            <b id="psKpiRecogidaDentro">—</b><span>Recogidas pdte. en límite</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaDentro" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi warn" style="position:relative;">
+            <b id="psKpiRecogidaFuera">—</b><span>Recogidas pdte. cumplidas</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaFuera" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:14px 16px; margin-bottom:14px;">
+          <div class="panel-siniestros-toolbar">
+            <input type="text" id="psFiltroTexto" class="form-input" placeholder="🔎 Buscar por tienda, información, albarán…" style="flex:1; min-width:200px;">
+            <label class="ps-filtro-fecha-label">Desde <input type="date" id="psFiltroFechaDesde" class="form-input"></label>
+            <label class="ps-filtro-fecha-label">Hasta <input type="date" id="psFiltroFechaHasta" class="form-input"></label>
+            <select id="psFiltroAgencia" class="form-input" style="max-width:200px;"><option value="">Todas las agencias</option></select>
+            <select id="psFiltroEstado" class="form-input" style="max-width:170px;">
+              <option value="">Todos los estados</option>
+              <option value="COBRADO">COBRADO</option>
+              <option value="PDTE COBRO">PDTE COBRO</option>
+            </select>
+            <select id="psFiltroTipo" class="form-input" style="max-width:170px;">
+              <option value="">Todos los tipos</option>
+              <option value="ROTURA">Rotura</option>
+              <option value="FALTAS">Faltas</option>
+              <option value="FALTAS Y ROTURAS">Rotura y falta</option>
+            </select>
+            <select id="psFiltroOrigen" class="form-input" style="max-width:170px;">
+              <option value="">Todo origen</option>
+              <option value="ALMACEN">Almacén</option>
+              <option value="WEB">Web</option>
+              <option value="RETIRADAS">Retiradas</option>
+              <option value="OTRO">Otro</option>
+            </select>
+            <select id="psFiltroRecogida" class="form-input" style="max-width:210px;">
+              <option value="">Toda recogida</option>
+              <option value="ENVIADO A CENTRAL">Enviado a central</option>
+              <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+              <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
+              <option value="PDTE_FUERA">Pdte. fuera de límite</option>
+            </select>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinFactura"> Sin factura</label>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinAlbaran"> Sin albarán</label>
+          </div>
         </div>
       </div>
 
-      <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
-        <div class="kpi warn" style="position:relative;">
-          <b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span>
-          <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesCount" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
-        </div>
-        <div class="kpi" style="position:relative;">
-          <b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span>
-          <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesValor" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
-        </div>
-        <div class="kpi" style="position:relative;">
-          <b id="psKpiRecogidaDentro">—</b><span>Recogidas pdte. en límite</span>
-          <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaDentro" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
-        </div>
-        <div class="kpi warn" style="position:relative;">
-          <b id="psKpiRecogidaFuera">—</b><span>Recogidas pdte. cumplidas</span>
-          <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaFuera" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
-        </div>
-      </div>
-
-      <div class="card" style="padding:14px 16px; margin-bottom:14px;">
-        <div class="panel-siniestros-toolbar">
-          <input type="text" id="psFiltroTexto" class="form-input" placeholder="🔎 Buscar por tienda, información, albarán…" style="flex:1; min-width:200px;">
-          <label class="ps-filtro-fecha-label">Desde <input type="date" id="psFiltroFechaDesde" class="form-input"></label>
-          <label class="ps-filtro-fecha-label">Hasta <input type="date" id="psFiltroFechaHasta" class="form-input"></label>
-          <select id="psFiltroAgencia" class="form-input" style="max-width:200px;"><option value="">Todas las agencias</option></select>
-          <select id="psFiltroEstado" class="form-input" style="max-width:170px;">
-            <option value="">Todos los estados</option>
-            <option value="COBRADO">COBRADO</option>
-            <option value="PDTE COBRO">PDTE COBRO</option>
-          </select>
-          <select id="psFiltroTipo" class="form-input" style="max-width:170px;">
-            <option value="">Todos los tipos</option>
-            <option value="ROTURA">Rotura</option>
-            <option value="FALTAS">Faltas</option>
-            <option value="FALTAS Y ROTURAS">Rotura y falta</option>
-          </select>
-          <select id="psFiltroOrigen" class="form-input" style="max-width:170px;">
-            <option value="">Todo origen</option>
-            <option value="ALMACEN">Almacén</option>
-            <option value="WEB">Web</option>
-            <option value="RETIRADAS">Retiradas</option>
-            <option value="OTRO">Otro</option>
-          </select>
-          <select id="psFiltroRecogida" class="form-input" style="max-width:210px;">
-            <option value="">Toda recogida</option>
-            <option value="ENVIADO A CENTRAL">Enviado a central</option>
-            <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
-            <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
-            <option value="PDTE_FUERA">Pdte. fuera de límite</option>
-          </select>
-          <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinFactura"> Sin factura</label>
-          <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinAlbaran"> Sin albarán</label>
-        </div>
-      </div>
-
-      <div class="card ps-tabla-scroll">
+      <div class="card ps-tabla-flex" style="padding:0; overflow-x:auto;">
         <table class="tabla-panel-siniestros">
           <thead>
             <tr>
