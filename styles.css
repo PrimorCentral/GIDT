@@ -1024,6 +1024,14 @@ body:not(.perm-informe_dia) .i-obs,
 body:not(.perm-informe_dia) .btn-borrar-motivos{
   pointer-events:none !important; opacity:.6;
 }
+/* La casilla va dentro de una <label>, y el navegador la marca igual si
+   se pincha en el texto de la etiqueta (no solo en la casilla), así que
+   hay que bloquear la etiqueta entera — pero SOLO la del desplegable de
+   motivo de cada fila (td.col-motivo), nunca la de los filtros de arriba,
+   que debe seguir funcionando sin este permiso. */
+body:not(.perm-informe_dia) td.col-motivo .filtro-check{
+  pointer-events:none !important; opacity:.6;
+}
 
 /* Sin permiso de "Enviar informe a agencias" */
 body:not(.perm-enviar_informe) #btnEnviarInforme{ display:none !important; }
@@ -1085,6 +1093,7 @@ body.rol-lectura .email-card input,
 body.rol-lectura .email-add-row input,
 body.rol-lectura .i-motivo-check,
 body.rol-lectura .i-obs,
+body.rol-lectura td.col-motivo .filtro-check,
 body.rol-lectura #formNuevaTienda input,
 body.rol-lectura #formNuevaTienda select,
 body.rol-lectura input[type="file"]{
