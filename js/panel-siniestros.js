@@ -25,7 +25,7 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', anio: '' };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', anio: '', recogida: '' };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
@@ -127,12 +127,26 @@ function rellenarFiltroAgenciasPanel() {
 function siniestrosPanelFiltrados() {
   const f = panelFiltros;
   const texto = f.texto.trim().toUpperCase();
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   return panelCache.filter(s => {
     if (f.anio && !(s.fecha || '').startsWith(f.anio)) return false;
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
+    if (f.recogida) {
+      if (f.recogida === 'ENVIADO A CENTRAL' || f.recogida === 'RECOGIDO POR AGENCIA') {
+        if (s.recogida_estado !== f.recogida) return false;
+      } else {
+        // PDTE_DENTRO / PDTE_FUERA: solo tiene sentido para lo que aún no
+        // se ha gestionado y tiene fecha límite (las FALTAS no tienen).
+        if (s.recogida_estado || !s.recogida_limite) return false;
+        const limite = new Date(s.recogida_limite + 'T00:00:00');
+        const fuera = limite < hoy;
+        if (f.recogida === 'PDTE_DENTRO' && fuera) return false;
+        if (f.recogida === 'PDTE_FUERA' && !fuera) return false;
+      }
+    }
     if (texto) {
-      const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.campo_i]
+      const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran]
         .filter(Boolean).join(' ').toUpperCase();
       if (!campo.includes(texto)) return false;
     }
@@ -181,7 +195,10 @@ function renderPanelSiniestros() {
     const tieneFactura = !!s.factura_url;
     const aplicaRecogida = s.tipo !== 'FALTAS';
     const limite = (aplicaRecogida && s.recogida_limite) ? new Date(s.recogida_limite + 'T00:00:00') : null;
-    const vencido = limite && limite < hoy && s.estado !== 'COBRADO';
+    const vencido = limite && limite < hoy && s.estado !== 'COBRADO' && !s.recogida_estado;
+    const recogidaTexto = aplicaRecogida
+      ? `${psFormatearFecha(s.recogida_limite)}${s.recogida_estado ? `<br><span class="ps-recogida-mini">${s.recogida_estado === 'ENVIADO A CENTRAL' ? '🏢 A central' : '📦 Recogido'}</span>` : ''}`
+      : '—';
     return `
       <tr data-id="${s.id}" class="ps-fila">
         <td>${psFormatearFecha(s.fecha)}</td>
@@ -194,7 +211,7 @@ function renderPanelSiniestros() {
         <td style="text-align:center;">${tieneFactura ? '📄' : '—'}</td>
         <td style="text-align:right;">${psFormatearValor(s.valor)}</td>
         <td>${psBadgeEstado(s.estado)}</td>
-        <td class="${vencido ? 'ps-vencido' : ''}">${aplicaRecogida ? psFormatearFecha(s.recogida_limite) : '—'}</td>
+        <td class="${vencido ? 'ps-vencido' : ''}">${recogidaTexto}</td>
       </tr>`;
   }).join('');
 
@@ -278,6 +295,10 @@ document.getElementById('psFiltroAnio')?.addEventListener('change', (e) => {
   panelFiltros.anio = e.target.value;
   renderPanelSiniestros();
 });
+document.getElementById('psFiltroRecogida')?.addEventListener('change', (e) => {
+  panelFiltros.recogida = e.target.value;
+  renderPanelSiniestros();
+});
 
 // ---------------- Modal: completar los datos de una fila ----------------
 // (la fila ya existe siempre — este modal solo EDITA, nunca da de alta)
@@ -319,10 +340,14 @@ async function abrirModalPanelSiniestro(id) {
   const aplicaRecogida = s.tipo !== 'FALTAS';
   document.getElementById('psRecogidaBloque').style.display = aplicaRecogida ? '' : 'none';
   document.getElementById('psRecogida').value = aplicaRecogida ? (s.recogida_limite || '') : '';
+  document.getElementById('psRecogidaEstado').value = s.recogida_estado || '';
+  document.getElementById('psJustificanteBloque').style.display =
+    (aplicaRecogida && s.recogida_estado === 'RECOGIDO POR AGENCIA') ? '' : 'none';
 
   pintarFotosModal(s);
   pintarFacturaModal(s);
   pintarAlbaranModal(s);
+  pintarJustificanteModal(s);
 
   document.getElementById('psModalOverlay').classList.add('show');
 }
@@ -401,7 +426,8 @@ async function guardarCamposPanelAhora() {
     estado: document.getElementById('psEstado').value,
     recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
       ? (document.getElementById('psRecogida').value || null)
-      : null
+      : null,
+    recogida_estado: document.getElementById('psRecogidaEstado').value || null
   };
 
   try {
@@ -432,6 +458,11 @@ function flushAutoguardadoPanel() {
 });
 ['psInformacion', 'psAlbaran', 'psValor'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
+});
+
+document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
+  document.getElementById('psJustificanteBloque').style.display = e.target.value === 'RECOGIDO POR AGENCIA' ? '' : 'none';
+  programarAutoguardadoPanel();
 });
 
 // Borra un archivo del storage detectando el bucket a partir de su propia
@@ -481,6 +512,7 @@ async function eliminarPanelSiniestro() {
     const urls = [...(s?.fotos || [])];
     if (s?.factura_url) urls.push(s.factura_url);
     if (s?.albaran_url) urls.push(s.albaran_url);
+    if (s?.justificante_recogida_url) urls.push(s.justificante_recogida_url);
 
     if (s?.siniestro_id) {
       const { data: sinOriginal } = await sb.from('siniestros').select('fotos').eq('id', s.siniestro_id).maybeSingle();
@@ -759,6 +791,71 @@ async function quitarAlbaranPanel() {
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando el albarán:', err);
+  }
+}
+
+// ---------------- Justificante de recogida ----------------
+// Solo tiene sentido cuando "Estado de la recogida" = RECOGIDO POR AGENCIA
+// (la propia agencia ha venido a recoger la mercancía rota, y traen o
+// firman un justificante de la recogida).
+
+function pintarJustificanteModal(s) {
+  const cont = document.getElementById('psJustificanteZona');
+  if (!cont) return;
+  if (s.justificante_recogida_url) {
+    cont.innerHTML = `
+      <a class="ps-factura-chip" href="${s.justificante_recogida_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.justificante_recogida_nombre || 'Ver justificante')}</a>
+      <button type="button" class="mini-btn" id="btnQuitarJustificante" title="Quitar justificante">✕</button>`;
+    document.getElementById('btnQuitarJustificante').addEventListener('click', quitarJustificantePanel);
+  } else {
+    cont.innerHTML = `
+      <p class="ps-sin-archivos">Todavía no se ha adjuntado el justificante.</p>
+      <button type="button" class="btn" id="btnAdjuntarJustificante" style="cursor:pointer;">📎 Adjuntar justificante</button>`;
+    document.getElementById('btnAdjuntarJustificante').addEventListener('click', () => document.getElementById('psJustificanteInput').click());
+  }
+}
+
+document.getElementById('psJustificanteInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file || !panelActivoId) return;
+  const errEl = document.getElementById('psJustificanteError');
+  errEl.style.display = 'none';
+  try {
+    const comprimido = await comprimirImagenParaSubida(file);
+    const path = `panel/${panelActivoId}/justificante-${Date.now()}-${comprimido.name}`;
+    const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
+    if (eUp) throw eUp;
+    const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
+    const { error: eDb } = await sb.from('panel_siniestros')
+      .update({ justificante_recogida_url: pub.publicUrl, justificante_recogida_nombre: comprimido.name })
+      .eq('id', panelActivoId);
+    if (eDb) throw eDb;
+    const s = psSiniestroPorId(panelActivoId);
+    s.justificante_recogida_url = pub.publicUrl;
+    s.justificante_recogida_nombre = comprimido.name;
+    pintarJustificanteModal(s);
+  } catch (err) {
+    console.error('Error subiendo el justificante:', err);
+    errEl.textContent = 'No se pudo subir el justificante.';
+    errEl.style.display = 'block';
+  } finally {
+    e.target.value = '';
+  }
+});
+
+async function quitarJustificantePanel() {
+  const ok = await modalConfirm('¿Quitar el justificante de recogida?', { titulo: 'Quitar justificante', danger: true, textoOk: 'Quitar' });
+  if (!ok) return;
+  const s = psSiniestroPorId(panelActivoId);
+  const urlAEliminar = s?.justificante_recogida_url;
+  try {
+    const { error } = await sb.from('panel_siniestros').update({ justificante_recogida_url: null, justificante_recogida_nombre: null }).eq('id', panelActivoId);
+    if (error) throw error;
+    if (s) { s.justificante_recogida_url = null; s.justificante_recogida_nombre = null; }
+    pintarJustificanteModal(s);
+    await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
+  } catch (err) {
+    console.error('Error quitando el justificante:', err);
   }
 }
 
