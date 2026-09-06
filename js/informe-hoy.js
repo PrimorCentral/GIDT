@@ -37,22 +37,24 @@
         </div>`;
       document.getElementById('btnGenerarInformeEmpty').addEventListener('click', generarInformeHoy);
     } else {
-      const estadoTexto = informeHoyCache.informe_enviado ? 'ENVIADO' : informeHoyCache.estado;
+      const enviado = !!informeHoyCache.informe_enviado;
+      const estadoTexto = enviado ? 'ENVIADO' : informeHoyCache.estado;
+      const icono = enviado ? '📨' : '✅';
       card.innerHTML = `
         <div class="informe-estado-detalle">
           <div class="informe-estado-header">
-            <span class="glyph-check">✅</span>
-            <div>
-              <h3>Informe de hoy creado</h3>
-              <p>${formatearFechaCorta(hoy)}</p>
-            </div>
+            <span class="glyph-check">${icono}</span>
+            <h3>Informe de hoy creado</h3>
+            <p>${formatearFechaCorta(hoy)}</p>
           </div>
           <div class="informe-estado-lista">
             <div class="fila"><span class="etiqueta">Palets previstos</span><span class="valor">${informeHoyCache.total_palets || 'Sin especificar'}</span></div>
             <div class="fila"><span class="etiqueta">Estado del informe</span><span class="valor">${escapeHtml(estadoTexto)}</span></div>
             <div class="fila"><span class="etiqueta">Creado por</span><span class="valor">${escapeHtml(informeHoyCache.creado_por || '—')}</span></div>
           </div>
-          <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
+          <div class="informe-estado-boton">
+            <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
+          </div>
         </div>`;
       card.querySelector('[data-view="incidencias"]').addEventListener('click', () => {
         activarVista('incidencias');
