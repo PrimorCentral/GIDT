@@ -394,6 +394,13 @@
             <option value="FALTAS">Faltas</option>
             <option value="FALTAS Y ROTURAS">Rotura y falta</option>
           </select>
+          <select id="psFiltroOrigen" class="form-input" style="max-width:170px;">
+            <option value="">Todo origen</option>
+            <option value="ALMACEN">Almacén</option>
+            <option value="WEB">Web</option>
+            <option value="RETIRADAS">Retiradas</option>
+            <option value="OTRO">Otro</option>
+          </select>
           <select id="psFiltroRecogida" class="form-input" style="max-width:210px;">
             <option value="">Toda recogida</option>
             <option value="ENVIADO A CENTRAL">Enviado a central</option>
@@ -406,7 +413,7 @@
         </div>
       </div>
 
-      <div class="card" style="padding:0; overflow-x:auto;">
+      <div class="card ps-tabla-scroll">
         <table class="tabla-panel-siniestros">
           <thead>
             <tr>
@@ -799,12 +806,19 @@
   <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
     <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Eliminar siniestro">🗑️</button>
     <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
-    <p class="ps-modal-kicker">Detalle del siniestro</p>
-    <h3 class="modal-title">
-      <span id="psAgenciaTienda">—</span>
-      <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
-    </h3>
-    <p class="modal-message" id="psFechaTexto"></p>
+
+    <div class="ps-modal-cabecera">
+      <p class="ps-modal-kicker">📋 Detalle del siniestro</p>
+      <h3 class="modal-title">
+        <span id="psAgenciaTienda">—</span>
+        <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
+      </h3>
+      <p class="modal-message" id="psFechaTexto" style="margin:2px 0 10px;"></p>
+      <div class="ps-modal-meta">
+        <span id="psCreadoTexto"></span>
+        <span id="psActualizadoTexto"></span>
+      </div>
+    </div>
 
     <div class="ps-form-grid">
       <div>
