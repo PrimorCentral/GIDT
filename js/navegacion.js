@@ -20,7 +20,10 @@
   }
 
   document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
-    btn.addEventListener('click', () => activarVista(btn.dataset.view));
+    btn.addEventListener('click', () => {
+      activarVista(btn.dataset.view);
+      if (btn.dataset.view === 'inicio' && typeof cargarKPIs === 'function') cargarKPIs();
+    });
   });
 
   // ---------------------------------------------------------------
@@ -150,33 +153,53 @@
   async function cargarPendienteAtencion() {
     const cont = document.getElementById('cardPendienteAtencion');
     if (!cont) return;
+    cont.innerHTML = `<div class="empty" style="padding:20px;"><p>Comprobando…</p></div>`;
 
     const items = [];
 
-    // 1. Informe de hoy con incidencias sin enviar
-    if (informeHoyCache && !informeHoyCache.informe_enviado) {
-      const numInc = (incidenciasHoyCache || []).filter(i => i.marcada).length;
-      if (numInc > 0) {
-        items.push({
-          icono: '📨',
-          texto: `El informe de hoy tiene ${numInc} incidencia${numInc === 1 ? '' : 's'} sin enviar a las agencias`,
-          vista: 'incidencias'
-        });
-      }
-    }
+    // 1 y 2. Informe de hoy: incidencias sin enviar, y siniestros de esas
+    // incidencias pendientes de enviar a la agencia. Consulta directa (no
+    // depende de que informeHoyCache/incidenciasHoyCache ya estén cargadas).
+    try {
+      const { data: informe } = await sb.from('informes_diarios')
+        .select('id, informe_enviado')
+        .eq('fecha', fechaHoyISO)
+        .maybeSingle();
 
-    // 2. Siniestros del día pendientes de enviar
-    const numPendEnvio = Number(document.getElementById('kpiSiniestrosPend')?.textContent) || 0;
-    if (numPendEnvio > 0) {
-      items.push({
-        icono: '📦',
-        texto: `${numPendEnvio} siniestro${numPendEnvio === 1 ? '' : 's'} del día pendiente${numPendEnvio === 1 ? '' : 's'} de enviar a la agencia`,
-        vista: 'siniestros'
-      });
+      if (informe) {
+        const { data: incs } = await sb.from('incidencias')
+          .select('id, marcada')
+          .eq('informe_id', informe.id);
+        const marcadas = (incs || []).filter(i => i.marcada);
+
+        if (!informe.informe_enviado && marcadas.length > 0) {
+          items.push({
+            icono: '📨',
+            texto: `El informe de hoy tiene ${marcadas.length} incidencia${marcadas.length === 1 ? '' : 's'} sin enviar a las agencias`,
+            vista: 'incidencias'
+          });
+        }
+
+        if (marcadas.length > 0) {
+          const { data: sins } = await sb.from('siniestros')
+            .select('id, estado')
+            .in('incidencia_id', marcadas.map(i => i.id))
+            .eq('estado', 'PENDIENTE');
+          const numPend = (sins || []).length;
+          if (numPend > 0) {
+            items.push({
+              icono: '📦',
+              texto: `${numPend} siniestro${numPend === 1 ? '' : 's'} del día pendiente${numPend === 1 ? '' : 's'} de enviar a la agencia`,
+              vista: 'siniestros'
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error comprobando el informe de hoy:', err);
     }
 
     // 3. Panel siniestros: pendiente de cobro y recogidas con la fecha cumplida
-    // (consulta directa a Supabase, no depende de haber entrado antes al Panel)
     try {
       const { data, error } = await sb.from('panel_siniestros')
         .select('estado, tipo, recogida_estado, recogida_limite, valor');
