@@ -17,6 +17,7 @@
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     document.getElementById('userChipName').textContent = usuario.nombre || usuario.usuario;
+    if (typeof aplicarPermisosPorRol === 'function') aplicarPermisosPorRol(usuario.rol);
   }
 
   function mostrarLogin() {
