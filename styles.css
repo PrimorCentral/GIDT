@@ -839,6 +839,10 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 /* ========== Panel de siniestros (se rellena automáticamente al enviar) ========== */
 
 .panel-siniestros-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.ps-filtro-fecha-label{
+  display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft); font-weight:600;
+}
+.ps-filtro-fecha-label .form-input{ width:auto; }
 
 table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
 table.tabla-panel-siniestros th{
