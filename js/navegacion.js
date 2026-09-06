@@ -22,7 +22,10 @@
   document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
     btn.addEventListener('click', () => {
       activarVista(btn.dataset.view);
-      if (btn.dataset.view === 'inicio' && typeof cargarKPIs === 'function') cargarKPIs();
+      if (btn.dataset.view === 'inicio') {
+        if (typeof cargarKPIs === 'function') cargarKPIs();
+        if (typeof cargarInformeHoy === 'function') cargarInformeHoy();
+      }
     });
   });
 
