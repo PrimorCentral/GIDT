@@ -158,9 +158,25 @@ function renderAcordeonHistorialEditable() {
         const inc = incidenciaDeTiendaHistorial(tiendaId);
         if (!inc) return;
 
-        const { data: panelLigado } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', inc.id).maybeSingle();
-        if (panelLigado) {
-          await modalAlert('Este siniestro ya está en el Panel siniestros. Bórralo desde ahí primero.', { titulo: 'No se puede quitar' });
+        // El siniestro puede estar en el Panel por dos vías: dado de alta
+        // directamente desde este mismo histórico (enlazado por
+        // incidencia_id), o por el flujo normal del día en que se creó
+        // (una fila en "siniestros" enlazada por incidencia_id, y esa fila
+        // enlazada al Panel por siniestro_id). Hay que comprobar las dos.
+        let yaEnPanel = false;
+        const { data: panelDirecto } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', inc.id).maybeSingle();
+        if (panelDirecto) yaEnPanel = true;
+
+        if (!yaEnPanel) {
+          const { data: sinLigado } = await sb.from('siniestros').select('id').eq('incidencia_id', inc.id).maybeSingle();
+          if (sinLigado) {
+            const { data: panelPorSiniestro } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', sinLigado.id).maybeSingle();
+            if (panelPorSiniestro) yaEnPanel = true;
+          }
+        }
+
+        if (yaEnPanel) {
+          await modalAlert('Este siniestro ya está en el Panel siniestros. Para eliminarlo, hazlo desde ahí.', { titulo: 'No se puede eliminar' });
           return;
         }
 
@@ -247,18 +263,29 @@ async function guardarIncidenciaHistorial(tiendaId, tr) {
 
     // Si el motivo indica ROTURA/FALTAS/MIXTO, se da de alta directamente en
     // el Panel siniestros (nunca por "Siniestros del día", que es solo para
-    // el día en curso, ni se manda nada a la agencia).
+    // el día en curso, ni se manda nada a la agencia). Antes comprobamos que
+    // no exista ya por ninguna de las dos vías posibles.
     const tipoSiniestro = tipoSiniestroDeMotivos(motivos);
     if (tipoSiniestro) {
-      const { data: yaEnPanel } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', guardada.id).maybeSingle();
-      if (!yaEnPanel) {
+      let panelExistenteId = null;
+      const { data: panelDirecto } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', guardada.id).maybeSingle();
+      if (panelDirecto) panelExistenteId = panelDirecto.id;
+      if (!panelExistenteId) {
+        const { data: sinLigado } = await sb.from('siniestros').select('id').eq('incidencia_id', guardada.id).maybeSingle();
+        if (sinLigado) {
+          const { data: panelPorSiniestro } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', sinLigado.id).maybeSingle();
+          if (panelPorSiniestro) panelExistenteId = panelPorSiniestro.id;
+        }
+      }
+
+      if (!panelExistenteId) {
         await procesarNuevoSiniestroHistorial(guardada, tienda, agencia, informe, tipoSiniestro);
       } else {
         // Ya existía: solo mantenemos su información al día (tipo/observaciones)
         await sb.from('panel_siniestros').update({
           tipo: PS_TIPO_DESDE_SINIESTRO_HIST[tipoSiniestro] || 'ROTURA',
           informacion: observaciones || null
-        }).eq('id', yaEnPanel.id);
+        }).eq('id', panelExistenteId);
       }
     }
   } catch (err) {
