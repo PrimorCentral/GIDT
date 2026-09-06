@@ -753,15 +753,31 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
-    const { error: eDb } = await sb.from('panel_siniestros')
-      .update({ factura_url: pub.publicUrl, factura_nombre: comprimido.name })
-      .eq('id', panelActivoId);
+
+    // Intentamos leer el TOTAL IMPORTE del propio PDF (última página,
+    // abajo del todo). Si el campo Valor ya tenía algo escrito a mano,
+    // no lo pisamos.
+    const campoValor = document.getElementById('psValor');
+    let totalDetectado = null;
+    if (!campoValor.value.trim()) {
+      totalDetectado = await extraerTotalFacturaDePdf(file);
+    }
+
+    const cambios = { factura_url: pub.publicUrl, factura_nombre: comprimido.name };
+    if (totalDetectado !== null) cambios.valor = totalDetectado;
+
+    const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
     if (eDb) throw eDb;
     const s = psSiniestroPorId(panelActivoId);
     s.factura_url = pub.publicUrl;
     s.factura_nombre = comprimido.name;
+    if (totalDetectado !== null) {
+      s.valor = totalDetectado;
+      campoValor.value = totalDetectado;
+    }
     pintarFacturaModal(s);
     renderPanelSiniestros();
+    if (totalDetectado !== null) renderPanelKpis();
   } catch (err) {
     console.error('Error subiendo factura:', err);
     errEl.textContent = 'No se pudo subir la factura.';

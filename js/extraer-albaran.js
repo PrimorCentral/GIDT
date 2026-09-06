@@ -56,3 +56,49 @@ async function extraerNumAlbaranDePdf(fuente) {
     return null;
   }
 }
+
+// ---------------------------------------------------------------
+// Detección automática del importe total de la factura
+// ---------------------------------------------------------------
+// El "TOTAL IMPORTE" de una factura siempre va al final de la última
+// página (aunque tenga varias). En vez de buscar cerca de la etiqueta
+// (en muchas facturas la etiqueta está arriba, como cabecera de una
+// tabla, y el valor real queda mucho más abajo), cogemos directamente
+// el ÚLTIMO importe con formato de dinero español (1.234,56 / 2,05)
+// que aparece en el texto de esa última página: es el que está más
+// abajo del todo, que es justamente el total.
+
+async function extraerTotalFacturaDePdf(fuente) {
+  if (typeof pdfjsLib === 'undefined') return null;
+  asegurarPdfWorker();
+
+  try {
+    let arrayBuffer;
+    if (fuente instanceof File || fuente instanceof Blob) {
+      arrayBuffer = await fuente.arrayBuffer();
+    } else if (typeof fuente === 'string') {
+      const resp = await fetch(fuente);
+      arrayBuffer = await resp.arrayBuffer();
+    } else {
+      return null;
+    }
+
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(pdf.numPages); // siempre la última página
+    const contenido = await page.getTextContent();
+    const texto = contenido.items.map(it => it.str).join(' ');
+
+    // Formato "1.234,56" o "2,05": dígitos + opcional miles con puntos +
+    // coma + EXACTAMENTE 2 decimales (así no confundimos con cantidades
+    // tipo "1,000" que llevan 3 decimales).
+    const importes = texto.match(/\d{1,3}(?:\.\d{3})*,\d{2}(?!\d)/g);
+    if (!importes || !importes.length) return null;
+
+    const ultimo = importes[importes.length - 1];
+    const numero = Number(ultimo.replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(numero) ? numero : null;
+  } catch (err) {
+    console.error('Error leyendo el total de la factura:', err);
+    return null;
+  }
+}
