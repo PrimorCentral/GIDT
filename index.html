@@ -787,8 +787,11 @@
   <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
     <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Eliminar siniestro">🗑️</button>
     <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
-    <span class="pill" id="psTipoPill" style="margin-bottom:8px;"></span>
-    <h3 class="modal-title" id="psAgenciaTienda">—</h3>
+    <p class="ps-modal-kicker">Detalle del siniestro</p>
+    <h3 class="modal-title">
+      <span id="psAgenciaTienda">—</span>
+      <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
+    </h3>
     <p class="modal-message" id="psFechaTexto"></p>
 
     <div class="ps-form-grid">
@@ -856,7 +859,7 @@
       <div class="ps-archivos-col">
         <label class="form-label">Factura</label>
         <div id="psFacturaZona"></div>
-        <input type="file" id="psFacturaInput" accept=".pdf,image/*" style="display:none;">
+        <input type="file" id="psFacturaInput" accept=".pdf" style="display:none;">
         <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
       </div>
 
