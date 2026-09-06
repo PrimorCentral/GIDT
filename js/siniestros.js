@@ -309,7 +309,6 @@
       s.estado === 'ENVIADO' ? `Enviado el ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}`
       : s.estado === 'ANULADO' ? '🚫 Anulado desde el Panel siniestros'
       : 'Pendiente de envío';
-    document.getElementById('btnReabrirSiniestro').style.display = s.estado === 'ENVIADO' ? '' : 'none';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
     const labelFotos = document.getElementById('siniestroFotosLabel');
     if (labelFotos) labelFotos.style.display = s.estado === 'ANULADO' ? 'none' : '';
@@ -430,21 +429,6 @@
     } finally {
       btn.disabled = false;
       btn.textContent = textoOriginalBtn;
-    }
-  });
-
-  document.getElementById('btnReabrirSiniestro').addEventListener('click', async () => {
-    const s = siniestroPorId(siniestroActivoId);
-    try {
-      const { error } = await sb.from('siniestros').update({ estado: 'PENDIENTE', enviado_en: null }).eq('id', s.id);
-      if (error) throw error;
-      s.estado = 'PENDIENTE';
-      s.enviado_en = null;
-      pintarModalSiniestro();
-      renderKanbanSiniestros();
-      actualizarKpiSiniestros();
-    } catch (err) {
-      console.error('Error reabriendo siniestro:', err);
     }
   });
 
