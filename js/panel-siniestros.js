@@ -25,7 +25,7 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', anio: '', recogida: '', fechaDesde: '', fechaHasta: '' };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', recogida: '', fechaDesde: '', fechaHasta: '' };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
@@ -97,7 +97,6 @@ async function cargarPanelSiniestros() {
     if (error) throw error;
     panelCache = data || [];
     panelCargado = true;
-    rellenarFiltroAniosPanel();
     rellenarFiltroAgenciasPanel();
     renderPanelSiniestros();
     renderPanelKpis();
@@ -105,15 +104,6 @@ async function cargarPanelSiniestros() {
     console.error('Error cargando panel de siniestros:', err);
     tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar los siniestros.</td></tr>`;
   }
-}
-
-function rellenarFiltroAniosPanel() {
-  const sel = document.getElementById('psFiltroAnio');
-  if (!sel) return;
-  const anios = Array.from(new Set(panelCache.map(s => (s.fecha || '').slice(0, 4)).filter(Boolean))).sort().reverse();
-  const actual = sel.value;
-  sel.innerHTML = `<option value="">Todos los años</option>` + anios.map(a => `<option value="${a}">${a}</option>`).join('');
-  if (anios.includes(actual)) sel.value = actual;
 }
 
 function rellenarFiltroAgenciasPanel() {
@@ -129,9 +119,9 @@ function siniestrosPanelFiltrados() {
   const texto = f.texto.trim().toUpperCase();
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   return panelCache.filter(s => {
-    if (f.anio && !(s.fecha || '').startsWith(f.anio)) return false;
     if (f.fechaDesde && (s.fecha || '') < f.fechaDesde) return false;
     if (f.fechaHasta && (s.fecha || '') > f.fechaHasta) return false;
+    if (f.tipo && s.tipo !== f.tipo) return false;
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
     if (f.recogida) {
@@ -157,7 +147,7 @@ function siniestrosPanelFiltrados() {
 }
 
 function psPillTipo(tipo) {
-  const clase = tipo === 'ROTURA' ? 'grave' : tipo === 'FALTAS' ? 'moderado' : 'mixto';
+  const clase = tipo === 'ROTURA' ? 'moderado' : 'grave';
   return `<span class="pill ${clase}">${escapeHtml(tipo)}</span>`;
 }
 
@@ -301,8 +291,8 @@ document.getElementById('psFiltroEstado')?.addEventListener('change', (e) => {
   panelFiltros.estado = e.target.value;
   renderPanelSiniestros();
 });
-document.getElementById('psFiltroAnio')?.addEventListener('change', (e) => {
-  panelFiltros.anio = e.target.value;
+document.getElementById('psFiltroTipo')?.addEventListener('change', (e) => {
+  panelFiltros.tipo = e.target.value;
   renderPanelSiniestros();
 });
 document.getElementById('psFiltroRecogida')?.addEventListener('change', (e) => {
