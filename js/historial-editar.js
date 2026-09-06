@@ -49,6 +49,24 @@ function desactivarEdicionHistorial() {
   renderHistorialInforme(historialInformeActual, historialIncidenciasActual);
 }
 
+// El siniestro puede estar ya en el Panel por dos vías: dado de alta
+// directamente desde este mismo histórico (enlazado por incidencia_id), o
+// por el flujo normal del día en que se creó (una fila en "siniestros"
+// enlazada por incidencia_id, y esa fila enlazada al Panel por
+// siniestro_id). Devuelve el id de la fila del Panel si existe por
+// cualquiera de las dos, o null si no está en ninguna.
+async function panelSiniestroDeIncidencia(incidenciaId) {
+  const { data: panelDirecto } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', incidenciaId).maybeSingle();
+  if (panelDirecto) return panelDirecto.id;
+
+  const { data: sinLigado } = await sb.from('siniestros').select('id').eq('incidencia_id', incidenciaId).maybeSingle();
+  if (sinLigado) {
+    const { data: panelPorSiniestro } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', sinLigado.id).maybeSingle();
+    if (panelPorSiniestro) return panelPorSiniestro.id;
+  }
+  return null;
+}
+
 function renderAcordeonHistorialEditable() {
   const cont = document.getElementById('contenidoHistorial');
   const informe = historialInformeActual;
@@ -166,23 +184,10 @@ function renderAcordeonHistorialEditable() {
         if (!inc) return;
 
         // El siniestro puede estar en el Panel por dos vías: dado de alta
-        // directamente desde este mismo histórico (enlazado por
-        // incidencia_id), o por el flujo normal del día en que se creó
-        // (una fila en "siniestros" enlazada por incidencia_id, y esa fila
-        // enlazada al Panel por siniestro_id). Hay que comprobar las dos.
-        let yaEnPanel = false;
-        const { data: panelDirecto } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', inc.id).maybeSingle();
-        if (panelDirecto) yaEnPanel = true;
-
-        if (!yaEnPanel) {
-          const { data: sinLigado } = await sb.from('siniestros').select('id').eq('incidencia_id', inc.id).maybeSingle();
-          if (sinLigado) {
-            const { data: panelPorSiniestro } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', sinLigado.id).maybeSingle();
-            if (panelPorSiniestro) yaEnPanel = true;
-          }
-        }
-
-        if (yaEnPanel) {
+        // directamente desde este mismo histórico, o por el flujo normal
+        // del día en que se creó. Hay que comprobar las dos.
+        const panelId = await panelSiniestroDeIncidencia(inc.id);
+        if (panelId) {
           await modalAlert('Este siniestro ya está en el Panel siniestros. Para eliminarlo, hazlo desde ahí.', { titulo: 'No se puede eliminar' });
           return;
         }
@@ -241,11 +246,34 @@ async function guardarIncidenciaHistorial(tiendaId, tr) {
   const marcada = motivos.length > 0;
   const tipo = calcularTipo(motivos);
   const informe = historialInformeActual;
+  const tipoSiniestroNuevo = tipoSiniestroDeMotivos(motivos);
+  const existente = incidenciaDeTiendaHistorial(tiendaId);
+
+  // Si esta incidencia ya tiene un siniestro dado de alta en el Panel y el
+  // cambio la dejaría sin motivo de siniestro (p. ej. desmarcar la casilla
+  // de "Rotura confirmada" a mano, sin pasar por la papelera), no se
+  // permite: hay que gestionarlo desde el Panel siniestros.
+  if (existente && !tipoSiniestroNuevo) {
+    const panelId = await panelSiniestroDeIncidencia(existente.id);
+    if (panelId) {
+      await modalAlert('Este siniestro ya está en el Panel siniestros. Para eliminarlo, hazlo desde ahí.', { titulo: 'No se puede modificar' });
+      // Revertimos las casillas al estado guardado, para que la pantalla
+      // no muestre algo que en realidad no se ha guardado.
+      const motivosPrevios = existente.motivo || [];
+      tr.querySelectorAll('.i-motivo-check').forEach(cb => { cb.checked = motivosPrevios.includes(cb.value); });
+      const hayMotivo = motivosPrevios.length > 0;
+      tr.querySelector('.i-obs').disabled = !hayMotivo;
+      const btnBorrar = tr.querySelector('.btn-borrar-motivos-hist');
+      if (btnBorrar) btnBorrar.style.display = hayMotivo ? '' : 'none';
+      const valorEl = tr.querySelector('.motivo-select-valor');
+      if (valorEl) valorEl.textContent = resumenMotivos(motivosPrevios);
+      return;
+    }
+  }
 
   try {
     const tienda = tiendasCache.find(t => t.id === tiendaId);
     const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
-    const existente = incidenciaDeTiendaHistorial(tiendaId);
 
     const { data: guardada, error } = await sb.from('incidencias').upsert({
       informe_id: informe.id,
@@ -270,16 +298,7 @@ async function guardarIncidenciaHistorial(tiendaId, tr) {
     // no exista ya por ninguna de las dos vías posibles.
     const tipoSiniestro = tipoSiniestroDeMotivos(motivos);
     if (tipoSiniestro) {
-      let panelExistenteId = null;
-      const { data: panelDirecto } = await sb.from('panel_siniestros').select('id').eq('incidencia_id', guardada.id).maybeSingle();
-      if (panelDirecto) panelExistenteId = panelDirecto.id;
-      if (!panelExistenteId) {
-        const { data: sinLigado } = await sb.from('siniestros').select('id').eq('incidencia_id', guardada.id).maybeSingle();
-        if (sinLigado) {
-          const { data: panelPorSiniestro } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', sinLigado.id).maybeSingle();
-          if (panelPorSiniestro) panelExistenteId = panelPorSiniestro.id;
-        }
-      }
+      const panelExistenteId = await panelSiniestroDeIncidencia(guardada.id);
 
       if (!panelExistenteId) {
         await procesarNuevoSiniestroHistorial(guardada, tienda, agencia, informe, tipoSiniestro);
