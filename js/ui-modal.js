@@ -133,6 +133,7 @@
   document.getElementById('userChip').addEventListener('click', async () => {
     if (!(await modalConfirm('¿Cerrar sesión?', { titulo: 'Cerrar sesión' }))) return;
     sessionStorage.removeItem(SESSION_KEY);
+    if (typeof activarVista === 'function') activarVista('inicio');
     mostrarLogin();
   });
 
