@@ -437,6 +437,17 @@ async function guardarNuevoPanelSiniestro() {
 }
 
 document.getElementById('btnNuevoPanelSiniestroManual')?.addEventListener('click', abrirModalNuevoPanelSiniestro);
+document.getElementById('btnRefrescarPanelSiniestros')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.classList.add('ps-girando');
+  try {
+    await cargarPanelSiniestros();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('ps-girando');
+  }
+});
 document.getElementById('btnCerrarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnCancelarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnGuardarPsNuevo')?.addEventListener('click', guardarNuevoPanelSiniestro);
