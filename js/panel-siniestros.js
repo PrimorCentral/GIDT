@@ -25,7 +25,7 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', recogida: '', fechaDesde: '', fechaHasta: '' };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
@@ -102,7 +102,7 @@ async function cargarPanelSiniestros() {
     renderPanelKpis();
   } catch (err) {
     console.error('Error cargando panel de siniestros:', err);
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar los siniestros.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar los siniestros.</td></tr>`;
   }
 }
 
@@ -137,6 +137,8 @@ function siniestrosPanelFiltrados() {
         if (f.recogida === 'PDTE_FUERA' && !fuera) return false;
       }
     }
+    if (f.sinFactura && s.factura_url) return false;
+    if (f.sinAlbaran && s.albaran_url) return false;
     if (texto) {
       const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran]
         .filter(Boolean).join(' ').toUpperCase();
@@ -172,7 +174,7 @@ function renderPanelSiniestros() {
   const filas = siniestrosPanelFiltrados();
 
   if (!filas.length) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:var(--ink-soft);">
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:30px; color:var(--ink-soft);">
       ${panelCache.length
         ? 'Ningún siniestro coincide con los filtros.'
         : 'Aquí aparecerán solas las filas en cuanto marques un siniestro como "enviado" en Siniestros del día.'}
@@ -196,6 +198,7 @@ function renderPanelSiniestros() {
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
+        <td>${escapeHtml(s.origen || '—')}</td>
         <td>${psPillTipo(s.tipo)}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
@@ -341,6 +344,14 @@ document.getElementById('psFiltroRecogida')?.addEventListener('change', (e) => {
   panelFiltros.recogida = e.target.value;
   renderPanelSiniestros();
 });
+document.getElementById('psFiltroSinFactura')?.addEventListener('change', (e) => {
+  panelFiltros.sinFactura = e.target.checked;
+  renderPanelSiniestros();
+});
+document.getElementById('psFiltroSinAlbaran')?.addEventListener('change', (e) => {
+  panelFiltros.sinAlbaran = e.target.checked;
+  renderPanelSiniestros();
+});
 
 // ---------------- Alta manual (para lo que no viene del envío automático) ----------------
 
@@ -427,6 +438,17 @@ async function guardarNuevoPanelSiniestro() {
 }
 
 document.getElementById('btnNuevoPanelSiniestroManual')?.addEventListener('click', abrirModalNuevoPanelSiniestro);
+document.getElementById('btnRefrescarPanelSiniestros')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.classList.add('ps-girando');
+  try {
+    await cargarPanelSiniestros();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('ps-girando');
+  }
+});
 document.getElementById('btnCerrarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnCancelarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnGuardarPsNuevo')?.addEventListener('click', guardarNuevoPanelSiniestro);
