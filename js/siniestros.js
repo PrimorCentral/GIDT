@@ -42,7 +42,7 @@
     const idsIncidencias = incs.map(i => i.id);
     const { data: existentes, error: e2 } = await sb
       .from('siniestros')
-      .select('id, incidencia_id, tipo, estado, fotos, fecha_limite')
+      .select('id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por')
       .in('incidencia_id', idsIncidencias);
     if (e2) throw e2;
 
@@ -311,7 +311,7 @@
       : 'Pendiente de envío';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
     const labelFotos = document.getElementById('siniestroFotosLabel');
-    if (labelFotos) labelFotos.style.display = s.estado === 'ANULADO' ? 'none' : '';
+    if (labelFotos) labelFotos.style.display = s.estado === 'PENDIENTE' ? '' : 'none';
   }
 
   document.getElementById('btnCerrarSiniestroModal').addEventListener('click', cerrarModalSiniestro);
