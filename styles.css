@@ -948,3 +948,6 @@ table.tabla-panel-siniestros td:nth-child(n+6){ text-align:center; }
   .ps-archivos-fila{ grid-template-columns:1fr; }
   .ps-recogida-fila{ grid-template-columns:1fr; }
 }
+
+.ps-girando{ animation: ps-spin .7s linear infinite; }
+@keyframes ps-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }

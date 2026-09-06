@@ -350,9 +350,12 @@
       <div class="page-head">
         <div>
           <h1>🗂️ Panel siniestros</h1>
-          <p>Se rellena automáticamente al enviar cada siniestro. Aquí completas nº albarán, factura, valor y estado de cobro.</p>
+          <p>Cada siniestro enviado a una agencia aparece aquí solo. Completa el nº de albarán, adjunta la factura y marca cuándo se cobra y se recoge.</p>
         </div>
-        <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" id="btnRefrescarPanelSiniestros" title="Refrescar">🔄</button>
+          <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
+        </div>
       </div>
 
       <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
