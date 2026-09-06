@@ -45,7 +45,7 @@
 
       const { data, error } = await sb
         .from('usuarios')
-        .select('id, nombre, usuario, rol, activo, pin_hash')
+        .select('id, nombre, usuario, rol, activo, pin_hash, permisos')
         .eq('usuario', usuarioInput)
         .eq('activo', true)
         .maybeSingle();
@@ -58,7 +58,7 @@
         return;
       }
 
-      const sesion = { id: data.id, nombre: data.nombre, usuario: data.usuario, rol: data.rol };
+      const sesion = { id: data.id, nombre: data.nombre, usuario: data.usuario, rol: data.rol, permisos: data.permisos || {} };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(sesion));
       sesionActual = sesion;
 
