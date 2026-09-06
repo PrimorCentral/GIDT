@@ -506,36 +506,6 @@
         <button class="btn primary" id="btnNuevoUsuario">➕ Nuevo usuario</button>
       </div>
 
-      <div class="card" id="formNuevoUsuario" style="display:none; padding:18px 20px; margin-bottom:16px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
-          <div>
-            <label class="form-label">Nombre</label>
-            <input type="text" id="nuNombre" class="form-input" placeholder="Nombre y apellidos">
-          </div>
-          <div>
-            <label class="form-label">Usuario</label>
-            <input type="text" id="nuUsuario" class="form-input" placeholder="Usuario" inputmode="numeric">
-          </div>
-          <div>
-            <label class="form-label">PIN</label>
-            <input type="password" id="nuPin" class="form-input" placeholder="••••" maxlength="10">
-          </div>
-          <div>
-            <label class="form-label">Rol</label>
-            <select id="nuRol" class="form-input">
-              <option value="operador">Operador</option>
-              <option value="admin">Admin</option>
-              <option value="lectura">Lectura</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn primary" id="btnGuardarUsuario">Guardar usuario</button>
-          <button class="btn" id="btnCancelarUsuario">Cancelar</button>
-        </div>
-        <p class="err" id="nuError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
-      </div>
-
       <div class="card" style="overflow:hidden;">
         <table class="tabla-usuarios">
           <thead>
@@ -970,30 +940,90 @@
 
 <!-- Modal: editar usuario -->
 <div class="modal-overlay" id="editarUsuarioModalOverlay">
-  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
     <button class="filtros-modal-close" id="btnCerrarEditarUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
-    <h3 class="modal-title">✏️ Editar usuario</h3>
+    <h3 class="modal-title" style="margin-bottom:18px;">✏️ Editar usuario</h3>
 
-    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
-      <div>
-        <label class="form-label">Nombre</label>
-        <input type="text" id="euNombre" class="form-input">
+    <div class="usuario-modal-grid">
+      <div class="usuario-modal-campos">
+        <div>
+          <label class="form-label">Nombre completo</label>
+          <input type="text" id="euNombre" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Usuario (para entrar en la app)</label>
+          <input type="text" id="euUsuario" class="form-input" inputmode="numeric">
+        </div>
+        <div>
+          <label class="form-label">Nuevo PIN</label>
+          <input type="password" id="euPin" class="form-input" placeholder="Dejar en blanco para no cambiarlo" maxlength="10">
+        </div>
+        <div>
+          <label class="form-label">Rol</label>
+          <div class="toggle-seg" id="euRolToggle">
+            <button type="button" class="toggle-seg-btn" data-rol="admin">Admin</button>
+            <button type="button" class="toggle-seg-btn" data-rol="operador">Operador</button>
+            <button type="button" class="toggle-seg-btn" data-rol="lectura">Lectura</button>
+          </div>
+          <input type="hidden" id="euRol" value="operador">
+        </div>
+        <label class="ps-filtro-check" style="margin-top:4px;">
+          <input type="checkbox" id="euActivo"> Activo (puede entrar en la app)
+        </label>
       </div>
-      <div>
-        <label class="form-label">Usuario</label>
-        <input type="text" id="euUsuario" class="form-input" inputmode="numeric">
-      </div>
-      <div>
-        <label class="form-label">Rol</label>
-        <select id="euRol" class="form-input">
-          <option value="operador">Operador</option>
-          <option value="admin">Admin</option>
-          <option value="lectura">Lectura</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">Nuevo PIN</label>
-        <input type="password" id="euPin" class="form-input" placeholder="Dejar en blanco para no cambiarlo" maxlength="10">
+
+      <div class="permisos-panel" id="euPermisosPanel">
+        <div class="permisos-cabecera">
+          <b>Permisos</b>
+          <span>Marca lo que este operador puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
+        </div>
+        <div class="permisos-columnas">
+          <div class="permisos-col">
+            <h4>Gestión general</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_panel_siniestros">
+              <span><b>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_siniestros_dia">
+              <span><b>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_enviar_facturacion">
+              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Configuración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_tiendas">
+              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_emails">
+              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_facturacion">
+              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Administración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_gestion_usuarios">
+              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_borrar">
+              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_ver_analisis">
+              <span><b>Análisis y ranking</b><small>Ver el ranking de tiendas y agencias.</small></span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1002,6 +1032,101 @@
     <div class="modal-footer" style="margin-top:18px;">
       <button class="btn" id="btnCancelarEditarUsuario">Cancelar</button>
       <button class="btn primary" id="btnGuardarEditarUsuario">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo usuario -->
+<div class="modal-overlay" id="nuevoUsuarioModalOverlay">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
+    <button class="filtros-modal-close" id="btnCerrarNuevoUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" style="margin-bottom:18px;">➕ Nuevo usuario</h3>
+
+    <div class="usuario-modal-grid">
+      <div class="usuario-modal-campos">
+        <div>
+          <label class="form-label">Nombre completo</label>
+          <input type="text" id="nuNombre" class="form-input" placeholder="Nombre y apellidos">
+        </div>
+        <div>
+          <label class="form-label">Usuario (para entrar en la app)</label>
+          <input type="text" id="nuUsuario" class="form-input" placeholder="Usuario" inputmode="numeric">
+        </div>
+        <div>
+          <label class="form-label">PIN</label>
+          <input type="password" id="nuPin" class="form-input" placeholder="••••" maxlength="10">
+        </div>
+        <div>
+          <label class="form-label">Rol</label>
+          <div class="toggle-seg" id="nuRolToggle">
+            <button type="button" class="toggle-seg-btn" data-rol="admin">Admin</button>
+            <button type="button" class="toggle-seg-btn" data-rol="operador">Operador</button>
+            <button type="button" class="toggle-seg-btn" data-rol="lectura">Lectura</button>
+          </div>
+          <input type="hidden" id="nuRol" value="operador">
+        </div>
+      </div>
+
+      <div class="permisos-panel" id="nuPermisosPanel">
+        <div class="permisos-cabecera">
+          <b>Permisos</b>
+          <span>Marca lo que este operador puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
+        </div>
+        <div class="permisos-columnas">
+          <div class="permisos-col">
+            <h4>Gestión general</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_panel_siniestros">
+              <span><b>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_siniestros_dia">
+              <span><b>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_enviar_facturacion">
+              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Configuración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_tiendas">
+              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_emails">
+              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_facturacion">
+              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Administración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_gestion_usuarios">
+              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_borrar">
+              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_ver_analisis">
+              <span><b>Análisis y ranking</b><small>Ver el ranking de tiendas y agencias.</small></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="err" id="nuError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarUsuario">Cancelar</button>
+      <button class="btn primary" id="btnGuardarUsuario">Guardar usuario</button>
     </div>
   </div>
 </div>

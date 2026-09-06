@@ -999,26 +999,60 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   position:absolute; right:-14px; top:-14px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.25);
 }
 
-/* ========== Permisos por rol (admin / operador / lectura) ========== */
+/* ========== Permisos por rol y por permiso granular ========== */
 /* Ayuda de interfaz, no seguridad real (ver aviso en js/permisos.js) */
 
-/* "Usuarios" solo para admin */
-body:not(.rol-admin) [data-view="config-usuarios"]{ display:none !important; }
+/* Páginas de menú: ocultas si no se tiene el permiso correspondiente
+   (admin siempre lo tiene todo, ver js/permisos.js) */
+body:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
+body:not(.perm-config_tiendas) [data-view="config-tiendas"]{ display:none !important; }
+body:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
+body:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
 
-/* Borrar (siniestros del Panel) solo para admin */
-body:not(.rol-admin) #btnBorrarPanelSiniestro{ display:none !important; }
+/* Borrar (siniestros del Panel) solo con permiso de borrar */
+body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
 
-/* Modo LECTURA: deshabilita los botones de acción, deja intacta la
-   navegación, los filtros y los buscadores. */
+/* Sin permiso de "Panel siniestros": se puede ver la tabla, pero no
+   dar de alta ni editar filas (fila entera bloqueada al abrirla). */
+body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual{ display:none !important; }
+body:not(.perm-panel_siniestros) .ps-form-grid input,
+body:not(.perm-panel_siniestros) .ps-form-grid select,
+body:not(.perm-panel_siniestros) .ps-form-grid textarea,
+body:not(.perm-panel_siniestros) .ps-recogida-fila input,
+body:not(.perm-panel_siniestros) .ps-recogida-fila select,
+body:not(.perm-panel_siniestros) #psModalOverlay .btn,
+body:not(.perm-panel_siniestros) #psModalOverlay input[type="file"]{
+  pointer-events:none !important; opacity:.6;
+}
+
+/* Sin permiso de "Enviar a Facturación" */
+body:not(.perm-enviar_facturacion) #psJustificanteInput,
+body:not(.perm-enviar_facturacion) [id^="btnEnviarFacturacion"]{
+  pointer-events:none !important; opacity:.6;
+}
+
+/* Sin permiso de "Siniestros del día" */
+body:not(.perm-siniestros_dia) #btnEnviarSiniestro,
+body:not(.perm-siniestros_dia) #siniestroFotosLabel{
+  pointer-events:none !important; opacity:.6;
+}
+
+/* Sin permiso de "Destinatarios de Facturación" (dentro de la página
+   de Emails, que si comparten página necesita perm-config_emails
+   para verse siquiera) */
+body:not(.perm-config_facturacion) #listaEmailsFacturacion .email-add-row,
+body:not(.perm-config_facturacion) #listaEmailsFacturacion [data-quitar-facturacion]{
+  pointer-events:none !important; opacity:.5;
+}
+
+/* Modo LECTURA: deshabilita todos los botones de acción, deja intacta
+   la navegación, los filtros y los buscadores. */
 body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]),
 body.rol-lectura .btn,
 body.rol-lectura .link-accion,
 body.rol-lectura .mini-btn{
   opacity:.45 !important; pointer-events:none !important; cursor:not-allowed !important;
 }
-
-/* Campos de edición concretos (formulario del Panel siniestros,
-   tarjetas de agencia en Emails, alta de destinatarios de Facturación) */
 body.rol-lectura .ps-form-grid input,
 body.rol-lectura .ps-form-grid select,
 body.rol-lectura .ps-form-grid textarea,
@@ -1028,4 +1062,39 @@ body.rol-lectura .email-card input,
 body.rol-lectura .email-add-row input,
 body.rol-lectura input[type="file"]{
   pointer-events:none !important; opacity:.7;
+}
+
+/* ========== Modal de usuario con panel de permisos ========== */
+.usuario-modal-grid{
+  display:grid; grid-template-columns:220px 1fr; gap:28px; align-items:start;
+}
+.usuario-modal-campos{ display:flex; flex-direction:column; gap:14px; }
+
+.permisos-panel{ min-width:0; }
+.permisos-cabecera{ margin-bottom:12px; }
+.permisos-cabecera b{ font-size:14px; }
+.permisos-cabecera span{ display:block; font-size:12px; color:var(--ink-soft); margin-top:2px; }
+.permisos-columnas{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+}
+.permisos-col{
+  background:var(--panel-muted); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px;
+}
+.permisos-col h4{
+  margin:0 0 8px; font-size:11px; font-weight:800; text-transform:uppercase;
+  letter-spacing:.4px; color:var(--ink-soft);
+}
+.permiso-item{
+  display:flex; align-items:flex-start; gap:8px; padding:8px 0;
+  border-top:1px solid var(--border); cursor:pointer;
+}
+.permiso-item:first-of-type{ border-top:0; }
+.permiso-item input{ margin-top:3px; width:15px; height:15px; flex:0 0 auto; cursor:pointer; accent-color:var(--accent); }
+.permiso-item b{ display:block; font-size:12.5px; }
+.permiso-item small{ display:block; font-size:11px; color:var(--ink-soft); line-height:1.4; margin-top:1px; }
+
+@media (max-width: 780px){
+  .usuario-modal-grid{ grid-template-columns:1fr; }
+  .permisos-columnas{ grid-template-columns:1fr; }
 }
