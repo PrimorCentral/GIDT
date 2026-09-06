@@ -207,9 +207,9 @@ function renderPanelSiniestros() {
         <td>${psPillTipo(s.tipo)}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
-        <td style="text-align:center;">${numFotos ? `📷 ${numFotos}` : '—'}</td>
-        <td style="text-align:center;">${tieneFactura ? '📄' : '—'}</td>
-        <td style="text-align:right;">${psFormatearValor(s.valor)}</td>
+        <td>${numFotos ? `📷 ${numFotos}` : '—'}</td>
+        <td>${tieneFactura ? '📄' : '—'}</td>
+        <td>${psFormatearValor(s.valor)}</td>
         <td>${psBadgeEstado(s.estado)}</td>
         <td class="${vencido ? 'ps-vencido' : ''}">${recogidaTexto}</td>
       </tr>`;
@@ -461,8 +461,15 @@ function flushAutoguardadoPanel() {
 });
 
 document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
-  document.getElementById('psJustificanteBloque').style.display = e.target.value === 'RECOGIDO POR AGENCIA' ? '' : 'none';
+  const s = psSiniestroPorId(panelActivoId);
+  const esRecogidoAgencia = e.target.value === 'RECOGIDO POR AGENCIA';
+  document.getElementById('psJustificanteBloque').style.display = esRecogidoAgencia ? '' : 'none';
   programarAutoguardadoPanel();
+  // Si se acaba de elegir "Recogido por agencia" y todavía no hay
+  // justificante, abrimos directamente el selector de archivo.
+  if (esRecogidoAgencia && s && !s.justificante_recogida_url) {
+    document.getElementById('psJustificanteInput').click();
+  }
 });
 
 // Borra un archivo del storage detectando el bucket a partir de su propia
