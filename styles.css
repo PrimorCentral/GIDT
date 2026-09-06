@@ -890,7 +890,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-badge-estado.pendiente{ color:#C77700; }
 .ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
-.ps-modal-box{ width:100%; max-width:1040px; max-height:88vh; overflow-y:auto; position:relative; }
+.ps-modal-box{ width:100%; max-width:1040px; max-height:97vh; overflow-y:auto; position:relative; }
 .ps-modal-titulo-principal{
   margin:0 0 16px; text-align:center; font-size:18px; font-weight:800; color:var(--ink);
 }
