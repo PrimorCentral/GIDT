@@ -25,7 +25,7 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', anio: '', recogida: '' };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', anio: '', recogida: '', fechaDesde: '', fechaHasta: '' };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
@@ -130,6 +130,8 @@ function siniestrosPanelFiltrados() {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   return panelCache.filter(s => {
     if (f.anio && !(s.fecha || '').startsWith(f.anio)) return false;
+    if (f.fechaDesde && (s.fecha || '') < f.fechaDesde) return false;
+    if (f.fechaHasta && (s.fecha || '') > f.fechaHasta) return false;
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
     if (f.recogida) {
@@ -281,6 +283,14 @@ document.getElementById('psDetalleModalOverlay')?.addEventListener('click', (e) 
 
 document.getElementById('psFiltroTexto')?.addEventListener('input', (e) => {
   panelFiltros.texto = e.target.value;
+  renderPanelSiniestros();
+});
+document.getElementById('psFiltroFechaDesde')?.addEventListener('change', (e) => {
+  panelFiltros.fechaDesde = e.target.value;
+  renderPanelSiniestros();
+});
+document.getElementById('psFiltroFechaHasta')?.addEventListener('change', (e) => {
+  panelFiltros.fechaHasta = e.target.value;
   renderPanelSiniestros();
 });
 document.getElementById('psFiltroAgencia')?.addEventListener('change', (e) => {
