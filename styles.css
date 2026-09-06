@@ -1017,6 +1017,8 @@ body:not(.perm-borrar) .agencia-body [data-borrar]{ display:none !important; }
 
 /* Sin permiso de "Informe del día" */
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
+body:not(.perm-informe_dia) #btnGenerarInformeDesdeIncidencias,
+body:not(.perm-informe_dia) #btnEditarPalets,
 body:not(.perm-informe_dia) .i-motivo-check,
 body:not(.perm-informe_dia) .i-obs,
 body:not(.perm-informe_dia) .btn-borrar-motivos{
