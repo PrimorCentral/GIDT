@@ -118,7 +118,7 @@
     try {
       const [{ count: numAgencias, error: e1 }, { count: numTiendas, error: e2 }] = await Promise.all([
         sb.from('agencias').select('*', { count: 'exact', head: true }).eq('activo', true),
-        sb.from('tiendas').select('*', { count: 'exact', head: true }).eq('activo', true)
+        sb.from('tiendas').select('*', { count: 'exact', head: true }).eq('activo', true).eq('marca', 'HABITUAL')
       ]);
       if (e1 || e2) throw (e1 || e2);
 
