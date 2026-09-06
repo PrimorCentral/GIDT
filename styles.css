@@ -1147,3 +1147,29 @@ body.rol-lectura input[type="file"]{
 .inicio-pendiente-item .icono{ font-size:18px; flex:0 0 auto; }
 .inicio-pendiente-item .texto{ flex:1; font-size:13px; color:var(--ink); font-weight:600; }
 .inicio-pendiente-item .flecha{ color:var(--ink-soft); font-size:14px; flex:0 0 auto; }
+
+/* ========== Inicio: 2 columnas (estado del informe + tareas pendientes) ========== */
+.inicio-2col{
+  display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; margin-top:16px;
+}
+@media (max-width: 860px){
+  .inicio-2col{ grid-template-columns:1fr; }
+}
+
+.informe-estado-detalle{ padding:4px; }
+.informe-estado-header{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.informe-estado-header .glyph-check{
+  width:40px; height:40px; border-radius:10px; background:var(--ok-bg); color:var(--ok);
+  display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto;
+}
+.informe-estado-header h3{ margin:0; font-size:15px; }
+.informe-estado-header p{ margin:2px 0 0; font-size:12.5px; color:var(--ink-soft); }
+
+.informe-estado-lista{ margin:0 0 18px; }
+.informe-estado-lista .fila{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;
+}
+.informe-estado-lista .fila:last-child{ border-bottom:0; }
+.informe-estado-lista .fila .etiqueta{ color:var(--ink-soft); }
+.informe-estado-lista .fila .valor{ font-weight:700; color:var(--ink); text-align:right; }
