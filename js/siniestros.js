@@ -296,10 +296,11 @@
       (s.fecha_limite ? `\nFecha límite de reclamación: ${formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00'))}` : '');
 
     const grid = document.getElementById('siniestroFotosGrid');
+    const puedeQuitarFotos = s.estado === 'PENDIENTE';
     grid.innerHTML = (s.fotos || []).map((url, idx) => `
       <div class="foto-item">
         <img src="${url}" loading="lazy">
-        <button data-quitar-foto="${idx}" title="Quitar">✕</button>
+        ${puedeQuitarFotos ? `<button data-quitar-foto="${idx}" title="Quitar">✕</button>` : ''}
       </div>`).join('');
     grid.querySelectorAll('[data-quitar-foto]').forEach(btn => {
       btn.addEventListener('click', () => quitarFotoSiniestro(Number(btn.dataset.quitarFoto)));
