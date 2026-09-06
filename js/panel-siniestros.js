@@ -419,7 +419,7 @@ async function abrirModalPanelSiniestro(id) {
   if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error'); }
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
-  document.getElementById('psFechaTexto').textContent = `Recepción: ${psFormatearFecha(s.fecha)}`;
+  document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
 
   rellenarSelectOrigen(s.origen);
@@ -1060,9 +1060,8 @@ async function ofrecerEnvioFacturacion(s) {
 // ---------------- Enganche de eventos generales ----------------
 
 document.getElementById('btnCerrarPsModal')?.addEventListener('click', cerrarModalPanelSiniestro);
-document.getElementById('psModalOverlay')?.addEventListener('click', (e) => {
-  if (e.target.id === 'psModalOverlay') cerrarModalPanelSiniestro();
-});
+// El modal ya no se cierra al hacer clic fuera (solo con la X o Eliminar),
+// para evitar cerrarlo sin querer con cambios a medio escribir.
 document.getElementById('btnBorrarPanelSiniestro')?.addEventListener('click', eliminarPanelSiniestro);
 
 // Carga perezosa: solo la primera vez que se entra en la pestaña
