@@ -29,14 +29,22 @@
               <i></i>${u.activo ? 'Activo' : 'Desactivado'}
             </span>
           </td>
-          <td style="text-align:right;">
+          <td style="text-align:right; white-space:nowrap;">
+            <button class="link-accion" data-editar="${u.id}">Editar</button>
             <button class="link-accion ${u.activo ? 'danger' : ''}" data-toggle="${u.id}" data-activo="${u.activo}">
               ${u.activo ? 'Desactivar' : 'Activar'}
             </button>
+            <button class="link-accion danger" data-borrar="${u.id}">Borrar</button>
           </td>
         </tr>
       `).join('');
 
+      tbody.querySelectorAll('[data-editar]').forEach(btn => {
+        btn.addEventListener('click', () => abrirModalEditarUsuario(btn.dataset.editar));
+      });
+      tbody.querySelectorAll('[data-borrar]').forEach(btn => {
+        btn.addEventListener('click', () => borrarUsuario(btn.dataset.borrar));
+      });
       tbody.querySelectorAll('[data-toggle]').forEach(btn => {
         btn.addEventListener('click', () => toggleUsuario(btn.dataset.toggle, btn.dataset.activo === 'true'));
       });
@@ -64,6 +72,95 @@
     } catch (err) {
       console.error('Error cambiando estado de usuario:', err);
       await modalAlert('No se pudo actualizar el usuario.', { titulo: 'Error' });
+    }
+  }
+
+  // ---------------- Editar usuario ----------------
+
+  let usuarioEditandoId = null;
+
+  function abrirModalEditarUsuario(id) {
+    const u = usuariosCache.find(x => String(x.id) === String(id));
+    if (!u) return;
+    usuarioEditandoId = id;
+
+    document.getElementById('euNombre').value = u.nombre || '';
+    document.getElementById('euUsuario').value = u.usuario || '';
+    document.getElementById('euRol').value = u.rol || 'operador';
+    document.getElementById('euPin').value = '';
+    document.getElementById('euError').style.display = 'none';
+
+    document.getElementById('editarUsuarioModalOverlay').classList.add('show');
+  }
+
+  function cerrarModalEditarUsuario() {
+    document.getElementById('editarUsuarioModalOverlay').classList.remove('show');
+    usuarioEditandoId = null;
+  }
+
+  async function guardarEdicionUsuario() {
+    if (!usuarioEditandoId) return;
+    const nombre = document.getElementById('euNombre').value.trim();
+    const usuario = document.getElementById('euUsuario').value.trim();
+    const rol = document.getElementById('euRol').value;
+    const pin = document.getElementById('euPin').value.trim();
+    const errEl = document.getElementById('euError');
+    errEl.style.display = 'none';
+
+    if (!nombre || !usuario) {
+      errEl.textContent = 'Rellena al menos el nombre y el usuario.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (pin && pin.length < 4) {
+      errEl.textContent = 'El PIN debe tener al menos 4 dígitos.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('btnGuardarEditarUsuario');
+    btn.disabled = true;
+    try {
+      const cambios = { nombre, usuario, rol };
+      if (pin) cambios.pin_hash = await sha256(pin);
+
+      const { error } = await sb.from('usuarios').update(cambios).eq('id', usuarioEditandoId);
+      if (error) {
+        if (error.code === '23505') throw new Error('Ese nombre de usuario ya existe.');
+        throw error;
+      }
+
+      cerrarModalEditarUsuario();
+      cargarUsuarios();
+    } catch (err) {
+      console.error('Error editando usuario:', err);
+      errEl.textContent = err.message || 'No se pudo guardar el usuario.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('btnCerrarEditarUsuario')?.addEventListener('click', cerrarModalEditarUsuario);
+  document.getElementById('btnCancelarEditarUsuario')?.addEventListener('click', cerrarModalEditarUsuario);
+  document.getElementById('btnGuardarEditarUsuario')?.addEventListener('click', guardarEdicionUsuario);
+
+  // ---------------- Borrar usuario ----------------
+
+  async function borrarUsuario(id) {
+    const u = usuariosCache.find(x => String(x.id) === String(id));
+    const ok = await modalConfirm(
+      `¿Borrar definitivamente a ${u ? u.nombre : 'este usuario'}? Esta acción no se puede deshacer.`,
+      { titulo: 'Borrar usuario', danger: true, textoOk: 'Borrar' }
+    );
+    if (!ok) return;
+    try {
+      const { error } = await sb.from('usuarios').delete().eq('id', id);
+      if (error) throw error;
+      cargarUsuarios();
+    } catch (err) {
+      console.error('Error borrando usuario:', err);
+      await modalAlert('No se pudo borrar el usuario.', { titulo: 'Error' });
     }
   }
 
