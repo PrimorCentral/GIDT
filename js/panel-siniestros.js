@@ -425,7 +425,7 @@ async function abrirModalPanelSiniestro(id) {
   rellenarSelectOrigen(s.origen);
   document.getElementById('psInformacion').value = s.informacion || '';
   aplicarEstadoCampoAlbaran(s);
-  document.getElementById('psValor').value = s.valor ?? '';
+  aplicarEstadoCampoValor(s);
   document.getElementById('psEstado').value = s.estado || 'PDTE COBRO';
   document.getElementById('psError').style.display = 'none';
 
@@ -774,6 +774,7 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
     if (totalDetectado !== null) {
       s.valor = totalDetectado;
       campoValor.value = totalDetectado;
+      aplicarEstadoCampoValor(s);
     }
     pintarFacturaModal(s);
     renderPanelSiniestros();
@@ -797,6 +798,7 @@ async function quitarFacturaPanel() {
     if (error) throw error;
     if (s) { s.factura_url = null; s.factura_nombre = null; }
     pintarFacturaModal(s);
+    if (s) aplicarEstadoCampoValor(s); // libera el campo Valor para poder editarlo a mano
     renderPanelSiniestros();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
@@ -819,9 +821,34 @@ function aplicarEstadoCampoAlbaran(s) {
   input.placeholder = bloqueado ? '' : 'Cuando se conozca…';
 
   if (bloqueado) {
-    hint.innerHTML = `🔒 Detectado automáticamente del PDF · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
+    hint.innerHTML = `🔒 Detectado número albarán automáticamente · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
     hint.style.display = 'block';
     document.getElementById('btnEditarNumAlbaran').addEventListener('click', () => {
+      input.disabled = false;
+      input.focus();
+      hint.style.display = 'none';
+    });
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+// Igual que con el Nº Albarán: si el valor viene detectado automáticamente
+// de la factura, se bloquea el campo (con el mismo escape de "editar
+// manualmente" por si la lectura falla alguna vez).
+function aplicarEstadoCampoValor(s) {
+  const input = document.getElementById('psValor');
+  const hint = document.getElementById('psValorNumHint');
+  const tieneValor = s.valor !== null && s.valor !== undefined && s.valor !== '';
+  const bloqueado = !!(s.factura_url && tieneValor);
+
+  input.value = tieneValor ? s.valor : '';
+  input.disabled = bloqueado;
+
+  if (bloqueado) {
+    hint.innerHTML = `🔒 Detectado importe de factura automáticamente · <button type="button" id="btnEditarValor">editar manualmente</button>`;
+    hint.style.display = 'block';
+    document.getElementById('btnEditarValor').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';
