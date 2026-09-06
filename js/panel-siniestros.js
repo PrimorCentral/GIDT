@@ -346,6 +346,15 @@ async function guardarNuevoPanelSiniestro() {
   const agencia = agenciasCache.find(a => String(a.id) === String(agenciaId));
   const tienda = tiendasCache.find(t => String(t.id) === String(tiendaId));
 
+  // Misma regla que el flujo automático: fecha de recepción + 15 días.
+  // Una FALTA pura no tiene nada físico que recoger, así que no aplica.
+  let recogidaLimite = null;
+  if (tipo !== 'FALTAS') {
+    const limite = new Date(fecha + 'T00:00:00');
+    limite.setDate(limite.getDate() + 15);
+    recogidaLimite = fechaLocalISO(limite);
+  }
+
   const btn = document.getElementById('btnGuardarPsNuevo');
   btn.disabled = true;
   try {
@@ -358,6 +367,7 @@ async function guardarNuevoPanelSiniestro() {
       tienda_nombre: tienda?.nombre || null,
       informacion: informacion || null,
       estado: 'PDTE COBRO',
+      recogida_limite: recogidaLimite,
       creado_por: sesionActual?.nombre || sesionActual?.usuario || null
     }).select().single();
     if (error) throw error;
