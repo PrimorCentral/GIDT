@@ -374,6 +374,24 @@
           const inc = incidenciaDeTienda(tiendaId);
           if (!inc) return; // no había fila en Supabase, nada que borrar
 
+          // Si el siniestro asociado ya se ha enviado a la agencia, no se
+          // puede borrar la incidencia desde aquí (se perdería el rastro de
+          // algo ya reclamado): hay que borrarlo desde el Panel siniestros,
+          // que es quien se encarga de arrastrar también esta incidencia.
+          try {
+            const { data: sinExistente } = await sb.from('siniestros')
+              .select('id, estado').eq('incidencia_id', inc.id).maybeSingle();
+            if (sinExistente?.estado === 'ENVIADO') {
+              await modalAlert(
+                'Este siniestro ya se ha enviado a la agencia. Para eliminarlo, hazlo desde el Panel siniestros.',
+                { titulo: 'No se puede eliminar' }
+              );
+              return;
+            }
+          } catch (err) {
+            console.error('Error comprobando el estado del siniestro:', err);
+          }
+
           const ok = await modalConfirm(
             '¿Eliminar por completo esta incidencia? Si tiene un siniestro asociado (rotura/falta), también se eliminará.',
             { titulo: 'Eliminar incidencia', danger: true, textoOk: 'Eliminar' }

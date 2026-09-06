@@ -707,7 +707,7 @@ async function eliminarPanelSiniestro() {
   const s = psSiniestroPorId(panelActivoId);
 
   const ok = await modalConfirm(
-    'Se borrará todo lo relacionado con este siniestro (fotos, factura y albarán) y se quitará del Panel. El registro original de "Siniestros del día" se marcará como ANULADO en vez de desaparecer, para que quede constancia. Esta acción no se puede deshacer.',
+    'Se borrará todo lo relacionado con este siniestro: fotos, factura, albarán, el registro original de "Siniestros del día" y la propia incidencia del informe del día en que se creó (aunque no sea hoy). Esta acción no se puede deshacer.',
     { titulo: 'CONFIRMAR BORRAR SINIESTRO', danger: true, textoOk: 'Sí, borrar definitivamente' }
   );
   if (!ok) return;
@@ -723,19 +723,22 @@ async function eliminarPanelSiniestro() {
     if (s?.justificante_recogida_url) urls.push(s.justificante_recogida_url);
 
     if (s?.siniestro_id) {
-      const { data: sinOriginal } = await sb.from('siniestros').select('fotos').eq('id', s.siniestro_id).maybeSingle();
+      const { data: sinOriginal } = await sb.from('siniestros').select('fotos, incidencia_id').eq('id', s.siniestro_id).maybeSingle();
       (sinOriginal?.fotos || []).forEach(u => { if (!urls.includes(u)) urls.push(u); });
 
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
 
-      // No se borra la fila de "siniestros": se marca como ANULADO y se le
-      // vacían las fotos (ya borradas del storage). Así sigue apareciendo en
-      // "Siniestros del día" como constancia, pero ya no cuenta como
-      // pendiente ni puede volver a crearse duplicada en la sincronización.
-      const { error: eAnular } = await sb.from('siniestros')
-        .update({ estado: 'ANULADO', fotos: [] })
-        .eq('id', s.siniestro_id);
-      if (eAnular) console.error('No se pudo anular el siniestro original:', eAnular);
+      // Se borra el siniestro de verdad, y también la incidencia del informe
+      // del día en que se creó (esté hoy o en cualquier otro día): borrar
+      // desde aquí es la vía "oficial" para quitar un siniestro ya enviado,
+      // así que se limpia todo el rastro de una vez.
+      const { error: eSin } = await sb.from('siniestros').delete().eq('id', s.siniestro_id);
+      if (eSin) console.error('No se pudo borrar el siniestro original:', eSin);
+
+      if (sinOriginal?.incidencia_id) {
+        const { error: eInc } = await sb.from('incidencias').delete().eq('id', sinOriginal.incidencia_id);
+        if (eInc) console.error('No se pudo borrar la incidencia asociada:', eInc);
+      }
     } else {
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
     }
