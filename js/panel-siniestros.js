@@ -300,8 +300,92 @@ document.getElementById('psFiltroRecogida')?.addEventListener('change', (e) => {
   renderPanelSiniestros();
 });
 
+// ---------------- Alta manual (para lo que no viene del envío automático) ----------------
+
+function rellenarSelectTiendasPsn(agenciaId) {
+  const sel = document.getElementById('psnTienda');
+  const tds = tiendasCache.filter(t => !agenciaId || String(t.agencia_id) === String(agenciaId));
+  sel.innerHTML = `<option value="">— Selecciona tienda —</option>` +
+    tds.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
+}
+
+async function abrirModalNuevoPanelSiniestro() {
+  if (!agenciasCache.length) await cargarAgenciasYTiendas();
+
+  document.getElementById('psnFecha').value = fechaLocalISO(new Date());
+  document.getElementById('psnTipo').value = 'ROTURA';
+  document.getElementById('psnAgencia').innerHTML = `<option value="">— Selecciona agencia —</option>` +
+    agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+  rellenarSelectTiendasPsn(null);
+  document.getElementById('psnInformacion').value = '';
+  document.getElementById('psnError').style.display = 'none';
+
+  document.getElementById('psNuevoModalOverlay').classList.add('show');
+}
+
+function cerrarModalNuevoPanelSiniestro() {
+  document.getElementById('psNuevoModalOverlay').classList.remove('show');
+}
+
+async function guardarNuevoPanelSiniestro() {
+  const errEl = document.getElementById('psnError');
+  errEl.style.display = 'none';
+
+  const fecha = document.getElementById('psnFecha').value;
+  const tipo = document.getElementById('psnTipo').value;
+  const agenciaId = document.getElementById('psnAgencia').value;
+  const tiendaId = document.getElementById('psnTienda').value;
+  const informacion = document.getElementById('psnInformacion').value.trim();
+
+  if (!fecha || !agenciaId || !tiendaId) {
+    errEl.textContent = 'Rellena al menos la fecha, la agencia y la tienda.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const agencia = agenciasCache.find(a => String(a.id) === String(agenciaId));
+  const tienda = tiendasCache.find(t => String(t.id) === String(tiendaId));
+
+  const btn = document.getElementById('btnGuardarPsNuevo');
+  btn.disabled = true;
+  try {
+    const { data, error } = await sb.from('panel_siniestros').insert({
+      fecha,
+      tipo,
+      agencia_id: Number(agenciaId),
+      agencia_nombre: agencia?.nombre || null,
+      tienda_id: Number(tiendaId),
+      tienda_nombre: tienda?.nombre || null,
+      informacion: informacion || null,
+      estado: 'PDTE COBRO',
+      creado_por: sesionActual?.nombre || sesionActual?.usuario || null
+    }).select().single();
+    if (error) throw error;
+
+    cerrarModalNuevoPanelSiniestro();
+    await cargarPanelSiniestros();
+    abrirModalPanelSiniestro(data.id); // seguimos rellenando el resto de datos aquí
+  } catch (err) {
+    console.error('Error creando el siniestro manual:', err);
+    errEl.textContent = 'No se pudo crear el siniestro.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnNuevoPanelSiniestroManual')?.addEventListener('click', abrirModalNuevoPanelSiniestro);
+document.getElementById('btnCerrarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
+document.getElementById('btnCancelarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
+document.getElementById('btnGuardarPsNuevo')?.addEventListener('click', guardarNuevoPanelSiniestro);
+document.getElementById('psNuevoModalOverlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'psNuevoModalOverlay') cerrarModalNuevoPanelSiniestro();
+});
+document.getElementById('psnAgencia')?.addEventListener('change', (e) => rellenarSelectTiendasPsn(e.target.value));
+
 // ---------------- Modal: completar los datos de una fila ----------------
-// (la fila ya existe siempre — este modal solo EDITA, nunca da de alta)
+// (además de crearse solas al enviar un siniestro, o darlas de alta a mano
+// con el botón "Añadir siniestro", este modal es donde se completa todo)
 
 function psSiniestroPorId(id) {
   return panelCache.find(s => s.id === id);
@@ -957,8 +1041,12 @@ document.getElementById('btnBorrarPanelSiniestro')?.addEventListener('click', el
 
 // Carga perezosa: solo la primera vez que se entra en la pestaña
 document.querySelectorAll('[data-view="panel-siniestros"]').forEach(el => {
-  el.addEventListener('click', () => {
-    if (!agenciasCache.length) cargarAgenciasYTiendas();
-    if (!panelCargado) cargarPanelSiniestros();
+  el.addEventListener('click', async () => {
+    if (!agenciasCache.length) await cargarAgenciasYTiendas();
+    if (!panelCargado) {
+      await cargarPanelSiniestros();
+    } else {
+      rellenarFiltroAgenciasPanel(); // por si el panel ya estaba cargado pero las agencias no
+    }
   });
 });
