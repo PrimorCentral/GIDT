@@ -508,9 +508,9 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psCreadoTexto').textContent = s.creado_en
     ? `Creado por: ${s.creado_por || '—'} · ${psFormatearFechaHora(s.creado_en)}`
     : '';
-  document.getElementById('psActualizadoTexto').textContent = (s.actualizado_en && s.actualizado_por)
+  document.getElementById('psActualizadoTexto').textContent = s.actualizado_por
     ? `Actualizado por: ${s.actualizado_por} · ${psFormatearFechaHora(s.actualizado_en)}`
-    : '';
+    : 'Actualizado por: —';
 
   rellenarSelectOrigen(s.origen);
   document.getElementById('psInformacion').value = s.informacion || '';
