@@ -440,13 +440,18 @@ async function guardarNuevoPanelSiniestro() {
 document.getElementById('btnNuevoPanelSiniestroManual')?.addEventListener('click', abrirModalNuevoPanelSiniestro);
 document.getElementById('btnRefrescarPanelSiniestros')?.addEventListener('click', async (e) => {
   const btn = e.currentTarget;
+  const icono = btn.querySelector('.ps-refresh-icon');
+  const inicio = Date.now();
   btn.disabled = true;
-  btn.classList.add('ps-girando');
+  icono?.classList.add('ps-girando');
   try {
     await cargarPanelSiniestros();
   } finally {
+    // Al menos una vuelta completa visible, aunque la carga sea instantánea
+    const restante = 800 - (Date.now() - inicio);
+    if (restante > 0) await new Promise(r => setTimeout(r, restante));
     btn.disabled = false;
-    btn.classList.remove('ps-girando');
+    icono?.classList.remove('ps-girando');
   }
 });
 document.getElementById('btnCerrarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
