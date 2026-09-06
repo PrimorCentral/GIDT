@@ -307,7 +307,14 @@
     });
 
     document.getElementById('siniestroModalEstado').textContent =
-      s.estado === 'ENVIADO' ? `Enviado el ${s.enviado_en ? formatearFechaHoraCorta(new Date(s.enviado_en)) : ''}`
+      s.estado === 'ENVIADO'
+        ? (() => {
+            if (!s.enviado_en) return 'Enviado';
+            const f = new Date(s.enviado_en);
+            const fechaTxt = formatearFechaCorta(f);
+            const horaTxt = f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            return `Enviado el ${fechaTxt} a las ${horaTxt}h por: ${s.enviado_por || '—'}`;
+          })()
       : s.estado === 'ANULADO' ? '🚫 Anulado desde el Panel siniestros'
       : 'Pendiente de envío';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
