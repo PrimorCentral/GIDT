@@ -9,7 +9,7 @@
     try {
       const { data, error } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, creado_por, creado_en')
         .eq('fecha', fechaHoyISO)
         .maybeSingle();
       if (error) throw error;
@@ -37,11 +37,21 @@
         </div>`;
       document.getElementById('btnGenerarInformeEmpty').addEventListener('click', generarInformeHoy);
     } else {
+      const estadoTexto = informeHoyCache.informe_enviado ? 'ENVIADO' : informeHoyCache.estado;
       card.innerHTML = `
-        <div class="empty">
-          <div class="glyph">✅</div>
-          <h3>Informe de hoy creado</h3>
-          <p>${informeHoyCache.total_palets ? informeHoyCache.total_palets + ' palets previstos de entrega en tiendas · ' : ''}Estado del informe: ${informeHoyCache.estado}</p>
+        <div class="informe-estado-detalle">
+          <div class="informe-estado-header">
+            <span class="glyph-check">✅</span>
+            <div>
+              <h3>Informe de hoy creado</h3>
+              <p>${formatearFechaCorta(hoy)}</p>
+            </div>
+          </div>
+          <div class="informe-estado-lista">
+            <div class="fila"><span class="etiqueta">Palets previstos</span><span class="valor">${informeHoyCache.total_palets || 'Sin especificar'}</span></div>
+            <div class="fila"><span class="etiqueta">Estado del informe</span><span class="valor">${escapeHtml(estadoTexto)}</span></div>
+            <div class="fila"><span class="etiqueta">Creado por</span><span class="valor">${escapeHtml(informeHoyCache.creado_por || '—')}</span></div>
+          </div>
           <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
         </div>`;
       card.querySelector('[data-view="incidencias"]').addEventListener('click', () => {
