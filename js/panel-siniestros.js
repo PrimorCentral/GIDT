@@ -122,7 +122,8 @@ function siniestrosPanelFiltrados() {
     if (f.fechaDesde && (s.fecha || '') < f.fechaDesde) return false;
     if (f.fechaHasta && (s.fecha || '') > f.fechaHasta) return false;
     if (f.tipo && s.tipo !== f.tipo) return false;
-    if (f.origen && s.origen !== f.origen) return false;
+    if (f.origen === 'SIN_ORIGEN' && s.origen) return false;
+    if (f.origen && f.origen !== 'SIN_ORIGEN' && s.origen !== f.origen) return false;
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
     if (f.recogida) {
