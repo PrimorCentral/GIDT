@@ -3,6 +3,7 @@
   let usuariosCache = [];
 
   const CLAVES_PERMISOS = [
+    'informe_dia', 'enviar_informe',
     'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
     'config_tiendas', 'config_emails', 'config_facturacion',
     'gestion_usuarios', 'borrar', 'ver_analisis'
