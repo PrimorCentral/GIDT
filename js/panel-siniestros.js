@@ -212,56 +212,98 @@ function renderPanelSiniestros() {
   });
 }
 
-function renderPanelKpis() {
-  const pend = panelCache.filter(s => s.estado === 'PDTE COBRO');
-  const totalPend = pend.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
-  const elCount = document.getElementById('psKpiPendientesCount');
-  const elValor = document.getElementById('psKpiPendientesValor');
-  if (elCount) elCount.textContent = pend.length;
-  if (elValor) elValor.textContent = psFormatearValor(totalPend);
+// Devuelve true si el siniestro tiene una recogida pendiente de verdad
+// (aplica ROTURA/FALTAS Y ROTURAS, tiene fecha límite, y todavía no se ha
+// gestionado ni como "enviado a central" ni como "recogido por agencia").
+function psRecogidaPendiente(s) {
+  return s.tipo !== 'FALTAS' && !!s.recogida_limite && !s.recogida_estado;
 }
 
-function abrirModalDetallePendientes() {
+function renderPanelKpis() {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
   const pend = panelCache.filter(s => s.estado === 'PDTE COBRO');
+  const totalPend = pend.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
+
+  const recogidaPendiente = panelCache.filter(psRecogidaPendiente);
+  const recogidaDentro = recogidaPendiente.filter(s => new Date(s.recogida_limite + 'T00:00:00') >= hoy);
+  const recogidaFuera = recogidaPendiente.filter(s => new Date(s.recogida_limite + 'T00:00:00') < hoy);
+
+  const elCount = document.getElementById('psKpiPendientesCount');
+  const elValor = document.getElementById('psKpiPendientesValor');
+  const elRecDentro = document.getElementById('psKpiRecogidaDentro');
+  const elRecFuera = document.getElementById('psKpiRecogidaFuera');
+  if (elCount) elCount.textContent = pend.length;
+  if (elValor) elValor.textContent = psFormatearValor(totalPend);
+  if (elRecDentro) elRecDentro.textContent = recogidaDentro.length;
+  if (elRecFuera) elRecFuera.textContent = recogidaFuera.length;
+}
+
+// Modal genérico de detalle por agencia. filtroFn decide qué filas entran;
+// mostrarValor indica si se enseña el € (pendientes de cobro) o solo el
+// recuento (recogidas).
+function abrirModalDetalle(filtroFn, titulo, mostrarValor) {
+  const filas = panelCache.filter(filtroFn);
+  const tituloEl = document.querySelector('#psDetalleModalOverlay .modal-title');
+  if (tituloEl) tituloEl.textContent = titulo;
+
   const cont = document.getElementById('psDetalleLista');
 
-  if (!pend.length) {
-    cont.innerHTML = `<p class="ps-sin-archivos">No hay ningún siniestro pendiente de cobro.</p>`;
+  if (!filas.length) {
+    cont.innerHTML = `<p class="ps-sin-archivos">No hay ningún siniestro en este grupo.</p>`;
   } else {
     const porAgencia = {};
-    pend.forEach(s => {
+    filas.forEach(s => {
       const clave = s.agencia_nombre || 'Sin agencia';
       if (!porAgencia[clave]) porAgencia[clave] = { count: 0, valor: 0 };
       porAgencia[clave].count += 1;
       porAgencia[clave].valor += Number(s.valor) || 0;
     });
 
-    const filas = Object.entries(porAgencia)
-      .sort((a, b) => b[1].valor - a[1].valor)
+    const filasHtml = Object.entries(porAgencia)
+      .sort((a, b) => mostrarValor ? b[1].valor - a[1].valor : b[1].count - a[1].count)
       .map(([nombre, d]) => `
         <div class="ps-detalle-fila">
           <div>
             <div class="agencia">${escapeHtml(nombre)}</div>
             <div class="count">${d.count} siniestro${d.count === 1 ? '' : 's'}</div>
           </div>
-          <div class="valor">${psFormatearValor(d.valor)}</div>
+          ${mostrarValor ? `<div class="valor">${psFormatearValor(d.valor)}</div>` : ''}
         </div>`).join('');
 
-    const totalCount = pend.length;
-    const totalValor = pend.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
+    const totalCount = filas.length;
+    const totalValor = filas.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
 
-    cont.innerHTML = filas + `
+    cont.innerHTML = filasHtml + `
       <div class="ps-detalle-fila" style="border-top:2px solid var(--border); margin-top:4px; padding-top:12px;">
         <div class="agencia">Total</div>
-        <div class="valor">${totalCount} · ${psFormatearValor(totalValor)}</div>
+        <div class="valor">${mostrarValor ? totalCount + ' · ' + psFormatearValor(totalValor) : totalCount}</div>
       </div>`;
   }
 
   document.getElementById('psDetalleModalOverlay').classList.add('show');
 }
 
-document.getElementById('btnDetallePendientesCount')?.addEventListener('click', abrirModalDetallePendientes);
-document.getElementById('btnDetallePendientesValor')?.addEventListener('click', abrirModalDetallePendientes);
+document.getElementById('btnDetallePendientesCount')?.addEventListener('click', () => {
+  abrirModalDetalle(s => s.estado === 'PDTE COBRO', '💰 Pendiente de cobro por agencia', true);
+});
+document.getElementById('btnDetallePendientesValor')?.addEventListener('click', () => {
+  abrirModalDetalle(s => s.estado === 'PDTE COBRO', '💰 Pendiente de cobro por agencia', true);
+});
+document.getElementById('btnDetalleRecogidaDentro')?.addEventListener('click', () => {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  abrirModalDetalle(
+    s => psRecogidaPendiente(s) && new Date(s.recogida_limite + 'T00:00:00') >= hoy,
+    '📦 Recogidas pdte. en límite por agencia', false
+  );
+});
+document.getElementById('btnDetalleRecogidaFuera')?.addEventListener('click', () => {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  abrirModalDetalle(
+    s => psRecogidaPendiente(s) && new Date(s.recogida_limite + 'T00:00:00') < hoy,
+    '📦 Recogidas pdte. cumplidas por agencia', false
+  );
+});
 document.getElementById('btnCerrarPsDetalle')?.addEventListener('click', () => {
   document.getElementById('psDetalleModalOverlay').classList.remove('show');
 });
