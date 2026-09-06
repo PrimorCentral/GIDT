@@ -500,7 +500,7 @@ async function abrirModalPanelSiniestro(id) {
   clearTimeout(guardadoPanelTimer);
   guardadoPanelTimer = null;
   const estadoEl = document.getElementById('psGuardadoEstado');
-  if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error'); }
+  if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error', 'guardando', 'visible'); }
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
@@ -566,18 +566,21 @@ function marcarGuardandoPanel() {
   if (!el) return;
   clearTimeout(el._fadeTimer);
   el.classList.remove('ok', 'error');
-  el.textContent = 'Guardando…';
+  el.classList.add('guardando', 'visible');
+  el.textContent = '💾';
+  el.title = 'Guardando…';
 }
 
 function marcarGuardadoOkPanel() {
   ultimoGuardadoConError = false;
   const el = document.getElementById('psGuardadoEstado');
   if (!el) return;
-  el.classList.remove('error');
-  el.classList.add('ok');
-  el.textContent = '✓ Guardado';
+  el.classList.remove('error', 'guardando');
+  el.classList.add('ok', 'visible');
+  el.textContent = '✅';
+  el.title = 'Guardado';
   clearTimeout(el._fadeTimer);
-  el._fadeTimer = setTimeout(() => { el.textContent = ''; el.classList.remove('ok'); }, 1800);
+  el._fadeTimer = setTimeout(() => { el.classList.remove('visible', 'ok'); }, 1600);
 }
 
 function marcarErrorGuardadoPanel() {
@@ -585,11 +588,15 @@ function marcarErrorGuardadoPanel() {
   const el = document.getElementById('psGuardadoEstado');
   if (!el) return;
   clearTimeout(el._fadeTimer);
-  el.classList.remove('ok');
-  el.classList.add('error');
-  el.innerHTML = `⚠️ No se pudo guardar · <button type="button" id="btnReintentarGuardado">reintentar</button>`;
-  document.getElementById('btnReintentarGuardado').addEventListener('click', guardarCamposPanelAhora);
+  el.classList.remove('ok', 'guardando');
+  el.classList.add('error', 'visible');
+  el.textContent = '⚠️';
+  el.title = 'No se pudo guardar · pulsa para reintentar';
 }
+
+document.getElementById('psGuardadoEstado')?.addEventListener('click', (e) => {
+  if (e.currentTarget.classList.contains('error')) guardarCamposPanelAhora();
+});
 
 function programarAutoguardadoPanel() {
   if (!panelActivoId) return;
