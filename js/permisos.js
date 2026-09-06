@@ -16,7 +16,7 @@
 //              buscadores incluidos), pero no puede escribir nada.
 
 const CLAVES_PERMISOS_APP = [
-  'informe_dia', 'enviar_informe',
+  'informe_dia', 'enviar_informe', 'editar_informes_pasados',
   'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
   'config_tiendas', 'config_emails', 'config_facturacion',
   'gestion_usuarios', 'borrar', 'ver_analisis'
