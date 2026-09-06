@@ -86,7 +86,7 @@ function renderAcordeonHistorialEditable() {
                 <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
-              <button type="button" class="mini-btn btn-borrar-motivos-hist" title="Quitar todos los motivos" style="${marcada ? '' : 'display:none;'}">
+              <button type="button" class="mini-btn btn-borrar-motivos-hist" title="Eliminar esta incidencia" style="${marcada ? '' : 'display:none;'}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
               <div class="filtro-select-dropdown">
@@ -187,21 +187,17 @@ function renderAcordeonHistorialEditable() {
           return;
         }
 
-        const ok = await modalConfirm('¿Quitar todos los motivos de esta incidencia?', { titulo: 'Quitar incidencia', danger: true, textoOk: 'Quitar' });
+        const ok = await modalConfirm('¿Eliminar por completo esta incidencia?', { titulo: 'Eliminar incidencia', danger: true, textoOk: 'Eliminar' });
         if (!ok) return;
 
         try {
-          const { error } = await sb.from('incidencias').update({
-            marcada: false, tipo: null, motivo: [], observaciones: inc.observaciones || '',
-            actualizado_en: new Date().toISOString(), usuario: sesionActual?.nombre || sesionActual?.usuario || null
-          }).eq('id', inc.id);
+          const { error } = await sb.from('incidencias').delete().eq('id', inc.id);
           if (error) throw error;
-          inc.marcada = false; inc.tipo = null; inc.motivo = [];
-          tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
+          historialTodasIncidencias = historialTodasIncidencias.filter(i => i.id !== inc.id);
           renderAcordeonHistorialEditable();
         } catch (err) {
-          console.error('Error quitando motivos:', err);
-          await modalAlert('No se pudo actualizar la incidencia.', { titulo: 'Error' });
+          console.error('Error eliminando la incidencia:', err);
+          await modalAlert('No se pudo eliminar la incidencia.', { titulo: 'Error' });
         }
       });
     }
