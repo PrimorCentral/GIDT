@@ -167,14 +167,17 @@
   async function cargarInformeHistorial(fecha) {
     const cont = document.getElementById('contenidoHistorial');
     const wrapExportar = document.getElementById('exportarWrapHistorial');
+    const btnEditar = document.getElementById('btnEditarHistorial');
     if (!fecha) {
       await modalAlert('Selecciona primero una fecha.', { titulo: 'Historial' });
       return;
     }
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
     if (wrapExportar) wrapExportar.style.display = 'none';
+    if (btnEditar) btnEditar.style.display = 'none';
     historialInformeActual = null;
     historialIncidenciasActual = [];
+    historialEditando = false;
 
     try {
       const { data: informe, error: eInf } = await sb
@@ -211,6 +214,7 @@
       historialInformeActual = informe;
       historialIncidenciasActual = incs || [];
       if (wrapExportar) wrapExportar.style.display = '';
+      if (btnEditar) btnEditar.style.display = '';
 
       renderHistorialInforme(informe, incs || []);
     } catch (err) {
