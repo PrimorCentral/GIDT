@@ -854,6 +854,7 @@ table.tabla-panel-siniestros td.ps-col-info{
   max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700; }
+.ps-recogida-mini{ font-size:11px; color:var(--ink-soft); font-weight:600; }
 
 .pill.mixto{ background:#FDECD8; color:#A2530B; }
 
@@ -873,6 +874,8 @@ table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700;
   margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
 }
 .ps-archivos-col{ min-width:0; }
+
+.ps-recogida-fila{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 
 .ps-archivos-bloque{
   margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
@@ -925,4 +928,5 @@ table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700;
 @media (max-width: 640px){
   .ps-form-grid{ grid-template-columns:1fr; }
   .ps-archivos-fila{ grid-template-columns:1fr; }
+  .ps-recogida-fila{ grid-template-columns:1fr; }
 }

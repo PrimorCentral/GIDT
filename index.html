@@ -375,6 +375,13 @@
             <option value="PDTE COBRO">PDTE COBRO</option>
           </select>
           <select id="psFiltroAnio" class="form-input" style="max-width:140px;"><option value="">Todos los años</option></select>
+          <select id="psFiltroRecogida" class="form-input" style="max-width:210px;">
+            <option value="">Toda recogida</option>
+            <option value="ENVIADO A CENTRAL">Enviado a central</option>
+            <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+            <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
+            <option value="PDTE_FUERA">Pdte. fuera de límite</option>
+          </select>
         </div>
       </div>
 
@@ -802,8 +809,26 @@
         </select>
       </div>
       <div style="grid-column:1/-1;" id="psRecogidaBloque">
-        <label class="form-label">Recogida límite</label>
-        <input type="date" id="psRecogida" class="form-input">
+        <div class="ps-recogida-fila">
+          <div>
+            <label class="form-label">Recogida límite</label>
+            <input type="date" id="psRecogida" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Estado de la recogida</label>
+            <select id="psRecogidaEstado" class="form-input">
+              <option value="">— Pendiente —</option>
+              <option value="ENVIADO A CENTRAL">Enviado a central</option>
+              <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="grid-column:1/-1; display:none;" id="psJustificanteBloque">
+        <label class="form-label">Justificante de recogida</label>
+        <div id="psJustificanteZona"></div>
+        <input type="file" id="psJustificanteInput" accept=".pdf,image/*" style="display:none;">
+        <p class="err" id="psJustificanteError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
       </div>
     </div>
 
