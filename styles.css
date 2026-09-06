@@ -1134,3 +1134,16 @@ body.rol-lectura input[type="file"]{
   .usuario-modal-grid{ grid-template-columns:1fr; }
   .permisos-columnas{ grid-template-columns:1fr; }
 }
+
+/* ========== Inicio: "Pendiente de atención" ========== */
+.inicio-pendiente-item{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--panel); cursor:pointer; text-align:left; margin-bottom:8px;
+  font-family:inherit;
+}
+.inicio-pendiente-item:last-child{ margin-bottom:0; }
+.inicio-pendiente-item:hover{ background:var(--panel-muted); border-color:var(--accent); }
+.inicio-pendiente-item .icono{ font-size:18px; flex:0 0 auto; }
+.inicio-pendiente-item .texto{ flex:1; font-size:13px; color:var(--ink); font-weight:600; }
+.inicio-pendiente-item .flecha{ color:var(--ink-soft); font-size:14px; flex:0 0 auto; }
