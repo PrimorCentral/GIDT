@@ -850,12 +850,14 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 .ps-filtro-check input{ width:15px; height:15px; cursor:pointer; accent-color:var(--accent); }
 
 table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
-.ps-tabla-scroll{
-  box-sizing:border-box; padding:0; overflow:auto;
-  height:calc(100vh - 380px); min-height:280px;
+/* Título + KPIs + filtros se quedan fijos arriba mientras se hace scroll
+   por la tabla; usa el scroll real de <main>, sin alturas calculadas a mano. */
+.ps-panel-fijo{
+  position:sticky; top:0; z-index:15;
+  background:var(--panel-muted);
+  margin:0 -18px; padding:0 18px 4px;
 }
 table.tabla-panel-siniestros th{
-  position:sticky; top:0; z-index:5; background:var(--panel);
   text-align:left; padding:10px 14px; font-size:11px; color:var(--ink-soft);
   text-transform:uppercase; letter-spacing:.3px; font-weight:700; border-bottom:1px solid var(--border);
   white-space:nowrap;
