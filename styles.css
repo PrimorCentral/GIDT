@@ -960,3 +960,12 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-refresh-icon{ display:inline-block; }
 .ps-refresh-icon.ps-girando{ animation: ps-spin .8s linear infinite; }
 @keyframes ps-spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+.ps-lightbox-caja{ position:relative; max-width:92vw; max-height:92vh; }
+.ps-lightbox-caja img{
+  display:block; max-width:92vw; max-height:92vh; border-radius:var(--radius);
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+}
+.ps-lightbox-caja .filtros-modal-close{
+  position:absolute; right:-14px; top:-14px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
