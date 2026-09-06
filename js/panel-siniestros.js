@@ -720,13 +720,42 @@ function pintarFotosModal(s) {
   const fotos = s.fotos || [];
   grid.innerHTML = fotos.map((url, idx) => `
     <div class="ps-foto-thumb">
-      <a href="${url}" target="_blank" rel="noopener"><img src="${url}" loading="lazy"></a>
+      <img src="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
       <button type="button" class="ps-foto-quitar" data-idx="${idx}" title="Quitar foto">✕</button>
     </div>`).join('') || `<p class="ps-sin-archivos">Sin fotos todavía.</p>`;
 
+  grid.querySelectorAll('[data-abrir-foto]').forEach(img => {
+    img.addEventListener('click', () => abrirLightboxPanel(img.dataset.abrirFoto));
+  });
   grid.querySelectorAll('.ps-foto-quitar').forEach(btn => {
     btn.addEventListener('click', () => quitarFotoPanel(Number(btn.dataset.idx)));
   });
+}
+
+function abrirLightboxPanel(url) {
+  document.getElementById('psLightboxImg').src = url;
+  document.getElementById('psLightboxOverlay').classList.add('show');
+}
+function cerrarLightboxPanel() {
+  document.getElementById('psLightboxOverlay').classList.remove('show');
+  document.getElementById('psLightboxImg').src = '';
+}
+document.getElementById('btnCerrarPsLightbox')?.addEventListener('click', cerrarLightboxPanel);
+document.getElementById('psLightboxOverlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'psLightboxOverlay') cerrarLightboxPanel();
+});
+
+// Si el panel viene de un siniestro automático (tiene siniestro_id), las
+// fotos que se añaden/quitan aquí se reflejan también en el siniestro
+// original, para que "Siniestros del día" y el "Historial" se vean igual.
+async function sincronizarFotosConSiniestroOriginal(s) {
+  if (!s?.siniestro_id) return;
+  try {
+    const { error } = await sb.from('siniestros').update({ fotos: s.fotos || [] }).eq('id', s.siniestro_id);
+    if (error) console.error('No se pudo sincronizar las fotos con el siniestro original:', error);
+  } catch (err) {
+    console.error('Error sincronizando fotos con el siniestro original:', err);
+  }
 }
 
 document.getElementById('psFotosInput')?.addEventListener('change', async (e) => {
@@ -751,6 +780,7 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
     renderPanelSiniestros();
+    await sincronizarFotosConSiniestroOriginal(s);
   } catch (err) {
     console.error('Error subiendo fotos:', err);
     errEl.textContent = 'No se pudieron subir las fotos.';
@@ -788,6 +818,7 @@ async function quitarFotoPanel(idx) {
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
     renderPanelSiniestros();
+    await sincronizarFotosConSiniestroOriginal(s);
     await borrarDeStoragePorUrl(BUCKET_FOTOS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando foto:', err);
