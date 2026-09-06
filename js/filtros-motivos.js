@@ -200,6 +200,32 @@
     const marcada = motivos.length > 0;
     const tipo = calcularTipo(motivos);
 
+    // Si esta incidencia ya tiene un siniestro ENVIADO a la agencia y el
+    // cambio la dejaría sin motivo de siniestro (p. ej. desmarcar "Rotura
+    // confirmada" a mano, sin pasar por la papelera), no se permite: hay
+    // que gestionarlo desde el Panel siniestros.
+    const tipoSiniestroNuevo = typeof tipoSiniestroDeMotivos === 'function' ? tipoSiniestroDeMotivos(motivos) : null;
+    const existente = incidenciaDeTienda(tiendaId);
+    if (existente && !tipoSiniestroNuevo) {
+      try {
+        const { data: sinExistente } = await sb.from('siniestros').select('id, estado').eq('incidencia_id', existente.id).maybeSingle();
+        if (sinExistente?.estado === 'ENVIADO') {
+          await modalAlert('Este siniestro ya se ha enviado a la agencia. Para eliminarlo, hazlo desde el Panel siniestros.', { titulo: 'No se puede modificar' });
+          const motivosPrevios = existente.motivo || [];
+          tr.querySelectorAll('.i-motivo-check').forEach(cb => { cb.checked = motivosPrevios.includes(cb.value); });
+          const hayMotivoPrevio = motivosPrevios.length > 0;
+          tr.querySelector('.i-obs').disabled = !hayMotivoPrevio;
+          const btnBorrarMotivos = tr.querySelector('.btn-borrar-motivos');
+          if (btnBorrarMotivos) btnBorrarMotivos.style.display = hayMotivoPrevio ? '' : 'none';
+          const valorEl = tr.querySelector('.motivo-select-valor');
+          if (valorEl && typeof resumenMotivos === 'function') valorEl.textContent = resumenMotivos(motivosPrevios);
+          return;
+        }
+      } catch (err) {
+        console.error('Error comprobando el estado del siniestro:', err);
+      }
+    }
+
     try {
       // Snapshot: guardamos cómo es la tienda/agencia HOY, en el momento de
       // guardar la incidencia. Así, si más adelante se edita la tienda
