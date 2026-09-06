@@ -1002,15 +1002,29 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 /* ========== Permisos por rol y por permiso granular ========== */
 /* Ayuda de interfaz, no seguridad real (ver aviso en js/permisos.js) */
 
-/* Páginas de menú: ocultas si no se tiene el permiso correspondiente
-   (admin siempre lo tiene todo, ver js/permisos.js) */
-body:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
-body:not(.perm-config_tiendas) [data-view="config-tiendas"]{ display:none !important; }
-body:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
-body:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
+/* Páginas de menú: ocultas SOLO para operador sin ese permiso concreto.
+   Admin siempre las ve (nunca coincide ".rol-operador"), y LECTURA
+   también las ve todas — lectura ve todo, solo no puede escribir
+   (eso lo bloquean las reglas de más abajo). */
+body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
+body.rol-operador:not(.perm-config_tiendas) [data-view="config-tiendas"]{ display:none !important; }
+body.rol-operador:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
+body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
 
-/* Borrar (siniestros del Panel) solo con permiso de borrar */
+/* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar */
 body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
+body:not(.perm-borrar) .agencia-body [data-borrar]{ display:none !important; }
+
+/* Sin permiso de "Informe del día" */
+body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
+body:not(.perm-informe_dia) .i-motivo-check,
+body:not(.perm-informe_dia) .i-obs,
+body:not(.perm-informe_dia) .btn-borrar-motivos{
+  pointer-events:none !important; opacity:.6;
+}
+
+/* Sin permiso de "Enviar informe a agencias" */
+body:not(.perm-enviar_informe) #btnEnviarInforme{ display:none !important; }
 
 /* Sin permiso de "Panel siniestros": se puede ver la tabla, pero no
    dar de alta ni editar filas (fila entera bloqueada al abrirla). */
@@ -1037,6 +1051,13 @@ body:not(.perm-siniestros_dia) #siniestroFotosLabel{
   pointer-events:none !important; opacity:.6;
 }
 
+/* Sin permiso de "Tiendas y agencias": página visible (si perm-config_tiendas
+   la deja ver) pero sin poder editar/mover/dar de alta */
+body:not(.perm-config_tiendas) #btnNuevaTienda,
+body:not(.perm-config_tiendas) .agencia-body .mini-btn{
+  pointer-events:none !important; opacity:.6;
+}
+
 /* Sin permiso de "Destinatarios de Facturación" (dentro de la página
    de Emails, que si comparten página necesita perm-config_emails
    para verse siquiera) */
@@ -1045,8 +1066,8 @@ body:not(.perm-config_facturacion) #listaEmailsFacturacion [data-quitar-facturac
   pointer-events:none !important; opacity:.5;
 }
 
-/* Modo LECTURA: deshabilita todos los botones de acción, deja intacta
-   la navegación, los filtros y los buscadores. */
+/* Modo LECTURA: deshabilita todos los botones y campos de acción, deja
+   intacta la navegación, los filtros y los buscadores. */
 body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]),
 body.rol-lectura .btn,
 body.rol-lectura .link-accion,
@@ -1060,6 +1081,10 @@ body.rol-lectura .ps-recogida-fila input,
 body.rol-lectura .ps-recogida-fila select,
 body.rol-lectura .email-card input,
 body.rol-lectura .email-add-row input,
+body.rol-lectura .i-motivo-check,
+body.rol-lectura .i-obs,
+body.rol-lectura #formNuevaTienda input,
+body.rol-lectura #formNuevaTienda select,
 body.rol-lectura input[type="file"]{
   pointer-events:none !important; opacity:.7;
 }
