@@ -352,6 +352,7 @@
           <h1>🗂️ Panel siniestros</h1>
           <p>Se rellena automáticamente al enviar cada siniestro. Aquí completas nº albarán, factura, valor y estado de cobro.</p>
         </div>
+        <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
       </div>
 
       <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
@@ -862,6 +863,51 @@
 
     <div class="modal-footer" style="justify-content:flex-end; margin-top:18px;">
       <span class="ps-guardado-estado" id="psGuardadoEstado"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo siniestro manual (Panel siniestros) -->
+<div class="modal-overlay" id="psNuevoModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:520px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarPsNuevo" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">➕ Añadir siniestro</h3>
+    <p class="modal-message">Para casos que no vengan del envío automático de "Siniestros del día". Luego podrás completar el resto de datos.</p>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div style="display:flex; gap:14px;">
+        <div style="flex:1;">
+          <label class="form-label">Fecha</label>
+          <input type="date" id="psnFecha" class="form-input">
+        </div>
+        <div style="flex:1;">
+          <label class="form-label">Tipo</label>
+          <select id="psnTipo" class="form-input">
+            <option value="ROTURA">ROTURA</option>
+            <option value="FALTAS">FALTAS</option>
+            <option value="FALTAS Y ROTURAS">FALTAS Y ROTURAS</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Agencia</label>
+        <select id="psnAgencia" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Tienda</label>
+        <select id="psnTienda" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Información</label>
+        <textarea id="psnInformacion" class="form-input" rows="2" placeholder="Texto libre… (opcional)"></textarea>
+      </div>
+    </div>
+
+    <p class="err" id="psnError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarPsNuevo">Cancelar</button>
+      <button class="btn primary" id="btnGuardarPsNuevo">➕ Crear y continuar</button>
     </div>
   </div>
 </div>
