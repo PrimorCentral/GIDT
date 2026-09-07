@@ -686,17 +686,18 @@
       <div class="page-head">
         <div>
           <h1>🗓️ Reportes mensuales</h1>
-          <p>Código de incidencia por tienda y día, calculado automáticamente a partir del informe diario.</p>
+          <p>Código de incidencia por tienda y día, calculado a partir de los informes diarios enviados.</p>
         </div>
       </div>
 
-      <div class="card" style="padding:14px 18px; margin-bottom:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-        <div style="display:flex; align-items:center; gap:10px;">
+      <div class="rm-sticky-bar">
+        <div class="rm-selector-mes">
           <button class="btn" id="rmBtnMesAnterior">◀</button>
-          <b id="rmMesTexto" style="min-width:150px; text-align:center;">—</b>
+          <b id="rmMesTexto">—</b>
           <button class="btn" id="rmBtnMesSiguiente">▶</button>
+          <button class="btn" id="rmBtnMesActual">Mes actual</button>
         </div>
-        <button class="btn" id="rmBtnMesActual">Mes actual</button>
+        <div class="rm-leyenda-compacta" id="rmLeyendaCompacta"></div>
       </div>
 
       <div id="contenidoReportesMensuales">

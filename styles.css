@@ -1192,9 +1192,29 @@ body.rol-lectura input[type="file"]{
 .tabla-reporte-mensual thead th{ background:var(--panel-muted); position:sticky; top:0; z-index:1; }
 .rm-col-fija{ text-align:left; position:sticky; background:#fff; z-index:1; }
 .tabla-reporte-mensual td.rm-td-ok{ color:var(--ink-soft); font-weight:600; }
+.tabla-reporte-mensual td.rm-td-pendiente{ color:var(--ink-soft); opacity:.4; }
 .rm-col-total{ background:var(--panel-muted); font-weight:700; }
 .rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
-.rm-leyenda{ margin-top:16px; padding:14px 18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg); }
-.rm-leyenda-titulo{ display:block; margin-bottom:10px; }
-.rm-leyenda-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px 14px; font-size:12.5px; }
-.rm-leyenda-item{ display:flex; align-items:center; gap:8px; }
+
+/* Barra fija arriba: selector de mes + leyenda en miniatura, no se
+   desplaza al hacer scroll por la tabla (sticky respecto a <main>). */
+.rm-sticky-bar{
+  position:sticky; top:0; z-index:15;
+  background:var(--panel-muted);
+  padding:10px 0 12px;
+  margin:-8px 0 12px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.rm-selector-mes{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:10px 14px;
+}
+.rm-selector-mes b{ min-width:140px; text-align:center; }
+.rm-leyenda-compacta{
+  display:flex; flex-wrap:wrap; gap:4px 10px;
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:8px 12px; font-size:10.5px; line-height:1.4;
+}
+.rm-leyenda-compacta .rm-leyenda-item{ display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+.rm-leyenda-compacta .rm-celda-codigo{ min-width:14px; padding:0 4px; font-size:10px; border-radius:4px; }
