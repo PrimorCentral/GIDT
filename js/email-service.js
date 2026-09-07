@@ -8,8 +8,23 @@
   //     attachmentUrls: ['https://.../foto1.jpg']
   //   });
   //
+  // También admite adjuntos "inline" (contenido generado al vuelo, como un
+  // PDF, sin subirlo antes a Storage): attachments: [{ filename, content:
+  // <Blob|base64 string>, contentType? }]. Si `content` es un Blob se
+  // convierte a base64 automáticamente antes de mandarlo a la Edge Function.
+  //
   // Lanza un Error con mensaje legible si algo falla, para poder
   // capturarlo con try/catch y mostrar un modalAlert().
+
+  // Blob -> base64 (sin el prefijo "data:...;base64,").
+  function blobABase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result).split(',').pop());
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
 
   // Debe coincidir EXACTAMENTE con el secret "FUNCTION_SECRET" configurado
   // en Supabase → Edge Functions → Secrets para este proyecto.
@@ -33,7 +48,7 @@
     }
   }
 
-  async function enviarEmail({ to, cc, subject, html, text, attachmentUrls } = {}) {
+  async function enviarEmail({ to, cc, subject, html, text, attachmentUrls, attachments } = {}) {
     if (!to || !subject || !html) {
       throw new Error('Faltan datos para enviar el correo (to, subject, html).');
     }
@@ -42,8 +57,17 @@
     const ccGlobal = await obtenerCCGlobal();
     const ccFinal = Array.from(new Set([...ccPropio, ...ccGlobal].filter(Boolean)));
 
+    let attachmentsFinal;
+    if (attachments && attachments.length) {
+      attachmentsFinal = await Promise.all(attachments.map(async a => ({
+        filename: a.filename,
+        contentType: a.contentType,
+        content: a.content instanceof Blob ? await blobABase64(a.content) : a.content
+      })));
+    }
+
     const { data, error } = await sb.functions.invoke('send-email', {
-      body: { to, cc: ccFinal.length ? ccFinal : undefined, subject, html, text, attachmentUrls },
+      body: { to, cc: ccFinal.length ? ccFinal : undefined, subject, html, text, attachmentUrls, attachments: attachmentsFinal },
       headers: { 'x-function-secret': EMAIL_FUNCTION_SECRET }
     });
 

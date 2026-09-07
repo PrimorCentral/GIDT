@@ -262,6 +262,18 @@
       console.error('Error cargando pendientes del Panel siniestros:', err);
     }
 
+    // 4. Resumen mensual a agencias: meses ya terminados que se queden sin
+    // enviar a alguna agencia (nunca avisa de meses anteriores a que
+    // existiera este seguimiento — ver RME_MES_INICIO).
+    try {
+      if (typeof tienePermiso === 'function' && tienePermiso('enviar_reporte_mensual') && typeof rmeComprobarPendienteInicio === 'function') {
+        const item = await rmeComprobarPendienteInicio();
+        if (item) items.push(item);
+      }
+    } catch (err) {
+      console.error('Error comprobando el resumen mensual pendiente:', err);
+    }
+
     if (!items.length) {
       cont.innerHTML = `
         <div class="empty" style="padding:20px;">
@@ -273,7 +285,7 @@
     }
 
     cont.innerHTML = items.map(it => `
-      <button type="button" class="inicio-pendiente-item" data-ir="${it.vista}">
+      <button type="button" class="inicio-pendiente-item" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
         <span class="flecha">→</span>
@@ -286,6 +298,14 @@
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
         if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
         if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
+        if (vista === 'analisis-reportes-mensuales' && typeof renderVistaReportesMensuales === 'function') {
+          if (btn.dataset.irAnio !== undefined) {
+            rmAnio = Number(btn.dataset.irAnio);
+            rmMes = Number(btn.dataset.irMes);
+          }
+          renderVistaReportesMensuales();
+          if (typeof rmeAbrirPanel === 'function') rmeAbrirPanel();
+        }
       });
     });
   }

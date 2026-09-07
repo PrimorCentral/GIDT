@@ -21,14 +21,29 @@
 // accidentales. El botón "Enviar a todas las pendientes" solo manda a
 // las agencias que todavía no tengan ese registro este mes.
 //
+// El PDF se manda como adjunto directo del correo (en base64, ver
+// email-service.js), sin subirlo a ningún sitio: no hay dónde verlo desde
+// la app y solo ocuparía espacio de Storage sin necesidad.
+//
+// Solo se puede enviar el resumen de un mes ya terminado (no el mes en
+// curso): ver rmeMesHaTerminado().
+//
 // Requiere (ya cargados antes): sb, escapeHtml, modalAlert, modalConfirm,
 // mostrarCargandoEnvio, actualizarCargandoEnvio, ocultarCargandoEnvio
 // (informe-envio.js), enviarEmail, sesionActual, plantillaHtmlResumenMensual,
 // rmAnio, rmMes, RM_NOMBRES_MES, rmCargarDatosMes, rmConstruirTodasLasFilas,
-// CODIGOS_INFORME, pdfDisponible().
+// CODIGOS_INFORME, pdfDisponible(), tienePermiso() (permisos.js).
 // ---------------------------------------------------------------
 
-const RME_BUCKET = 'reportes-mensuales';
+// Un mes solo se puede enviar cuando ya ha terminado del todo (nunca el
+// mes en curso, aunque estemos a final de mes: podrían faltar días por
+// cerrar). anio/mesIndex en el mismo formato que rmAnio/rmMes (mes 0-11).
+function rmeMesHaTerminado(anio, mesIndex) {
+  const hoy = new Date();
+  if (anio < hoy.getFullYear()) return true;
+  if (anio > hoy.getFullYear()) return false;
+  return mesIndex < hoy.getMonth();
+}
 
 function rmeMesNombreCapitalizado(mesIndex) {
   const n = RM_NOMBRES_MES[mesIndex] || '';
@@ -49,19 +64,10 @@ function rmeMesAnioTexto(mesIndex, anio) {
   return `${rmeMesNombreCapitalizado(mesIndex)} de ${anio}`;
 }
 
-// Nombre "bonito" del PDF: el que ver\u00e1 el destinatario como adjunto
-// (la Edge Function de correo usa el \u00faltimo tramo de la URL de Storage
-// como nombre de archivo, as\u00ed que este mismo texto es tambi\u00e9n la ruta
-// donde se sube \u2014 ver rmeRutaStorage).
+// Nombre "bonito" del PDF: el que ver\u00e1 el destinatario como adjunto del
+// correo (se manda directo, en base64, sin pasar por Storage).
 function rmeNombreArchivo(grupoNombre, anio, mesIndex) {
   return `${grupoNombre} - ${rmeTituloMes(anio, mesIndex)}.pdf`;
-}
-
-// Ruta en Storage: una carpeta por a\u00f1o/mes y, dentro, el nombre "bonito"
-// de arriba (con los caracteres no v\u00e1lidos en una ruta reemplazados).
-function rmeRutaStorage(grupoNombre, anio, mesIndex) {
-  const nombre = rmeNombreArchivo(grupoNombre, anio, mesIndex).replace(/[\\/?#]/g, '-');
-  return `${anio}/${mesIndex + 1}/${nombre}`;
 }
 
 // A partir del listado fresco de agencias (con emails y grupo_envio),
@@ -154,7 +160,8 @@ async function rmeCargarYRenderPanel() {
   const cont = document.getElementById('rmEnviarLista');
   cont.innerHTML = '<div class="empty"><p>Cargando…</p></div>';
   document.getElementById('rmEnviarMesTexto').textContent = rmeTituloMes(rmAnio, rmMes);
-  rmeActualizarToolbar([], true);
+  const mesTerminado = rmeMesHaTerminado(rmAnio, rmMes);
+  rmeActualizarToolbar([], true, mesTerminado);
 
   try {
     const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
@@ -170,27 +177,34 @@ async function rmeCargarYRenderPanel() {
     grupos.forEach(g => { g.envio = enviosPorGrupo.get(g.clave) || null; });
     rmeGruposActuales = grupos;
 
+    const aviso = mesTerminado ? '' : `
+      <div class="rme-aviso-mes-actual">⏳ Podrás enviar el resumen de ${rmeTituloMes(rmAnio, rmMes)} en cuanto termine el mes.</div>`;
+
     if (!grupos.length) {
-      cont.innerHTML = '<div class="empty"><p>No hay agencias configuradas.</p></div>';
-      rmeActualizarToolbar([], false);
+      cont.innerHTML = aviso + '<div class="empty"><p>No hay agencias configuradas.</p></div>';
+      rmeActualizarToolbar([], false, mesTerminado);
       return;
     }
 
-    cont.innerHTML = grupos.map(g => rmeHtmlFilaGrupo(g)).join('');
-    rmeActualizarToolbar(grupos, false);
+    cont.innerHTML = aviso + grupos.map(g => rmeHtmlFilaGrupo(g, mesTerminado)).join('');
+    rmeActualizarToolbar(grupos, false, mesTerminado);
 
-    cont.querySelectorAll('[data-rme-enviar]').forEach(b => {
-      b.addEventListener('click', () => rmeEnviarGrupo(b.dataset.rmeEnviar, rmeGruposActuales, cont));
-    });
+    if (mesTerminado) {
+      cont.querySelectorAll('[data-rme-enviar]').forEach(b => {
+        b.addEventListener('click', () => rmeEnviarGrupo(b.dataset.rmeEnviar, rmeGruposActuales, cont));
+      });
+    }
   } catch (err) {
     console.error('Error cargando el panel de envío del resumen mensual:', err);
     cont.innerHTML = '<div class="empty"><p style="color:var(--grave);">No se pudo cargar la lista de agencias.</p></div>';
-    rmeActualizarToolbar([], false);
+    rmeActualizarToolbar([], false, mesTerminado);
   }
 }
 
 // Texto/estado del botón "Enviar a todas las pendientes" según lo cargado.
-function rmeActualizarToolbar(grupos, cargando) {
+// Mientras el mes que se está viendo no haya terminado, el botón queda
+// deshabilitado del todo (nunca se puede enviar el resumen del mes en curso).
+function rmeActualizarToolbar(grupos, cargando, mesTerminado) {
   const btn = document.getElementById('btnRmeEnviarTodas');
   const resumen = document.getElementById('rmeResumenTexto');
   if (!btn || !resumen) return;
@@ -199,6 +213,13 @@ function rmeActualizarToolbar(grupos, cargando) {
     resumen.textContent = 'Cargando…';
     btn.disabled = true;
     btn.textContent = '📤 Enviar a todas las pendientes';
+    return;
+  }
+
+  if (!mesTerminado) {
+    resumen.textContent = grupos.length ? `${grupos.length} agencia${grupos.length === 1 ? '' : 's'}` : '—';
+    btn.disabled = true;
+    btn.textContent = '⏳ Disponible al terminar el mes';
     return;
   }
 
@@ -212,12 +233,16 @@ function rmeActualizarToolbar(grupos, cargando) {
     : '✅ Todas enviadas';
 }
 
-function rmeHtmlFilaGrupo(g) {
+function rmeHtmlFilaGrupo(g, mesTerminado) {
   const subAgencias = g.agenciasNombres.length > 1 ? g.agenciasNombres.join(' + ') : null;
   const sinEmails = !g.emails.length;
 
   let estadoHtml;
-  if (g.envio) {
+  if (!mesTerminado) {
+    estadoHtml = g.envio
+      ? `<span class="rme-badge-enviado">✅ Enviado</span>`
+      : `<button type="button" class="btn rme-btn-enviar" disabled title="Podrás enviarlo cuando termine el mes">Enviar PDF</button>`;
+  } else if (g.envio) {
     const fecha = new Date(g.envio.enviado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     estadoHtml = `
       <span class="rme-badge-enviado" title="${g.envio.enviado_por ? 'Enviado por ' + escapeHtml(g.envio.enviado_por) : ''}">✅ ${fecha}</span>
@@ -267,29 +292,22 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
   const nombreArchivo = rmeNombreArchivo(grupo.nombre, rmAnio, rmMes);
   const blob = doc.output('blob');
 
-  // Importante: el nombre del adjunto que verá la agencia es el último
-  // tramo de esta ruta (lo decide la Edge Function de correo a partir de
-  // la URL), así que tiene que ser ya el nombre "bonito" con mes y año.
-  const rutaStorage = rmeRutaStorage(grupo.nombre, rmAnio, rmMes);
-  const { error: eUp } = await sb.storage.from(RME_BUCKET).upload(rutaStorage, blob, {
-    contentType: 'application/pdf',
-    upsert: true
-  });
-  if (eUp) throw new Error(`No se pudo subir el PDF: ${eUp.message}`);
-
-  const { data: pub } = sb.storage.from(RME_BUCKET).getPublicUrl(rutaStorage);
-  const urlPdf = pub?.publicUrl;
-
   const subject = `RESUMEN INCIDENCIAS ${grupo.nombre.toUpperCase()} ${mesTexto.toUpperCase()}`;
   const html = plantillaHtmlResumenMensual(rmeMesAnioTexto(rmMes, rmAnio));
-  await enviarEmail({ to: grupo.emails, subject, html, attachmentUrls: urlPdf ? [urlPdf] : [] });
+  // El PDF se manda pegado al propio correo (base64), sin subirlo a
+  // Storage: no hay dónde verlo desde la app y solo ocuparía espacio.
+  await enviarEmail({
+    to: grupo.emails,
+    subject,
+    html,
+    attachments: [{ filename: nombreArchivo, content: blob, contentType: 'application/pdf' }]
+  });
 
   const { error: eDb } = await sb.from('informes_mensuales_agencia_enviados').upsert({
     grupo: grupo.clave,
     anio: rmAnio,
     mes: rmMes + 1,
     pdf_nombre: nombreArchivo,
-    pdf_url: urlPdf,
     enviado_en: new Date().toISOString(),
     enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
   }, { onConflict: 'grupo,anio,mes' });
@@ -302,6 +320,10 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
   const grupo = grupos.find(g => g.clave === clave);
   if (!grupo) return;
 
+  if (!rmeMesHaTerminado(rmAnio, rmMes)) {
+    await modalAlert('Todavía no puedes enviar el resumen del mes en curso: espera a que termine.', { titulo: 'Mes sin terminar' });
+    return;
+  }
   if (!grupo.emails.length) {
     await modalAlert('Esta agencia (o grupo) no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
     return;
@@ -344,6 +366,10 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
 async function rmeEnviarTodosPendientes(grupos) {
   if (rmeEnviando) return;
 
+  if (!rmeMesHaTerminado(rmAnio, rmMes)) {
+    await modalAlert('Todavía no puedes enviar el resumen del mes en curso: espera a que termine.', { titulo: 'Mes sin terminar' });
+    return;
+  }
   const pendientes = grupos.filter(g => !g.envio);
   if (!pendientes.length) {
     await modalAlert('Todas las agencias ya tienen el resumen de este mes enviado.', { titulo: 'Nada pendiente' });
@@ -581,6 +607,52 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
   rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, escala);
 
   return doc;
+}
+
+// ---------------------------------------------------------------
+// Tarea pendiente en Inicio: avisa cuando un mes ya terminado se queda
+// sin enviar a alguna agencia, hasta que se envíe. RME_MES_INICIO marca
+// el primer mes que cubre esta función: antes de esa fecha no había
+// seguimiento de estos envíos (se hacían a mano), así que no tiene
+// sentido -ni sería correcto- avisar de meses anteriores sin datos.
+// ---------------------------------------------------------------
+const RME_MES_INICIO = { anio: 2026, mes: 8 }; // Septiembre de 2026 (mes 0-indexado)
+
+async function rmeComprobarPendienteInicio() {
+  const hoy = new Date();
+  let anio = hoy.getFullYear();
+  let mes = hoy.getMonth() - 1; // último mes ya terminado
+  if (mes < 0) { mes = 11; anio -= 1; }
+
+  if (anio < RME_MES_INICIO.anio || (anio === RME_MES_INICIO.anio && mes < RME_MES_INICIO.mes)) {
+    return null;
+  }
+
+  try {
+    const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
+      sb.from('agencias').select('id, nombre, orden, emails, grupo_envio').eq('activo', true),
+      sb.from('informes_mensuales_agencia_enviados').select('grupo').eq('anio', anio).eq('mes', mes + 1)
+    ]);
+    if (e1) throw e1;
+    if (e2) throw e2;
+
+    const grupos = rmeConstruirGrupos(agencias || []);
+    if (!grupos.length) return null;
+    const enviados = new Set((envios || []).map(e => e.grupo));
+    const pendientes = grupos.filter(g => !enviados.has(g.clave));
+    if (!pendientes.length) return null;
+
+    return {
+      icono: '🗓️',
+      texto: `Informe mensual de ${rmeMesNombreCapitalizado(mes).toUpperCase()} pendiente de enviar a agencias (${pendientes.length})`,
+      vista: 'analisis-reportes-mensuales',
+      anio,
+      mes
+    };
+  } catch (err) {
+    console.error('Error comprobando el resumen mensual pendiente:', err);
+    return null;
+  }
 }
 
 rmeEngancharPanel();
