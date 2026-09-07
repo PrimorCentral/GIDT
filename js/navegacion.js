@@ -71,6 +71,7 @@
         if (item.dataset.view === 'historial-siniestros') renderVistaHistorialSiniestros();
         if (item.dataset.view === 'siniestros') renderVistaSiniestros();
         if (item.dataset.view === 'analisis-ranking') renderVistaAnalisisRanking();
+        if (item.dataset.view === 'analisis-reportes-mensuales') renderVistaReportesMensuales();
       });
     });
   });
