@@ -1140,6 +1140,13 @@ body:not(.perm-config_facturacion) #listaEmailsFacturacion [data-quitar-facturac
   pointer-events:none !important; opacity:.5;
 }
 
+/* Sin permiso de "CC Transporte" (misma página de Emails, necesita
+   también perm-config_emails para verse siquiera) */
+body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row,
+body:not(.perm-config_cc_transporte) #listaEmailsCC [data-quitar-cc]{
+  pointer-events:none !important; opacity:.5;
+}
+
 /* Modo LECTURA: deshabilita todos los botones y campos de acción, deja
    intacta la navegación, los filtros y los buscadores. */
 body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]),

@@ -534,6 +534,14 @@
         </div>
       </div>
       <div id="listaEmailsFacturacion"></div>
+
+      <div class="page-head" style="margin-top:32px;">
+        <div>
+          <h1 style="font-size:19px;">📋 CC Transporte</h1>
+          <p>Direcciones que van siempre en copia (CC) en TODOS los correos que envía la app: roturas, facturación, informes a agencias, etc.</p>
+        </div>
+      </div>
+      <div id="listaEmailsCC"></div>
     </section>
 
     <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
@@ -1158,6 +1166,10 @@
               <input type="checkbox" id="euPerm_config_facturacion">
               <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_cc_transporte">
+              <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+            </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
@@ -1265,6 +1277,10 @@
               <input type="checkbox" id="nuPerm_config_facturacion">
               <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_cc_transporte">
+              <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+            </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
@@ -1364,6 +1380,7 @@
 <script src="js/tiendas.js"></script>
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
+<script src="js/cc-config.js"></script>
 <script src="js/codigos-informe.js"></script>
 <script src="js/submotivos-informe.js"></script>
 <script src="js/informe-hoy.js"></script>
