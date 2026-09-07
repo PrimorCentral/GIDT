@@ -59,6 +59,7 @@
       </div>
       <div class="dropdown" id="analisisDropdown">
         <button data-view="analisis-ranking">🏆 Ranking de tiendas y agencias</button>
+        <button data-view="analisis-reportes-mensuales">🗓️ Reportes mensuales</button>
       </div>
     </nav>
 
@@ -680,6 +681,29 @@
       </div>
     </section>
 
+    <!-- ============ ANÁLISIS: REPORTES MENSUALES ============ -->
+    <section class="view" id="view-analisis-reportes-mensuales">
+      <div class="page-head">
+        <div>
+          <h1>🗓️ Reportes mensuales</h1>
+          <p>Código de incidencia por tienda y día, calculado automáticamente a partir del informe diario.</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px 18px; margin-bottom:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn" id="rmBtnMesAnterior">◀</button>
+          <b id="rmMesTexto" style="min-width:150px; text-align:center;">—</b>
+          <button class="btn" id="rmBtnMesSiguiente">▶</button>
+        </div>
+        <button class="btn" id="rmBtnMesActual">Mes actual</button>
+      </div>
+
+      <div id="contenidoReportesMensuales">
+        <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -1253,10 +1277,13 @@
 <script src="js/tiendas.js"></script>
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
+<script src="js/codigos-informe.js"></script>
+<script src="js/submotivos-informe.js"></script>
 <script src="js/informe-hoy.js"></script>
 <script src="js/siniestros-historial.js"></script>
 <script src="js/historial-editar.js"></script>
 <script src="js/filtros-motivos.js"></script>
+<script src="js/reportes-mensuales.js"></script>
 <script src="js/email-plantillas.js"></script>
 <script src="js/email-service.js"></script>
 <script src="js/informe-envio.js"></script>

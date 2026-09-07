@@ -1010,6 +1010,7 @@ body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ dis
 body.rol-operador:not(.perm-config_tiendas) [data-view="config-tiendas"]{ display:none !important; }
 body.rol-operador:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
+body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-reportes-mensuales"]{ display:none !important; }
 
 /* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar */
 body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
@@ -1184,3 +1185,16 @@ body.rol-lectura input[type="file"]{
 .informe-estado-lista .fila .valor{ font-weight:700; color:var(--ink); text-align:right; }
 
 .informe-estado-boton{ display:flex; justify-content:center; }
+
+/* ---------- Reportes mensuales (Análisis) ---------- */
+.tabla-reporte-mensual{ border-collapse:collapse; font-size:12px; white-space:nowrap; }
+.tabla-reporte-mensual th, .tabla-reporte-mensual td{ border:1px solid var(--border); padding:4px 6px; text-align:center; }
+.tabla-reporte-mensual thead th{ background:var(--panel-muted); position:sticky; top:0; z-index:1; }
+.rm-col-fija{ text-align:left; position:sticky; background:#fff; z-index:1; }
+.tabla-reporte-mensual td.rm-td-ok{ color:var(--ink-soft); font-weight:600; }
+.rm-col-total{ background:var(--panel-muted); font-weight:700; }
+.rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
+.rm-leyenda{ margin-top:16px; padding:14px 18px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg); }
+.rm-leyenda-titulo{ display:block; margin-bottom:10px; }
+.rm-leyenda-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px 14px; font-size:12.5px; }
+.rm-leyenda-item{ display:flex; align-items:center; gap:8px; }
