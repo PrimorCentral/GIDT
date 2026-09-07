@@ -15,7 +15,7 @@
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, marca, orden, activo').order('orden')
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, marca, provincia, orden, activo').order('orden')
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
@@ -43,6 +43,10 @@
                 <span class="v-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</span>
                 <input type="time" class="form-input e-hora" style="display:none;" value="${t.hora_prevista ? t.hora_prevista.slice(0,5) : ''}">
               </td>
+              <td class="celda-provincia">
+                <span class="v-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</span>
+                <input type="text" class="form-input e-provincia" style="display:none;" placeholder="Provincia" value="${t.provincia ? escapeHtml(t.provincia) : ''}">
+              </td>
               <td class="celda-marca">
                 <span class="v-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span></span>
                 <select class="form-input e-marca" style="display:none;">
@@ -65,7 +69,7 @@
                 </span>
               </td>
             </tr>`).join('')
-        : `<tr><td colspan="4" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
+        : `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
 
       return `
         <div class="agencia-block">
@@ -131,24 +135,25 @@
   }
 
   function entrarModoEdicion(tr) {
-    tr.querySelectorAll('.v-nombre,.v-hora,.v-marca,.v-acciones').forEach(el => el.style.display = 'none');
-    tr.querySelectorAll('.e-nombre,.e-hora,.e-marca,.e-acciones').forEach(el => el.style.display = '');
+    tr.querySelectorAll('.v-nombre,.v-hora,.v-provincia,.v-marca,.v-acciones').forEach(el => el.style.display = 'none');
+    tr.querySelectorAll('.e-nombre,.e-hora,.e-provincia,.e-marca,.e-acciones').forEach(el => el.style.display = '');
   }
   function salirModoEdicion(tr) {
-    tr.querySelectorAll('.v-nombre,.v-hora,.v-marca,.v-acciones').forEach(el => el.style.display = '');
-    tr.querySelectorAll('.e-nombre,.e-hora,.e-marca,.e-acciones').forEach(el => el.style.display = 'none');
+    tr.querySelectorAll('.v-nombre,.v-hora,.v-provincia,.v-marca,.v-acciones').forEach(el => el.style.display = '');
+    tr.querySelectorAll('.e-nombre,.e-hora,.e-provincia,.e-marca,.e-acciones').forEach(el => el.style.display = 'none');
   }
 
   async function guardarEdicionTienda(tr) {
     const id = Number(tr.dataset.tienda);
     const nombre = tr.querySelector('.e-nombre').value.trim();
     const hora = tr.querySelector('.e-hora').value;
+    const provincia = tr.querySelector('.e-provincia').value.trim();
     const marca = tr.querySelector('.e-marca').value;
     if (!nombre) return;
 
     try {
       const { error } = await sb.from('tiendas').update({
-        nombre, hora_prevista: hora || null, marca
+        nombre, hora_prevista: hora || null, provincia: provincia || null, marca
       }).eq('id', id);
       if (error) throw error;
       cargarAgenciasYTiendas();
@@ -252,11 +257,13 @@
     formNuevaTienda.style.display = 'none';
     document.getElementById('ntNombre').value = '';
     document.getElementById('ntHora').value = '';
+    document.getElementById('ntProvincia').value = '';
   });
   document.getElementById('btnGuardarTienda').addEventListener('click', async () => {
     const nombre = document.getElementById('ntNombre').value.trim();
     const agenciaId = Number(document.getElementById('ntAgencia').value);
     const hora = document.getElementById('ntHora').value;
+    const provincia = document.getElementById('ntProvincia').value.trim();
     const marca = document.getElementById('ntMarca').value;
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
@@ -271,12 +278,13 @@
 
     try {
       const { error } = await sb.from('tiendas').insert({
-        nombre, agencia_id: agenciaId, hora_prevista: hora || null, marca, orden: maxOrden + 1
+        nombre, agencia_id: agenciaId, hora_prevista: hora || null, provincia: provincia || null, marca, orden: maxOrden + 1
       });
       if (error) throw error;
       formNuevaTienda.style.display = 'none';
       document.getElementById('ntNombre').value = '';
       document.getElementById('ntHora').value = '';
+      document.getElementById('ntProvincia').value = '';
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);

@@ -6,7 +6,7 @@
     'informe_dia', 'enviar_informe', 'editar_informes_pasados',
     'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
     'config_tiendas', 'config_emails', 'config_facturacion', 'config_cc_transporte',
-    'gestion_usuarios', 'borrar', 'ver_analisis'
+    'gestion_usuarios', 'borrar', 'ver_analisis', 'enviar_reporte_mensual'
   ];
 
   async function cargarUsuarios() {

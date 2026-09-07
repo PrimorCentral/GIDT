@@ -164,6 +164,7 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, totalDias) {
         agenciaNombre: seg.agenciaNombre,
         tiendaId: t.id,
         tiendaNombre: t.nombre,
+        tiendaProvincia: t.provincia || null,
         diaInicio: seg.diaInicio,
         diaFin: seg.diaFin,
         nombreAnterior: seg.nombreAnterior,
@@ -398,6 +399,7 @@ async function rmRender() {
     <tr>
       <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
+      <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}
       <td class="rm-col-total"><b>${totalIncidencias}</b></td>
     </tr>`).join('');
@@ -407,12 +409,12 @@ async function rmRender() {
       <table class="tabla-reporte-mensual">
         <thead>
           <tr>
-            <th>Agencia</th><th>Tienda</th>
+            <th>Agencia</th><th>Tienda</th><th>Provincia</th>
             ${cabeceraDias}
             <th>Total</th>
           </tr>
         </thead>
-        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 3}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
+        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
 }

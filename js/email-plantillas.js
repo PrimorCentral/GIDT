@@ -330,6 +330,55 @@
 </div>`;
   }
 
+  // Correo de "Resumen mensual" a una agencia (Análisis → Reportes
+  // mensuales → Enviar a agencias), con el PDF adjunto (ver
+  // js/reportes-mensuales-envio.js). Mismo texto que se mandaba a mano:
+  // "Buenos días, adjuntamos resumen de las entregas en el pasado mes de
+  // X con las incidencias que hayan tenido lugar. Gracias, un saludo".
+  function plantillaHtmlResumenMensual(nombreMes) {
+    return `
+<div style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f7fa">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border: 1px solid #edf2f7; border-radius: 24px;">
+          <tr>
+            <td style="padding: 40px; background-color: #ffffff;">
+              <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">Buenos días,</p>
+              <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+                Adjuntamos resumen de las entregas del mes de <b style="color: #000000;">${escapeHtml(nombreMes)}</b> con las incidencias que hayan tenido lugar.
+              </p>
+              <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+                Gracias, un saludo.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 30px;">
+                <tr>
+                  <td align="center" style="text-align: center;">
+                    <p style="margin-top: 15px; margin-bottom: 0;">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png"
+                       alt="PRIMOR"
+                       width="150"
+                       style="display: inline-block; border:0;">
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" bgcolor="#f8fafc" style="padding: 20px; border-top: 1px solid #f1f5f9; border-radius: 0 0 24px 24px;">
+              <span style="font-family: Arial, sans-serif; font-size: 9px; color: #cbd5e1; font-weight: 400; text-transform: uppercase; letter-spacing: 2px;">
+              CORREO GENERADO AUTOMATICAMENTE POR EL SISTEMA GIDT
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>`;
+  }
+
   // Genera { subject, html, text } para el siniestro dado (ROTURA, FALTA o MIXTO),
   // usando la plantilla correspondiente.
   function plantillaSiniestro(s, fechaInformeISO) {

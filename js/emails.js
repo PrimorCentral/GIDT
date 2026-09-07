@@ -4,7 +4,7 @@
     const cont = document.getElementById('listaEmailsAgencias');
     cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';
     try {
-      const { data, error } = await sb.from('agencias').select('id, nombre, nombre_comercial, emails, orden').order('orden');
+      const { data, error } = await sb.from('agencias').select('id, nombre, nombre_comercial, grupo_envio, emails, orden').order('orden');
       if (error) throw error;
 
       cont.innerHTML = data.map(ag => `
@@ -16,6 +16,12 @@
                 ${ag.nombre_comercial
                   ? `<span class="email-comercial-texto">Nombre comercial: ${escapeHtml(ag.nombre_comercial)}</span><button type="button" class="mini-btn" data-editar-comercial title="Editar nombre comercial">✏️</button>`
                   : `<button type="button" class="email-comercial-anadir" data-editar-comercial>+ Añadir nombre comercial</button>`
+                }
+              </div>
+              <div class="email-comercial-linea" data-grupo-linea title="Junta esta agencia con otras bajo un mismo resumen mensual y un mismo envío (p.ej. varias divisiones de la misma empresa).">
+                ${ag.grupo_envio
+                  ? `<span class="email-comercial-texto">Grupo de envío: ${escapeHtml(ag.grupo_envio)}</span><button type="button" class="mini-btn" data-editar-grupo title="Editar grupo de envío">✏️</button>`
+                  : `<button type="button" class="email-comercial-anadir" data-editar-grupo>+ Agrupar con otra agencia (resumen mensual)</button>`
                 }
               </div>
             </div>
@@ -38,6 +44,7 @@
         const nombreAgencia = card.querySelector('b').textContent;
 
         card.querySelector('[data-editar-comercial]').addEventListener('click', () => editarNombreComercialAgencia(agenciaId, nombreAgencia));
+        card.querySelector('[data-editar-grupo]').addEventListener('click', () => editarGrupoEnvioAgencia(agenciaId, nombreAgencia));
 
         card.querySelectorAll('[data-quitar]').forEach(btn => {
           btn.addEventListener('click', () => actualizarEmailsAgencia(agenciaId, card, 'quitar', btn.dataset.quitar));
@@ -80,6 +87,33 @@
     }
   }
 
+  // Grupo de envío: junta varias agencias (p.ej. "CBL EXTERNO" y "CBL MLG")
+  // bajo un mismo PDF y un mismo correo al enviar el resumen mensual desde
+  // Análisis → Reportes mensuales (ver js/reportes-mensuales-envio.js).
+  async function editarGrupoEnvioAgencia(agenciaId, nombreAgencia) {
+    const { data } = await sb.from('agencias').select('grupo_envio').eq('id', agenciaId).maybeSingle();
+    const valorActual = data?.grupo_envio || '';
+
+    const nuevo = await modalPrompt(
+      'Las agencias que compartan el mismo grupo se enviarán juntas en un único PDF/correo al mandar el resumen mensual. Déjalo en blanco para que esta agencia se envíe sola.',
+      {
+        titulo: `Grupo de envío para ${nombreAgencia}`,
+        placeholder: 'Ej: CBL',
+        valorInicial: valorActual
+      }
+    );
+    if (nuevo === null) return; // cancelado
+
+    try {
+      const { error } = await sb.from('agencias').update({ grupo_envio: nuevo.trim() || null }).eq('id', agenciaId);
+      if (error) throw error;
+      cargarEmailsAgencias();
+    } catch (err) {
+      console.error('Error guardando el grupo de envío:', err);
+      await modalAlert('No se pudo guardar el grupo de envío.', { titulo: 'Error' });
+    }
+  }
+
   async function actualizarEmailsAgencia(agenciaId, cardEl, accion, email) {
     try {
       const { data, error } = await sb.from('agencias').select('emails').eq('id', agenciaId).single();
@@ -116,6 +150,7 @@
   function abrirModalNuevaAgencia() {
     document.getElementById('naNombre').value = '';
     document.getElementById('naNombreComercial').value = '';
+    document.getElementById('naGrupoEnvio').value = '';
     document.getElementById('naEmails').value = '';
     document.getElementById('naError').style.display = 'none';
     document.getElementById('nuevaAgenciaModalOverlay').classList.add('show');
@@ -129,6 +164,7 @@
   async function guardarNuevaAgencia() {
     const nombre = document.getElementById('naNombre').value.trim();
     const nombreComercial = document.getElementById('naNombreComercial').value.trim();
+    const grupoEnvio = document.getElementById('naGrupoEnvio').value.trim();
     const emails = parsearEmailsTexto(document.getElementById('naEmails').value);
     const errEl = document.getElementById('naError');
     errEl.style.display = 'none';
@@ -148,6 +184,7 @@
       const { error } = await sb.from('agencias').insert({
         nombre,
         nombre_comercial: nombreComercial || null,
+        grupo_envio: grupoEnvio || null,
         emails,
         orden: siguienteOrden,
         activo: true
