@@ -10,14 +10,23 @@
 // todavía no se ha enviado, la celda se deja en blanco (pendiente),
 // nunca en OK.
 //
+// Filtros: mismo diseño y comportamiento que el panel de "Filtrar
+// incidencias" del Informe del día (misma estructura HTML/CSS, ver
+// filtros-motivos.js) — Agencia, Tienda y "solo con incidencias este mes".
+//
 // Requiere (ya cargados antes): sb, escapeHtml, agenciasCache, tiendasCache,
 // cargarAgenciasYTiendas, codigoDeMotivos, CODIGOS_INFORME (codigos-informe.js).
+// Los .filtro-select (abrir/cerrar dropdown, buscador) ya quedan enganchados
+// de forma genérica por filtros-motivos.js (document.querySelectorAll('.filtro-select')),
+// así que no hace falta repetir esa parte aquí.
 // ---------------------------------------------------------------
 
 let rmAnio = new Date().getFullYear();
 let rmMes = new Date().getMonth(); // 0 = enero
 let rmInicializado = false;
 let rmLeyendaPintada = false;
+
+const rmFiltros = { agencias: new Set(), tiendas: new Set(), soloConIncidencias: false };
 
 const RM_NOMBRES_MES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
@@ -76,24 +85,32 @@ async function rmCargarDatosMes(anio, mesIndex) {
   return { celdas, diasEnviados, totalDias };
 }
 
-// Agrupa las tiendas activas por agencia y les da un código visual tipo
-// "A01" (letra de agencia + nº de tienda), igual que en el Excel. Es solo
-// para mostrar — no se guarda en ningún sitio ni depende de ningún campo nuevo.
-function rmConstruirFilas() {
-  const filas = [];
+// Todas las filas posibles (tienda x agencia), con su código visual tipo
+// "A01" calculado sobre el listado COMPLETO (sin filtrar), para que el
+// código de cada tienda no cambie según qué filtros haya activos.
+function rmConstruirTodasLasFilas() {
+  const todas = [];
   agenciasCache.forEach((ag, idxAg) => {
     const letra = String.fromCharCode(65 + (idxAg % 26));
     const tds = tiendasCache.filter(t => t.agencia_id === ag.id);
     tds.forEach((t, idxT) => {
-      filas.push({
+      todas.push({
         codigoFila: `${letra}${String(idxT + 1).padStart(2, '0')}`,
+        agenciaId: ag.id,
         agenciaNombre: ag.nombre,
         tiendaId: t.id,
         tiendaNombre: t.nombre
       });
     });
   });
-  return filas;
+  return todas;
+}
+
+function rmFilasSegunFiltros() {
+  return rmConstruirTodasLasFilas().filter(f =>
+    (!rmFiltros.agencias.size || rmFiltros.agencias.has(f.agenciaId)) &&
+    (!rmFiltros.tiendas.size || rmFiltros.tiendas.has(f.tiendaId))
+  );
 }
 
 // Se pinta UNA sola vez (la leyenda es fija) en la barra superior.
@@ -109,6 +126,146 @@ function rmPintarLeyendaCompacta() {
   rmLeyendaPintada = true;
 }
 
+// ---------------------------------------------------------------
+// Panel de filtros (mismo diseño que "Filtrar incidencias" del
+// Informe del día): Agencia, Tienda y "solo con incidencias este mes".
+// ---------------------------------------------------------------
+function rmConstruirPanelFiltros() {
+  const listaAg = document.getElementById('rmFiltrosAgenciasLista');
+  const listaTd = document.getElementById('rmFiltrosTiendasLista');
+  if (!listaAg || !listaTd) return;
+
+  if (!listaAg.dataset.built) {
+    listaAg.innerHTML = agenciasCache.map(ag => `
+      <label class="filtro-check">
+        <input type="checkbox" value="${ag.id}" data-filtro="agencia">
+        <span>${escapeHtml(ag.nombre)}</span>
+      </label>`).join('');
+    listaAg.dataset.built = '1';
+  }
+  if (!listaTd.dataset.built) {
+    listaTd.innerHTML = tiendasCache.map(t => `
+      <label class="filtro-check">
+        <input type="checkbox" value="${t.id}" data-filtro="tienda">
+        <span>${escapeHtml(t.nombre)}</span>
+      </label>`).join('');
+    listaTd.dataset.built = '1';
+  }
+
+  const panel = document.getElementById('rmFiltrosPanel');
+  if (!panel.dataset.wired) {
+    panel.addEventListener('change', (e) => {
+      const cb = e.target;
+      if (!cb.matches('input[type="checkbox"]')) return;
+      if (cb.id === 'rmFiltroSoloConIncidencias') {
+        rmFiltros.soloConIncidencias = cb.checked;
+        rmActualizarBadgeFiltros();
+        rmRender();
+        return;
+      }
+      const grupo = cb.dataset.filtro;
+      const set = grupo === 'agencia' ? rmFiltros.agencias : rmFiltros.tiendas;
+      const val = Number(cb.value);
+      if (cb.checked) set.add(val); else set.delete(val);
+      rmActualizarBadgeFiltros();
+      rmActualizarValoresSelects();
+      rmRender();
+    });
+    panel.dataset.wired = '1';
+  }
+}
+
+function rmActualizarValoresSelects() {
+  document.querySelectorAll('#rmFiltrosPanel .filtro-select').forEach(sel => {
+    const grupo = sel.dataset.grupo;
+    const set = grupo === 'agencia' ? rmFiltros.agencias : rmFiltros.tiendas;
+    const valor = sel.querySelector('.filtro-select-valor');
+    if (set.size === 0) {
+      valor.textContent = 'Todas';
+      sel.classList.remove('activo');
+    } else if (set.size === 1) {
+      const cb = sel.querySelector('input[type="checkbox"]:checked');
+      valor.textContent = cb ? cb.closest('.filtro-check').textContent.trim() : '1 seleccionada';
+      sel.classList.add('activo');
+    } else {
+      valor.textContent = `${set.size} seleccionadas`;
+      sel.classList.add('activo');
+    }
+  });
+}
+
+function rmActualizarBadgeFiltros() {
+  const total = rmFiltros.agencias.size + rmFiltros.tiendas.size + (rmFiltros.soloConIncidencias ? 1 : 0);
+  const badge = document.getElementById('rmFiltrosCount');
+  const btn = document.getElementById('btnRmFiltros');
+  if (total > 0) {
+    badge.textContent = total;
+    badge.style.display = '';
+    btn.classList.add('activo');
+  } else {
+    badge.style.display = 'none';
+    btn.classList.remove('activo');
+  }
+}
+
+function rmPosicionarFiltrosPanel() {
+  const btn = document.getElementById('btnRmFiltros');
+  const panel = document.getElementById('rmFiltrosPanel');
+  const wrap = btn.closest('.filtros-wrap');
+  const wrapRect = wrap.getBoundingClientRect();
+  const margen = 12;
+  const ancho = Math.min(560, window.innerWidth - margen * 2);
+  panel.style.width = ancho + 'px';
+  let left = 0;
+  const desbordeDerecha = (wrapRect.left + left + ancho) - (window.innerWidth - margen);
+  if (desbordeDerecha > 0) left -= desbordeDerecha;
+  if (wrapRect.left + left < margen) left = margen - wrapRect.left;
+  panel.style.left = left + 'px';
+}
+
+function rmAbrirFiltrosPanel() {
+  rmPosicionarFiltrosPanel();
+  document.getElementById('rmFiltrosPanel').classList.add('show');
+  document.getElementById('btnRmFiltros').classList.add('open');
+}
+function rmCerrarFiltrosPanel() {
+  document.getElementById('rmFiltrosPanel').classList.remove('show');
+  document.getElementById('btnRmFiltros').classList.remove('open');
+  if (typeof cerrarTodosLosSelects === 'function') cerrarTodosLosSelects(null);
+}
+
+function rmEngancharFiltros() {
+  const btn = document.getElementById('btnRmFiltros');
+  const panel = document.getElementById('rmFiltrosPanel');
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.classList.contains('show')) rmCerrarFiltrosPanel();
+    else rmAbrirFiltrosPanel();
+  });
+  panel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target) && !btn.contains(e.target)) rmCerrarFiltrosPanel();
+  });
+  window.addEventListener('resize', () => {
+    if (panel.classList.contains('show')) rmPosicionarFiltrosPanel();
+  });
+
+  document.getElementById('btnRmCerrarFiltros').addEventListener('click', rmCerrarFiltrosPanel);
+  document.getElementById('btnRmLimpiarFiltros').addEventListener('click', () => {
+    rmFiltros.agencias.clear();
+    rmFiltros.tiendas.clear();
+    rmFiltros.soloConIncidencias = false;
+    panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    rmActualizarBadgeFiltros();
+    rmActualizarValoresSelects();
+    rmRender();
+  });
+}
+
+// ---------------------------------------------------------------
+// Render de la tabla
+// ---------------------------------------------------------------
 async function rmRender() {
   const cont = document.getElementById('contenidoReportesMensuales');
   cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando…</p></div></div>`;
@@ -122,11 +279,13 @@ async function rmRender() {
     return;
   }
 
-  const filas = rmConstruirFilas();
+  rmConstruirPanelFiltros();
+
+  const filas = rmFilasSegunFiltros();
   const { celdas, diasEnviados, totalDias } = datos;
   const cabeceraDias = Array.from({ length: totalDias }, (_, i) => `<th>${i + 1}</th>`).join('');
 
-  const filasHtml = filas.map(f => {
+  const filasConDatos = filas.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
     let totalIncidencias = 0;
     const tds = Array.from({ length: totalDias }, (_, i) => {
@@ -137,15 +296,21 @@ async function rmRender() {
       totalIncidencias++;
       return `<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`;
     }).join('');
-    return `
-      <tr>
-        <td class="rm-col-fija">${escapeHtml(f.codigoFila)}</td>
-        <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
-        <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
-        ${tds}
-        <td class="rm-col-total"><b>${totalIncidencias}</b></td>
-      </tr>`;
-  }).join('');
+    return { f, tds, totalIncidencias };
+  });
+
+  const filasVisibles = rmFiltros.soloConIncidencias
+    ? filasConDatos.filter(x => x.totalIncidencias > 0)
+    : filasConDatos;
+
+  const filasHtml = filasVisibles.map(({ f, tds, totalIncidencias }) => `
+    <tr>
+      <td class="rm-col-fija">${escapeHtml(f.codigoFila)}</td>
+      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
+      <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
+      ${tds}
+      <td class="rm-col-total"><b>${totalIncidencias}</b></td>
+    </tr>`).join('');
 
   cont.innerHTML = `
     <div class="card" style="padding:0; overflow-x:auto;">
@@ -157,7 +322,7 @@ async function rmRender() {
             <th>Total</th>
           </tr>
         </thead>
-        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas activas.</td></tr>`}</tbody>
+        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
 }
@@ -190,6 +355,8 @@ function renderVistaReportesMensuales() {
     rmActualizarCabecera();
     rmRender();
   });
+
+  rmEngancharFiltros();
 
   rmActualizarCabecera();
   rmRender();
