@@ -433,11 +433,9 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias) {
   return { celdas, totalIncidencias };
 }
 
-// Dibuja título, leyenda y tabla principal sobre un doc ya creado.
-// Página de tamaño estándar (A4 apaisado): con pocas tiendas cabe todo en
-// una página, y con muchas la tabla continúa en más páginas —igual que al
-// imprimir el Excel—, repitiendo la cabecera de columnas en cada una. El
-// título y la leyenda solo van en la primera página.
+// Dibuja título, leyenda y tabla principal sobre un doc ya creado (con el
+// alto de página que sea). Devuelve el finalY de la tabla principal, es
+// decir, dónde termina realmente el contenido en esa página.
 function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
   const margen = 20;
   const anchoPagina = doc.internal.pageSize.getWidth();
@@ -452,26 +450,36 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
   const separacion = 10;
   const anchoLeyenda = anchoUtil - anchoTitulo - separacion;
 
-  const mitad = Math.ceil(CODIGOS_INFORME.length / 2);
+  // Leyenda en 3 columnas de código+descripción (como en el informe
+  // manual), no 2: así queda más ancha y menos alta, y el recuadro del
+  // título (que se estira a su misma altura) no sale desproporcionado.
+  const tercio = Math.ceil(CODIGOS_INFORME.length / 3);
   const filasLeyenda = [];
-  for (let i = 0; i < mitad; i++) {
-    const a = CODIGOS_INFORME[i];
-    const b = CODIGOS_INFORME[i + mitad];
-    filasLeyenda.push([
-      { content: a.codigo, styles: { fillColor: rmeHexToRgb(a.color), textColor: rmeHexToRgb(a.texto), fontStyle: 'bold', halign: 'center' } },
-      { content: a.label, styles: { halign: 'left' } },
-      b ? { content: b.codigo, styles: { fillColor: rmeHexToRgb(b.color), textColor: rmeHexToRgb(b.texto), fontStyle: 'bold', halign: 'center' } } : '',
-      b ? { content: b.label, styles: { halign: 'left' } } : ''
-    ]);
+  for (let i = 0; i < tercio; i++) {
+    const fila = [];
+    for (let col = 0; col < 3; col++) {
+      const c = CODIGOS_INFORME[i + col * tercio];
+      fila.push(
+        c ? { content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold', halign: 'center' } } : '',
+        c ? { content: c.label, styles: { halign: 'left' } } : ''
+      );
+    }
+    filasLeyenda.push(fila);
   }
+  const anchoCodigo = 20;
+  const anchoLabel = anchoLeyenda / 3 - anchoCodigo;
   doc.autoTable({
     startY: margen,
     margin: { left: margen + anchoTitulo + separacion, right: margen, bottom: margen },
     tableWidth: anchoLeyenda,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 7, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 2.5, valign: 'middle' },
-    head: [[{ content: 'LEYENDA', colSpan: 4, styles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' } }]],
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: anchoLeyenda * 0.5 - 22 }, 2: { cellWidth: 22 }, 3: { cellWidth: anchoLeyenda * 0.5 - 22 } },
+    styles: { font: 'helvetica', fontSize: 6.5, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 2, valign: 'middle' },
+    head: [[{ content: 'LEYENDA', colSpan: 6, styles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' } }]],
+    columnStyles: {
+      0: { cellWidth: anchoCodigo }, 1: { cellWidth: anchoLabel },
+      2: { cellWidth: anchoCodigo }, 3: { cellWidth: anchoLabel },
+      4: { cellWidth: anchoCodigo }, 5: { cellWidth: anchoLabel }
+    },
     body: filasLeyenda
   });
   const finalYLeyenda = doc.lastAutoTable.finalY;
@@ -482,7 +490,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
     tableWidth: anchoTitulo,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 13, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
+    styles: { font: 'helvetica', fontSize: 15, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
     body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
   });
   const finalYTitulo = doc.lastAutoTable.finalY;
@@ -505,7 +513,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
 
   doc.autoTable({
     startY: Math.max(finalYTitulo, finalYLeyenda) + 8,
-    margin: { top: margen, left: margen, right: margen, bottom: margen },
+    margin: { left: margen, right: margen, bottom: margen },
     tableWidth: anchoUtil,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 6.5, lineColor: [0, 0, 0], lineWidth: 0.35, cellPadding: 2, halign: 'center', valign: 'middle', overflow: 'linebreak' },
@@ -517,20 +525,51 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
       2: { cellWidth: 40, halign: 'left' }
     },
     body: cuerpo
-    // Sin showHead: por defecto autoTable repite esta cabecera de columnas
-    // en cada página nueva que haga falta (agencias con muchas tiendas).
   });
+
+  return doc.lastAutoTable.finalY;
 }
 
-// PDF en tamaño de página estándar (A4 apaisado), igual que al imprimir el
-// Excel: con pocas tiendas sale en una sola página, y con muchas sigue
-// automáticamente en más páginas con letra de tamaño normal, en vez de
-// encoger todo para que quepa forzosamente en una única página gigante
-// (que al imprimirla en un folio real salía con la letra minúscula).
-function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
+// El PDF siempre se genera apaisado (landscape) y en una sola página,
+// como el informe que se enviaba desde el Excel (todas las tiendas caben
+// en una página, aunque la letra de la tabla salga pequeña). jsPDF fija
+// la posición de cada elemento usando el alto de página que tenga en ESE
+// momento, así que no se puede dibujar y luego encoger la página (el
+// contenido dibujado antes se queda anclado a coordenadas de la página
+// grande y desaparece). Por eso se hace en dos pasadas: una primera de
+// "medida" sobre una página bien alta, y una segunda, definitiva, ya con
+// el alto exacto del contenido medido.
+function rmeCrearDocPagina(ancho, alto) {
   const { jsPDF } = window.jspdf;
+  // Se crea con un tamaño de partida cualquiera y se fija el ancho/alto
+  // reales directamente sobre el documento: si se pasaran como formato
+  // [ancho, alto], jsPDF los intercambiaría en cuanto el alto (con muchas
+  // tiendas) supere el ancho fijo, para mantener la proporción de
+  // landscape, dejando la página con el ancho equivocado.
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.internal.pageSize.width = ancho;
+  doc.internal.pageSize.height = alto;
+  return doc;
+}
+
+function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
+  const margen = 20;
+  const anchoPagina = 841.89; // ancho A4 apaisado, en pt
+
+  // Estimación generosa de partida (~22pt por fila más cabecera/leyenda),
+  // solo para la pasada de medida: nunca debe paginar por quedarse corta.
+  const alturaEstimada = 260 + filasGrupo.length * 22 + 200;
+
+  const docMedida = rmeCrearDocPagina(anchoPagina, alturaEstimada);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
+
+  // +6pt de margen de seguridad: al reproducir el mismo contenido en una
+  // página de alto justo, un ajuste al límite puede hacer que autoTable
+  // empuje la última fila a una segunda página por un redondeo mínimo.
+  const alturaFinal = finalYMedido + margen + 6;
+  const doc = rmeCrearDocPagina(anchoPagina, alturaFinal);
   rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
+
   return doc;
 }
 
