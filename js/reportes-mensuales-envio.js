@@ -18,12 +18,14 @@
 // "Ya enviado": se guarda una fila por (grupo, año, mes) en la tabla
 // informes_mensuales_agencia_enviados (ver supabase/2026-09_reportes_
 // mensuales_envio.sql) para poder mostrar el estado y evitar reenvíos
-// accidentales.
+// accidentales. El botón "Enviar a todas las pendientes" solo manda a
+// las agencias que todavía no tengan ese registro este mes.
 //
 // Requiere (ya cargados antes): sb, escapeHtml, modalAlert, modalConfirm,
-// enviarEmail, sesionActual, plantillaHtmlResumenMensual,
-// rmAnio, rmMes, RM_NOMBRES_MES, rmDiasDelMes, rmCargarDatosMes,
-// rmConstruirTodasLasFilas, CODIGOS_INFORME, pdfDisponible().
+// mostrarCargandoEnvio, actualizarCargandoEnvio, ocultarCargandoEnvio
+// (informe-envio.js), enviarEmail, sesionActual, plantillaHtmlResumenMensual,
+// rmAnio, rmMes, RM_NOMBRES_MES, rmCargarDatosMes, rmConstruirTodasLasFilas,
+// CODIGOS_INFORME, pdfDisponible().
 // ---------------------------------------------------------------
 
 const RME_BUCKET = 'reportes-mensuales';
@@ -67,7 +69,7 @@ function rmeConstruirGrupos(agenciasFrescas) {
     g.orden = Math.min(g.orden, ag.orden ?? 999999);
   });
   return Array.from(porClave.values())
-    .map(g => ({ ...g, emails: Array.from(g.emails) }))
+    .map(g => ({ ...g, emails: Array.from(g.emails), envio: null }))
     .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
 }
 
@@ -75,7 +77,8 @@ function rmeConstruirGrupos(agenciasFrescas) {
 // Panel "Enviar a agencias"
 // ---------------------------------------------------------------
 let rmeEnganchado = false;
-let rmeEnviando = false; // evita doble clic mientras se genera/envía un PDF
+let rmeEnviando = false; // evita doble clic mientras se genera/envía algo
+let rmeGruposActuales = []; // último listado cargado (para el botón "enviar a todas")
 
 function rmePosicionarPanel() {
   const btn = document.getElementById('btnRmEnviarAgencias');
@@ -83,13 +86,18 @@ function rmePosicionarPanel() {
   const wrap = btn.closest('.filtros-wrap');
   const wrapRect = wrap.getBoundingClientRect();
   const margen = 12;
-  const ancho = Math.min(620, window.innerWidth - margen * 2);
+  const ancho = Math.min(640, window.innerWidth - margen * 2);
   panel.style.width = ancho + 'px';
   let left = 0;
   const desbordeDerecha = (wrapRect.left + left + ancho) - (window.innerWidth - margen);
   if (desbordeDerecha > 0) left -= desbordeDerecha;
   if (wrapRect.left + left < margen) left = margen - wrapRect.left;
   panel.style.left = left + 'px';
+
+  // Alto máximo según el hueco disponible bajo el botón, para que el panel
+  // nunca se salga de la pantalla por abajo (la lista hace scroll interno).
+  const espacioAbajo = window.innerHeight - wrapRect.bottom - margen - 16;
+  panel.style.maxHeight = Math.max(280, espacioAbajo) + 'px';
 }
 
 function rmeAbrirPanel() {
@@ -126,6 +134,7 @@ function rmeEngancharPanel() {
   });
 
   document.getElementById('btnRmCerrarEnviar').addEventListener('click', rmeCerrarPanel);
+  document.getElementById('btnRmeEnviarTodas').addEventListener('click', () => rmeEnviarTodosPendientes(rmeGruposActuales));
 }
 
 // Carga agencias frescas (con emails/grupo_envio) + los envíos ya
@@ -134,6 +143,7 @@ async function rmeCargarYRenderPanel() {
   const cont = document.getElementById('rmEnviarLista');
   cont.innerHTML = '<div class="empty"><p>Cargando…</p></div>';
   document.getElementById('rmEnviarMesTexto').textContent = rmeTituloMes(rmAnio, rmMes);
+  rmeActualizarToolbar([], true);
 
   try {
     const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
@@ -146,32 +156,60 @@ async function rmeCargarYRenderPanel() {
 
     const grupos = rmeConstruirGrupos(agencias || []);
     const enviosPorGrupo = new Map((envios || []).map(e => [e.grupo, e]));
+    grupos.forEach(g => { g.envio = enviosPorGrupo.get(g.clave) || null; });
+    rmeGruposActuales = grupos;
 
     if (!grupos.length) {
       cont.innerHTML = '<div class="empty"><p>No hay agencias configuradas.</p></div>';
+      rmeActualizarToolbar([], false);
       return;
     }
 
-    cont.innerHTML = grupos.map(g => rmeHtmlFilaGrupo(g, enviosPorGrupo.get(g.clave))).join('');
+    cont.innerHTML = grupos.map(g => rmeHtmlFilaGrupo(g)).join('');
+    rmeActualizarToolbar(grupos, false);
 
     cont.querySelectorAll('[data-rme-enviar]').forEach(b => {
-      b.addEventListener('click', () => rmeEnviarGrupo(b.dataset.rmeEnviar, grupos, cont));
+      b.addEventListener('click', () => rmeEnviarGrupo(b.dataset.rmeEnviar, rmeGruposActuales, cont));
     });
   } catch (err) {
     console.error('Error cargando el panel de envío del resumen mensual:', err);
     cont.innerHTML = '<div class="empty"><p style="color:var(--grave);">No se pudo cargar la lista de agencias.</p></div>';
+    rmeActualizarToolbar([], false);
   }
 }
 
-function rmeHtmlFilaGrupo(g, envio) {
+// Texto/estado del botón "Enviar a todas las pendientes" según lo cargado.
+function rmeActualizarToolbar(grupos, cargando) {
+  const btn = document.getElementById('btnRmeEnviarTodas');
+  const resumen = document.getElementById('rmeResumenTexto');
+  if (!btn || !resumen) return;
+
+  if (cargando) {
+    resumen.textContent = 'Cargando…';
+    btn.disabled = true;
+    btn.textContent = '📤 Enviar a todas las pendientes';
+    return;
+  }
+
+  const pendientes = grupos.filter(g => !g.envio);
+  resumen.textContent = grupos.length
+    ? `${grupos.length} agencia${grupos.length === 1 ? '' : 's'} · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'} de enviar`
+    : '—';
+  btn.disabled = rmeEnviando || !pendientes.length;
+  btn.textContent = pendientes.length
+    ? `📤 Enviar a todas las pendientes (${pendientes.length})`
+    : '✅ Todas enviadas';
+}
+
+function rmeHtmlFilaGrupo(g) {
   const subAgencias = g.agenciasNombres.length > 1 ? g.agenciasNombres.join(' + ') : null;
   const sinEmails = !g.emails.length;
 
   let estadoHtml;
-  if (envio) {
-    const fecha = new Date(envio.enviado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (g.envio) {
+    const fecha = new Date(g.envio.enviado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     estadoHtml = `
-      <span class="rme-badge-enviado" title="${envio.enviado_por ? 'Enviado por ' + escapeHtml(envio.enviado_por) : ''}">✅ Ya enviado (${fecha})</span>
+      <span class="rme-badge-enviado" title="${g.envio.enviado_por ? 'Enviado por ' + escapeHtml(g.envio.enviado_por) : ''}">✅ ${fecha}</span>
       <button type="button" class="rme-btn-reenviar rme-btn-enviar" data-rme-enviar="${escapeHtml(g.clave)}">Reenviar</button>`;
   } else {
     estadoHtml = `<button type="button" class="btn primary rme-btn-enviar" data-rme-enviar="${escapeHtml(g.clave)}" ${sinEmails ? 'disabled' : ''}>Enviar PDF</button>`;
@@ -183,7 +221,7 @@ function rmeHtmlFilaGrupo(g, envio) {
         <b>${escapeHtml(g.nombre)}</b>
         ${subAgencias ? `<span class="rme-sub">Incluye: ${escapeHtml(subAgencias)}</span>` : ''}
         ${sinEmails
-          ? `<span class="rme-sub rme-warn">Sin emails configurados (Configuración → Emails por agencia)</span>`
+          ? `<span class="rme-sub rme-warn">Sin emails configurados</span>`
           : `<span class="rme-sub">${g.emails.length} destinatario${g.emails.length === 1 ? '' : 's'}</span>`}
       </div>
       <div class="rme-grupo-estado">${estadoHtml}</div>
@@ -191,9 +229,60 @@ function rmeHtmlFilaGrupo(g, envio) {
 }
 
 // ---------------------------------------------------------------
-// Envío de un grupo: genera el PDF, lo sube, envía el correo y marca
-// "ya enviado" en la base de datos.
+// Envío: datos del mes (una sola vez, reutilizados tanto si se envía a
+// una agencia como si se envía a todas) + generación/subida/correo de un
+// grupo concreto.
 // ---------------------------------------------------------------
+async function rmeObtenerDatosMes() {
+  const datos = await rmCargarDatosMes(rmAnio, rmMes);
+  const todasLasFilas = rmConstruirTodasLasFilas(datos.cambiosPorTienda, datos.totalDias);
+  return { ...datos, todasLasFilas };
+}
+
+// Genera el PDF de un grupo, lo sube, envía el correo y registra el envío.
+// Lanza un Error legible si algo falla. No pide confirmación (la pide
+// quien llama, una vez para uno o para todos).
+async function rmeProcesarEnvioGrupo(grupo, datosMes) {
+  const { celdas, diasEnviados, totalDias, todasLasFilas } = datosMes;
+  const mesTexto = rmeTituloMes(rmAnio, rmMes);
+
+  const filasGrupo = todasLasFilas
+    .filter(f => grupo.agenciaIds.includes(f.agenciaId))
+    .sort((a, b) => a.agenciaNombre.localeCompare(b.agenciaNombre) || a.tiendaNombre.localeCompare(b.tiendaNombre) || a.diaInicio - b.diaInicio);
+
+  if (!filasGrupo.length) throw new Error('Esta agencia no tiene tiendas asignadas este mes.');
+
+  const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, celdas, diasEnviados, totalDias);
+  const nombreArchivo = `${grupo.nombre} - ${mesTexto}.pdf`;
+  const blob = doc.output('blob');
+
+  const rutaStorage = `${rmAnio}/${rmMes + 1}/${rmeSlug(grupo.nombre)}.pdf`;
+  const { error: eUp } = await sb.storage.from(RME_BUCKET).upload(rutaStorage, blob, {
+    contentType: 'application/pdf',
+    upsert: true
+  });
+  if (eUp) throw new Error(`No se pudo subir el PDF: ${eUp.message}`);
+
+  const { data: pub } = sb.storage.from(RME_BUCKET).getPublicUrl(rutaStorage);
+  const urlPdf = pub?.publicUrl;
+
+  const subject = `RESUMEN INCIDENCIAS ${grupo.nombre.toUpperCase()} ${mesTexto.toUpperCase()}`;
+  const html = plantillaHtmlResumenMensual(rmeMesNombreCapitalizado(rmMes));
+  await enviarEmail({ to: grupo.emails, subject, html, attachmentUrls: urlPdf ? [urlPdf] : [] });
+
+  const { error: eDb } = await sb.from('informes_mensuales_agencia_enviados').upsert({
+    grupo: grupo.clave,
+    anio: rmAnio,
+    mes: rmMes + 1,
+    pdf_nombre: nombreArchivo,
+    pdf_url: urlPdf,
+    enviado_en: new Date().toISOString(),
+    enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+  }, { onConflict: 'grupo,anio,mes' });
+  if (eDb) console.error('El correo se envió, pero no se pudo guardar el estado de envío:', eDb);
+}
+
+// Envío de una sola agencia/grupo, desde su botón "Enviar PDF"/"Reenviar".
 async function rmeEnviarGrupo(clave, grupos, cont) {
   if (rmeEnviando) return;
   const grupo = grupos.find(g => g.clave === clave);
@@ -220,55 +309,74 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
   if (filaEl) filaEl.innerHTML = '<span class="rme-sub">Generando y enviando…</span>';
 
   try {
-    const datos = await rmCargarDatosMes(rmAnio, rmMes);
-    const { celdas, diasEnviados, totalDias, cambiosPorTienda } = datos;
-    const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, totalDias);
-    const filasGrupo = todasLasFilas
-      .filter(f => grupo.agenciaIds.includes(f.agenciaId))
-      .sort((a, b) => a.agenciaNombre.localeCompare(b.agenciaNombre) || a.tiendaNombre.localeCompare(b.tiendaNombre) || a.diaInicio - b.diaInicio);
-
-    if (!filasGrupo.length) {
-      await modalAlert('Esta agencia no tiene tiendas asignadas este mes.', { titulo: 'Nada que enviar' });
-      return;
-    }
-
-    const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, celdas, diasEnviados, totalDias);
-    const nombreArchivo = `${grupo.nombre} - ${mesTexto}.pdf`;
-    const blob = doc.output('blob');
-
-    const rutaStorage = `${rmAnio}/${rmMes + 1}/${rmeSlug(grupo.nombre)}.pdf`;
-    const { error: eUp } = await sb.storage.from(RME_BUCKET).upload(rutaStorage, blob, {
-      contentType: 'application/pdf',
-      upsert: true
-    });
-    if (eUp) throw new Error(`No se pudo subir el PDF: ${eUp.message}`);
-
-    const { data: pub } = sb.storage.from(RME_BUCKET).getPublicUrl(rutaStorage);
-    const urlPdf = pub?.publicUrl;
-
-    const subject = `RESUMEN INCIDENCIAS ${grupo.nombre.toUpperCase()} ${mesTexto.toUpperCase()}`;
-    const html = plantillaHtmlResumenMensual(rmeMesNombreCapitalizado(rmMes));
-    await enviarEmail({ to: grupo.emails, subject, html, attachmentUrls: urlPdf ? [urlPdf] : [] });
-
-    const { error: eDb } = await sb.from('informes_mensuales_agencia_enviados').upsert({
-      grupo: grupo.clave,
-      anio: rmAnio,
-      mes: rmMes + 1,
-      pdf_nombre: nombreArchivo,
-      pdf_url: urlPdf,
-      enviado_en: new Date().toISOString(),
-      enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
-    }, { onConflict: 'grupo,anio,mes' });
-    if (eDb) console.error('El correo se envió, pero no se pudo guardar el estado de envío:', eDb);
-
-    await rmeCargarYRenderPanel();
+    const datosMes = await rmeObtenerDatosMes();
+    await rmeProcesarEnvioGrupo(grupo, datosMes);
   } catch (err) {
     console.error(`Error enviando el resumen mensual de ${grupo.nombre}:`, err);
     await modalAlert(err.message || 'No se pudo enviar el resumen mensual.', { titulo: 'Error al enviar' });
-    await rmeCargarYRenderPanel();
   } finally {
     rmeEnviando = false;
+    await rmeCargarYRenderPanel();
   }
+}
+
+// Envío masivo: todas las agencias/grupos que todavía no tengan el
+// resumen de este mes registrado como enviado.
+async function rmeEnviarTodosPendientes(grupos) {
+  if (rmeEnviando) return;
+
+  const pendientes = grupos.filter(g => !g.envio);
+  if (!pendientes.length) {
+    await modalAlert('Todas las agencias ya tienen el resumen de este mes enviado.', { titulo: 'Nada pendiente' });
+    return;
+  }
+  const conEmails = pendientes.filter(g => g.emails.length);
+  const sinEmails = pendientes.filter(g => !g.emails.length);
+  if (!conEmails.length) {
+    await modalAlert('Las agencias pendientes no tienen emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+    return;
+  }
+  if (!pdfDisponible()) {
+    await modalAlert('No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.', { titulo: 'PDF no disponible' });
+    return;
+  }
+
+  const mesTexto = rmeTituloMes(rmAnio, rmMes);
+  let mensaje = `Se generará y enviará el PDF del resumen de ${mesTexto} a ${conEmails.length} agencia${conEmails.length === 1 ? '' : 's'}: ${conEmails.map(g => g.nombre).join(', ')}.`;
+  if (sinEmails.length) mensaje += `\n\nSe omiten (sin emails configurados): ${sinEmails.map(g => g.nombre).join(', ')}.`;
+  const ok = await modalConfirm(mensaje, { titulo: '📤 Enviar a todas las pendientes', textoOk: `Enviar a ${conEmails.length}` });
+  if (!ok) return;
+
+  rmeEnviando = true;
+  rmeActualizarToolbar(grupos, false);
+  mostrarCargandoEnvio(`Preparando envío… (0/${conEmails.length})`);
+
+  const resultados = [];
+  try {
+    const datosMes = await rmeObtenerDatosMes();
+    let i = 0;
+    for (const grupo of conEmails) {
+      i++;
+      actualizarCargandoEnvio(`Enviando a ${grupo.nombre}… (${i}/${conEmails.length})`);
+      try {
+        await rmeProcesarEnvioGrupo(grupo, datosMes);
+        resultados.push({ nombre: grupo.nombre, ok: true });
+      } catch (err) {
+        console.error(`Error enviando el resumen mensual de ${grupo.nombre}:`, err);
+        resultados.push({ nombre: grupo.nombre, ok: false, error: err.message || 'Error desconocido' });
+      }
+    }
+  } finally {
+    ocultarCargandoEnvio();
+    rmeEnviando = false;
+    await rmeCargarYRenderPanel();
+  }
+
+  const exitosos = resultados.filter(r => r.ok);
+  const fallidos = resultados.filter(r => !r.ok);
+  let resumen = `Enviado correctamente a ${exitosos.length} de ${resultados.length} agencia${resultados.length === 1 ? '' : 's'}.`;
+  if (fallidos.length) resumen += `\n\nFallos:\n` + fallidos.map(f => `• ${f.nombre}: ${f.error}`).join('\n');
+  await modalAlert(resumen, { titulo: fallidos.length ? 'Envío con errores' : '✅ Resumen mensual enviado' });
 }
 
 // ---------------------------------------------------------------
