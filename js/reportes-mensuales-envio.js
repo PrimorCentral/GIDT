@@ -433,16 +433,12 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias) {
   return { celdas, totalIncidencias };
 }
 
-function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
-  const { jsPDF } = window.jspdf;
+// Dibuja título, leyenda y tabla principal sobre un doc ya creado (con el
+// alto de página que sea). Devuelve el finalY de la tabla principal, es
+// decir, dónde termina realmente el contenido en esa página.
+function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
   const margen = 20;
   const anchoPagina = 842; // ancho A4 apaisado, en pt
-
-  // Alto de partida generoso para que autoTable nunca necesite paginar
-  // (después se recorta la página al alto real del contenido). Estimamos
-  // ~22pt por fila de la tabla principal más la cabecera/leyenda/margen.
-  const alturaInicial = 260 + filasGrupo.length * 22 + 200;
-  const doc = new jsPDF({ unit: 'pt', format: [anchoPagina, alturaInicial] });
   const anchoUtil = anchoPagina - margen * 2;
 
   // --- Título (izquierda) y leyenda de códigos (derecha), lado a lado ---
@@ -452,7 +448,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
 
   doc.autoTable({
     startY: margen,
-    margin: { left: margen, right: margen + anchoLeyenda + separacion },
+    margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
     tableWidth: anchoTitulo,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 13, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204] },
@@ -474,7 +470,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
   }
   doc.autoTable({
     startY: margen,
-    margin: { left: margen + anchoTitulo + separacion, right: margen },
+    margin: { left: margen + anchoTitulo + separacion, right: margen, bottom: margen },
     tableWidth: anchoLeyenda,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 7, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 2.5, valign: 'middle' },
@@ -502,7 +498,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
 
   doc.autoTable({
     startY: Math.max(finalYTitulo, finalYLeyenda) + 8,
-    margin: { left: margen, right: margen },
+    margin: { left: margen, right: margen, bottom: margen },
     tableWidth: anchoUtil,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 6.5, lineColor: [0, 0, 0], lineWidth: 0.35, cellPadding: 2, halign: 'center', valign: 'middle', overflow: 'linebreak' },
@@ -516,15 +512,45 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
     body: cuerpo
   });
 
-  // Recortamos la página al alto real del contenido, para que quede en una
-  // sola página ajustada (en vez del alto de partida, generoso a propósito).
-  const alturaFinal = doc.lastAutoTable.finalY + margen;
-  if (typeof doc.internal.pageSize.setHeight === 'function') {
-    doc.internal.pageSize.setHeight(alturaFinal);
-  } else {
-    doc.internal.pageSize.height = alturaFinal;
-    doc.internal.pageSize.getHeight = () => alturaFinal;
-  }
+  return doc.lastAutoTable.finalY;
+}
+
+// Construye el PDF final en una sola página, con el alto ajustado al
+// contenido real. jsPDF "graba" la posición de cada elemento usando el
+// alto de página que tenga el documento EN ESE MOMENTO, así que no se
+// puede dibujar y luego encoger la página (el contenido dibujado antes
+// se queda anclado a coordenadas de la página grande y desaparece).
+// Por eso se hace en dos pasadas: una primera de "medida" sobre una
+// página generosa, y una segunda, definitiva, ya con el alto exacto.
+// jsPDF "normaliza" el ancho/alto según la orientación: en 'p' (portrait)
+// exige ancho<=alto (los intercambia si no), y en 'l' (landscape) exige
+// ancho>=alto (igual). Como aquí el ancho de página es fijo (842pt) y el
+// alto es el que sea según el contenido, hay que elegir la orientación
+// que ya cumpla esa relación, o jsPDF nos intercambia ancho y alto sin
+// avisar y la página sale girada/con el ancho equivocado.
+function rmeCrearDocPagina(ancho, alto) {
+  const { jsPDF } = window.jspdf;
+  const orientation = alto <= ancho ? 'l' : 'p';
+  return new jsPDF({ orientation, unit: 'pt', format: [ancho, alto] });
+}
+
+function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
+  const margen = 20;
+  const anchoPagina = 842; // ancho A4 apaisado, en pt
+
+  // Estimación generosa de partida (~24pt por fila más cabecera/leyenda),
+  // solo para la pasada de medida: nunca debe paginar por quedarse corta.
+  const alturaEstimada = 300 + filasGrupo.length * 24 + 220;
+
+  const docMedida = rmeCrearDocPagina(anchoPagina, alturaEstimada);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
+
+  // +6pt de margen de seguridad: al reproducir el mismo contenido en una
+  // página de alto justo, un ajuste al límite puede hacer que autoTable
+  // empuje la última fila a una segunda página por un redondeo mínimo.
+  const alturaFinal = finalYMedido + margen + 6;
+  const doc = rmeCrearDocPagina(anchoPagina, alturaFinal);
+  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
 
   return doc;
 }
