@@ -496,6 +496,10 @@
             <input type="time" id="ntHora" class="form-input">
           </div>
           <div>
+            <label class="form-label">Provincia</label>
+            <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
+          </div>
+          <div>
             <label class="form-label">Marca</label>
             <select id="ntMarca" class="form-input">
               <option value="HABITUAL">Habitual</option>
@@ -729,6 +733,25 @@
           <b id="rmMesTexto" style="min-width:150px; text-align:center;">—</b>
           <button class="btn" id="rmBtnMesSiguiente">▶</button>
           <button class="btn" id="rmBtnMesActual">Mes actual</button>
+
+          <div class="filtros-wrap">
+            <button class="btn primary" id="btnRmEnviarAgencias">📤 Enviar a agencias</button>
+            <div class="filtros-modal-overlay" id="rmEnviarPanel">
+              <div class="filtros-modal-header">
+                <b>Enviar resumen mensual</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="filtros-modal-close" id="btnRmCerrarEnviar" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                  Se envía el mismo cuadro de esta pantilla (<b id="rmEnviarMesTexto">—</b>) a cada agencia, en PDF adjunto.
+                  Las agencias con el mismo "grupo de envío" (Configuración → Emails por agencia) se juntan en un único PDF y correo.
+                </p>
+                <div id="rmEnviarLista"><div class="empty"><p>Cargando…</p></div></div>
+              </div>
+            </div>
+          </div>
 
           <div class="filtros-wrap">
             <button class="btn" id="btnRmFiltros">
@@ -1185,6 +1208,10 @@
               <input type="checkbox" id="euPerm_ver_analisis">
               <span><b>Análisis y ranking</b><small>Ver el ranking de tiendas y agencias.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_enviar_reporte_mensual">
+              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+            </label>
           </div>
         </div>
       </div>
@@ -1296,6 +1323,10 @@
               <input type="checkbox" id="nuPerm_ver_analisis">
               <span><b>Análisis y ranking</b><small>Ver el ranking de tiendas y agencias.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_enviar_reporte_mensual">
+              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+            </label>
           </div>
         </div>
       </div>
@@ -1324,6 +1355,10 @@
       <div>
         <label class="form-label">Nombre comercial</label>
         <input type="text" id="naNombreComercial" class="form-input" placeholder="Ej: DHL PARCEL IBERIA, S.L.U (opcional)">
+      </div>
+      <div>
+        <label class="form-label">Grupo de envío (resumen mensual)</label>
+        <input type="text" id="naGrupoEnvio" class="form-input" placeholder="Ej: CBL (opcional, para agrupar con otra agencia)">
       </div>
       <div>
         <label class="form-label">Emails de destinatario</label>
@@ -1394,6 +1429,7 @@
 <script src="js/siniestros.js"></script>
 <script src="js/panel-siniestros.js"></script>
 <script src="js/informe-pdf.js"></script>
+<script src="js/reportes-mensuales-envio.js"></script>
 <script src="js/informe-autorefresh.js"></script>
 <script src="js/analisis.js"></script>
 
