@@ -1189,18 +1189,33 @@ body.rol-lectura input[type="file"]{
 /* ---------- Reportes mensuales (Análisis) ---------- */
 
 /* Esta vista no se desplaza como el resto (main sigue con scroll para las
-   demás): fija su alto al espacio disponible bajo la cabecera y reparte
-   ese alto entre la cabecera propia (fija) y la tabla (con scroll propio,
-   tanto vertical como horizontal). */
+   demás): fija su alto al espacio disponible bajo la cabecera. El ancho se
+   reparte en dos columnas: la tabla (ancha, con su propio scroll) y una
+   barra lateral estrecha con el mes, los filtros y la leyenda. */
 #view-analisis-reportes-mensuales.active{
   display:flex; flex-direction:column;
   height:100%;
   min-height:0;
 }
 #view-analisis-reportes-mensuales .page-head{ flex:0 0 auto; }
-#view-analisis-reportes-mensuales .rm-sticky-bar{ flex:0 0 auto; }
+
+.rm-layout{
+  display:flex; align-items:stretch; gap:16px;
+  flex:1 1 auto; min-height:0;
+}
+.rm-tabla-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
 #contenidoReportesMensuales{ flex:1 1 auto; min-height:0; }
 #contenidoReportesMensuales .card{ height:100%; overflow:auto; }
+
+.rm-sidebar{
+  flex:0 0 250px; width:250px;
+  display:flex; flex-direction:column; gap:12px;
+  overflow-y:auto;
+}
+.rm-sidebar-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:12px 14px;
+}
 
 .tabla-reporte-mensual{ border-collapse:collapse; font-size:12px; white-space:nowrap; }
 .tabla-reporte-mensual th, .tabla-reporte-mensual td{ border:1px solid var(--border); padding:4px 6px; text-align:center; }
@@ -1215,25 +1230,15 @@ body.rol-lectura input[type="file"]{
 .rm-col-total{ background:var(--panel-muted); font-weight:700; }
 .rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
 
-/* Barra superior fija dentro de la vista: selector de mes + filtros, y
-   debajo la leyenda en miniatura. Ya no necesita position:sticky porque
-   ahora es la tabla la que hace scroll, no la página. */
-.rm-sticky-bar{
-  display:flex; flex-direction:column; gap:10px;
-  margin-bottom:14px;
-}
-.rm-selector-mes{
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
-  padding:10px 14px;
-}
-.rm-selector-mes b{ min-width:140px; text-align:center; }
-.rm-selector-mes .filtros-wrap{ margin-left:auto; }
+/* Selector de mes (barra lateral) */
+.rm-selector-mes{ text-align:center; }
+.rm-selector-mes b{ display:block; margin-bottom:10px; font-size:13.5px; }
+.rm-selector-mes-botones{ display:flex; gap:8px; margin-bottom:8px; }
+.rm-selector-mes-botones .btn{ flex:1; justify-content:center; }
 
+/* Leyenda: en la barra lateral (estrecha), los chips quedan en columna. */
 .rm-leyenda-compacta{
-  display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
-  padding:10px 14px;
+  display:flex; flex-direction:column; gap:6px;
 }
 .rm-leyenda-compacta .rm-leyenda-item{
   display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
