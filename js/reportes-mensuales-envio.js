@@ -409,10 +409,10 @@ function rmeHexToRgb(hex) {
 
 // Igual que rmCeldasDeTramo() de reportes-mensuales.js, pero devolviendo
 // celdas para jsPDF-autotable en lugar de HTML.
-function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias) {
+function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala) {
   const celdas = [];
   let totalIncidencias = 0;
-  const estiloCambio = { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'italic', fontSize: 6 };
+  const estiloCambio = { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'italic', fontSize: 6 * escala };
 
   if (f.diaInicio > 1) {
     celdas.push({ content: `Antes:\n${f.nombreAnterior || '—'}`, colSpan: f.diaInicio - 1, styles: estiloCambio });
@@ -433,10 +433,16 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias) {
   return { celdas, totalIncidencias };
 }
 
-// Dibuja título, leyenda y tabla principal sobre un doc ya creado (con el
-// alto de página que sea). Devuelve el finalY de la tabla principal, es
-// decir, dónde termina realmente el contenido en esa página.
-function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
+// Dibuja título, leyenda y tabla principal sobre un doc ya creado.
+// `escala` reduce proporcionalmente los tamaños de letra/relleno de todo
+// el contenido (título, leyenda y tabla), sin tocar los anchos de columna
+// (que siguen ocupando todo el ancho de la página): así, cuando hay
+// muchas tiendas, la página sigue siendo la misma hoja A4 apaisada de
+// siempre —nunca más alta que ancha— y lo que se reduce es la letra,
+// igual que hace Excel al "ajustar la hoja a una página".
+// Devuelve el finalY de la tabla principal, es decir, dónde termina
+// realmente el contenido en esa página.
+function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, escala) {
   const margen = 20;
   const anchoPagina = doc.internal.pageSize.getWidth();
   const anchoUtil = anchoPagina - margen * 2;
@@ -473,7 +479,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen + anchoTitulo + separacion, right: margen, bottom: margen },
     tableWidth: anchoLeyenda,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 6.5, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 2, valign: 'middle' },
+    styles: { font: 'helvetica', fontSize: 6.5 * escala, lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.4 * escala), cellPadding: 2 * escala, valign: 'middle' },
     head: [[{ content: 'LEYENDA', colSpan: 6, styles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' } }]],
     columnStyles: {
       0: { cellWidth: anchoCodigo }, 1: { cellWidth: anchoLabel },
@@ -490,7 +496,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
     tableWidth: anchoTitulo,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 15, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
+    styles: { font: 'helvetica', fontSize: 15 * escala, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.75 * escala), cellPadding: 8 * escala, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
     body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
   });
   const finalYTitulo = doc.lastAutoTable.finalY;
@@ -501,7 +507,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
 
   const cuerpo = filasGrupo.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
-    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias);
+    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala);
     return [
       { content: f.agenciaNombre, styles: { halign: 'left', fontStyle: 'bold' } },
       { content: f.tiendaNombre, styles: { halign: 'left' } },
@@ -512,13 +518,13 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
   });
 
   doc.autoTable({
-    startY: Math.max(finalYTitulo, finalYLeyenda) + 8,
+    startY: Math.max(finalYTitulo, finalYLeyenda) + 8 * escala,
     margin: { left: margen, right: margen, bottom: margen },
     tableWidth: anchoUtil,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 6.5, lineColor: [0, 0, 0], lineWidth: 0.35, cellPadding: 2, halign: 'center', valign: 'middle', overflow: 'linebreak' },
+    styles: { font: 'helvetica', fontSize: 6.5 * escala, lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.35 * escala), cellPadding: 2 * escala, halign: 'center', valign: 'middle', overflow: 'linebreak' },
     head: [cabecera],
-    headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 },
+    headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 * escala },
     columnStyles: {
       0: { cellWidth: 55, halign: 'left', fontStyle: 'bold' },
       1: { cellWidth: 90, halign: 'left' },
@@ -530,22 +536,22 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
   return doc.lastAutoTable.finalY;
 }
 
-// El PDF siempre se genera apaisado (landscape) y en una sola página,
-// como el informe que se enviaba desde el Excel (todas las tiendas caben
-// en una página, aunque la letra de la tabla salga pequeña). jsPDF fija
-// la posición de cada elemento usando el alto de página que tenga en ESE
-// momento, así que no se puede dibujar y luego encoger la página (el
-// contenido dibujado antes se queda anclado a coordenadas de la página
-// grande y desaparece). Por eso se hace en dos pasadas: una primera de
-// "medida" sobre una página bien alta, y una segunda, definitiva, ya con
-// el alto exacto del contenido medido.
-function rmeCrearDocPagina(ancho, alto) {
+// El PDF siempre es una página A4 apaisada REAL (841.89 x 595.28pt, más
+// ancha que alta: por eso sale siempre en horizontal al imprimir, nunca
+// "en vertical"). Como con muchas tiendas la tabla no cabe a tamaño
+// normal en esa altura, se mide primero cuánto ocuparía a tamaño normal
+// en una página de prueba bien alta y, si no cabe, se vuelve a dibujar
+// todo (título, leyenda y tabla) más pequeño —una única escala para
+// todo—, igual que Excel al "ajustar la hoja a una página": se reduce la
+// letra, no la página. Con pocas tiendas (la mayoría de los casos) no
+// hace falta reducir nada.
+function rmeCrearDocMedida(ancho, alto) {
   const { jsPDF } = window.jspdf;
-  // Se crea con un tamaño de partida cualquiera y se fija el ancho/alto
-  // reales directamente sobre el documento: si se pasaran como formato
-  // [ancho, alto], jsPDF los intercambiaría en cuanto el alto (con muchas
-  // tiendas) supere el ancho fijo, para mantener la proporción de
-  // landscape, dejando la página con el ancho equivocado.
+  // Página de prueba, descartada al final: se crea con un tamaño de
+  // partida cualquiera y se fija el ancho/alto reales directamente sobre
+  // el documento, porque si se pasaran como formato [ancho, alto], jsPDF
+  // los intercambiaría en cuanto el alto de prueba (bien alto a
+  // propósito) supere al ancho, dejando la medida mal hecha.
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   doc.internal.pageSize.width = ancho;
   doc.internal.pageSize.height = alto;
@@ -554,21 +560,25 @@ function rmeCrearDocPagina(ancho, alto) {
 
 function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
   const margen = 20;
-  const anchoPagina = 841.89; // ancho A4 apaisado, en pt
+  const anchoPagina = 841.89; // A4 apaisado real, en pt
+  const altoPagina = 595.28;
 
-  // Estimación generosa de partida (~22pt por fila más cabecera/leyenda),
-  // solo para la pasada de medida: nunca debe paginar por quedarse corta.
+  // Pasada de medida a tamaño normal (escala 1), en una página de prueba
+  // bien alta para que nunca pagine por quedarse corta.
   const alturaEstimada = 260 + filasGrupo.length * 22 + 200;
+  const docMedida = rmeCrearDocMedida(anchoPagina, alturaEstimada);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, 1);
 
-  const docMedida = rmeCrearDocPagina(anchoPagina, alturaEstimada);
-  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
+  // Si el contenido a tamaño normal no cabe en el alto real de una A4,
+  // se calcula la escala que hace falta para que sí quepa (con un pequeño
+  // margen de seguridad); si cabe de sobra, se deja a tamaño normal.
+  const alturaNecesaria = finalYMedido - margen;
+  const alturaDisponible = (altoPagina - margen * 2) * 0.985;
+  const escala = alturaNecesaria > alturaDisponible ? alturaDisponible / alturaNecesaria : 1;
 
-  // +6pt de margen de seguridad: al reproducir el mismo contenido en una
-  // página de alto justo, un ajuste al límite puede hacer que autoTable
-  // empuje la última fila a una segunda página por un redondeo mínimo.
-  const alturaFinal = finalYMedido + margen + 6;
-  const doc = rmeCrearDocPagina(anchoPagina, alturaFinal);
-  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, escala);
 
   return doc;
 }
