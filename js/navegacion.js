@@ -203,20 +203,45 @@
       console.error('Error comprobando el informe de hoy:', err);
     }
 
-    // 3. Panel siniestros: pendiente de cobro y recogidas con la fecha cumplida
+    // 3. Panel siniestros: pendiente de cobro (más de 15 días), sin
+    // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, valor');
+        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
-        const pdteCobro = data.filter(s => s.estado === 'PDTE COBRO');
+        // Solo avisa si lleva más de 15 días pendiente de cobro (a partir
+        // de la fecha del siniestro), no en cuanto entra en ese estado.
+        const pdteCobro = data.filter(s => {
+          if (s.estado !== 'PDTE COBRO' || !s.fecha) return false;
+          const dias = Math.floor((hoy - new Date(s.fecha + 'T00:00:00')) / 86400000);
+          return dias > 15;
+        });
         if (pdteCobro.length) {
           const totalPdte = pdteCobro.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
           const totalTxt = totalPdte.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           items.push({
             icono: '💰',
-            texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro (${totalTxt} €)`,
+            texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro desde hace más de 15 días (${totalTxt} €)`,
+            vista: 'panel-siniestros'
+          });
+        }
+
+        const sinAlbaran = data.filter(s => s.estado === 'PDTE COBRO' && !s.albaran_url);
+        if (sinAlbaran.length) {
+          items.push({
+            icono: '📄',
+            texto: `${sinAlbaran.length} siniestro${sinAlbaran.length === 1 ? '' : 's'} sin albarán`,
+            vista: 'panel-siniestros'
+          });
+        }
+
+        const sinFactura = data.filter(s => s.estado === 'PDTE COBRO' && !s.factura_url);
+        if (sinFactura.length) {
+          items.push({
+            icono: '🧾',
+            texto: `${sinFactura.length} siniestro${sinFactura.length === 1 ? '' : 's'} sin factura`,
             vista: 'panel-siniestros'
           });
         }
