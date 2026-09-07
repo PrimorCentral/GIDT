@@ -45,12 +45,23 @@ function rmeClaveGrupo(agencia) {
   return (agencia.grupo_envio && agencia.grupo_envio.trim()) || agencia.nombre;
 }
 
-function rmeSlug(texto) {
-  return (texto || 'agencia')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
-    .replace(/[^A-Za-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toUpperCase() || 'AGENCIA';
+function rmeMesAnioTexto(mesIndex, anio) {
+  return `${rmeMesNombreCapitalizado(mesIndex)} de ${anio}`;
+}
+
+// Nombre "bonito" del PDF: el que ver\u00e1 el destinatario como adjunto
+// (la Edge Function de correo usa el \u00faltimo tramo de la URL de Storage
+// como nombre de archivo, as\u00ed que este mismo texto es tambi\u00e9n la ruta
+// donde se sube \u2014 ver rmeRutaStorage).
+function rmeNombreArchivo(grupoNombre, anio, mesIndex) {
+  return `${grupoNombre} - ${rmeTituloMes(anio, mesIndex)}.pdf`;
+}
+
+// Ruta en Storage: una carpeta por a\u00f1o/mes y, dentro, el nombre "bonito"
+// de arriba (con los caracteres no v\u00e1lidos en una ruta reemplazados).
+function rmeRutaStorage(grupoNombre, anio, mesIndex) {
+  const nombre = rmeNombreArchivo(grupoNombre, anio, mesIndex).replace(/[\\/?#]/g, '-');
+  return `${anio}/${mesIndex + 1}/${nombre}`;
 }
 
 // A partir del listado fresco de agencias (con emails y grupo_envio),
@@ -253,10 +264,13 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
   if (!filasGrupo.length) throw new Error('Esta agencia no tiene tiendas asignadas este mes.');
 
   const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, celdas, diasEnviados, totalDias);
-  const nombreArchivo = `${grupo.nombre} - ${mesTexto}.pdf`;
+  const nombreArchivo = rmeNombreArchivo(grupo.nombre, rmAnio, rmMes);
   const blob = doc.output('blob');
 
-  const rutaStorage = `${rmAnio}/${rmMes + 1}/${rmeSlug(grupo.nombre)}.pdf`;
+  // Importante: el nombre del adjunto que verá la agencia es el último
+  // tramo de esta ruta (lo decide la Edge Function de correo a partir de
+  // la URL), así que tiene que ser ya el nombre "bonito" con mes y año.
+  const rutaStorage = rmeRutaStorage(grupo.nombre, rmAnio, rmMes);
   const { error: eUp } = await sb.storage.from(RME_BUCKET).upload(rutaStorage, blob, {
     contentType: 'application/pdf',
     upsert: true
@@ -267,7 +281,7 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
   const urlPdf = pub?.publicUrl;
 
   const subject = `RESUMEN INCIDENCIAS ${grupo.nombre.toUpperCase()} ${mesTexto.toUpperCase()}`;
-  const html = plantillaHtmlResumenMensual(rmeMesNombreCapitalizado(rmMes));
+  const html = plantillaHtmlResumenMensual(rmeMesAnioTexto(rmMes, rmAnio));
   await enviarEmail({ to: grupo.emails, subject, html, attachmentUrls: urlPdf ? [urlPdf] : [] });
 
   const { error: eDb } = await sb.from('informes_mensuales_agencia_enviados').upsert({
@@ -307,12 +321,17 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
   rmeEnviando = true;
   const filaEl = cont.querySelector(`[data-rme-fila="${CSS.escape(clave)}"] .rme-grupo-estado`);
   if (filaEl) filaEl.innerHTML = '<span class="rme-sub">Generando y enviando…</span>';
+  mostrarCargandoEnvio(`Generando el PDF de ${grupo.nombre}…`);
 
   try {
     const datosMes = await rmeObtenerDatosMes();
+    actualizarCargandoEnvio(`Enviando correo a ${grupo.nombre}, espera…`);
     await rmeProcesarEnvioGrupo(grupo, datosMes);
+    ocultarCargandoEnvio();
+    await modalAlert(`Correo enviado correctamente a: ${grupo.emails.join(', ')}`, { titulo: '✅ Resumen mensual enviado' });
   } catch (err) {
     console.error(`Error enviando el resumen mensual de ${grupo.nombre}:`, err);
+    ocultarCargandoEnvio();
     await modalAlert(err.message || 'No se pudo enviar el resumen mensual.', { titulo: 'Error al enviar' });
   } finally {
     rmeEnviando = false;
@@ -416,21 +435,31 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias) {
 
 function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const margen = 20;
-  const anchoUtil = doc.internal.pageSize.getWidth() - margen * 2;
+  const anchoPagina = 842; // ancho A4 apaisado, en pt
 
-  // --- Título ---
+  // Alto de partida generoso para que autoTable nunca necesite paginar
+  // (después se recorta la página al alto real del contenido). Estimamos
+  // ~22pt por fila de la tabla principal más la cabecera/leyenda/margen.
+  const alturaInicial = 260 + filasGrupo.length * 22 + 200;
+  const doc = new jsPDF({ unit: 'pt', format: [anchoPagina, alturaInicial] });
+  const anchoUtil = anchoPagina - margen * 2;
+
+  // --- Título (izquierda) y leyenda de códigos (derecha), lado a lado ---
+  const anchoTitulo = Math.round(anchoUtil * 0.32);
+  const separacion = 10;
+  const anchoLeyenda = anchoUtil - anchoTitulo - separacion;
+
   doc.autoTable({
     startY: margen,
-    margin: { left: margen, right: margen },
-    tableWidth: anchoUtil,
+    margin: { left: margen, right: margen + anchoLeyenda + separacion },
+    tableWidth: anchoTitulo,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 15, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle' },
+    styles: { font: 'helvetica', fontSize: 13, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204] },
     body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
   });
+  const finalYTitulo = doc.lastAutoTable.finalY;
 
-  // --- Leyenda de códigos (2 columnas) ---
   const mitad = Math.ceil(CODIGOS_INFORME.length / 2);
   const filasLeyenda = [];
   for (let i = 0; i < mitad; i++) {
@@ -444,15 +473,16 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
     ]);
   }
   doc.autoTable({
-    startY: doc.lastAutoTable.finalY,
-    margin: { left: margen, right: margen },
-    tableWidth: anchoUtil,
+    startY: margen,
+    margin: { left: margen + anchoTitulo + separacion, right: margen },
+    tableWidth: anchoLeyenda,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 7.5, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 3, valign: 'middle' },
+    styles: { font: 'helvetica', fontSize: 7, lineColor: [0, 0, 0], lineWidth: 0.4, cellPadding: 2.5, valign: 'middle' },
     head: [[{ content: 'LEYENDA', colSpan: 4, styles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' } }]],
-    columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: anchoUtil * 0.5 - 24 }, 2: { cellWidth: 24 }, 3: { cellWidth: anchoUtil * 0.5 - 24 } },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: anchoLeyenda * 0.5 - 22 }, 2: { cellWidth: 22 }, 3: { cellWidth: anchoLeyenda * 0.5 - 22 } },
     body: filasLeyenda
   });
+  const finalYLeyenda = doc.lastAutoTable.finalY;
 
   // --- Tabla principal ---
   const cabeceraDias = Array.from({ length: totalDias }, (_, i) => String(i + 1));
@@ -471,7 +501,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
   });
 
   doc.autoTable({
-    startY: doc.lastAutoTable.finalY,
+    startY: Math.max(finalYTitulo, finalYLeyenda) + 8,
     margin: { left: margen, right: margen },
     tableWidth: anchoUtil,
     theme: 'grid',
@@ -479,12 +509,22 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
     head: [cabecera],
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 },
     columnStyles: {
-      0: { cellWidth: 62, halign: 'left', fontStyle: 'bold' },
-      1: { cellWidth: 70, halign: 'left' },
-      2: { cellWidth: 55, halign: 'left' }
+      0: { cellWidth: 55, halign: 'left', fontStyle: 'bold' },
+      1: { cellWidth: 90, halign: 'left' },
+      2: { cellWidth: 40, halign: 'left' }
     },
     body: cuerpo
   });
+
+  // Recortamos la página al alto real del contenido, para que quede en una
+  // sola página ajustada (en vez del alto de partida, generoso a propósito).
+  const alturaFinal = doc.lastAutoTable.finalY + margen;
+  if (typeof doc.internal.pageSize.setHeight === 'function') {
+    doc.internal.pageSize.setHeight(alturaFinal);
+  } else {
+    doc.internal.pageSize.height = alturaFinal;
+    doc.internal.pageSize.getHeight = () => alturaFinal;
+  }
 
   return doc;
 }

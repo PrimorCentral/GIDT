@@ -335,7 +335,7 @@
   // js/reportes-mensuales-envio.js). Mismo texto que se mandaba a mano:
   // "Buenos días, adjuntamos resumen de las entregas en el pasado mes de
   // X con las incidencias que hayan tenido lugar. Gracias, un saludo".
-  function plantillaHtmlResumenMensual(nombreMes) {
+  function plantillaHtmlResumenMensual(nombreMesConAnio) {
     return `
 <div style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f7fa">
@@ -346,7 +346,7 @@
             <td style="padding: 40px; background-color: #ffffff;">
               <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">Buenos días,</p>
               <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
-                Adjuntamos resumen de las entregas del mes de <b style="color: #000000;">${escapeHtml(nombreMes)}</b> con las incidencias que hayan tenido lugar.
+                Adjuntamos resumen de las entregas de <b style="color: #000000;">${escapeHtml(nombreMesConAnio)}</b> con las incidencias que hayan tenido lugar.
               </p>
               <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
                 Gracias, un saludo.
