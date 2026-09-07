@@ -421,7 +421,7 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala) {
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
     const c = celdasTienda[dia];
-    if (!c) { celdas.push({ content: 'OK', styles: { textColor: [110, 110, 110] } }); continue; }
+    if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
     totalIncidencias++;
     celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
   }
@@ -479,7 +479,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen + anchoTitulo + separacion, right: margen, bottom: margen },
     tableWidth: anchoLeyenda,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 6.5 * escala, lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.4 * escala), cellPadding: 2 * escala, valign: 'middle' },
+    styles: { font: 'helvetica', fontSize: 6.5 * escala, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.4 * escala), cellPadding: 2 * escala, valign: 'middle' },
     head: [[{ content: 'LEYENDA', colSpan: 6, styles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' } }]],
     columnStyles: {
       0: { cellWidth: anchoCodigo }, 1: { cellWidth: anchoLabel },
@@ -496,7 +496,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
     tableWidth: anchoTitulo,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 15 * escala, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.75 * escala), cellPadding: 8 * escala, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
+    styles: { font: 'helvetica', fontSize: 17 * escala, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.75 * escala), cellPadding: 8 * escala, halign: 'center', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
     body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
   });
   const finalYTitulo = doc.lastAutoTable.finalY;
@@ -522,7 +522,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     margin: { left: margen, right: margen, bottom: margen },
     tableWidth: anchoUtil,
     theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 6.5 * escala, lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.35 * escala), cellPadding: 2 * escala, halign: 'center', valign: 'middle', overflow: 'linebreak' },
+    styles: { font: 'helvetica', fontSize: 6.5 * escala, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.35 * escala), cellPadding: 2 * escala, halign: 'center', valign: 'middle', overflow: 'linebreak' },
     head: [cabecera],
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 * escala },
     columnStyles: {
