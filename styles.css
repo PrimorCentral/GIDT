@@ -1105,6 +1105,7 @@ body:not(.perm-enviar_informe) #btnEnviarInforme{ display:none !important; }
 /* Sin permiso de "Enviar resumen mensual a agencias" */
 body:not(.perm-enviar_reporte_mensual) #btnRmEnviarAgencias{ display:none !important; }
 body:not(.perm-enviar_reporte_mensual) .rme-grupo-row .rme-btn-enviar{ display:none !important; }
+body:not(.perm-enviar_reporte_mensual) #btnRmeEnviarTodas{ display:none !important; }
 
 /* Sin permiso de "Panel siniestros": se puede ver la tabla, pero no
    dar de alta ni editar filas (fila entera bloqueada al abrirla). */
@@ -1322,9 +1323,23 @@ body.rol-lectura input[type="file"]{
 /* ---------------------------------------------------------------
    Reportes mensuales → panel "Enviar a agencias"
    --------------------------------------------------------------- */
+/* El panel tiene una altura máxima (fijada por JS según el hueco bajo el
+   botón) y solo la lista de agencias hace scroll interno; la intro y la
+   barra "Enviar a todas" quedan siempre visibles arriba. Se aplica solo a
+   este panel (por id) para no afectar al panel de Filtros, que necesita
+   que sus desplegables puedan salirse del recuadro. */
+#rmEnviarPanel{ overflow:hidden; }
+#rmEnviarPanel .filtros-modal-body{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.rme-toolbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding-bottom:12px; margin-bottom:8px; border-bottom:1px solid var(--panel-muted); flex:0 0 auto;
+}
+.rme-toolbar .rme-sub{ font-size:12px; color:var(--ink-soft); }
+#rmEnviarLista{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:2px; }
+
 .rme-grupo-row{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:12px 4px; border-bottom:1px solid var(--panel-muted);
+  padding:9px 4px; border-bottom:1px solid var(--panel-muted);
 }
 .rme-grupo-row:last-child{ border-bottom:0; }
 .rme-grupo-info b{ font-size:13.5px; }
