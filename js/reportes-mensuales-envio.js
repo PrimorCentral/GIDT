@@ -442,19 +442,13 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
   const anchoUtil = anchoPagina - margen * 2;
 
   // --- Título (izquierda) y leyenda de códigos (derecha), lado a lado ---
+  // La leyenda se dibuja primero para saber su altura real, y así el
+  // recuadro del título se estira para ocupar esa misma altura (como en
+  // el informe manual), en vez de quedar un recuadro pequeño con un
+  // hueco vacío debajo hasta que empieza la tabla principal.
   const anchoTitulo = Math.round(anchoUtil * 0.32);
   const separacion = 10;
   const anchoLeyenda = anchoUtil - anchoTitulo - separacion;
-
-  doc.autoTable({
-    startY: margen,
-    margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
-    tableWidth: anchoTitulo,
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 13, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204] },
-    body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
-  });
-  const finalYTitulo = doc.lastAutoTable.finalY;
 
   const mitad = Math.ceil(CODIGOS_INFORME.length / 2);
   const filasLeyenda = [];
@@ -479,6 +473,17 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
     body: filasLeyenda
   });
   const finalYLeyenda = doc.lastAutoTable.finalY;
+  const altoLeyenda = finalYLeyenda - margen;
+
+  doc.autoTable({
+    startY: margen,
+    margin: { left: margen, right: margen + anchoLeyenda + separacion, bottom: margen },
+    tableWidth: anchoTitulo,
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 13, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.75, cellPadding: 8, halign: 'left', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
+    body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
+  });
+  const finalYTitulo = doc.lastAutoTable.finalY;
 
   // --- Tabla principal ---
   const cabeceraDias = Array.from({ length: totalDias }, (_, i) => String(i + 1));
@@ -522,16 +527,20 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
 // se queda anclado a coordenadas de la página grande y desaparece).
 // Por eso se hace en dos pasadas: una primera de "medida" sobre una
 // página generosa, y una segunda, definitiva, ya con el alto exacto.
-// jsPDF "normaliza" el ancho/alto según la orientación: en 'p' (portrait)
-// exige ancho<=alto (los intercambia si no), y en 'l' (landscape) exige
-// ancho>=alto (igual). Como aquí el ancho de página es fijo (842pt) y el
-// alto es el que sea según el contenido, hay que elegir la orientación
-// que ya cumpla esa relación, o jsPDF nos intercambia ancho y alto sin
-// avisar y la página sale girada/con el ancho equivocado.
+// El PDF siempre se genera apaisado (landscape). jsPDF, si se le da el
+// tamaño como array [ancho, alto], "normaliza" esos valores según la
+// orientación: en landscape exige ancho>=alto y los intercambia si no se
+// cumple (pasa con informes de muchas tiendas, donde el alto acaba
+// superando los 842pt de ancho fijo), dejando la página con el ancho
+// equivocado. Para evitarlo, se crea con un tamaño de partida cualquiera
+// y se fija el ancho/alto reales directamente sobre el documento, sin
+// pasar por esa normalización.
 function rmeCrearDocPagina(ancho, alto) {
   const { jsPDF } = window.jspdf;
-  const orientation = alto <= ancho ? 'l' : 'p';
-  return new jsPDF({ orientation, unit: 'pt', format: [ancho, alto] });
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.internal.pageSize.width = ancho;
+  doc.internal.pageSize.height = alto;
+  return doc;
 }
 
 function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
