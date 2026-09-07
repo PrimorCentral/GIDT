@@ -85,17 +85,14 @@ async function rmCargarDatosMes(anio, mesIndex) {
   return { celdas, diasEnviados, totalDias };
 }
 
-// Todas las filas posibles (tienda x agencia), con su código visual tipo
-// "A01" calculado sobre el listado COMPLETO (sin filtrar), para que el
-// código de cada tienda no cambie según qué filtros haya activos.
+// Todas las filas posibles (tienda x agencia), sobre el listado COMPLETO
+// (sin filtrar), para no depender de qué filtros haya activos.
 function rmConstruirTodasLasFilas() {
   const todas = [];
-  agenciasCache.forEach((ag, idxAg) => {
-    const letra = String.fromCharCode(65 + (idxAg % 26));
+  agenciasCache.forEach(ag => {
     const tds = tiendasCache.filter(t => t.agencia_id === ag.id);
-    tds.forEach((t, idxT) => {
+    tds.forEach(t => {
       todas.push({
-        codigoFila: `${letra}${String(idxT + 1).padStart(2, '0')}`,
         agenciaId: ag.id,
         agenciaNombre: ag.nombre,
         tiendaId: t.id,
@@ -305,7 +302,6 @@ async function rmRender() {
 
   const filasHtml = filasVisibles.map(({ f, tds, totalIncidencias }) => `
     <tr>
-      <td class="rm-col-fija">${escapeHtml(f.codigoFila)}</td>
       <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
       ${tds}
@@ -317,12 +313,12 @@ async function rmRender() {
       <table class="tabla-reporte-mensual">
         <thead>
           <tr>
-            <th>Nº</th><th>Agencia</th><th>Tienda</th>
+            <th>Agencia</th><th>Tienda</th>
             ${cabeceraDias}
             <th>Total</th>
           </tr>
         </thead>
-        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
+        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 3}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
 }
