@@ -1211,6 +1211,7 @@ body.rol-lectura input[type="file"]{
   padding:10px 14px;
 }
 .rm-selector-mes b{ min-width:140px; text-align:center; }
+.rm-selector-mes .filtros-wrap{ margin-left:auto; }
 .rm-leyenda-compacta{
   display:flex; flex-wrap:wrap; gap:4px 10px;
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
