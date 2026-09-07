@@ -1330,6 +1330,9 @@ body.rol-lectura input[type="file"]{
    que sus desplegables puedan salirse del recuadro. */
 #rmEnviarPanel{ overflow:hidden; }
 #rmEnviarPanel .filtros-modal-body{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+#rmExportarPanel{ overflow:hidden; }
+#rmExportarPanel .filtros-modal-body{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+#rmExportarLista{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:2px; }
 .rme-toolbar{
   display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   padding-bottom:12px; margin-bottom:8px; border-bottom:1px solid var(--panel-muted); flex:0 0 auto;
