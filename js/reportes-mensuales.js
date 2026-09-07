@@ -10,6 +10,15 @@
 // todavía no se ha enviado, la celda se deja en blanco (pendiente),
 // nunca en OK.
 //
+// Cambios de agencia a mitad de mes: si una tienda cambió de agencia
+// dentro del mes mostrado (tabla tienda_agencia_historial, rellenada por
+// cambiarAgenciaTienda en tiendas.js), su fila se parte en dos: una bajo
+// la agencia antigua con los días previos al cambio + una celda fusionada
+// "Cambia a: X" en el resto del mes, y otra bajo la agencia nueva con una
+// celda fusionada "Antes: Y" en los días previos + los días reales desde
+// el cambio. Si hay más de un cambio en el mismo mes, se generan tantos
+// tramos como haga falta.
+//
 // Filtros: mismo diseño y comportamiento que el panel de "Filtrar
 // incidencias" del Informe del día (misma estructura HTML/CSS, ver
 // filtros-motivos.js) — Agencia, Tienda y "solo con incidencias este mes".
@@ -82,29 +91,92 @@ async function rmCargarDatosMes(anio, mesIndex) {
     celdas[inc.tienda_id][dia] = codigo;
   });
 
-  return { celdas, diasEnviados, totalDias };
+  // Cambios de agencia ocurridos DENTRO de este mes, agrupados por tienda
+  // y ordenados por fecha, para poder partir su fila en tramos.
+  const { data: cambios, error: e3 } = await sb
+    .from('tienda_agencia_historial')
+    .select('tienda_id, agencia_anterior_id, agencia_anterior_nombre, agencia_nueva_id, agencia_nueva_nombre, fecha_cambio')
+    .gte('fecha_cambio', desde)
+    .lte('fecha_cambio', hasta)
+    .order('fecha_cambio', { ascending: true });
+  if (e3) throw e3;
+
+  const cambiosPorTienda = new Map();
+  (cambios || []).forEach(c => {
+    const dia = Number(c.fecha_cambio.slice(8, 10));
+    if (!cambiosPorTienda.has(c.tienda_id)) cambiosPorTienda.set(c.tienda_id, []);
+    cambiosPorTienda.get(c.tienda_id).push({
+      dia,
+      agenciaAnteriorId: c.agencia_anterior_id,
+      agenciaAnteriorNombre: c.agencia_anterior_nombre || '—',
+      agenciaNuevaId: c.agencia_nueva_id,
+      agenciaNuevaNombre: c.agencia_nueva_nombre
+    });
+  });
+
+  return { celdas, diasEnviados, totalDias, cambiosPorTienda };
 }
 
-// Todas las filas posibles (tienda x agencia), sobre el listado COMPLETO
-// (sin filtrar), para no depender de qué filtros haya activos.
-function rmConstruirTodasLasFilas() {
+// Para una tienda con cambios de agencia este mes, calcula los tramos en
+// los que se parte su fila. Si no tuvo ningún cambio, es un único tramo
+// (todo el mes) con su agencia actual.
+function rmSegmentosDeTienda(tienda, cambios, totalDias) {
+  const agenciaActual = agenciasCache.find(a => a.id === tienda.agencia_id);
+  const nombreActual = agenciaActual ? agenciaActual.nombre : '—';
+
+  if (!cambios || !cambios.length) {
+    return [{ agenciaId: tienda.agencia_id, agenciaNombre: nombreActual, diaInicio: 1, diaFin: totalDias }];
+  }
+
+  const segmentos = [];
+  let diaInicio = 1;
+  let agId = cambios[0].agenciaAnteriorId;
+  let agNombre = cambios[0].agenciaAnteriorNombre;
+  cambios.forEach(c => {
+    segmentos.push({ agenciaId: agId, agenciaNombre: agNombre, diaInicio, diaFin: c.dia - 1 });
+    diaInicio = c.dia;
+    agId = c.agenciaNuevaId;
+    agNombre = c.agenciaNuevaNombre;
+  });
+  // Último tramo: desde el último cambio hasta fin de mes (con la agencia
+  // ACTUAL de la tienda, que debería coincidir con la del último cambio).
+  segmentos.push({ agenciaId: tienda.agencia_id, agenciaNombre: nombreActual, diaInicio, diaFin: totalDias });
+
+  // Añade, a cada tramo, el nombre del tramo anterior/siguiente (para las
+  // celdas fusionadas "Antes: X" / "Cambia a: Y").
+  return segmentos.map((s, i) => ({
+    ...s,
+    nombreAnterior: i > 0 ? segmentos[i - 1].agenciaNombre : null,
+    nombreSiguiente: i < segmentos.length - 1 ? segmentos[i + 1].agenciaNombre : null
+  }));
+}
+
+// Todas las filas posibles (una por tramo de tienda), sobre el listado
+// COMPLETO (sin filtrar), para no depender de qué filtros haya activos.
+function rmConstruirTodasLasFilas(cambiosPorTienda, totalDias) {
   const todas = [];
-  agenciasCache.forEach(ag => {
-    const tds = tiendasCache.filter(t => t.agencia_id === ag.id);
-    tds.forEach(t => {
+  tiendasCache.forEach(t => {
+    const cambios = cambiosPorTienda.get(t.id);
+    const segmentos = rmSegmentosDeTienda(t, cambios, totalDias);
+    segmentos.forEach(seg => {
       todas.push({
-        agenciaId: ag.id,
-        agenciaNombre: ag.nombre,
+        agenciaId: seg.agenciaId,
+        agenciaNombre: seg.agenciaNombre,
         tiendaId: t.id,
-        tiendaNombre: t.nombre
+        tiendaNombre: t.nombre,
+        diaInicio: seg.diaInicio,
+        diaFin: seg.diaFin,
+        nombreAnterior: seg.nombreAnterior,
+        nombreSiguiente: seg.nombreSiguiente
       });
     });
   });
+  todas.sort((a, b) => a.agenciaNombre.localeCompare(b.agenciaNombre) || a.tiendaNombre.localeCompare(b.tiendaNombre) || a.diaInicio - b.diaInicio);
   return todas;
 }
 
-function rmFilasSegunFiltros() {
-  return rmConstruirTodasLasFilas().filter(f =>
+function rmFilasSegunFiltros(todasLasFilas) {
+  return todasLasFilas.filter(f =>
     (!rmFiltros.agencias.size || rmFiltros.agencias.has(f.agenciaId)) &&
     (!rmFiltros.tiendas.size || rmFiltros.tiendas.has(f.tiendaId))
   );
@@ -260,6 +332,35 @@ function rmEngancharFiltros() {
   });
 }
 
+// Construye las celdas de un tramo: fusionada "Antes: X" antes de
+// diaInicio (si no es el primer tramo del mes), celdas normales entre
+// diaInicio y diaFin, y fusionada "Cambia a: Y" después de diaFin (si no
+// es el último tramo del mes).
+function rmCeldasDeTramo(f, celdasTienda, diasEnviados, totalDias) {
+  const partes = [];
+  let totalIncidencias = 0;
+
+  if (f.diaInicio > 1) {
+    const dias = f.diaInicio - 1;
+    partes.push(`<td colspan="${dias}" class="rm-td-cambio">Antes: ${escapeHtml(f.nombreAnterior || '—')}</td>`);
+  }
+
+  for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+    if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
+    const c = celdasTienda[dia];
+    if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
+    totalIncidencias++;
+    partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+  }
+
+  if (f.diaFin < totalDias) {
+    const dias = totalDias - f.diaFin;
+    partes.push(`<td colspan="${dias}" class="rm-td-cambio">Cambia a: ${escapeHtml(f.nombreSiguiente || '—')}</td>`);
+  }
+
+  return { html: partes.join(''), totalIncidencias };
+}
+
 // ---------------------------------------------------------------
 // Render de la tabla
 // ---------------------------------------------------------------
@@ -278,33 +379,26 @@ async function rmRender() {
 
   rmConstruirPanelFiltros();
 
-  const filas = rmFilasSegunFiltros();
-  const { celdas, diasEnviados, totalDias } = datos;
+  const { celdas, diasEnviados, totalDias, cambiosPorTienda } = datos;
+  const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, totalDias);
+  const filas = rmFilasSegunFiltros(todasLasFilas);
   const cabeceraDias = Array.from({ length: totalDias }, (_, i) => `<th>${i + 1}</th>`).join('');
 
   const filasConDatos = filas.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
-    let totalIncidencias = 0;
-    const tds = Array.from({ length: totalDias }, (_, i) => {
-      const dia = i + 1;
-      if (!diasEnviados.has(dia)) return `<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`;
-      const c = celdasTienda[dia];
-      if (!c) return `<td class="rm-td-ok">OK</td>`;
-      totalIncidencias++;
-      return `<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`;
-    }).join('');
-    return { f, tds, totalIncidencias };
+    const { html, totalIncidencias } = rmCeldasDeTramo(f, celdasTienda, diasEnviados, totalDias);
+    return { f, html, totalIncidencias };
   });
 
   const filasVisibles = rmFiltros.soloConIncidencias
     ? filasConDatos.filter(x => x.totalIncidencias > 0)
     : filasConDatos;
 
-  const filasHtml = filasVisibles.map(({ f, tds, totalIncidencias }) => `
+  const filasHtml = filasVisibles.map(({ f, html, totalIncidencias }) => `
     <tr>
       <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
-      ${tds}
+      ${html}
       <td class="rm-col-total"><b>${totalIncidencias}</b></td>
     </tr>`).join('');
 

@@ -196,10 +196,29 @@
         ? Math.max(...hermanasDestino.map(x => x.orden)) + 1
         : 1;
 
+      // Snapshot de la agencia antigua ANTES de sobrescribirla: deja
+      // constancia del cambio (tienda_agencia_historial), que usa el
+      // Reporte mensual (Análisis) para partir la fila de esta tienda ese
+      // mes entre la agencia antigua y la nueva.
+      const agenciaAnterior = agenciasCache.find(a => a.id === t.agencia_id);
+      const agenciaNueva = agenciasCache.find(a => a.id === destinoId);
+
       const { error } = await sb.from('tiendas')
         .update({ agencia_id: destinoId, orden: nuevoOrden })
         .eq('id', id);
       if (error) throw error;
+
+      const { error: eHist } = await sb.from('tienda_agencia_historial').insert({
+        tienda_id: id,
+        agencia_anterior_id: t.agencia_id,
+        agencia_anterior_nombre: agenciaAnterior?.nombre || null,
+        agencia_nueva_id: destinoId,
+        agencia_nueva_nombre: agenciaNueva?.nombre || '—',
+        fecha_cambio: fechaLocalISO(new Date()),
+        creado_por: sesionActual?.nombre || sesionActual?.usuario || null
+      });
+      if (eHist) console.error('No se pudo registrar el historial de cambio de agencia:', eHist);
+
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error moviendo tienda de agencia:', err);
