@@ -366,7 +366,14 @@
 
   // Texto corto que se muestra en el botón del desplegable de motivos de cada fila.
   function resumenMotivos(motivos) {
-  const arr = motivos || [];
+  // Los submotivos (p. ej. "ROBO DE CAJAS" dentro de FALTAS) se guardan
+  // como una etiqueta más en el array `motivo` para que viajen con el
+  // resto al guardar, pero no deben verse aquí: solo se muestra el
+  // motivo principal (p. ej. "Faltas").
+  const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO
+    ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat()
+    : [];
+  const arr = (motivos || []).filter(m => !todosLosSubmotivos.includes(m));
   if (!arr.length) return '— Sin incidencia —';
   return arr
     .map(m => m.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()))
@@ -376,11 +383,23 @@
   // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
   function motivosChecklistHtml(seleccionados) {
     const sel = seleccionados || [];
-    return MOTIVOS.map(m => `
+    return MOTIVOS.map(m => {
+      // Si este motivo tiene submotivos (FALTAS / NO ENTREGAN) y la
+      // incidencia ya trae uno guardado, lo dejamos en un atributo del
+      // propio checkbox — así se puede restaurar el checkbox oculto del
+      // submotivo (ver submotivos-informe.js) sin tener que mostrarlo en
+      // el texto ni depender de cómo pinte cada vista la fila.
+      let atrSubmotivo = '';
+      if (window.SUBMOTIVOS_POR_MOTIVO && window.SUBMOTIVOS_POR_MOTIVO[m.v]) {
+        const guardado = window.SUBMOTIVOS_POR_MOTIVO[m.v].find(op => sel.includes(op));
+        if (guardado) atrSubmotivo = ` data-submotivo-guardado="${escapeHtml(guardado)}"`;
+      }
+      return `
       <label class="filtro-check">
-        <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}" ${sel.includes(m.v) ? 'checked' : ''}>
+        <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}"${atrSubmotivo} ${sel.includes(m.v) ? 'checked' : ''}>
         <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
-      </label>`).join('');
+      </label>`;
+    }).join('');
   }
 
   // ---------------------------------------------------------------

@@ -17,12 +17,14 @@
 //     motivos" (.btn-borrar-motivos / .btn-borrar-motivos-hist), se limpia
 //     el submotivo oculto correspondiente.
 //  3. Al pintar una fila que ya tenía un submotivo guardado, se reconstruye
-//     leyendo el propio resumen de texto que ya pinta cada vista
-//     (resumenMotivos, en el span .motivo-select-valor) — así no hace
-//     falta enganchar el render de cada tabla una por una.
+//     leyendo el atributo data-submotivo-guardado que motivosChecklistHtml()
+//     (js/filtros-motivos.js) ya deja en el checkbox del motivo principal
+//     — así no depende del texto visible (que ahora solo muestra el
+//     motivo principal, sin el submotivo) ni de tocar el render de cada tabla.
 //
 // Requiere (ya cargados antes): SUBMOTIVOS_POR_MOTIVO (codigos-informe.js),
-// modalSeleccionar (ui-modal.js).
+// modalSeleccionar (ui-modal.js), motivosChecklistHtml con el atributo
+// data-submotivo-guardado (filtros-motivos.js).
 //
 // Nota sobre modalSeleccionar: internamente hace Number(valorSeleccionado),
 // porque está pensado para IDs numéricos (agencias, tiendas…). Por eso aquí
@@ -52,17 +54,13 @@ function quitarSubmotivosDe(tr, motivoPrincipal) {
   });
 }
 
-// Reconstruye, a partir del texto ya pintado en .motivo-select-valor (que
-// sale de resumenMotivos() y por tanto ya incluye cualquier submotivo
-// guardado), los checkboxes ocultos correspondientes.
-function restaurarSubmotivosDesdeTexto(tr) {
-  const SUBMOTIVOS_POR_MOTIVO = window.SUBMOTIVOS_POR_MOTIVO || {};
-  const valorEl = tr.querySelector('.motivo-select-valor');
-  if (!valorEl) return;
-  const partes = valorEl.textContent.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-  Object.keys(SUBMOTIVOS_POR_MOTIVO).forEach(motivoPrincipal => {
-    const encontrado = SUBMOTIVOS_POR_MOTIVO[motivoPrincipal].find(op => partes.includes(op));
-    if (encontrado) crearCheckboxOcultoSubmotivo(tr, encontrado, motivoPrincipal);
+// Reconstruye los checkboxes ocultos de submotivo a partir del atributo
+// data-submotivo-guardado que motivosChecklistHtml() deja en el checkbox
+// del motivo principal (FALTAS / NO ENTREGAN) cuando la incidencia ya
+// traía un submotivo guardado.
+function restaurarSubmotivosDesdeAtributos(tr) {
+  tr.querySelectorAll('.i-motivo-check[data-submotivo-guardado]').forEach(cb => {
+    crearCheckboxOcultoSubmotivo(tr, cb.dataset.submotivoGuardado, cb.value);
   });
 }
 
@@ -124,8 +122,8 @@ const _submotivosObserverFilas = new MutationObserver((mutaciones) => {
   mutaciones.forEach(m => {
     m.addedNodes.forEach(node => {
       if (node.nodeType !== 1) return;
-      if (node.matches && node.matches('tr[data-tienda]')) restaurarSubmotivosDesdeTexto(node);
-      if (node.querySelectorAll) node.querySelectorAll('tr[data-tienda]').forEach(restaurarSubmotivosDesdeTexto);
+      if (node.matches && node.matches('tr[data-tienda]')) restaurarSubmotivosDesdeAtributos(node);
+      if (node.querySelectorAll) node.querySelectorAll('tr[data-tienda]').forEach(restaurarSubmotivosDesdeAtributos);
     });
   });
 });
