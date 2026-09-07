@@ -624,6 +624,66 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   }
   .actualizacion-modal-box .btn.primary:disabled{ opacity:.7; cursor:default; }
 
+  /* ---------- Modal de instalación obligatoria (PWA) ---------- */
+  .instalar-overlay{
+    background:rgba(10,14,19,.72);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    z-index:600; /* por encima de cualquier otro modal, incluido el de actualización */
+  }
+  .instalar-modal-box{
+    max-width:420px;
+    padding:34px 30px 28px;
+    text-align:center;
+  }
+  .instalar-modal-icono{
+    position:relative;
+    width:64px; height:76px; margin:0 auto 18px;
+    border-radius:14px;
+    background:linear-gradient(160deg,#1B6DE0,#12181F);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px;
+  }
+  .instalar-modal-icono::after{
+    content:'⬇';
+    position:absolute; right:-8px; bottom:-8px;
+    width:26px; height:26px; border-radius:50%;
+    background:var(--grave); color:#fff;
+    font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--panel);
+  }
+  .instalar-modal-box .modal-title{ font-size:19px; margin-bottom:8px; }
+  .instalar-modal-box .modal-message{ font-size:14px; margin-bottom:18px; }
+  .instalar-modal-pasos{
+    text-align:left; background:var(--panel-muted); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:16px; font-size:13px; color:var(--ink);
+  }
+  .instalar-modal-pasos b{ display:block; margin-bottom:8px; font-size:13px; }
+  .instalar-modal-pasos ol{ margin:0; padding-left:18px; }
+  .instalar-modal-pasos li{ margin-bottom:6px; color:var(--ink-soft); line-height:1.45; }
+  .instalar-modal-pasos li:last-child{ margin-bottom:0; }
+  .instalar-modal-pasos li b{ display:inline; color:var(--ink); }
+  .instalar-modal-ayuda{
+    display:none; text-align:left; background:var(--moderado-bg); color:var(--moderado);
+    border-radius:var(--radius); padding:11px 13px; margin:0 0 18px; font-size:12.5px; line-height:1.5;
+  }
+  .instalar-modal-box .modal-footer{ flex-direction:column; gap:10px; margin-top:4px; }
+  .instalar-modal-box .btn{
+    width:100%; justify-content:center; padding:13px; font-size:14px; font-weight:700;
+  }
+  .instalar-modal-box .btn.primary{
+    background:var(--grave); border-color:var(--grave); color:#fff;
+    text-transform:uppercase; letter-spacing:.3px;
+  }
+  .instalar-modal-box .btn.primary:hover{ filter:brightness(1.06); }
+  .instalar-modal-box .btn.primary:disabled{ opacity:.7; cursor:default; }
+  .instalar-modal-box .btn:not(.primary){
+    background:var(--panel-muted); border-color:var(--panel-muted); color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.3px; font-size:12px;
+  }
+  .instalar-modal-box .btn:not(.primary):hover{ background:var(--border); }
+
   /* ---------- Modal de envío del informe del día ---------- */
   .envio-modal-box{ max-width:460px; padding:22px 22px 18px; position:relative; }
   .envio-modal-head{ display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; padding-right:22px; }

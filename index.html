@@ -11,6 +11,34 @@
 </head>
 <body>
 
+<!-- Modal obligatorio: exige tener la app instalada (PWA) antes de poder
+     usarla. No se cierra al hacer click fuera ni con Escape. Se muestra
+     por defecto (class "show") para que tape la app desde el primer
+     instante; js/instalar-app.js lo oculta solo si detecta que se está
+     ejecutando ya instalada (modo standalone). -->
+<div class="modal-overlay instalar-overlay show" id="instalarAppModalOverlay">
+  <div class="modal-box instalar-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="instalarModalTitulo">
+    <div class="instalar-modal-icono">📲</div>
+    <h3 class="modal-title" id="instalarModalTitulo">Instala la app para continuar</h3>
+    <p class="modal-message">Esta aplicación debe usarse instalada en el dispositivo (no desde el navegador) para que todo funcione correctamente.</p>
+    <div class="instalar-modal-pasos">
+      <b>Cómo instalarla:</b>
+      <ol>
+        <li>Toca el botón <b>"Instalar App"</b> de abajo.</li>
+        <li>Confirma pulsando <b>"Instalar"</b> en el aviso que aparecerá.</li>
+        <li>Abre la app desde el icono nuevo en tu pantalla de inicio.</li>
+      </ol>
+    </div>
+    <p class="instalar-modal-ayuda" id="instalarAppAyuda">
+      Tu navegador no permite instalar la app automáticamente desde aquí. En Chrome o Edge, abre el menú (⋮ arriba a la derecha) y elige <b>"Instalar aplicación"</b> (o el icono ⊕ en la barra de direcciones). En Safari, usa el icono de compartir y "Añadir al Dock" / "Añadir a pantalla de inicio".
+    </p>
+    <div class="modal-footer">
+      <button class="btn primary" id="btnInstalarApp"><span id="btnInstalarAppTexto">⬇️ Instalar App</span></button>
+      <button class="btn" id="btnYaInstalada">Ya la tengo instalada · Recargar</button>
+    </div>
+  </div>
+</div>
+
 <div id="loginScreen">
   <div class="login-card">
     <div class="mark">GT</div>
@@ -1323,6 +1351,7 @@
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <!-- Lectura de texto de PDF (detectar el nº de albarán automáticamente) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/instalar-app.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/comprimir-imagen.js"></script>
 <script src="js/extraer-albaran.js"></script>
