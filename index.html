@@ -690,15 +690,25 @@
         </div>
       </div>
 
-      <div class="rm-sticky-bar">
-        <div class="rm-selector-mes">
-          <button class="btn" id="rmBtnMesAnterior">◀</button>
-          <b id="rmMesTexto">—</b>
-          <button class="btn" id="rmBtnMesSiguiente">▶</button>
-          <button class="btn" id="rmBtnMesActual">Mes actual</button>
+      <div class="rm-layout">
+        <div class="rm-tabla-col">
+          <div id="contenidoReportesMensuales">
+            <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+          </div>
+        </div>
 
-          <div class="filtros-wrap">
-            <button class="btn" id="btnRmFiltros">
+        <aside class="rm-sidebar">
+          <div class="rm-sidebar-card rm-selector-mes">
+            <b id="rmMesTexto">—</b>
+            <div class="rm-selector-mes-botones">
+              <button class="btn" id="rmBtnMesAnterior">◀</button>
+              <button class="btn" id="rmBtnMesSiguiente">▶</button>
+            </div>
+            <button class="btn" id="rmBtnMesActual" style="width:100%;">Mes actual</button>
+          </div>
+
+          <div class="rm-sidebar-card filtros-wrap">
+            <button class="btn" id="btnRmFiltros" style="width:100%; justify-content:center;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
               Filtros
               <span class="filtros-count" id="rmFiltrosCount" style="display:none;"></span>
@@ -749,12 +759,9 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="rm-leyenda-compacta" id="rmLeyendaCompacta"></div>
-      </div>
 
-      <div id="contenidoReportesMensuales">
-        <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+          <div class="rm-sidebar-card rm-leyenda-compacta" id="rmLeyendaCompacta"></div>
+        </aside>
       </div>
     </section>
 
