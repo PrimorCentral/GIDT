@@ -1189,9 +1189,10 @@ body.rol-lectura input[type="file"]{
 /* ---------- Reportes mensuales (Análisis) ---------- */
 
 /* Esta vista no se desplaza como el resto (main sigue con scroll para las
-   demás): fija su alto al espacio disponible bajo la cabecera. El ancho se
-   reparte en dos columnas: la tabla (ancha, con su propio scroll) y una
-   barra lateral estrecha con el mes, los filtros y la leyenda. */
+   demás): fija su alto al espacio disponible bajo la cabecera. El mes y los
+   filtros van arriba, junto al título (igual que Historial de siniestros);
+   el ancho se reparte en dos columnas: la tabla (ancha, con su propio
+   scroll) y una barra lateral estrecha con la leyenda. */
 #view-analisis-reportes-mensuales.active{
   display:flex; flex-direction:column;
   height:100%;
@@ -1210,7 +1211,6 @@ body.rol-lectura input[type="file"]{
 .rm-sidebar{
   flex:0 0 340px; width:340px;
   display:flex; flex-direction:column; gap:12px;
-  overflow-y:auto;
 }
 .rm-sidebar-card{
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
@@ -1230,13 +1230,7 @@ body.rol-lectura input[type="file"]{
 .rm-col-total{ background:var(--panel-muted); font-weight:700; }
 .rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
 
-/* Selector de mes (barra lateral) */
-.rm-selector-mes{ text-align:center; }
-.rm-selector-mes b{ display:block; margin-bottom:10px; font-size:13.5px; }
-.rm-selector-mes-botones{ display:flex; gap:8px; margin-bottom:8px; }
-.rm-selector-mes-botones .btn{ flex:1; justify-content:center; }
-
-/* Leyenda: en la barra lateral (estrecha), los chips quedan en columna. */
+/* Leyenda: en la barra lateral (estrecha), los chips quedan en 2 columnas. */
 .rm-leyenda-compacta{
   display:grid; grid-template-columns:1fr 1fr; gap:6px 8px;
 }
