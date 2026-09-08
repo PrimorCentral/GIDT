@@ -1235,7 +1235,7 @@
           <input type="text" id="euNombre" class="form-input">
         </div>
         <div>
-          <label class="form-label">Usuario (para entrar en la app)</label>
+          <label class="form-label">Usuario</label>
           <input type="text" id="euUsuario" class="form-input" inputmode="numeric">
         </div>
         <div>
@@ -1252,14 +1252,14 @@
           <input type="hidden" id="euRol" value="operador">
         </div>
         <label class="ps-filtro-check" style="margin-top:4px;">
-          <input type="checkbox" id="euActivo"> Activo (puede entrar en la app)
+          <input type="checkbox" id="euActivo"> Activo
         </label>
       </div>
 
       <div class="permisos-panel" id="euPermisosPanel">
         <div class="permisos-cabecera">
           <b>Permisos</b>
-          <span>Marca lo que este operador puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
+          <span>Marca lo que este operario puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
         </div>
         <div class="permisos-columnas">
           <div class="permisos-col">
@@ -1270,19 +1270,19 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_enviar_informe">
-              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a cada agencia.</small></span>
+              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a las agencias.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_editar_informes_pasados">
-              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial, sin enviar nada a agencias.</small></span>
+              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_panel_siniestros">
-              <span><b>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
+              <span><b>Panel siniestros</b><small>Crear y modificar siniestros y enviar el correo del siniestro a a la agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_siniestros_dia">
-              <span><b>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
+              <span><b>Enviar siniestros</b><small>Enviar siniestros a las agencias desde siniestros del dia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_enviar_facturacion">
@@ -1305,7 +1305,7 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_cc_transporte">
-              <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+              <span><b>Destinatarios para CC</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
             </label>
           </div>
           <div class="permisos-col">
