@@ -213,20 +213,29 @@ function ocultarCargandoEnvio() {
   document.getElementById('cargandoEnvioOverlay')?.classList.remove('show');
 }
 
-// Pinta el estado (badge) de envío del informe de hoy junto al botón.
+// Pinta el estado (badge) de envío del informe de hoy junto al botón, y
+// atenúa el propio botón "Enviar informe" cuando ya se ha enviado (sigue
+// siendo clicable por si hace falta reenviarlo, pero no debe parecer que
+// aún está pendiente de enviar).
 function renderBotonEnviarInforme() {
   const badge = document.getElementById('informeEnviadoBadge');
-  if (!badge) return;
+  const btn = document.getElementById('btnEnviarInforme');
 
-  if (informeHoyCache?.informe_enviado) {
-    const hora = informeHoyCache.informe_enviado_en
-      ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      : '';
-    badge.textContent = `✅ Enviado${hora ? ' a las ' + hora : ''}`;
-    badge.style.display = '';
-  } else {
-    badge.style.display = 'none';
+  const enviado = !!informeHoyCache?.informe_enviado;
+
+  if (badge) {
+    if (enviado) {
+      const hora = informeHoyCache.informe_enviado_en
+        ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      badge.textContent = `✅ Enviado${hora ? ' a las ' + hora : ''}`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
   }
+
+  if (btn) btn.classList.toggle('primary', !enviado);
 }
 
 // Handler principal: agrupa, confirma y envía el informe de hoy a todas las agencias con incidencias.
