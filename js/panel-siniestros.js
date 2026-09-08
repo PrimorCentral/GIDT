@@ -397,9 +397,18 @@ async function abrirModalNuevoPanelSiniestro() {
   rellenarSelectTiendasPsn(null);
   document.getElementById('psnInformacion').value = '';
   document.getElementById('psnError').style.display = 'none';
+  document.getElementById('psnOrigenAgencia').value = 'no';
+  document.querySelectorAll('#psnOrigenAgenciaToggle .toggle-seg-btn').forEach(b => b.classList.toggle('activo', b.dataset.valor === 'no'));
 
   document.getElementById('psNuevoModalOverlay').classList.add('show');
 }
+
+document.querySelectorAll('#psnOrigenAgenciaToggle .toggle-seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('psnOrigenAgencia').value = btn.dataset.valor;
+    document.querySelectorAll('#psnOrigenAgenciaToggle .toggle-seg-btn').forEach(b => b.classList.toggle('activo', b === btn));
+  });
+});
 
 function cerrarModalNuevoPanelSiniestro() {
   document.getElementById('psNuevoModalOverlay').classList.remove('show');
@@ -447,6 +456,7 @@ async function guardarNuevoPanelSiniestro() {
       estado: 'PDTE COBRO',
       recogida_limite: recogidaLimite,
       correo_enviado: false,
+      origen: document.getElementById('psnOrigenAgencia').value === 'si' ? 'AGENCIA' : null,
       creado_por: sesionActual?.nombre || sesionActual?.usuario || null
     }).select().single();
     if (error) throw error;
@@ -565,7 +575,9 @@ function pintarBloqueEnvioAgencia(s) {
       </div>`;
   } else {
     btn.style.display = '';
-    btn.disabled = false;
+    const sinFotos = !(s.fotos || []).length;
+    btn.disabled = sinFotos;
+    btn.title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
     btn.textContent = '✉️ Enviar a agencia';
     estado.style.display = 'none';
     estado.innerHTML = '';
@@ -584,6 +596,10 @@ async function enviarCorreoAgenciaDesdePanel() {
 
   if (!s.agencia_id) {
     await modalAlert('Este siniestro no tiene agencia asignada.', { titulo: 'Sin agencia' });
+    return;
+  }
+  if (!(s.fotos || []).length) {
+    await modalAlert('Añade al menos 1 foto antes de enviar el correo a la agencia.', { titulo: 'Faltan fotos' });
     return;
   }
 
@@ -912,6 +928,9 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
   const errEl = document.getElementById('psFotosError');
   errEl.style.display = 'none';
   try {
+    document.getElementById('cargandoEnvioTexto').textContent = files.length > 1 ? 'Subiendo fotos…' : 'Subiendo foto…';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
     const s = psSiniestroPorId(panelActivoId);
     const urls = [];
     for (const file of files) {
@@ -927,6 +946,7 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
     if (eDb) throw eDb;
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
+    pintarBloqueEnvioAgencia(s);
     renderPanelSiniestros();
     await sincronizarFotosConSiniestroOriginal(s);
   } catch (err) {
@@ -934,6 +954,7 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
     errEl.textContent = 'No se pudieron subir las fotos.';
     errEl.style.display = 'block';
   } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     e.target.value = '';
   }
 });
@@ -965,6 +986,7 @@ async function quitarFotoPanel(idx) {
     if (error) throw error;
     s.fotos = fotosActualizadas;
     pintarFotosModal(s);
+    pintarBloqueEnvioAgencia(s);
     renderPanelSiniestros();
     await sincronizarFotosConSiniestroOriginal(s);
     await borrarDeStoragePorUrl(BUCKET_FOTOS_PANEL, urlAEliminar);

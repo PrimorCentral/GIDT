@@ -321,6 +321,9 @@
       : s.estado === 'ANULADO' ? '🚫 Anulado desde el Panel siniestros'
       : 'Pendiente de envío';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
+    const sinFotos = !(s.fotos || []).length;
+    document.getElementById('btnEnviarSiniestro').disabled = s.estado === 'PENDIENTE' && sinFotos;
+    document.getElementById('btnEnviarSiniestro').title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
     const labelFotos = document.getElementById('siniestroFotosLabel');
     if (labelFotos) labelFotos.style.display = s.estado === 'PENDIENTE' ? '' : 'none';
   }
@@ -338,6 +341,9 @@
     errEl.style.display = 'none';
 
     try {
+      document.getElementById('cargandoEnvioTexto').textContent = files.length > 1 ? 'Subiendo fotos…' : 'Subiendo foto…';
+      document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
       const urls = [];
       for (const file of files) {
         const comprimido = await comprimirImagenParaSubida(file);
@@ -359,6 +365,7 @@
       errEl.textContent = 'No se pudieron subir las fotos.';
       errEl.style.display = 'block';
     } finally {
+      document.getElementById('cargandoEnvioOverlay').classList.remove('show');
       e.target.value = '';
     }
   });
@@ -399,6 +406,10 @@
 
     if (!emails.length) {
       await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+      return;
+    }
+    if (!(s.fotos || []).length) {
+      await modalAlert('Añade al menos 1 foto antes de enviar el correo a la agencia.', { titulo: 'Faltan fotos' });
       return;
     }
 
