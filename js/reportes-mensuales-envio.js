@@ -271,7 +271,7 @@ function rmeHtmlFilaGrupo(g, mesTerminado) {
 // ---------------------------------------------------------------
 async function rmeObtenerDatosMes() {
   const datos = await rmCargarDatosMes(rmAnio, rmMes);
-  const todasLasFilas = rmConstruirTodasLasFilas(datos.cambiosPorTienda, datos.totalDias);
+  const todasLasFilas = rmConstruirTodasLasFilas(datos.cambiosPorTienda, datos.puntualAgenciaPorTienda, datos.totalDias);
   return { ...datos, todasLasFilas };
 }
 
@@ -280,6 +280,7 @@ async function rmeObtenerDatosMes() {
 // quien llama, una vez para uno o para todos).
 async function rmeProcesarEnvioGrupo(grupo, datosMes) {
   const { celdas, diasEnviados, totalDias, todasLasFilas } = datosMes;
+  const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
   const mesTexto = rmeTituloMes(rmAnio, rmMes);
 
   const filasGrupo = todasLasFilas
@@ -288,7 +289,7 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
 
   if (!filasGrupo.length) throw new Error('Esta agencia no tiene tiendas asignadas este mes.');
 
-  const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, celdas, diasEnviados, totalDias);
+  const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias);
   const nombreArchivo = rmeNombreArchivo(grupo.nombre, rmAnio, rmMes);
   const blob = doc.output('blob');
 
@@ -435,14 +436,16 @@ function rmeHexToRgb(hex) {
 
 // Igual que rmCeldasDeTramo() de reportes-mensuales.js, pero devolviendo
 // celdas para jsPDF-autotable en lugar de HTML.
-function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala) {
+function rmeCeldasDeTramoPdf(f, segmentosTienda, celdasTienda, diasEnviados, totalDias, escala) {
   const celdas = [];
   let totalIncidencias = 0;
   const estiloCambio = { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'italic', fontSize: 6 * escala };
 
-  if (f.diaInicio > 1) {
-    celdas.push({ content: `Antes:\n${f.nombreAnterior || '—'}`, colSpan: f.diaInicio - 1, styles: estiloCambio });
-  }
+  segmentosTienda
+    .filter(s => s.diaFin < f.diaInicio)
+    .forEach(s => {
+      celdas.push({ content: `Antes:\n${s.agenciaNombre}`, colSpan: s.diaFin - s.diaInicio + 1, styles: estiloCambio });
+    });
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
@@ -452,9 +455,11 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala) {
     celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
   }
 
-  if (f.diaFin < totalDias) {
-    celdas.push({ content: `Cambia a:\n${f.nombreSiguiente || '—'}`, colSpan: totalDias - f.diaFin, styles: estiloCambio });
-  }
+  segmentosTienda
+    .filter(s => s.diaInicio > f.diaFin)
+    .forEach(s => {
+      celdas.push({ content: `Cambia a:\n${s.agenciaNombre}`, colSpan: s.diaFin - s.diaInicio + 1, styles: estiloCambio });
+    });
 
   return { celdas, totalIncidencias };
 }
@@ -468,7 +473,7 @@ function rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala) {
 // igual que hace Excel al "ajustar la hoja a una página".
 // Devuelve el finalY de la tabla principal, es decir, dónde termina
 // realmente el contenido en esa página.
-function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, escala) {
+function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias, escala) {
   const margen = 20;
   const anchoPagina = doc.internal.pageSize.getWidth();
   const anchoUtil = anchoPagina - margen * 2;
@@ -533,7 +538,8 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, ce
 
   const cuerpo = filasGrupo.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
-    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, celdasTienda, diasEnviados, totalDias, escala);
+    const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
+    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, celdasTienda, diasEnviados, totalDias, escala);
     return [
       { content: f.agenciaNombre, styles: { halign: 'left', fontStyle: 'bold' } },
       { content: f.tiendaNombre, styles: { halign: 'left' } },
@@ -584,7 +590,7 @@ function rmeCrearDocMedida(ancho, alto) {
   return doc;
 }
 
-function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias) {
+function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias) {
   const margen = 20;
   const anchoPagina = 841.89; // A4 apaisado real, en pt
   const altoPagina = 595.28;
@@ -593,7 +599,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
   // bien alta para que nunca pagine por quedarse corta.
   const alturaEstimada = 260 + filasGrupo.length * 22 + 200;
   const docMedida = rmeCrearDocMedida(anchoPagina, alturaEstimada);
-  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, 1);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias, 1);
 
   // Si el contenido a tamaño normal no cabe en el alto real de una A4,
   // se calcula la escala que hace falta para que sí quepa (con un pequeño
@@ -604,7 +610,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEn
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, celdas, diasEnviados, totalDias, escala);
+  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias, escala);
 
   return doc;
 }

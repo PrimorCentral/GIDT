@@ -19,6 +19,14 @@
 // el cambio. Si hay más de un cambio en el mismo mes, se generan tantos
 // tramos como haga falta.
 //
+// Cambios PUNTUALES de agencia (un solo día, desde "Utilidades" en el
+// Informe del día — informes_diarios.ajustes_puntuales): se tratan igual
+// que un cambio permanente pero de un solo día, así que la fila se parte
+// también ese día concreto en un tramo de 1 día bajo la agencia puntual
+// (con "Antes: X" / "Cambia a: X" a los lados), en vez de contar la
+// incidencia en la fila de la agencia habitual. El resto del mes de esa
+// tienda sigue con su agencia de siempre.
+//
 // Filtros: mismo diseño y comportamiento que el panel de "Filtrar
 // incidencias" del Informe del día (misma estructura HTML/CSS, ver
 // filtros-motivos.js) — Agencia, Tienda y "solo con incidencias este mes".
@@ -52,12 +60,28 @@ async function rmCargarDatosMes(anio, mesIndex) {
 
   const { data: informes, error: e1 } = await sb
     .from('informes_diarios')
-    .select('id, fecha, informe_enviado')
+    .select('id, fecha, informe_enviado, ajustes_puntuales')
     .gte('fecha', desde)
     .lte('fecha', hasta);
   if (e1) throw e1;
 
   const fechaPorInforme = new Map((informes || []).map(i => [i.id, i.fecha]));
+
+  // Cambios PUNTUALES de agencia (un solo día) registrados en
+  // informes_diarios.ajustes_puntuales, agrupados por tienda: para cada
+  // tienda, un mapa {dia -> {agenciaId, agenciaNombre}}.
+  const puntualAgenciaPorTienda = new Map();
+  (informes || []).forEach(inf => {
+    const ajustes = inf.ajustes_puntuales;
+    if (!ajustes || !Object.keys(ajustes).length) return;
+    const dia = Number(inf.fecha.slice(8, 10));
+    Object.entries(ajustes).forEach(([tiendaIdStr, aj]) => {
+      if (aj.agencia_id == null) return; // este ajuste puntual solo cambió la hora, no la agencia
+      const tiendaId = Number(tiendaIdStr);
+      if (!puntualAgenciaPorTienda.has(tiendaId)) puntualAgenciaPorTienda.set(tiendaId, {});
+      puntualAgenciaPorTienda.get(tiendaId)[dia] = { agenciaId: aj.agencia_id, agenciaNombre: aj.agencia_nombre || '—' };
+    });
+  });
 
   // Solo cuentan como "día resuelto" (con derecho a OK) los informes que
   // realmente se enviaron. El resto se queda en blanco, esté o no generado.
@@ -114,50 +138,93 @@ async function rmCargarDatosMes(anio, mesIndex) {
     });
   });
 
-  return { celdas, diasEnviados, totalDias, cambiosPorTienda };
+  return { celdas, diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda };
 }
 
-// Para una tienda con cambios de agencia este mes, calcula los tramos en
-// los que se parte su fila. Si no tuvo ningún cambio, es un único tramo
-// (todo el mes) con su agencia actual.
-function rmSegmentosDeTienda(tienda, cambios, totalDias) {
+// Agencia "habitual" de una tienda, día a día del mes (sin contar los
+// cambios puntuales de un solo día), aplicando los cambios PERMANENTES
+// de tienda_agencia_historial que haya dentro del mes.
+function rmAgenciaHabitualPorDia(tienda, cambiosPermanentes, totalDias) {
   const agenciaActual = agenciasCache.find(a => a.id === tienda.agencia_id);
   const nombreActual = agenciaActual ? agenciaActual.nombre : '—';
+  const porDia = new Array(totalDias + 1); // índice 1..totalDias
 
-  if (!cambios || !cambios.length) {
-    return [{ agenciaId: tienda.agencia_id, agenciaNombre: nombreActual, diaInicio: 1, diaFin: totalDias }];
+  if (!cambiosPermanentes || !cambiosPermanentes.length) {
+    for (let d = 1; d <= totalDias; d++) porDia[d] = { agenciaId: tienda.agencia_id, agenciaNombre: nombreActual };
+    return porDia;
   }
 
-  const segmentos = [];
-  let diaInicio = 1;
-  let agId = cambios[0].agenciaAnteriorId;
-  let agNombre = cambios[0].agenciaAnteriorNombre;
-  cambios.forEach(c => {
-    segmentos.push({ agenciaId: agId, agenciaNombre: agNombre, diaInicio, diaFin: c.dia - 1 });
-    diaInicio = c.dia;
+  let dia = 1;
+  let agId = cambiosPermanentes[0].agenciaAnteriorId;
+  let agNombre = cambiosPermanentes[0].agenciaAnteriorNombre;
+  cambiosPermanentes.forEach(c => {
+    for (; dia < c.dia; dia++) porDia[dia] = { agenciaId: agId, agenciaNombre: agNombre };
     agId = c.agenciaNuevaId;
     agNombre = c.agenciaNuevaNombre;
   });
-  // Último tramo: desde el último cambio hasta fin de mes (con la agencia
-  // ACTUAL de la tienda, que debería coincidir con la del último cambio).
-  segmentos.push({ agenciaId: tienda.agencia_id, agenciaNombre: nombreActual, diaInicio, diaFin: totalDias });
+  for (; dia <= totalDias; dia++) porDia[dia] = { agenciaId: tienda.agencia_id, agenciaNombre: nombreActual };
+  return porDia;
+}
 
-  // Añade, a cada tramo, el nombre del tramo anterior/siguiente (para las
-  // celdas fusionadas "Antes: X" / "Cambia a: Y").
-  return segmentos.map((s, i) => ({
-    ...s,
-    nombreAnterior: i > 0 ? segmentos[i - 1].agenciaNombre : null,
-    nombreSiguiente: i < segmentos.length - 1 ? segmentos[i + 1].agenciaNombre : null
-  }));
+// Para una tienda, calcula los tramos en los que se parte su fila,
+// combinando los cambios PERMANENTES de agencia (tienda_agencia_historial)
+// con los cambios PUNTUALES de un solo día (Utilidades → informes_diarios.
+// ajustes_puntuales): un cambio puntual de agencia ese día "gana" a la
+// agencia habitual y genera su propio tramo de 1 día, exactamente igual
+// que si fuera un cambio permanente de ida y vuelta en un solo día.
+function rmSegmentosDeTienda(tienda, cambiosPermanentes, puntualPorDia, totalDias) {
+  const habitual = rmAgenciaHabitualPorDia(tienda, cambiosPermanentes, totalDias);
+
+  // Agencia EFECTIVA día a día: la puntual si hay una ese día, si no la habitual.
+  const efectivo = new Array(totalDias + 1);
+  for (let d = 1; d <= totalDias; d++) {
+    const pun = puntualPorDia && puntualPorDia[d];
+    efectivo[d] = pun ? { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre } : habitual[d];
+  }
+
+  // Compactamos días consecutivos con la misma agencia efectiva en tramos.
+  const segmentos = [];
+  let diaInicio = 1;
+  for (let d = 2; d <= totalDias + 1; d++) {
+    const finDelMes = d > totalDias;
+    if (finDelMes || efectivo[d].agenciaId !== efectivo[diaInicio].agenciaId) {
+      segmentos.push({
+        agenciaId: efectivo[diaInicio].agenciaId,
+        agenciaNombre: efectivo[diaInicio].agenciaNombre,
+        diaInicio,
+        diaFin: d - 1
+      });
+      diaInicio = d;
+    }
+  }
+
+  return segmentos;
+}
+
+// Agrupa TODAS las filas/tramos (sin filtrar) por tienda. Se usa para
+// etiquetar los bloques "Antes:"/"Cambia a:" de cada tramo con el resto
+// de tramos REALES de esa misma tienda (aunque alguno pertenezca a una
+// agencia que ahora mismo esté filtrada, o a otro grupo en el envío por
+// agencias), y así el rango de días de cada bloque sea siempre exacto —
+// nunca "Cambia a: X" para unos días en los que en realidad ya se había
+// vuelto a Y (caso típico de un cambio puntual de un solo día).
+function rmSegmentosPorTienda(todasLasFilas) {
+  const mapa = new Map();
+  todasLasFilas.forEach(f => {
+    if (!mapa.has(f.tiendaId)) mapa.set(f.tiendaId, []);
+    mapa.get(f.tiendaId).push(f);
+  });
+  return mapa;
 }
 
 // Todas las filas posibles (una por tramo de tienda), sobre el listado
 // COMPLETO (sin filtrar), para no depender de qué filtros haya activos.
-function rmConstruirTodasLasFilas(cambiosPorTienda, totalDias) {
+function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias) {
   const todas = [];
   tiendasCache.forEach(t => {
     const cambios = cambiosPorTienda.get(t.id);
-    const segmentos = rmSegmentosDeTienda(t, cambios, totalDias);
+    const puntualPorDia = puntualAgenciaPorTienda.get(t.id);
+    const segmentos = rmSegmentosDeTienda(t, cambios, puntualPorDia, totalDias);
     segmentos.forEach(seg => {
       todas.push({
         agenciaId: seg.agenciaId,
@@ -333,18 +400,23 @@ function rmEngancharFiltros() {
   });
 }
 
-// Construye las celdas de un tramo: fusionada "Antes: X" antes de
-// diaInicio (si no es el primer tramo del mes), celdas normales entre
-// diaInicio y diaFin, y fusionada "Cambia a: Y" después de diaFin (si no
-// es el último tramo del mes).
-function rmCeldasDeTramo(f, celdasTienda, diasEnviados, totalDias) {
+// Construye las celdas de un tramo: un bloque fusionado "Antes: X" por
+// cada tramo real anterior de esta misma tienda (puede haber varios: p.
+// ej. un cambio permanente y luego un cambio puntual de otro día), las
+// celdas normales entre diaInicio y diaFin, y un bloque "Cambia a: Y" por
+// cada tramo real posterior. Cada bloque usa el rango de días exacto de
+// SU tramo, así que un cambio puntual que se revierte al día siguiente
+// nunca deja un bloque "Cambia a" mal etiquetado para el resto del mes.
+function rmCeldasDeTramo(f, segmentosTienda, celdasTienda, diasEnviados, totalDias) {
   const partes = [];
   let totalIncidencias = 0;
 
-  if (f.diaInicio > 1) {
-    const dias = f.diaInicio - 1;
-    partes.push(`<td colspan="${dias}" class="rm-td-cambio">Antes: ${escapeHtml(f.nombreAnterior || '—')}</td>`);
-  }
+  segmentosTienda
+    .filter(s => s.diaFin < f.diaInicio)
+    .forEach(s => {
+      const dias = s.diaFin - s.diaInicio + 1;
+      partes.push(`<td colspan="${dias}" class="rm-td-cambio">Antes: ${escapeHtml(s.agenciaNombre)}</td>`);
+    });
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
@@ -354,10 +426,12 @@ function rmCeldasDeTramo(f, celdasTienda, diasEnviados, totalDias) {
     partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
   }
 
-  if (f.diaFin < totalDias) {
-    const dias = totalDias - f.diaFin;
-    partes.push(`<td colspan="${dias}" class="rm-td-cambio">Cambia a: ${escapeHtml(f.nombreSiguiente || '—')}</td>`);
-  }
+  segmentosTienda
+    .filter(s => s.diaInicio > f.diaFin)
+    .forEach(s => {
+      const dias = s.diaFin - s.diaInicio + 1;
+      partes.push(`<td colspan="${dias}" class="rm-td-cambio">Cambia a: ${escapeHtml(s.agenciaNombre)}</td>`);
+    });
 
   return { html: partes.join(''), totalIncidencias };
 }
@@ -380,14 +454,16 @@ async function rmRender() {
 
   rmConstruirPanelFiltros();
 
-  const { celdas, diasEnviados, totalDias, cambiosPorTienda } = datos;
-  const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, totalDias);
+  const { celdas, diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda } = datos;
+  const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias);
+  const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
   const filas = rmFilasSegunFiltros(todasLasFilas);
   const cabeceraDias = Array.from({ length: totalDias }, (_, i) => `<th>${i + 1}</th>`).join('');
 
   const filasConDatos = filas.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
-    const { html, totalIncidencias } = rmCeldasDeTramo(f, celdasTienda, diasEnviados, totalDias);
+    const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
+    const { html, totalIncidencias } = rmCeldasDeTramo(f, segmentosTienda, celdasTienda, diasEnviados, totalDias);
     return { f, html, totalIncidencias };
   });
 
