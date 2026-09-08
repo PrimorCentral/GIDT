@@ -537,8 +537,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   /* Color por gravedad en las listas desplegables de MOTIVO (leve = sin
      color; moderado = azul tenue; grave = rojo tenue), tanto en el
      desplegable de cada fila del informe como en el filtro de Motivo. */
-  .filtro-check.motivo-moderado span{ color:var(--moderado); text-decoration:underline; text-decoration-color:var(--moderado); }
-  .filtro-check.motivo-grave span{ color:var(--grave); text-decoration:underline; text-decoration-color:var(--grave); }
+  .filtro-check.motivo-moderado span{ color:var(--moderado); }
+  .filtro-check.motivo-grave span{ color:var(--grave); }
 
   /* ---------- "Utilidades": cambios puntuales de hoy (hora/agencia) ---------- */
   .ajuste-puntual-badge{ margin-left:6px; font-size:12px; cursor:help; }
