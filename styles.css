@@ -247,55 +247,115 @@
   /* ---------- Login ---------- */
   #loginScreen{
     position:fixed; inset:0; z-index:100;
-    background:
-      radial-gradient(circle at 20% 15%, rgba(255,122,26,.14), transparent 55%),
-      var(--bg);
-    display:flex; align-items:center; justify-content:center;
-    padding:20px;
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(255,122,26,.18), transparent 45%),
+      radial-gradient(circle at 86% 88%, rgba(255,122,26,.09), transparent 50%),
+      radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size:100% 100%, 100% 100%, 22px 22px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
   }
   #loginScreen.hidden{ display:none; }
   .login-card{
+    position:relative;
     width:100%; max-width:340px;
     background:var(--bg-elev);
     border:1px solid var(--line-onbg);
     border-radius:18px;
-    padding:30px 26px 26px;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,.5);
+    padding:34px 26px 26px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.55), 0 0 44px -14px rgba(255,122,26,.3);
+    overflow:hidden;
+    animation:gidtLoginIn .5s ease both;
+  }
+  .login-card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .login-card.shake{ animation:gidtShake .4s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes gidtLoginIn{
+    from{ opacity:0; transform:translateY(16px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  @keyframes gidtShake{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(2px); }
+    30%,50%,70%{ transform:translateX(-4px); }
+    40%,60%{ transform:translateX(4px); }
   }
   .login-card .mark{
-    width:44px; height:44px; border-radius:12px;
+    width:56px; height:56px; border-radius:14px;
     object-fit:cover;
     display:block;
-    margin:0 auto 16px;
+    margin:0 auto 18px;
+    box-shadow:0 10px 22px -8px rgba(255,122,26,.55), 0 0 0 1px rgba(255,255,255,.06);
   }
   .login-card h2{
     color:#fff; text-align:center; font-size:16.5px; margin:0 0 3px;
   }
   .login-card p.sub{
-    color:#9AA6B4; text-align:center; font-size:12.5px; margin:0 0 24px;
+    color:#9AA6B4; text-align:center; font-size:12.5px; margin:0 0 4px;
+  }
+  .login-card .login-version{
+    color:#5B6572; text-align:center; font-size:11px; font-family:var(--font-mono);
+    letter-spacing:.3px; margin:0 0 26px; min-height:14px;
   }
   .login-card label{
     display:block; color:#9AA6B4; font-size:11.5px; font-weight:700;
     text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;
   }
-  .login-card input{
+  .login-card .input-wrap{ position:relative; margin-bottom:16px; }
+  .login-card .input-wrap input{
     width:100%; background:#12181F; border:1.5px solid var(--line-onbg);
-    color:#fff; border-radius:10px; padding:12px 13px; font-size:15px;
-    margin-bottom:16px; outline:none; font-family:var(--font-mono);
-    letter-spacing:1px;
+    color:#fff; border-radius:10px; padding:12px 13px 12px 40px; font-size:15px;
+    margin-bottom:0; outline:none; font-family:var(--font-mono);
+    letter-spacing:1px; transition:border-color .15s ease;
   }
-  .login-card input:focus{ border-color:var(--accent); }
-  .login-card button{
+  .login-card .input-wrap--pin input{ padding-right:44px; }
+  .login-card .input-wrap input:focus{ border-color:var(--accent); }
+  .login-card .input-icon{
+    position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    width:17px; height:17px; color:#5B6572; pointer-events:none;
+    transition:color .15s ease;
+  }
+  .login-card .input-wrap:focus-within .input-icon{ color:var(--accent); }
+  .login-card .toggle-pin{
+    position:absolute; right:5px; top:50%; transform:translateY(-50%);
+    width:32px; height:32px; border:0; border-radius:7px;
+    background:transparent; color:#5B6572; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .login-card .toggle-pin:hover{ background:rgba(255,255,255,.06); color:#C9D0D8; }
+  .login-card .toggle-pin svg{ width:17px; height:17px; }
+  .login-card .toggle-pin .icon-eye-off{ display:none; }
+  .login-card .toggle-pin.is-visible{ color:var(--accent); }
+  .login-card .toggle-pin.is-visible .icon-eye{ display:none; }
+  .login-card .toggle-pin.is-visible .icon-eye-off{ display:block; }
+  .login-card button#btnLogin{
     width:100%; padding:13px; border:0; border-radius:10px;
     background:var(--accent); color:#2A1200; font-weight:700; font-size:14px;
     cursor:pointer; margin-top:4px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:filter .15s ease;
   }
-  .login-card button:disabled{ opacity:.6; cursor:not-allowed; }
+  .login-card button#btnLogin:hover:not(:disabled){ filter:brightness(1.05); }
+  .login-card button#btnLogin:disabled{ opacity:.7; cursor:not-allowed; }
+  .login-card .spinner{
+    display:none; width:15px; height:15px; border-radius:50%;
+    border:2px solid rgba(42,18,0,.3); border-top-color:#2A1200;
+    animation:gidtSpin .6s linear infinite;
+  }
+  .login-card button#btnLogin.loading .spinner{ display:inline-block; }
+  @keyframes gidtSpin{ to{ transform:rotate(360deg); } }
   .login-card .err{
-    color:#FF8A73; font-size:12.5px; text-align:center; margin-top:12px;
-    display:none;
+    display:none; align-items:center; justify-content:center; gap:6px;
+    color:#FF8A73; font-size:12.5px; text-align:center; margin-top:14px;
   }
-  .login-card .err.show{ display:block; }
+  .login-card .err.show{ display:flex; }
+  .login-footer{
+    margin-top:20px; text-align:center; font-size:11px;
+    color:#4E5A68; letter-spacing:.3px;
+  }
 
   .user-chip{
     margin-left:14px; display:flex; align-items:center; gap:8px;

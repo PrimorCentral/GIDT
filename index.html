@@ -44,16 +44,31 @@
     <img class="mark" src="icon-192.png" alt="GIDT">
     <h2>GIDT</h2>
     <p class="sub">Gestión de Incidencias de Transporte</p>
+    <p class="login-version" id="loginVersionTag"></p>
 
     <label for="loginUsuario">Usuario</label>
-    <input id="loginUsuario" type="text" inputmode="numeric" autocomplete="username" placeholder="Usuario">
+    <div class="input-wrap">
+      <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <input id="loginUsuario" type="text" inputmode="numeric" autocomplete="username" placeholder="Usuario" autofocus>
+    </div>
 
     <label for="loginPin">PIN</label>
-    <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" maxlength="10">
+    <div class="input-wrap input-wrap--pin">
+      <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" maxlength="10">
+      <button type="button" class="toggle-pin" id="btnTogglePin" aria-label="Mostrar PIN">
+        <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.86 21.86 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.86 21.86 0 0 1-2.94 3.94M1 1l22 22"/><path d="M9.9 9.9a3 3 0 1 0 4.2 4.2"/></svg>
+      </button>
+    </div>
 
-    <button id="btnLogin">Entrar</button>
-    <p class="err" id="loginErr">Usuario incorrecto.</p>
+    <button id="btnLogin" type="button">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="btn-label">Entrar</span>
+    </button>
+    <p class="err" id="loginErr" role="alert"><span class="err-icon" aria-hidden="true">⚠️</span><span class="err-text">Usuario incorrecto.</span></p>
   </div>
+  <p class="login-footer">GIDT · Primor</p>
 </div>
 
 <div id="app" class="hidden">
