@@ -1,8 +1,9 @@
-  // Gestión de tiendas (acordeón por agencia)
+// Gestión de tiendas (acordeón por agencia)
   // ---------------------------------------------------------------
   let agenciasCache = [];
   let tiendasCache = [];
   let agenciasTiendasAbiertas = new Set(); // ids de agencia desplegados en "Gestión de tiendas"
+  let filtroTiendasTexto = '';
   const MARCA_LABEL = { HABITUAL: 'Habitual', SABADO: 'Sábado', PRUEBA: 'Prueba', ESPECIAL: 'Especial' };
   const MARCA_CLASE = { HABITUAL: 'leve', SABADO: 'sabado', PRUEBA: 'prueba', ESPECIAL: 'especial' };
   const MARCA_BADGE_LETRA = { SABADO: 'S', ESPECIAL: 'E', PRUEBA: 'P' };
@@ -10,6 +11,22 @@
     const letra = MARCA_BADGE_LETRA[marca];
     if (!letra) return ''; // HABITUAL: sin badge
     return `<span class="marca-badge ${MARCA_CLASE[marca]}" title="${MARCA_LABEL[marca]}">${letra}</span>`;
+  }
+
+  // Normaliza texto para comparar sin distinguir mayúsculas/minúsculas ni acentos
+  function normalizarTextoBusqueda(str) {
+    return (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function tiendaCoincideBusqueda(t, qNormalizada) {
+    if (!qNormalizada) return true;
+    return normalizarTextoBusqueda(t.nombre).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.provincia).includes(qNormalizada);
   }
 
   async function cargarAgenciasYTiendas() {
@@ -30,8 +47,13 @@
 
   function renderAcordeonTiendas() {
     const cont = document.getElementById('acordeonAgencias');
-    cont.innerHTML = agenciasCache.map(ag => {
-      const tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo);
+    const qNormalizada = normalizarTextoBusqueda(filtroTiendasTexto);
+    const buscando = !!qNormalizada;
+
+    const bloques = agenciasCache.map(ag => {
+      const tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo && tiendaCoincideBusqueda(t, qNormalizada));
+      if (buscando && tds.length === 0) return ''; // oculta agencias sin coincidencias mientras se busca
+      const abierta = buscando ? true : agenciasTiendasAbiertas.has(ag.id);
       const filas = tds.length
         ? tds.map(t => `
             <tr data-tienda="${t.id}">
@@ -73,16 +95,20 @@
 
       return `
         <div class="agencia-block">
-          <div class="agencia-head ${agenciasTiendasAbiertas.has(ag.id) ? 'open' : ''}" data-agencia="${ag.id}">
+          <div class="agencia-head ${abierta ? 'open' : ''}" data-agencia="${ag.id}">
             <span class="caret">▶</span>
             <b>${escapeHtml(ag.nombre)}</b>
             <span class="count">${tds.length} tienda${tds.length === 1 ? '' : 's'}</span>
           </div>
-          <div class="agencia-body ${agenciasTiendasAbiertas.has(ag.id) ? 'open' : ''}">
+          <div class="agencia-body ${abierta ? 'open' : ''}">
             <table class="tabla-tiendas"><tbody>${filas}</tbody></table>
           </div>
         </div>`;
-    }).join('');
+    });
+
+    cont.innerHTML = buscando && bloques.every(b => !b)
+      ? `<div class="card" style="text-align:center; padding:30px; color:var(--ink-soft);">Ninguna tienda coincide con "${escapeHtml(filtroTiendasTexto)}".</div>`
+      : bloques.join('');
 
     cont.querySelectorAll('.agencia-head').forEach(head => {
       head.addEventListener('click', () => {
@@ -299,5 +325,13 @@
       if (!tiendasCargadasYa) { tiendasCargadasYa = true; cargarAgenciasYTiendas(); }
     });
   });
+
+  const buscadorTiendas = document.getElementById('buscadorTiendas');
+  if (buscadorTiendas) {
+    buscadorTiendas.addEventListener('input', () => {
+      filtroTiendasTexto = buscadorTiendas.value;
+      renderAcordeonTiendas();
+    });
+  }
 
   // ---------------------------------------------------------------
