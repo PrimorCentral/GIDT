@@ -534,6 +534,22 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .filtro-check .pill{ margin:0; pointer-events:none; }
   .filtro-check.oculto{ display:none; }
 
+  /* Color por gravedad en las listas desplegables de MOTIVO (leve = sin
+     color; moderado = azul tenue; grave = rojo tenue), tanto en el
+     desplegable de cada fila del informe como en el filtro de Motivo. */
+  .filtro-check.motivo-moderado span{ color:var(--moderado); text-decoration:underline; text-decoration-color:var(--moderado); }
+  .filtro-check.motivo-grave span{ color:var(--grave); text-decoration:underline; text-decoration-color:var(--grave); }
+
+  /* ---------- "Utilidades": cambios puntuales de hoy (hora/agencia) ---------- */
+  .ajuste-puntual-badge{ margin-left:6px; font-size:12px; cursor:help; }
+  .util-ajuste-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 2px; border-bottom:1px solid var(--border); font-size:12.5px;
+  }
+  .util-ajuste-item:last-child{ border-bottom:none; }
+  .util-btn-quitar{ flex:0 0 auto; }
+  .util-tienda-opcion{ display:flex; align-items:center; }
+
   /* ---------- Modal "Exportar informe" (PDF / Excel) ---------- */
   .export-formato-toggle{ display:flex; gap:8px; }
   .export-formato-btn{
@@ -1085,6 +1101,7 @@ body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ display:none !impor
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
 body:not(.perm-informe_dia) #btnGenerarInformeDesdeIncidencias,
 body:not(.perm-informe_dia) #btnEditarPalets,
+body:not(.perm-informe_dia) #btnUtilidadesInforme,
 body:not(.perm-informe_dia) .i-motivo-check,
 body:not(.perm-informe_dia) .i-obs,
 body:not(.perm-informe_dia) .btn-borrar-motivos{

@@ -199,6 +199,59 @@
             </div>
           </div>
           <div class="filtros-wrap">
+            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales de hoy (hora / agencia de entrega)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2-2 2.5-2.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Utilidades
+            </button>
+            <div class="filtros-modal-overlay" id="utilidadesPanel">
+              <div class="filtros-modal-header">
+                <b>Cambios puntuales de hoy</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="filtros-modal-close" id="btnCerrarUtilidades" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                  Cambia la hora y/o la agencia de entrega de una tienda solo para el informe de hoy. No afecta a la ficha de la tienda ni al resto de informes.
+                </p>
+                <div class="filtro-campo filtros-span2">
+                  <label>Tienda</label>
+                  <div class="exportar-select" id="utilTiendaSelect">
+                    <button type="button" class="filtro-select-btn">
+                      <span class="filtro-select-valor">Selecciona una tienda…</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="filtro-select-dropdown">
+                      <div class="filtro-select-search">
+                        <input type="text" placeholder="🔎 Buscar tienda…" id="utilBuscarTienda">
+                      </div>
+                      <div class="filtro-select-lista" id="utilTiendaLista"></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="utilFormAjuste" style="display:none;">
+                  <div class="filtros-grid" style="margin-top:16px;">
+                    <div class="filtro-campo">
+                      <label>Hora de entrega (puntual)</label>
+                      <input type="time" class="form-input" id="utilNuevaHora">
+                      <p id="utilHoraOriginal" style="margin:2px 0 0; font-size:11.5px; color:var(--ink-soft);"></p>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Agencia de entrega (puntual)</label>
+                      <select class="form-input" id="utilNuevaAgencia"></select>
+                      <p id="utilAgenciaOriginal" style="margin:2px 0 0; font-size:11.5px; color:var(--ink-soft);"></p>
+                    </div>
+                  </div>
+                  <div class="modal-footer" style="margin-top:16px; justify-content:space-between;">
+                    <button type="button" class="btn" id="utilBtnQuitarAjuste" style="display:none;">Quitar cambio puntual</button>
+                    <button type="button" class="btn primary" id="utilBtnGuardarAjuste">Aplicar solo hoy</button>
+                  </div>
+                </div>
+                <div id="utilListaAjustes" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);"></div>
+              </div>
+            </div>
+          </div>
+          <div class="filtros-wrap">
             <button class="btn" id="btnFiltrosIncidencias">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
               Filtros
@@ -1444,6 +1497,7 @@
 <script src="js/codigos-informe.js"></script>
 <script src="js/submotivos-informe.js"></script>
 <script src="js/informe-hoy.js"></script>
+<script src="js/utilidades-informe.js"></script>
 <script src="js/siniestros-historial.js"></script>
 <script src="js/historial-editar.js"></script>
 <script src="js/filtros-motivos.js"></script>
