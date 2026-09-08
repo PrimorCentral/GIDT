@@ -40,17 +40,25 @@
       const enviado = !!informeHoyCache.informe_enviado;
       const estadoTexto = enviado ? 'ENVIADO' : informeHoyCache.estado;
       const icono = enviado ? '📨' : '✅';
+      const tituloCard = enviado ? 'Informe de hoy enviado' : 'Informe de hoy creado';
+      const horaEnvio = informeHoyCache.informe_enviado_en
+        ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : null;
+      const filaCreadoOEnviado = enviado
+        ? `<div class="fila"><span class="etiqueta">Enviado por</span><span class="valor">${escapeHtml(informeHoyCache.informe_enviado_por || '—')}</span></div>
+           <div class="fila"><span class="etiqueta">Hora de envío</span><span class="valor">${horaEnvio ? horaEnvio + 'h' : '—'}</span></div>`
+        : `<div class="fila"><span class="etiqueta">Creado por</span><span class="valor">${escapeHtml(informeHoyCache.creado_por || '—')}</span></div>`;
       card.innerHTML = `
         <div class="informe-estado-detalle">
           <div class="informe-estado-header">
             <span class="glyph-check">${icono}</span>
-            <h3>Informe de hoy creado</h3>
+            <h3>${tituloCard}</h3>
             <p>${formatearFechaCorta(hoy)}</p>
           </div>
           <div class="informe-estado-lista">
             <div class="fila"><span class="etiqueta">Palets previstos</span><span class="valor">${informeHoyCache.total_palets || 'Sin especificar'}</span></div>
             <div class="fila"><span class="etiqueta">Estado del informe</span><span class="valor">${escapeHtml(estadoTexto)}</span></div>
-            <div class="fila"><span class="etiqueta">Creado por</span><span class="valor">${escapeHtml(informeHoyCache.creado_por || '—')}</span></div>
+            ${filaCreadoOEnviado}
           </div>
           <div class="informe-estado-boton">
             <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
