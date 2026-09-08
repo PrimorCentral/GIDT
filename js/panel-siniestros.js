@@ -25,11 +25,16 @@ const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false, sinCorreo: false };
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
 const PS_TIPO_DESDE_SINIESTRO = { ROTURA: 'ROTURA', FALTA: 'FALTAS', MIXTO: 'FALTAS Y ROTURAS' };
+// Inversa de la anterior: del tipo tal cual se guarda en panel_siniestros
+// (ROTURA / FALTAS / FALTAS Y ROTURAS) al que espera plantillaSiniestro()
+// de email-plantillas.js (ROTURA / FALTA / MIXTO), para poder reutilizar
+// esa misma plantilla al enviar el correo a la agencia desde aquí.
+const PS_TIPO_A_PLANTILLA = { ROTURA: 'ROTURA', FALTAS: 'FALTA', 'FALTAS Y ROTURAS': 'MIXTO' };
 
 // ---------------- Alta automática (llamada desde siniestros.js) ----------------
 
@@ -141,6 +146,7 @@ function siniestrosPanelFiltrados() {
     }
     if (f.sinFactura && s.factura_url) return false;
     if (f.sinAlbaran && s.albaran_url) return false;
+    if (f.sinCorreo && s.correo_enviado) return false;
     if (texto) {
       const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran]
         .filter(Boolean).join(' ').toUpperCase();
@@ -367,6 +373,10 @@ document.getElementById('psFiltroSinAlbaran')?.addEventListener('change', (e) =>
   panelFiltros.sinAlbaran = e.target.checked;
   renderPanelSiniestros();
 });
+document.getElementById('psFiltroSinCorreo')?.addEventListener('change', (e) => {
+  panelFiltros.sinCorreo = e.target.checked;
+  renderPanelSiniestros();
+});
 
 // ---------------- Alta manual (para lo que no viene del envío automático) ----------------
 
@@ -533,9 +543,99 @@ async function abrirModalPanelSiniestro(id) {
   pintarFacturaModal(s);
   pintarAlbaranModal(s);
   pintarJustificanteModal(s);
+  pintarBloqueEnvioAgencia(s);
 
   document.getElementById('psModalOverlay').classList.add('show');
 }
+
+// Botón "Enviar a agencia" (si aún no se ha enviado el correo de
+// reclamación a la agencia) o el estado "CORREO ENVIADO" con fecha/hora
+// (si ya se envió), en la cabecera del detalle del siniestro.
+function pintarBloqueEnvioAgencia(s) {
+  const btn = document.getElementById('btnPsEnviarAgencia');
+  const estado = document.getElementById('psEnvioAgenciaEstado');
+  if (s.correo_enviado) {
+    btn.style.display = 'none';
+    estado.style.display = '';
+    estado.innerHTML = `
+      <div class="ps-correo-enviado-estado">
+        <span class="ps-fact-enviado">✅ CORREO ENVIADO</span>
+        <span class="ps-correo-fecha">${s.correo_enviado_por ? escapeHtml(s.correo_enviado_por) + ' · ' : ''}${s.correo_enviado_en ? psFormatearFechaHora(s.correo_enviado_en) : ''}</span>
+      </div>`;
+  } else {
+    btn.style.display = '';
+    btn.disabled = false;
+    btn.textContent = '✉️ Enviar a agencia';
+    estado.style.display = 'none';
+    estado.innerHTML = '';
+  }
+}
+
+// Envía el correo de reclamación a la agencia (misma plantilla que usa
+// "Siniestros del día") para un siniestro del Panel siniestros, sea cual
+// sea el día al que corresponda — a diferencia de "Siniestros del día",
+// que solo ve las incidencias de hoy. Marca correo_enviado + fecha/hora +
+// usuario en panel_siniestros al terminar.
+async function enviarCorreoAgenciaDesdePanel() {
+  if (!panelActivoId) return;
+  const s = psSiniestroPorId(panelActivoId);
+  if (!s) return;
+
+  if (!s.agencia_id) {
+    await modalAlert('Este siniestro no tiene agencia asignada.', { titulo: 'Sin agencia' });
+    return;
+  }
+
+  const btn = document.getElementById('btnPsEnviarAgencia');
+  const textoOriginal = btn.textContent;
+
+  try {
+    const { data: ag, error: eAg } = await sb.from('agencias').select('emails').eq('id', s.agencia_id).maybeSingle();
+    if (eAg) throw eAg;
+    const emails = ag?.emails || [];
+    if (!emails.length) {
+      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+      return;
+    }
+
+    const ok = await modalConfirm('¿Enviar el correo de reclamación a la agencia ahora?', { titulo: 'Enviar reclamación' });
+    if (!ok) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    const sParaPlantilla = {
+      tipo: PS_TIPO_A_PLANTILLA[s.tipo] || 'ROTURA',
+      fecha_limite: s.recogida_limite,
+      incidencia: { tiendas: { nombre: s.tienda_nombre } }
+    };
+    const { subject, html, text } = plantillaSiniestro(sParaPlantilla, s.fecha);
+
+    await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
+
+    const correoEnviadoEn = new Date().toISOString();
+    const correoEnviadoPor = sesionActual?.nombre || sesionActual?.usuario || null;
+    const { error } = await sb.from('panel_siniestros').update({
+      correo_enviado: true,
+      correo_enviado_en: correoEnviadoEn,
+      correo_enviado_por: correoEnviadoPor
+    }).eq('id', panelActivoId);
+    if (error) throw error;
+
+    s.correo_enviado = true;
+    s.correo_enviado_en = correoEnviadoEn;
+    s.correo_enviado_por = correoEnviadoPor;
+    pintarBloqueEnvioAgencia(s);
+    renderPanelSiniestros();
+  } catch (err) {
+    console.error('Error enviando el correo a la agencia desde el Panel siniestros:', err);
+    await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', enviarCorreoAgenciaDesdePanel);
 
 async function cerrarModalPanelSiniestro() {
   if (guardadoPanelTimer) {
