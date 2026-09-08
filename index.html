@@ -1138,6 +1138,15 @@
     <p class="modal-message">Para casos que no vengan del envío automático de "Siniestros del día". Luego podrás completar el resto de datos.</p>
 
     <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div style="background:#FFF8F0; border:1px solid #FFE1BF; border-radius:12px; padding:12px 14px;">
+        <label class="form-label" style="margin-bottom:2px;">¿Es una rotura producida en el almacén de una agencia?</label>
+        <p style="margin:2px 0 10px; font-size:11.5px; color:var(--ink-soft);">Por ejemplo, cuando la agencia llama para que un operario vaya a reparar un palet en sus instalaciones. La mayoría de altas manuales son de este tipo.</p>
+        <div class="toggle-seg" id="psnOrigenAgenciaToggle">
+          <button type="button" class="toggle-seg-btn" data-valor="si">Sí</button>
+          <button type="button" class="toggle-seg-btn activo" data-valor="no">No</button>
+        </div>
+        <input type="hidden" id="psnOrigenAgencia" value="no">
+      </div>
       <div style="display:flex; gap:14px;">
         <div style="flex:1;">
           <label class="form-label">Fecha</label>
