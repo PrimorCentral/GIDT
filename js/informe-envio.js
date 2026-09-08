@@ -44,15 +44,20 @@ function tablaHtmlIncidencias(filas) {
 
   const filasHtml = filas.map(({ tienda, inc }, idx) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
-    const motivos = (inc.motivo || []).map(m => escapeHtml(m)).join('<br>');
+    // Solo los motivos "principales" (p. ej. "FALTAS"), nunca la etiqueta
+    // de submotivo interna que se guarda junto a él (p. ej. "ROBO/FALTAS
+    // DE SELECTIVO") — esa es solo para elegir el código de la leyenda,
+    // no debe verse en el correo.
+    const motivosPrincipales = (inc.motivo || []).filter(m => CODIGOS_INFORME.some(c => c.motivo === m));
+    const motivos = motivosPrincipales.map(m => escapeHtml(m)).join('<br>');
     const fondoFila = idx % 2 === 1 ? 'background:#f4f6f8;' : '';
 
     return `
       <tr style="${fondoFila}">
-        <td style="${td} white-space:nowrap; vertical-align:top;">${hora}</td>
-        <td style="${td} color:#1e293b; font-weight:600; vertical-align:top;">${escapeHtml(tienda.nombre)}</td>
-        <td style="${td} vertical-align:top;">${motivos}</td>
-        <td style="${td} vertical-align:top;">${escapeHtml(inc.observaciones || '')}</td>
+        <td style="${td} white-space:nowrap; vertical-align:middle;">${hora}</td>
+        <td style="${td} color:#1e293b; font-weight:600; vertical-align:middle;">${escapeHtml(tienda.nombre)}</td>
+        <td style="${td} vertical-align:middle;">${motivos}</td>
+        <td style="${td} vertical-align:middle;">${escapeHtml(inc.observaciones || '')}</td>
       </tr>`;
   }).join('');
 
