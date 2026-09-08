@@ -458,7 +458,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun) {
-      partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">→ ${escapeHtml(pun.agenciaNombre)}</td>`);
+      partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">${escapeHtml(pun.agenciaNombre)}</td>`);
       continue;
     }
     if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }

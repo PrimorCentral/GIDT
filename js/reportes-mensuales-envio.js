@@ -463,7 +463,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
-    if (pun) { celdas.push({ content: `> ${pun.agenciaNombre}`, styles: estiloCambio }); continue; }
+    if (pun) { celdas.push({ content: pun.agenciaNombre, styles: estiloCambio }); continue; }
     if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
     const c = celdasTienda[dia];
     if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
