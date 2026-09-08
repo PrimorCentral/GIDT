@@ -214,6 +214,13 @@ function rmSegmentosPorTienda(todasLasFilas) {
     if (!mapa.has(f.tiendaId)) mapa.set(f.tiendaId, []);
     mapa.get(f.tiendaId).push(f);
   });
+  // todasLasFilas viene ordenado por nombre de AGENCIA (para el orden de
+  // las filas visibles en la tabla/PDF), así que si una misma tienda tiene
+  // tramos en varias agencias distintas (p. ej. RHENUS → TXT puntual →
+  // RHENUS), ese orden NO es cronológico. Aquí se reordena cada tienda por
+  // diaInicio, para que los bloques "Antes:"/"Cambia a:" salgan siempre en
+  // el orden real en que ocurrieron.
+  mapa.forEach(segmentos => segmentos.sort((a, b) => a.diaInicio - b.diaInicio));
   return mapa;
 }
 
