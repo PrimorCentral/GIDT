@@ -569,9 +569,9 @@ function pintarBloqueEnvioAgencia(s) {
     btn.style.display = 'none';
     estado.style.display = '';
     estado.innerHTML = `
-      <div class="ps-correo-enviado-estado">
-        <span class="ps-fact-enviado">✅ CORREO ENVIADO</span>
-        <span class="ps-correo-fecha">${s.correo_enviado_por ? escapeHtml(s.correo_enviado_por) + ' · ' : ''}${s.correo_enviado_en ? psFormatearFechaHora(s.correo_enviado_en) : ''}</span>
+      <div class="ps-correo-enviado-card">
+        <span class="ps-correo-enviado-titulo">✅ Correo enviado</span>
+        ${(s.correo_enviado_por || s.correo_enviado_en) ? `<span class="ps-correo-fecha">${s.correo_enviado_por ? escapeHtml(s.correo_enviado_por) + ' · ' : ''}${s.correo_enviado_en ? psFormatearFechaHora(s.correo_enviado_en) : ''}</span>` : ''}
       </div>`;
   } else {
     btn.style.display = '';
