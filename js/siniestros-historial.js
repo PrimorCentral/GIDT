@@ -260,8 +260,15 @@
       agenciasAMostrar = agenciasCache.filter(ag => filtrosIncidencias.agencias.has(ag.id));
     }
 
+    // Tiendas "efectivas" para hoy: si una tienda tiene un cambio puntual
+    // de hora y/o agencia (desde "Utilidades"), se agrupa bajo la agencia
+    // nueva y se muestra la hora nueva — solo para el informe de hoy.
+    const tiendasEfectivas = tiendasCache
+      .filter(t => t.activo)
+      .map(t => (typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(t.id) : t));
+
     cont.innerHTML = agenciasAMostrar.map(ag => {
-      let tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo);
+      let tds = tiendasEfectivas.filter(t => t.agencia_id === ag.id);
       if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
       if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias) {
@@ -297,11 +304,16 @@
             ? '<span class="pill pendiente">Pendiente</span>'
             : `<span class="pill ${tipoCalc.toLowerCase()}">${tipoCalc.charAt(0)+tipoCalc.slice(1).toLowerCase()}</span>`;
 
+        const ajustePuntual = typeof ajustePuntualDeTienda === 'function' ? ajustePuntualDeTienda(t.id) : null;
+        const iconoAjuste = ajustePuntual
+          ? `<span class="ajuste-puntual-badge" title="Cambio puntual solo hoy${ajustePuntual.hora_prevista ? ' · Hora: ' + escapeHtml(ajustePuntual.hora_prevista.slice(0,5)) : ''}${ajustePuntual.agencia_id != null ? ' · Agencia: ' + escapeHtml(ajustePuntual.agencia_nombre || '') : ''}">🛠️</span>`
+          : '';
+
         return `
           <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
             <td class="col-estado">${marcada ? '🔴' : '—'}</td>
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}</td>
+            <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
             <td class="col-tipo">${badgeTipo}</td>
                         <td class="col-motivo">
               <div class="motivo-select">

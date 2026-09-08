@@ -223,7 +223,7 @@
     return incidenciasHoyCache
       .filter(i => i.marcada)
       .map(i => {
-        const tienda = tiendasCache.find(t => t.id === i.tienda_id);
+        const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(i.tienda_id) : tiendasCache.find(t => t.id === i.tienda_id);
         const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
         return {
           hora: tienda?.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '',
@@ -370,9 +370,10 @@
     const els = elsExportar(contexto);
     if (!els.panel) return;
     cerrarTodosLosExportarPaneles(contexto);
-    // Si el panel de "Filtros" está abierto (vista "Informe del día"), lo
-    // cerramos primero para que no se solapen los dos paneles a la vez.
+    // Si el panel de "Filtros" o el de "Utilidades" están abiertos (vista
+    // "Informe del día"), los cerramos primero para que no se solapen.
     if (typeof cerrarFiltrosPanel === 'function') cerrarFiltrosPanel();
+    if (typeof cerrarUtilidadesPanel === 'function') cerrarUtilidadesPanel();
 
     await ensureAgenciasYTiendasCargadas();
     construirTiposExport(contexto);

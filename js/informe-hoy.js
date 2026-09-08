@@ -9,7 +9,7 @@
     try {
       const { data, error } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, creado_por, creado_en')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, creado_por, creado_en, ajustes_puntuales')
         .eq('fecha', fechaHoyISO)
         .maybeSingle();
       if (error) throw error;

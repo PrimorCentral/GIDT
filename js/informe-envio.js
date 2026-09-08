@@ -17,7 +17,10 @@ function construirGruposInformeHoy() {
   incidenciasHoyCache
     .filter(inc => inc.marcada)
     .forEach(inc => {
-      const tienda = tiendasCache.find(t => t.id === inc.tienda_id);
+      // Se usa la tienda "efectiva" de hoy: si tiene un cambio puntual de
+      // hora y/o agencia (desde "Utilidades"), el envío respeta ese cambio
+      // solo para el informe de hoy.
+      const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(inc.tienda_id) : tiendasCache.find(t => t.id === inc.tienda_id);
       if (!tienda) return;
 
       const agId = tienda.agencia_id;

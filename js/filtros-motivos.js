@@ -87,7 +87,7 @@
 
     if (!listaMotivos.dataset.built) {
       listaMotivos.innerHTML = MOTIVOS.map(m => `
-        <label class="filtro-check">
+        <label class="filtro-check motivo-${m.clase}">
           <input type="checkbox" value="${escapeHtml(m.v)}" data-filtro="motivo">
           <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
         </label>`).join('');
@@ -150,9 +150,10 @@
   }
 
   function abrirFiltrosPanel() {
-    // Si el panel de "Exportar" está abierto, lo cerramos primero para que
-    // no se solapen los dos paneles a la vez.
+    // Si el panel de "Exportar" o el de "Utilidades" están abiertos, los
+    // cerramos primero para que no se solapen varios paneles a la vez.
     if (typeof cerrarTodosLosExportarPaneles === 'function') cerrarTodosLosExportarPaneles();
+    if (typeof cerrarUtilidadesPanel === 'function') cerrarUtilidadesPanel();
     posicionarFiltrosPanel();
     filtrosPanel.classList.add('show');
     btnFiltrosIncidencias.classList.add('open');
@@ -230,7 +231,10 @@
       // Snapshot: guardamos cómo es la tienda/agencia HOY, en el momento de
       // guardar la incidencia. Así, si más adelante se edita la tienda
       // (hora, nombre, agencia...), el histórico de este día no cambia.
-      const tienda = tiendasCache.find(t => t.id === tiendaId);
+      // Se usa la versión "efectiva" de la tienda (aplicando el cambio
+      // puntual de hora/agencia de "Utilidades" si hoy tiene uno), para que
+      // el informe de hoy y su histórico queden con el dato correcto.
+      const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(tiendaId) : tiendasCache.find(t => t.id === tiendaId);
       const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
 
       const { error } = await sb.from('incidencias').upsert({
@@ -395,7 +399,7 @@
         if (guardado) atrSubmotivo = ` data-submotivo-guardado="${escapeHtml(guardado)}"`;
       }
       return `
-      <label class="filtro-check">
+      <label class="filtro-check motivo-${m.clase}">
         <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}"${atrSubmotivo} ${sel.includes(m.v) ? 'checked' : ''}>
         <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
       </label>`;
