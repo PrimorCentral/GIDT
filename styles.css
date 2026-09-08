@@ -978,13 +978,19 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-modal-cabecera{
   margin:0 0 18px; padding:0 60px 16px 0;
   border-bottom:1px solid var(--border);
-  display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
 }
 .ps-modal-cabecera-info{ min-width:0; flex:1; }
 .ps-modal-cabecera-envio{ flex:0 0 auto; text-align:right; }
-.ps-correo-enviado-estado{ font-size:12px; }
-.ps-correo-enviado-estado .ps-fact-enviado{ display:block; }
-.ps-correo-enviado-estado .ps-correo-fecha{ display:block; margin-top:2px; font-size:11px; color:var(--ink-soft); font-weight:400; }
+.ps-correo-enviado-card{
+  display:inline-flex; flex-direction:column; align-items:flex-end; gap:3px;
+  padding:8px 14px; border-radius:12px; background:var(--ok-bg);
+}
+.ps-correo-enviado-card .ps-correo-enviado-titulo{
+  display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800;
+  color:var(--ok); text-transform:uppercase; letter-spacing:.3px; white-space:nowrap;
+}
+.ps-correo-enviado-card .ps-correo-fecha{ font-size:10.5px; color:var(--ok); opacity:.75; font-weight:600; white-space:nowrap; }
 .ps-modal-meta{
   display:flex; flex-direction:column; gap:6px; margin-top:12px;
   font-size:11.5px; color:var(--ink-soft);
