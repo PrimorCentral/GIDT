@@ -794,6 +794,17 @@ function flushAutoguardadoPanel() {
   document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
 });
 
+// El campo "Información" siempre se escribe en mayúsculas (igual que se ve
+// en el resto de la app: motivos, tiendas, agencias…), tanto en el detalle
+// del siniestro como en el alta manual.
+['psInformacion', 'psnInformacion'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', (e) => {
+    const cursor = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    e.target.setSelectionRange(cursor, cursor);
+  });
+});
+
 document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
   const s = psSiniestroPorId(panelActivoId);
   const esRecogidoAgencia = e.target.value === 'RECOGIDO POR AGENCIA';
@@ -1088,53 +1099,63 @@ async function quitarFacturaPanel() {
 
 // ---------------- Albarán (PDF) ----------------
 
-// Muestra el nº de albarán en el campo y lo bloquea cuando se ha detectado
-// automáticamente del PDF (con un enlace pequeño para corregirlo a mano
-// por si la lectura del PDF se equivocase alguna vez).
+// El campo Nº Albarán empieza BLOQUEADO (no se escribe "a ojo"): solo se
+// rellena solo cuando se detecta el número al subir el PDF del albarán, o
+// se desbloquea a mano con "editar manualmente" (antes o después de
+// subirlo, por si la lectura automática fallase alguna vez).
 function aplicarEstadoCampoAlbaran(s) {
   const input = document.getElementById('psAlbaran');
   const hint = document.getElementById('psAlbaranNumHint');
-  const bloqueado = !!(s.albaran_url && s.num_albaran);
-
   input.value = s.num_albaran || '';
-  input.disabled = bloqueado;
-  input.placeholder = bloqueado ? '' : 'Cuando se conozca…';
+  input.placeholder = '';
 
-  if (bloqueado) {
+  const detectado = !!(s.albaran_url && s.num_albaran);
+  input.disabled = detectado || !s.albaran_url;
+
+  if (detectado) {
     hint.innerHTML = `🔒 Detectado número albarán automáticamente · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
     hint.style.display = 'block';
+  } else if (!s.albaran_url) {
+    hint.innerHTML = `🔒 Se rellena al subir el albarán · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+  if (input.disabled) {
     document.getElementById('btnEditarNumAlbaran').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';
     });
-  } else {
-    hint.style.display = 'none';
   }
 }
 
-// Igual que con el Nº Albarán: si el valor viene detectado automáticamente
-// de la factura, se bloquea el campo (con el mismo escape de "editar
-// manualmente" por si la lectura falla alguna vez).
+// Igual que con el Nº Albarán: el campo Valor empieza BLOQUEADO hasta que
+// se sube la factura (y se detecta el importe) o se desbloquea a mano.
 function aplicarEstadoCampoValor(s) {
   const input = document.getElementById('psValor');
   const hint = document.getElementById('psValorNumHint');
   const tieneValor = s.valor !== null && s.valor !== undefined && s.valor !== '';
-  const bloqueado = !!(s.factura_url && tieneValor);
-
   input.value = tieneValor ? s.valor : '';
-  input.disabled = bloqueado;
 
-  if (bloqueado) {
+  const detectado = !!(s.factura_url && tieneValor);
+  input.disabled = detectado || !s.factura_url;
+
+  if (detectado) {
     hint.innerHTML = `🔒 Detectado importe de factura automáticamente · <button type="button" id="btnEditarValor">editar manualmente</button>`;
     hint.style.display = 'block';
+  } else if (!s.factura_url) {
+    hint.innerHTML = `🔒 Se rellena al subir la factura · <button type="button" id="btnEditarValor">editar manualmente</button>`;
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+  if (input.disabled) {
     document.getElementById('btnEditarValor').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';
     });
-  } else {
-    hint.style.display = 'none';
   }
 }
 
@@ -1284,37 +1305,8 @@ async function quitarJustificantePanel() {
 }
 
 // ---------------- Envío del albarán a Facturación ----------------
-
-const PS_TIPO_ASUNTO_FACTURACION = { ROTURA: 'ROTURAS', FALTAS: 'FALTAS', 'FALTAS Y ROTURAS': 'FALTAS Y ROTURAS' };
-const PS_TIPO_CUERPO_FACTURACION = {
-  ROTURA: (tienda) => `todas las fotos de la rotura en la tienda de ${tienda}`,
-  FALTAS: (tienda) => `todas las fotos y productos que han faltado en la tienda de ${tienda}`,
-  'FALTAS Y ROTURAS': (tienda) => `todas las fotos y productos afectados (roturas y faltas) en la tienda de ${tienda}`
-};
-
-// Construye el correo tal cual lo redactáis a mano hoy: asunto con el nombre
-// comercial de la agencia, cuerpo sencillo en texto plano, fotos + PDF adjuntos.
-function plantillaFacturacionAlbaran(s, nombreComercialAgencia) {
-  const fecha = fechaEs(s.fecha);
-  const tienda = s.tienda_nombre || '';
-  const tipoAsunto = PS_TIPO_ASUNTO_FACTURACION[s.tipo] || s.tipo;
-  const agenciaAsunto = nombreComercialAgencia || s.agencia_nombre || '';
-
-  const subject = `${tipoAsunto} EN EL ENVIO DE ${tienda.toUpperCase()} - ${fecha} ${agenciaAsunto}`.trim();
-
-  const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
-
-  const html = `
-    <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
-      <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
-      <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
-      <p style="margin:0;">Gracias, un saludo.</p>
-    </div>`;
-
-  const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
-
-  return { subject, html, text };
-}
+// La plantilla del correo (asunto + cuerpo) vive en email-plantillas.js:
+// plantillaFacturacionAlbaran(s, nombreComercialAgencia).
 
 async function ofrecerEnvioFacturacion(s) {
   const ok = await modalConfirm(

@@ -781,3 +781,47 @@
   }
 
   // ---------------------------------------------------------------
+
+  // ---------------------------------------------------------------
+  // Correo a Facturación (envío del albarán + fotos de un siniestro del
+  // Panel siniestros). Antes vivía en panel-siniestros.js — movida aquí
+  // porque este archivo es el sitio de todas las plantillas de correo.
+  // ---------------------------------------------------------------
+
+  const PS_TIPO_CUERPO_FACTURACION = {
+    ROTURA: (tienda) => `todas las fotos de la rotura en la tienda de ${tienda}`,
+    FALTAS: (tienda) => `todas las fotos y productos que han faltado en la tienda de ${tienda}`,
+    'FALTAS Y ROTURAS': (tienda) => `todas las fotos y productos afectados (roturas y faltas) en la tienda de ${tienda}`
+  };
+
+  // Asunto por tipo de siniestro (siempre con la tienda y la fecha del
+  // siniestro, sin nombre de agencia).
+  function psAsuntoFacturacion(tipo, tienda, fecha) {
+    const t = tienda.toUpperCase();
+    if (tipo === 'ROTURA') return `INCIDENCIA POR ROTURAS EN ${t} - ${fecha}`;
+    // FALTAS y FALTAS Y ROTURAS comparten el mismo asunto.
+    return `FALTAS EN EL ENVIO E INCIDENCIA POR ROTURAS EN ${t} - ${fecha}`;
+  }
+
+  // Construye el correo tal cual lo redactáis a mano hoy: asunto según el
+  // tipo de siniestro, cuerpo sencillo en texto plano, fotos + PDF
+  // adjuntos. nombreComercialAgencia se recibe por compatibilidad pero ya
+  // no se usa en el asunto (solo la tienda y la fecha).
+  function plantillaFacturacionAlbaran(s, nombreComercialAgencia) {
+    const fecha = fechaEs(s.fecha);
+    const tienda = s.tienda_nombre || '';
+    const subject = psAsuntoFacturacion(s.tipo, tienda, fecha);
+
+    const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
+
+    const html = `
+      <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
+        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
+        <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
+        <p style="margin:0;">Gracias, un saludo.</p>
+      </div>`;
+
+    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
+
+    return { subject, html, text };
+  }
