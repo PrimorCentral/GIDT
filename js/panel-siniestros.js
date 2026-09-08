@@ -223,7 +223,7 @@ function renderPanelSiniestros() {
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
         <td>${escapeHtml(s.origen || '—')}</td>
-        <td>${psPillTipo(s.tipo)}${s.correo_enviado ? '' : ' <span class="ps-correo-pendiente-icono" title="Correo sin enviar a la agencia">✉️</span>'}</td>
+        <td>${psPillTipo(s.tipo)}${s.correo_enviado ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td>${numFotos ? `📷 ${numFotos}` : '—'}</td>
