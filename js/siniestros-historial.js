@@ -486,7 +486,7 @@
   function posicionarDropdownMotivo(motivoSel, dropdown) {
     const rect = motivoSel.getBoundingClientRect();
     const margen = 6;
-    const alturaEstim = Math.min(dropdown.scrollHeight || 260, 260);
+    const alturaEstim = Math.min(dropdown.scrollHeight || 340, 340);
     const espacioAbajo = window.innerHeight - rect.bottom;
     const abrirArriba = espacioAbajo < alturaEstim && rect.top > espacioAbajo;
 
