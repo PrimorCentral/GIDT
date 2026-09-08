@@ -151,7 +151,7 @@ async function rmxDescargarGrupo(clave, grupos, cont) {
   if (estadoEl) estadoEl.innerHTML = '<span class="rme-sub">Generando PDF…</span>';
 
   try {
-    const { celdas, diasEnviados, totalDias, todasLasFilas } = await rmeObtenerDatosMes();
+    const { celdas, diasEnviados, totalDias, todasLasFilas, puntualAgenciaPorTienda } = await rmeObtenerDatosMes();
     const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
 
     const filasGrupo = todasLasFilas
@@ -160,7 +160,7 @@ async function rmxDescargarGrupo(clave, grupos, cont) {
 
     if (!filasGrupo.length) throw new Error('Esta agencia no tiene tiendas asignadas este mes.');
 
-    const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, segmentosPorTienda, celdas, diasEnviados, totalDias);
+    const doc = rmeConstruirPdf(grupo.nombre, rmAnio, rmMes, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias);
     doc.save(rmeNombreArchivo(grupo.nombre, rmAnio, rmMes));
   } catch (err) {
     console.error(`Error exportando el reporte mensual de ${grupo.nombre}:`, err);

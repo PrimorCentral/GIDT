@@ -166,39 +166,51 @@ function rmAgenciaHabitualPorDia(tienda, cambiosPermanentes, totalDias) {
   return porDia;
 }
 
-// Para una tienda, calcula los tramos en los que se parte su fila,
-// combinando los cambios PERMANENTES de agencia (tienda_agencia_historial)
-// con los cambios PUNTUALES de un solo día (Utilidades → informes_diarios.
-// ajustes_puntuales): un cambio puntual de agencia ese día "gana" a la
-// agencia habitual y genera su propio tramo de 1 día, exactamente igual
-// que si fuera un cambio permanente de ida y vuelta en un solo día.
-function rmSegmentosDeTienda(tienda, cambiosPermanentes, puntualPorDia, totalDias) {
+// Para una tienda, calcula los tramos "normales" en los que se parte su
+// fila SOLO por cambios PERMANENTES de agencia (tienda_agencia_historial).
+// Los cambios puntuales de un solo día NO parten esta fila — se tratan
+// aparte (ver rmFilasPuntualesDeTienda), así que la agencia habitual
+// siempre queda en una única fila por tramo permanente.
+function rmSegmentosDeTienda(tienda, cambiosPermanentes, totalDias) {
   const habitual = rmAgenciaHabitualPorDia(tienda, cambiosPermanentes, totalDias);
 
-  // Agencia EFECTIVA día a día: la puntual si hay una ese día, si no la habitual.
-  const efectivo = new Array(totalDias + 1);
-  for (let d = 1; d <= totalDias; d++) {
-    const pun = puntualPorDia && puntualPorDia[d];
-    efectivo[d] = pun ? { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre } : habitual[d];
-  }
-
-  // Compactamos días consecutivos con la misma agencia efectiva en tramos.
   const segmentos = [];
   let diaInicio = 1;
   for (let d = 2; d <= totalDias + 1; d++) {
     const finDelMes = d > totalDias;
-    if (finDelMes || efectivo[d].agenciaId !== efectivo[diaInicio].agenciaId) {
+    if (finDelMes || habitual[d].agenciaId !== habitual[diaInicio].agenciaId) {
       segmentos.push({
-        agenciaId: efectivo[diaInicio].agenciaId,
-        agenciaNombre: efectivo[diaInicio].agenciaNombre,
+        agenciaId: habitual[diaInicio].agenciaId,
+        agenciaNombre: habitual[diaInicio].agenciaNombre,
         diaInicio,
         diaFin: d - 1
       });
       diaInicio = d;
     }
   }
-
   return segmentos;
+}
+
+// Filas EXTRA, una por cada cambio puntual de agencia (agrupando en un
+// mismo bloque los días consecutivos con la misma agencia puntual, aunque
+// lo habitual sea un único día suelto). Cada una es una fila aparte, bajo
+// la agencia puntual, con esPuntual:true — no forma parte del tramo
+// habitual de la tienda.
+function rmFilasPuntualesDeTienda(puntualPorDia) {
+  if (!puntualPorDia) return [];
+  const dias = Object.keys(puntualPorDia).map(Number).sort((a, b) => a - b);
+  const bloques = [];
+  let actual = null;
+  dias.forEach(dia => {
+    const pun = puntualPorDia[dia];
+    if (actual && actual.agenciaId === pun.agenciaId && dia === actual.diaFin + 1) {
+      actual.diaFin = dia;
+    } else {
+      actual = { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre, diaInicio: dia, diaFin: dia, esPuntual: true };
+      bloques.push(actual);
+    }
+  });
+  return bloques;
 }
 
 // Agrupa TODAS las filas/tramos (sin filtrar) por tienda. Se usa para
@@ -224,15 +236,18 @@ function rmSegmentosPorTienda(todasLasFilas) {
   return mapa;
 }
 
-// Todas las filas posibles (una por tramo de tienda), sobre el listado
-// COMPLETO (sin filtrar), para no depender de qué filtros haya activos.
+// Todas las filas posibles (tramos permanentes + filas puntuales), sobre
+// el listado COMPLETO (sin filtrar), para no depender de qué filtros haya
+// activos.
 function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias) {
   const todas = [];
   tiendasCache.forEach(t => {
     const cambios = cambiosPorTienda.get(t.id);
     const puntualPorDia = puntualAgenciaPorTienda.get(t.id);
-    const segmentos = rmSegmentosDeTienda(t, cambios, puntualPorDia, totalDias);
-    segmentos.forEach(seg => {
+    const segmentosPermanentes = rmSegmentosDeTienda(t, cambios, totalDias);
+    const filasPuntuales = rmFilasPuntualesDeTienda(puntualPorDia);
+
+    [...segmentosPermanentes, ...filasPuntuales].forEach(seg => {
       todas.push({
         agenciaId: seg.agenciaId,
         agenciaNombre: seg.agenciaNombre,
@@ -241,8 +256,7 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
         tiendaProvincia: t.provincia || null,
         diaInicio: seg.diaInicio,
         diaFin: seg.diaFin,
-        nombreAnterior: seg.nombreAnterior,
-        nombreSiguiente: seg.nombreSiguiente
+        esPuntual: !!seg.esPuntual
       });
     });
   });
@@ -407,25 +421,46 @@ function rmEngancharFiltros() {
   });
 }
 
-// Construye las celdas de un tramo: un bloque fusionado "Antes: X" por
-// cada tramo real anterior de esta misma tienda (puede haber varios: p.
-// ej. un cambio permanente y luego un cambio puntual de otro día), las
-// celdas normales entre diaInicio y diaFin, y un bloque "Cambia a: Y" por
-// cada tramo real posterior. Cada bloque usa el rango de días exacto de
-// SU tramo, así que un cambio puntual que se revierte al día siguiente
-// nunca deja un bloque "Cambia a" mal etiquetado para el resto del mes.
-function rmCeldasDeTramo(f, segmentosTienda, celdasTienda, diasEnviados, totalDias) {
+// Construye las celdas de una fila:
+//  - Fila PUNTUAL (f.esPuntual): solo se rellenan sus propios días (con el
+//    código real si hubo incidencia); el resto del mes se dibuja en blanco
+//    ("–", sin contar ni colorear), porque esta fila es solo el recorte de
+//    ese cambio puntual, no un tramo real de la tienda.
+//  - Fila normal (agencia habitual): un bloque "Antes: X" / "Cambia a: Y"
+//    por cada tramo PERMANENTE real anterior/posterior de la misma tienda
+//    (los cambios puntuales no cuentan aquí). Dentro de su propio rango de
+//    días, cualquier día con un cambio puntual se pinta como "→ Agencia"
+//    y no se cuenta (esa incidencia ya se cuenta en su fila puntual).
+function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias) {
   const partes = [];
   let totalIncidencias = 0;
 
+  if (f.esPuntual) {
+    if (f.diaInicio > 1) partes.push(`<td colspan="${f.diaInicio - 1}" class="rm-td-napuntual">–</td>`);
+    for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+      if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
+      const c = celdasTienda[dia];
+      if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
+      totalIncidencias++;
+      partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+    }
+    if (f.diaFin < totalDias) partes.push(`<td colspan="${totalDias - f.diaFin}" class="rm-td-napuntual">–</td>`);
+    return { html: partes.join(''), totalIncidencias };
+  }
+
   segmentosTienda
-    .filter(s => s.diaFin < f.diaInicio)
+    .filter(s => !s.esPuntual && s.diaFin < f.diaInicio)
     .forEach(s => {
       const dias = s.diaFin - s.diaInicio + 1;
       partes.push(`<td colspan="${dias}" class="rm-td-cambio">Antes: ${escapeHtml(s.agenciaNombre)}</td>`);
     });
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+    const pun = puntualPorDia && puntualPorDia[dia];
+    if (pun) {
+      partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">→ ${escapeHtml(pun.agenciaNombre)}</td>`);
+      continue;
+    }
     if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
     const c = celdasTienda[dia];
     if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
@@ -434,7 +469,7 @@ function rmCeldasDeTramo(f, segmentosTienda, celdasTienda, diasEnviados, totalDi
   }
 
   segmentosTienda
-    .filter(s => s.diaInicio > f.diaFin)
+    .filter(s => !s.esPuntual && s.diaInicio > f.diaFin)
     .forEach(s => {
       const dias = s.diaFin - s.diaInicio + 1;
       partes.push(`<td colspan="${dias}" class="rm-td-cambio">Cambia a: ${escapeHtml(s.agenciaNombre)}</td>`);
@@ -470,7 +505,8 @@ async function rmRender() {
   const filasConDatos = filas.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
-    const { html, totalIncidencias } = rmCeldasDeTramo(f, segmentosTienda, celdasTienda, diasEnviados, totalDias);
+    const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
+    const { html, totalIncidencias } = rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias);
     return { f, html, totalIncidencias };
   });
 
@@ -479,8 +515,8 @@ async function rmRender() {
     : filasConDatos;
 
   const filasHtml = filasVisibles.map(({ f, html, totalIncidencias }) => `
-    <tr>
-      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}</td>
+    <tr class="${f.esPuntual ? 'rm-fila-puntual' : ''}">
+      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de un cambio puntual de agencia de un solo día">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}
