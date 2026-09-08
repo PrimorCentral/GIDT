@@ -1164,18 +1164,15 @@ function plantillaFacturacionAlbaran(s, nombreComercialAgencia) {
   const subject = `${tipoAsunto} EN EL ENVIO DE ${tienda.toUpperCase()} - ${fecha} ${agenciaAsunto}`.trim();
 
   const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
-  const infoHtml = s.informacion ? `<p style="margin:0 0 14px;">${escapeHtml(s.informacion)}</p>` : '';
-  const infoTxt = s.informacion ? `\n${s.informacion}\n` : '';
 
   const html = `
     <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
       <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
-      ${infoHtml}
       <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
       <p style="margin:0;">Gracias, un saludo.</p>
     </div>`;
 
-  const text = `Buenas, aquí adjuntamos ${linea}\n${infoTxt}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
+  const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
 
   return { subject, html, text };
 }
