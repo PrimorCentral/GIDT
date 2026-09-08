@@ -500,9 +500,10 @@ document.getElementById('btnRefrescarPanelSiniestros')?.addEventListener('click'
 document.getElementById('btnCerrarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnCancelarPsNuevo')?.addEventListener('click', cerrarModalNuevoPanelSiniestro);
 document.getElementById('btnGuardarPsNuevo')?.addEventListener('click', guardarNuevoPanelSiniestro);
-document.getElementById('psNuevoModalOverlay')?.addEventListener('click', (e) => {
-  if (e.target.id === 'psNuevoModalOverlay') cerrarModalNuevoPanelSiniestro();
-});
+// Nota: a propósito NO se cierra al pinchar fuera (fuera del overlay), para
+// no perder por error los datos del formulario ya rellenados — igual que
+// los modales de "Nuevo usuario" / "Editar usuario" (js/usuarios.js), que
+// tampoco se cierran así. Solo cierran los botones ✕, Cancelar y Guardar.
 document.getElementById('psnAgencia')?.addEventListener('change', (e) => rellenarSelectTiendasPsn(e.target.value));
 
 // ---------------- Modal: completar los datos de una fila ----------------
