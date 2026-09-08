@@ -1100,9 +1100,10 @@ async function quitarFacturaPanel() {
 // ---------------- Albarán (PDF) ----------------
 
 // El campo Nº Albarán empieza BLOQUEADO (no se escribe "a ojo"): solo se
-// rellena solo cuando se detecta el número al subir el PDF del albarán, o
-// se desbloquea a mano con "editar manualmente" (antes o después de
-// subirlo, por si la lectura automática fallase alguna vez).
+// rellena cuando se detecta el número al subir el PDF del albarán. Solo
+// entonces aparece "editar manualmente", por si la lectura automática
+// fallase alguna vez — mientras no se haya subido nada, no hay nada que
+// editar, así que no se ofrece esa opción.
 function aplicarEstadoCampoAlbaran(s) {
   const input = document.getElementById('psAlbaran');
   const hint = document.getElementById('psAlbaranNumHint');
@@ -1115,23 +1116,22 @@ function aplicarEstadoCampoAlbaran(s) {
   if (detectado) {
     hint.innerHTML = `🔒 Detectado número albarán automáticamente · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
     hint.style.display = 'block';
-  } else if (!s.albaran_url) {
-    hint.innerHTML = `🔒 Se rellena al subir el albarán · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
-  }
-  if (input.disabled) {
     document.getElementById('btnEditarNumAlbaran').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';
     });
+  } else if (!s.albaran_url) {
+    hint.textContent = '🔒 Se rellena al subir el albarán';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
   }
 }
 
 // Igual que con el Nº Albarán: el campo Valor empieza BLOQUEADO hasta que
-// se sube la factura (y se detecta el importe) o se desbloquea a mano.
+// se sube la factura (y se detecta el importe); "editar manualmente" solo
+// aparece una vez hay algo detectado que corregir.
 function aplicarEstadoCampoValor(s) {
   const input = document.getElementById('psValor');
   const hint = document.getElementById('psValorNumHint');
@@ -1144,18 +1144,16 @@ function aplicarEstadoCampoValor(s) {
   if (detectado) {
     hint.innerHTML = `🔒 Detectado importe de factura automáticamente · <button type="button" id="btnEditarValor">editar manualmente</button>`;
     hint.style.display = 'block';
-  } else if (!s.factura_url) {
-    hint.innerHTML = `🔒 Se rellena al subir la factura · <button type="button" id="btnEditarValor">editar manualmente</button>`;
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
-  }
-  if (input.disabled) {
     document.getElementById('btnEditarValor').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';
     });
+  } else if (!s.factura_url) {
+    hint.textContent = '🔒 Se rellena al subir la factura';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
   }
 }
 
