@@ -28,7 +28,7 @@ let panelCargado = false;
 let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false, sinCorreo: false };
 let panelActivoId = null;
 
-const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'OTRO'];
+const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'AGENCIA', 'OTRO'];
 const PS_TIPO_DESDE_SINIESTRO = { ROTURA: 'ROTURA', FALTA: 'FALTAS', MIXTO: 'FALTAS Y ROTURAS' };
 // Inversa de la anterior: del tipo tal cual se guarda en panel_siniestros
 // (ROTURA / FALTAS / FALTAS Y ROTURAS) al que espera plantillaSiniestro()
@@ -446,6 +446,7 @@ async function guardarNuevoPanelSiniestro() {
       informacion: informacion || null,
       estado: 'PDTE COBRO',
       recogida_limite: recogidaLimite,
+      correo_enviado: false,
       creado_por: sesionActual?.nombre || sesionActual?.usuario || null
     }).select().single();
     if (error) throw error;
@@ -609,7 +610,13 @@ async function enviarCorreoAgenciaDesdePanel() {
       fecha_limite: s.recogida_limite,
       incidencia: { tiendas: { nombre: s.tienda_nombre } }
     };
-    const { subject, html, text } = plantillaSiniestro(sParaPlantilla, s.fecha);
+    // Si el origen es "AGENCIA" (rotura/falta detectada al reparar un
+    // palet en el propio almacén de la agencia, tras avisarnos ellos),
+    // se usa la plantilla específica para ese caso, con otro asunto y
+    // otro texto — no la de "entrega de mercancía en tienda".
+    const { subject, html, text } = s.origen === 'AGENCIA'
+      ? plantillaSiniestroAgencia({ ...sParaPlantilla, agenciaNombre: s.agencia_nombre }, s.fecha)
+      : plantillaSiniestro(sParaPlantilla, s.fecha);
 
     await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
 
