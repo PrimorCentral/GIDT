@@ -22,6 +22,8 @@
       versionActual = await obtenerVersionRemota();
       const tag = document.getElementById('appVersionTag');
       if (tag && versionActual) tag.textContent = 'v' + versionActual;
+      const loginTag = document.getElementById('loginVersionTag');
+      if (loginTag && versionActual) loginTag.textContent = 'Versión ' + versionActual;
     }
 
     async function comprobarActualizacion() {
