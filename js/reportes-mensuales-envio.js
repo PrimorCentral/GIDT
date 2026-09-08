@@ -463,7 +463,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
-    if (pun) { celdas.push({ content: `→ ${pun.agenciaNombre}`, styles: estiloCambio }); continue; }
+    if (pun) { celdas.push({ content: `> ${pun.agenciaNombre}`, styles: estiloCambio }); continue; }
     if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
     const c = celdasTienda[dia];
     if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
@@ -558,9 +558,9 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
     const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala);
     return [
-      { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'left', fontStyle: 'bold' } },
-      { content: f.tiendaNombre, styles: { halign: 'left' } },
-      { content: f.tiendaProvincia || '—', styles: { halign: 'left' } },
+      { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } },
+      { content: f.tiendaNombre, styles: { halign: 'center' } },
+      { content: f.tiendaProvincia || '—', styles: { halign: 'center' } },
       ...celdasDias,
       { content: String(totalIncidencias), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
     ];
@@ -575,9 +575,9 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     head: [cabecera],
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 * escala },
     columnStyles: {
-      0: { cellWidth: 55, halign: 'left', fontStyle: 'bold' },
-      1: { cellWidth: 90, halign: 'left' },
-      2: { cellWidth: 40, halign: 'left' }
+      0: { cellWidth: 55, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 90, halign: 'center' },
+      2: { cellWidth: 40, halign: 'center' }
     },
     body: cuerpo
   });
