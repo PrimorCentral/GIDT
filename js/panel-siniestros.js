@@ -56,7 +56,12 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
 
     if (existente) {
       const { error: eUpd } = await sb.from('panel_siniestros')
-        .update({ correo_enviado: true, fotos: s.fotos || [] })
+        .update({
+          correo_enviado: true,
+          correo_enviado_en: s.enviado_en || new Date().toISOString(),
+          correo_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null,
+          fotos: s.fotos || []
+        })
         .eq('id', existente.id);
       if (eUpd) throw eUpd;
     } else {
@@ -64,6 +69,8 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
         siniestro_id: s.id,
         fecha: fechaInformeISO,
         correo_enviado: true,
+        correo_enviado_en: s.enviado_en || new Date().toISOString(),
+        correo_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null,
         agencia_id: ag.id || null,
         agencia_nombre: ag.nombre || null,
         tienda_id: t.id || null,
