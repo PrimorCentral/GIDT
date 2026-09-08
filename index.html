@@ -505,6 +505,7 @@
             </select>
             <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinFactura"> Sin factura</label>
             <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinAlbaran"> Sin albarán</label>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinCorreo"> Correo sin enviar</label>
           </div>
         </div>
       </div>
@@ -1031,14 +1032,20 @@
     <p class="ps-modal-titulo-principal">📋 Detalle del siniestro</p>
 
     <div class="ps-modal-cabecera">
-      <h3 class="modal-title">
-        <span id="psAgenciaTienda">—</span>
-        <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
-      </h3>
-      <p class="modal-message" id="psFechaTexto" style="margin:2px 0 10px;"></p>
-      <div class="ps-modal-meta">
-        <span id="psCreadoTexto"></span>
-        <span id="psActualizadoTexto"></span>
+      <div class="ps-modal-cabecera-info">
+        <h3 class="modal-title">
+          <span id="psAgenciaTienda">—</span>
+          <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
+        </h3>
+        <p class="modal-message" id="psFechaTexto" style="margin:2px 0 10px;"></p>
+        <div class="ps-modal-meta">
+          <span id="psCreadoTexto"></span>
+          <span id="psActualizadoTexto"></span>
+        </div>
+      </div>
+      <div class="ps-modal-cabecera-envio" id="psEnvioAgenciaBloque">
+        <button type="button" class="btn primary" id="btnPsEnviarAgencia" style="font-size:12px; padding:6px 12px; white-space:nowrap;">✉️ Enviar a agencia</button>
+        <div id="psEnvioAgenciaEstado" style="display:none;"></div>
       </div>
     </div>
 
