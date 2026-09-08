@@ -445,6 +445,7 @@
 
       s.estado = 'ENVIADO';
       s.enviado_en = new Date().toISOString();
+      s.enviado_por = sesionActual?.nombre || sesionActual?.usuario || null;
       registrarSiniestroEnPanelAutomatico(s, informeHoyCache.fecha);
       pintarModalSiniestro();
       renderKanbanSiniestros();
