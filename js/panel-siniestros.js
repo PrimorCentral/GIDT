@@ -906,7 +906,7 @@ function pintarFotosModal(s) {
   grid.innerHTML = fotos.map((url, idx) => `
     <div class="ps-foto-thumb">
       <img src="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
-      <button type="button" class="ps-foto-quitar" data-idx="${idx}" title="Quitar foto">✕</button>
+      <button type="button" class="ps-foto-quitar" data-idx="${idx}" title="Borrar foto">🗑️</button>
     </div>`).join('') || `<p class="ps-sin-archivos">Sin fotos todavía.</p>`;
 
   grid.querySelectorAll('[data-abrir-foto]').forEach(img => {
@@ -1000,6 +1000,10 @@ async function borrarDeStoragePorUrl(bucket, url) {
 async function quitarFotoPanel(idx) {
   const s = psSiniestroPorId(panelActivoId);
   if (!s) return;
+
+  const ok = await modalConfirm('¿Seguro que quieres borrar esta foto del siniestro?', { titulo: 'Borrar foto', danger: true, textoOk: 'Borrar' });
+  if (!ok) return;
+
   const urlAEliminar = (s.fotos || [])[idx];
   const fotosActualizadas = (s.fotos || []).filter((_, i) => i !== idx);
   try {

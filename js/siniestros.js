@@ -300,7 +300,7 @@
     grid.innerHTML = (s.fotos || []).map((url, idx) => `
       <div class="foto-item">
         <img src="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
-        ${puedeQuitarFotos ? `<button data-quitar-foto="${idx}" title="Quitar">✕</button>` : ''}
+        ${puedeQuitarFotos ? `<button data-quitar-foto="${idx}" title="Borrar foto">🗑️</button>` : ''}
       </div>`).join('');
     grid.querySelectorAll('[data-abrir-foto]').forEach(img => {
       img.addEventListener('click', () => abrirLightboxPanel(img.dataset.abrirFoto));
@@ -372,6 +372,10 @@
 
   async function quitarFotoSiniestro(idx) {
     const s = siniestroPorId(siniestroActivoId);
+
+    const ok = await modalConfirm('¿Seguro que quieres borrar esta foto del siniestro?', { titulo: 'Borrar foto', danger: true, textoOk: 'Borrar' });
+    if (!ok) return;
+
     const urlAEliminar = (s.fotos || [])[idx];
     const fotosActualizadas = (s.fotos || []).filter((_, i) => i !== idx);
     try {
