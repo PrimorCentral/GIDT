@@ -597,6 +597,10 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
      de otro modal ya abierto (p.ej. "¿Quitar el albarán?" desde el Panel
      siniestros), así que siempre debe quedar por encima de cualquier otro. */
   #modalOverlay{ z-index:500; }
+  /* El modal de carga (spinner) también puede abrirse con otro modal ya
+     abierto detrás (p.ej. "Subiendo foto…" sobre el detalle del siniestro),
+     así que también debe quedar siempre por encima. */
+  #cargandoEnvioOverlay{ z-index:500; }
   .modal-overlay.show{ display:flex; }
   .modal-box{
     width:100%; max-width:380px;
@@ -801,10 +805,11 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   }
   .siniestro-fotos-grid .foto-item img{ width:100%; height:100%; object-fit:cover; display:block; }
   .siniestro-fotos-grid .foto-item button{
-    position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
-    border:0; background:rgba(0,0,0,.55); color:#fff; font-size:10px; cursor:pointer;
+    position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%;
+    border:0; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); color:var(--grave); font-size:13px; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
   }
+  .siniestro-fotos-grid .foto-item button:hover{ background:var(--grave-bg); }
 
   /* ---------- Análisis: Ranking de tiendas y agencias ---------- */
   .analisis-filtros{
@@ -956,8 +961,9 @@ table.tabla-panel-siniestros td{ padding:10px 14px; border-bottom:1px solid var(
 table.tabla-panel-siniestros tr:last-child td{ border-bottom:0; }
 table.tabla-panel-siniestros tr.ps-fila{ cursor:pointer; }
 table.tabla-panel-siniestros tr.ps-fila:hover{ background:var(--panel-muted); }
-table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente{ background:#FFF6EC; border-left:3px solid var(--accent); }
-table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente:hover{ background:#FFEEDC; }
+table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente td{ background:#FFF3E4; }
+table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente:hover td{ background:#FFE7CC; }
+table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente td:first-child{ box-shadow:inset 3px 0 0 var(--accent); }
 .ps-correo-pendiente-icono{ margin-left:5px; font-size:11.5px; cursor:help; }
 table.tabla-panel-siniestros td.ps-col-info{
   max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -1020,10 +1026,11 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-foto-thumb{ position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
 .ps-foto-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 .ps-foto-quitar{
-  position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:50%;
-  border:0; background:rgba(18,24,31,.65); color:#fff; font-size:11px; cursor:pointer;
+  position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%;
+  border:0; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); color:var(--grave); font-size:13px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
 }
+.ps-foto-quitar:hover{ background:var(--grave-bg); }
 .ps-sin-archivos{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 10px; }
 .ps-fact-enviado{ font-size:12px; font-weight:700; color:var(--ok); }
 .ps-guardado-icono{
