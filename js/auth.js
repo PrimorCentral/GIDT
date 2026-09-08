@@ -18,6 +18,18 @@
     catch { return null; }
   }
 
+  // Aviso al cerrar la pestaña/ventana (la "X") mientras hay sesión iniciada,
+  // para que no se salga de la app "en frío" sin pasar por la confirmación
+  // de "Cerrar sesión". Por seguridad, los navegadores no permiten sustituir
+  // este aviso por nuestro modal propio: solo dejan disparar su propio
+  // cuadro genérico ("¿Salir del sitio?"), que aparece igual pulsando la X,
+  // recargando o cerrando la pestaña.
+  window.addEventListener('beforeunload', (evento) => {
+    if (!getSesion()) return;
+    evento.preventDefault();
+    evento.returnValue = '';
+  });
+
   function mostrarApp(usuario) {
     sesionActual = usuario;
     document.getElementById('loginScreen').classList.add('hidden');
