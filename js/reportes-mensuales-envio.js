@@ -66,8 +66,10 @@ function rmeMesAnioTexto(mesIndex, anio) {
 
 // Nombre "bonito" del PDF: el que ver\u00e1 el destinatario como adjunto del
 // correo (se manda directo, en base64, sin pasar por Storage).
-function rmeNombreArchivo(grupoNombre, anio, mesIndex) {
-  return `${grupoNombre} - ${rmeTituloMes(anio, mesIndex)}.pdf`;
+function rmeNombreArchivo(grupoNombre, anio, mesIndex, diaDesde, diaHasta, totalDias) {
+  const rango = (diaDesde && diaHasta && totalDias && !(diaDesde === 1 && diaHasta === totalDias))
+    ? ` (día ${diaDesde}-${diaHasta})` : '';
+  return `${grupoNombre} - ${rmeTituloMes(anio, mesIndex)}${rango}.pdf`;
 }
 
 // A partir del listado fresco de agencias (con emails y grupo_envio),
@@ -435,33 +437,46 @@ function rmeHexToRgb(hex) {
 }
 
 // Igual que rmCeldasDeTramo() de reportes-mensuales.js, pero devolviendo
-// celdas para jsPDF-autotable en lugar de HTML.
-function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala) {
+// celdas para jsPDF-autotable en lugar de HTML. diaDesde/diaHasta (por
+// defecto todo el mes) recortan qué columnas de días se generan, para
+// poder exportar solo un rango de días dentro del mes.
+function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta) {
+  diaDesde = diaDesde || 1;
+  diaHasta = diaHasta || totalDias;
   const celdas = [];
   let totalIncidencias = 0;
   const estiloCambio = { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'italic', fontSize: 6 * escala };
   const estiloNaPuntual = { fillColor: [255, 255, 255], textColor: [255, 255, 255] };
 
   if (f.esPuntual) {
-    if (f.diaInicio > 1) celdas.push({ content: '', colSpan: f.diaInicio - 1, styles: estiloNaPuntual });
-    for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+    if (f.diaFin < diaDesde || f.diaInicio > diaHasta) {
+      celdas.push({ content: '', colSpan: diaHasta - diaDesde + 1, styles: estiloNaPuntual });
+      return { celdas, totalIncidencias: 0 };
+    }
+    const iniPropio = Math.max(f.diaInicio, diaDesde);
+    const finPropio = Math.min(f.diaFin, diaHasta);
+    if (iniPropio > diaDesde) celdas.push({ content: '', colSpan: iniPropio - diaDesde, styles: estiloNaPuntual });
+    for (let dia = iniPropio; dia <= finPropio; dia++) {
       if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
       const c = celdasTienda[dia];
       if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
       totalIncidencias++;
       celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
     }
-    if (f.diaFin < totalDias) celdas.push({ content: '', colSpan: totalDias - f.diaFin, styles: estiloNaPuntual });
+    if (finPropio < diaHasta) celdas.push({ content: '', colSpan: diaHasta - finPropio, styles: estiloNaPuntual });
     return { celdas, totalIncidencias };
   }
 
   segmentosTienda
     .filter(s => !s.esPuntual && s.diaFin < f.diaInicio)
     .forEach(s => {
-      celdas.push({ content: `Antes:\n${s.agenciaNombre}`, colSpan: s.diaFin - s.diaInicio + 1, styles: estiloCambio });
+      const ini = Math.max(s.diaInicio, diaDesde);
+      const fin = Math.min(s.diaFin, diaHasta);
+      if (ini > fin) return;
+      celdas.push({ content: `Antes:\n${s.agenciaNombre}`, colSpan: fin - ini + 1, styles: estiloCambio });
     });
 
-  for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+  for (let dia = Math.max(f.diaInicio, diaDesde); dia <= Math.min(f.diaFin, diaHasta); dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun) { celdas.push({ content: pun.agenciaNombre, styles: estiloCambio }); continue; }
     if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
@@ -474,7 +489,10 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
   segmentosTienda
     .filter(s => !s.esPuntual && s.diaInicio > f.diaFin)
     .forEach(s => {
-      celdas.push({ content: `Cambia a:\n${s.agenciaNombre}`, colSpan: s.diaFin - s.diaInicio + 1, styles: estiloCambio });
+      const ini = Math.max(s.diaInicio, diaDesde);
+      const fin = Math.min(s.diaFin, diaHasta);
+      if (ini > fin) return;
+      celdas.push({ content: `Cambia a:\n${s.agenciaNombre}`, colSpan: fin - ini + 1, styles: estiloCambio });
     });
 
   return { celdas, totalIncidencias };
@@ -489,7 +507,10 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
 // igual que hace Excel al "ajustar la hoja a una página".
 // Devuelve el finalY de la tabla principal, es decir, dónde termina
 // realmente el contenido en esa página.
-function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala) {
+function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala, diaDesde, diaHasta) {
+  diaDesde = diaDesde || 1;
+  diaHasta = diaHasta || totalDias;
+  const esMesCompleto = diaDesde === 1 && diaHasta === totalDias;
   const margen = 20;
   const anchoPagina = doc.internal.pageSize.getWidth();
   const anchoUtil = anchoPagina - margen * 2;
@@ -544,19 +565,19 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     tableWidth: anchoTitulo,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 17 * escala, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.75 * escala), cellPadding: 8 * escala, halign: 'center', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
-    body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${rmeTituloMes(anio, mesIndex)}`]]
+    body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${esMesCompleto ? rmeTituloMes(anio, mesIndex) : `${diaDesde}-${diaHasta} ${rmeTituloMes(anio, mesIndex)}`}`]]
   });
   const finalYTitulo = doc.lastAutoTable.finalY;
 
   // --- Tabla principal ---
-  const cabeceraDias = Array.from({ length: totalDias }, (_, i) => String(i + 1));
+  const cabeceraDias = Array.from({ length: diaHasta - diaDesde + 1 }, (_, i) => String(diaDesde + i));
   const cabecera = ['AGENCIA', 'TIENDA', 'PROVINCIA', ...cabeceraDias, 'TOTAL'];
 
   const cuerpo = filasGrupo.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
-    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala);
+    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta);
     return [
       { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } },
       { content: f.tiendaNombre, styles: { halign: 'center' } },
@@ -607,7 +628,7 @@ function rmeCrearDocMedida(ancho, alto) {
   return doc;
 }
 
-function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias) {
+function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, diaDesde, diaHasta) {
   const margen = 20;
   const anchoPagina = 841.89; // A4 apaisado real, en pt
   const altoPagina = 595.28;
@@ -616,7 +637,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTi
   // bien alta para que nunca pagine por quedarse corta.
   const alturaEstimada = 260 + filasGrupo.length * 22 + 200;
   const docMedida = rmeCrearDocMedida(anchoPagina, alturaEstimada);
-  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, 1);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, 1, diaDesde, diaHasta);
 
   // Si el contenido a tamaño normal no cabe en el alto real de una A4,
   // se calcula la escala que hace falta para que sí quepa (con un pequeño
@@ -627,7 +648,7 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTi
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala);
+  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala, diaDesde, diaHasta);
 
   return doc;
 }
