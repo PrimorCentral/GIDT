@@ -823,10 +823,26 @@
                 </div>
               </div>
               <div class="filtros-modal-body">
-                <p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);">
-                  Descarga el mismo cuadro de esta pantalla (<b id="rmExportarMesTexto">—</b>) en PDF, con el mismo formato que se envía por correo — elige la agencia.
+                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                  Descarga el mismo cuadro de esta pantalla en PDF, con el mismo formato que se envía por correo.
                 </p>
-                <div id="rmExportarLista"><div class="empty"><p>Cargando…</p></div></div>
+                <div class="filtro-campo filtros-span2">
+                  <label>Agencia</label>
+                  <select class="form-input" id="rmxAgenciaSelect"><option value="">Cargando…</option></select>
+                </div>
+                <div class="filtros-grid" style="margin-top:14px;">
+                  <div class="filtro-campo">
+                    <label>Desde</label>
+                    <input type="date" class="form-input" id="rmxFechaDesde">
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Hasta</label>
+                    <input type="date" class="form-input" id="rmxFechaHasta">
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:18px;">
+                  <button type="button" class="btn primary" id="rmxBtnDescargar" style="width:100%; justify-content:center;" disabled>📄 Descargar PDF</button>
+                </div>
               </div>
             </div>
           </div>
