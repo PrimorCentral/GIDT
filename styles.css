@@ -1319,6 +1319,13 @@ body.rol-lectura input[type="file"]{
   background:#FDEBD3; color:var(--accent-ink); font-weight:700; font-size:11px;
   text-align:center; white-space:nowrap;
 }
+.tabla-reporte-mensual td.rm-td-napuntual{ color:var(--ink-soft); opacity:.25; }
+.tabla-reporte-mensual tr.rm-fila-puntual{ background:#FBF6EE; }
+.rm-badge-puntual{
+  display:inline-block; margin-left:4px; padding:1px 6px; border-radius:99px;
+  background:var(--accent); color:#fff; font-size:9.5px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.3px; vertical-align:middle;
+}
 .rm-col-total{ background:var(--panel-muted); font-weight:700; }
 .rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
 
