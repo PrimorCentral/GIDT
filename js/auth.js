@@ -1,4 +1,4 @@
-  // ---------------------------------------------------------------
+// ---------------------------------------------------------------
   // Autenticación (usuario + PIN, hash SHA-256, sesión en sessionStorage)
   // ---------------------------------------------------------------
   const SESSION_KEY = 'gidt_sesion';
@@ -32,19 +32,40 @@
     document.getElementById('loginUsuario').value = '';
     document.getElementById('loginPin').value = '';
     document.getElementById('loginErr').classList.remove('show');
+    document.querySelector('.login-card').classList.remove('shake');
+
+    const pinField = document.getElementById('loginPin');
+    const btnTogglePin = document.getElementById('btnTogglePin');
+    if (pinField) pinField.type = 'password';
+    if (btnTogglePin) {
+      btnTogglePin.classList.remove('is-visible');
+      btnTogglePin.setAttribute('aria-label', 'Mostrar PIN');
+    }
   }
 
   async function intentarLogin() {
     const usuarioInput = document.getElementById('loginUsuario').value.trim();
     const pinInput = document.getElementById('loginPin').value.trim();
     const btn = document.getElementById('btnLogin');
+    const btnLabel = btn.querySelector('.btn-label');
     const err = document.getElementById('loginErr');
+    const errText = err.querySelector('.err-text');
+    const card = document.querySelector('.login-card');
     err.classList.remove('show');
+
+    function mostrarErrorLogin(mensaje) {
+      errText.textContent = mensaje;
+      err.classList.add('show');
+      card.classList.remove('shake');
+      void card.offsetWidth; // fuerza reflow para reiniciar la animación
+      card.classList.add('shake');
+    }
 
     if (!usuarioInput || !pinInput) return;
 
     btn.disabled = true;
-    btn.textContent = 'Comprobando…';
+    btn.classList.add('loading');
+    btnLabel.textContent = 'Comprobando…';
 
     try {
       const pinHash = await sha256(pinInput);
@@ -59,8 +80,7 @@
       if (error) throw error;
 
       if (!data || data.pin_hash !== pinHash) {
-        err.textContent = 'Usuario incorrecto.';
-        err.classList.add('show');
+        mostrarErrorLogin('Usuario incorrecto.');
         return;
       }
 
@@ -76,11 +96,11 @@
       cargarInformeHoy();
     } catch (e) {
       console.error('Error de login:', e);
-      err.textContent = 'Error de conexión. Inténtalo de nuevo.';
-      err.classList.add('show');
+      mostrarErrorLogin('Error de conexión. Inténtalo de nuevo.');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Entrar';
+      btn.classList.remove('loading');
+      btnLabel.textContent = 'Entrar';
     }
   }
 
@@ -88,3 +108,13 @@
   document.getElementById('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') intentarLogin(); });
   document.getElementById('loginUsuario').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPin').focus(); });
 
+  const btnTogglePin = document.getElementById('btnTogglePin');
+  if (btnTogglePin) {
+    btnTogglePin.addEventListener('click', () => {
+      const pinField = document.getElementById('loginPin');
+      const mostrando = pinField.type === 'text';
+      pinField.type = mostrando ? 'password' : 'text';
+      btnTogglePin.classList.toggle('is-visible', !mostrando);
+      btnTogglePin.setAttribute('aria-label', mostrando ? 'Mostrar PIN' : 'Ocultar PIN');
+    });
+  }
