@@ -417,9 +417,9 @@
     if (!ok) return;
 
     const btn = document.getElementById('btnEnviarSiniestro');
-    const textoOriginalBtn = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Enviando…';
+    document.getElementById('cargandoEnvioTexto').textContent = 'ENVIANDO CORREO A AGENCIA';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
 
     try {
       const { subject, html, text } = plantillaSiniestro(s, informeHoyCache.fecha);
@@ -449,8 +449,8 @@
       console.error('Error enviando siniestro:', err);
       await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
     } finally {
+      document.getElementById('cargandoEnvioOverlay').classList.remove('show');
       btn.disabled = false;
-      btn.textContent = textoOriginalBtn;
     }
   });
 

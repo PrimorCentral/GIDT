@@ -218,12 +218,12 @@ function renderPanelSiniestros() {
       ? `${psFormatearFecha(s.recogida_limite)}${s.recogida_estado ? `<br><span class="ps-recogida-mini">${s.recogida_estado === 'ENVIADO A CENTRAL' ? '🏢 A central' : '📦 Recogido'}</span>` : ''}`
       : '—';
     return `
-      <tr data-id="${s.id}" class="ps-fila">
+      <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
         <td>${escapeHtml(s.origen || '—')}</td>
-        <td>${psPillTipo(s.tipo)}</td>
+        <td>${psPillTipo(s.tipo)}${s.correo_enviado ? '' : ' <span class="ps-correo-pendiente-icono" title="Correo sin enviar a la agencia">✉️</span>'}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td>${numFotos ? `📷 ${numFotos}` : '—'}</td>
@@ -627,7 +627,8 @@ async function enviarCorreoAgenciaDesdePanel() {
     if (!ok) return;
 
     btn.disabled = true;
-    btn.textContent = 'Enviando…';
+    document.getElementById('cargandoEnvioTexto').textContent = 'ENVIANDO CORREO A AGENCIA';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
 
     const sParaPlantilla = {
       tipo: PS_TIPO_A_PLANTILLA[s.tipo] || 'ROTURA',
@@ -662,6 +663,7 @@ async function enviarCorreoAgenciaDesdePanel() {
     console.error('Error enviando el correo a la agencia desde el Panel siniestros:', err);
     await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
   } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     btn.disabled = false;
     btn.textContent = textoOriginal;
   }
