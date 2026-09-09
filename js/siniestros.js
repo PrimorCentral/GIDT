@@ -347,7 +347,7 @@
       const urls = [];
       for (const file of files) {
         const comprimido = await comprimirImagenParaSubida(file);
-        const path = `siniestro-${s.id}/${Date.now()}-${comprimido.name}`;
+        const path = `siniestro-${s.id}/${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
         const { error: eUp } = await sb.storage.from('siniestros-fotos').upload(path, comprimido);
         if (eUp) throw eUp;
         const { data: pub } = sb.storage.from('siniestros-fotos').getPublicUrl(path);

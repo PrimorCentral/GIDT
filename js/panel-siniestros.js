@@ -23,6 +23,17 @@
 const BUCKET_FOTOS_PANEL = 'siniestros-fotos';
 const BUCKET_FACTURAS_PANEL = 'siniestros-facturas';
 
+// Supabase Storage solo admite ASCII en la clave (path) del objeto: un
+// nombre de archivo con "ñ", tildes u otros caracteres no-ASCII hace
+// que la subida falle con error "Invalid key" (bug conocido de
+// Supabase). Para el nombre que se guarda y se muestra en la app se
+// respeta el original tal cual; esto solo se usa para construir la
+// ruta de almacenamiento.
+function nombreSeguroParaStorage(nombre) {
+  const base = (nombre || 'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return base.replace(/[^a-zA-Z0-9.\-_ ]/g, '_');
+}
+
 let panelCache = [];
 let panelCargado = false;
 let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false, sinCorreo: false };
@@ -1061,7 +1072,7 @@ document.getElementById('psFotosInput')?.addEventListener('change', async (e) =>
     const urls = [];
     for (const file of files) {
       const comprimido = await comprimirImagenParaSubida(file);
-      const path = `panel/${panelActivoId}/${Date.now()}-${comprimido.name}`;
+      const path = `panel/${panelActivoId}/${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
       const { error: eUp } = await sb.storage.from(BUCKET_FOTOS_PANEL).upload(path, comprimido);
       if (eUp) throw eUp;
       const { data: pub } = sb.storage.from(BUCKET_FOTOS_PANEL).getPublicUrl(path);
@@ -1151,7 +1162,7 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
   errEl.style.display = 'none';
   try {
     const comprimido = await comprimirImagenParaSubida(file);
-    const path = `panel/${panelActivoId}/${Date.now()}-${comprimido.name}`;
+    const path = `panel/${panelActivoId}/${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
@@ -1300,7 +1311,7 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
   const errEl = document.getElementById('psAlbaranError');
   errEl.style.display = 'none';
   try {
-    const path = `panel/${panelActivoId}/albaran-${Date.now()}-${file.name}`;
+    const path = `panel/${panelActivoId}/albaran-${Date.now()}-${nombreSeguroParaStorage(file.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, file);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
@@ -1380,7 +1391,7 @@ document.getElementById('psJustificanteInput')?.addEventListener('change', async
   errEl.style.display = 'none';
   try {
     const comprimido = await comprimirImagenParaSubida(file);
-    const path = `panel/${panelActivoId}/justificante-${Date.now()}-${comprimido.name}`;
+    const path = `panel/${panelActivoId}/justificante-${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
     if (eUp) throw eUp;
     const { data: pub } = sb.storage.from(BUCKET_FACTURAS_PANEL).getPublicUrl(path);
