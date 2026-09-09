@@ -111,8 +111,10 @@
                 <span class="v-acciones">
                   <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                   <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
+                  <span class="acciones-separador"></span>
                   <button class="mini-btn" data-editar title="Editar">✏️</button>
                   <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
+                  <span class="acciones-separador"></span>
                   <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
@@ -134,7 +136,20 @@
             <span class="count">${tds.length} tienda${tds.length === 1 ? '' : 's'}</span>
           </div>
           <div class="agencia-body ${abierta ? 'open' : ''}">
-            <table class="tabla-tiendas"><tbody>${filas}</tbody></table>
+            <div class="tabla-tiendas-scroll">
+              <table class="tabla-tiendas">
+                <thead>
+                  <tr>
+                    <th class="th-nombre">Tienda</th>
+                    <th class="th-hora">Hora</th>
+                    <th class="th-provincia">Provincia</th>
+                    <th class="th-marca">Marca</th>
+                    <th class="th-acciones"></th>
+                  </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+              </table>
+            </div>
           </div>
         </div>`;
     });
