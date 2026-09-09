@@ -847,6 +847,86 @@ function cerrarModalPanelSiniestroForzado() {
   panelActivoId = null;
 }
 
+// ---------------------------------------------------------------
+// Resumen imprimible del siniestro (etiqueta para pegar en la caja)
+// ---------------------------------------------------------------
+// Genera un PDF apaisado, con texto grande, con lo justo para
+// identificar el bulto: agencia, tienda, fecha del siniestro y
+// fecha límite de recogida. Se abre listo para imprimir.
+function imprimirResumenPanelSiniestro() {
+  if (!panelActivoId) return;
+  const s = psSiniestroPorId(panelActivoId);
+  if (!s) return;
+
+  if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF !== 'function') {
+    alert('No se ha podido cargar el generador de PDF. Comprueba tu conexión e inténtalo de nuevo.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a5' });
+  const anchoPag = doc.internal.pageSize.getWidth();
+  const altoPag = doc.internal.pageSize.getHeight();
+  const margen = 20;
+  const centroX = anchoPag / 2;
+
+  // Marco exterior, para recortar y pegar en la caja con guía visual.
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(2);
+  doc.rect(margen, margen, anchoPag - margen * 2, altoPag - margen * 2);
+
+  const agencia = (s.agencia_nombre || 'SIN AGENCIA').toUpperCase();
+  const tienda = (s.tienda_nombre || '—').toUpperCase();
+  const fechaSiniestro = psFormatearFecha(s.fecha);
+  const aplicaRecogida = s.tipo !== 'FALTAS';
+  const recogidaLimite = aplicaRecogida ? psFormatearFecha(s.recogida_limite) : 'NO APLICA';
+
+  let y = margen + 50;
+
+  // Agencia y tienda, en grande.
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(36);
+  doc.text(agencia, centroX, y, { align: 'center', maxWidth: anchoPag - margen * 2 - 30 });
+
+  y += 40;
+  doc.setFontSize(24);
+  doc.text(tienda, centroX, y, { align: 'center', maxWidth: anchoPag - margen * 2 - 30 });
+
+  y += 22;
+  doc.setLineWidth(1);
+  doc.line(margen + 24, y, anchoPag - margen - 24, y);
+
+  // Fecha del siniestro.
+  y += 38;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(13);
+  doc.text('FECHA DEL SINIESTRO', centroX, y, { align: 'center' });
+  y += 32;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(30);
+  doc.text(fechaSiniestro, centroX, y, { align: 'center' });
+
+  // Fecha límite de recogida.
+  y += 42;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(13);
+  doc.text('RECOGIDA LÍMITE', centroX, y, { align: 'center' });
+  y += 32;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(30);
+  doc.text(recogidaLimite, centroX, y, { align: 'center' });
+
+  const nombreArchivo = `siniestro_${(s.agencia_nombre || 'agencia').replace(/\s+/g, '_')}_${(s.tienda_nombre || 'tienda').replace(/\s+/g, '_')}.pdf`;
+
+  // Se abre el PDF ya listo para imprimir (autoPrint). Si el navegador
+  // bloquea la ventana emergente, se descarga como alternativa.
+  doc.autoPrint();
+  const ventana = window.open(doc.output('bloburl'), '_blank');
+  if (!ventana) doc.save(nombreArchivo);
+}
+
+document.getElementById('btnImprimirPanelSiniestro')?.addEventListener('click', imprimirResumenPanelSiniestro);
+
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
   const s = psSiniestroPorId(panelActivoId);
