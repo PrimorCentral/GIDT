@@ -628,29 +628,75 @@ function rmeCrearDocMedida(ancho, alto) {
   return doc;
 }
 
+// Máximo de filas (tiendas) de la tabla principal por página. Si el
+// listado tiene más, se reparte en tantas páginas como haga falta, cada
+// una con el título, la leyenda y la cabecera de columnas repetidos, y
+// con el pie "Página X de Y" abajo del todo.
+const RME_FILAS_POR_PAGINA = 40;
+
 function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, diaDesde, diaHasta) {
   const margen = 20;
   const anchoPagina = 841.89; // A4 apaisado real, en pt
   const altoPagina = 595.28;
+  const altoPie = 18; // hueco reservado abajo del todo para "Página X de Y"
 
-  // Pasada de medida a tamaño normal (escala 1), en una página de prueba
-  // bien alta para que nunca pagine por quedarse corta.
-  const alturaEstimada = 260 + filasGrupo.length * 22 + 200;
+  // Repartimos las filas en bloques de como máximo RME_FILAS_POR_PAGINA:
+  // cada bloque es una página completa (con título, leyenda y cabecera
+  // de columnas propios). Si no hay filas, dejamos un único bloque vacío
+  // para no perder el título/leyenda (aunque en la práctica nunca se
+  // llega aquí sin filas, ver comprobaciones antes de llamar a esta función).
+  const bloques = [];
+  for (let i = 0; i < filasGrupo.length; i += RME_FILAS_POR_PAGINA) {
+    bloques.push(filasGrupo.slice(i, i + RME_FILAS_POR_PAGINA));
+  }
+  if (!bloques.length) bloques.push([]);
+
+  // Pasada de medida a tamaño normal (escala 1), con el bloque más
+  // grande (como mucho RME_FILAS_POR_PAGINA filas) en una página de
+  // prueba bien alta para que nunca pagine por quedarse corta. Al medir
+  // como mucho una página llena (y no el listado entero), la escala sale
+  // igual de homogénea tenga el informe 5 filas o 500.
+  const filasBloqueMasGrande = bloques.reduce((max, b) => Math.max(max, b.length), 0) || 1;
+  const alturaEstimada = 260 + filasBloqueMasGrande * 22 + 200;
   const docMedida = rmeCrearDocMedida(anchoPagina, alturaEstimada);
-  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, 1, diaDesde, diaHasta);
+  const bloqueParaMedir = bloques.reduce((mayor, b) => (b.length > mayor.length ? b : mayor), bloques[0]);
+  const finalYMedido = rmeDibujarContenidoPdf(docMedida, grupoNombre, anio, mesIndex, bloqueParaMedir, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, 1, diaDesde, diaHasta);
 
-  // Si el contenido a tamaño normal no cabe en el alto real de una A4,
-  // se calcula la escala que hace falta para que sí quepa (con un pequeño
-  // margen de seguridad); si cabe de sobra, se deja a tamaño normal.
+  // Si el contenido de una página llena a tamaño normal no cabe en el
+  // alto real de una A4 (contando el hueco del pie de página), se
+  // calcula la escala que hace falta para que sí quepa (con un pequeño
+  // margen de seguridad); si cabe de sobra, se deja a tamaño normal. La
+  // misma escala se usa en todas las páginas del documento.
   const alturaNecesaria = finalYMedido - margen;
-  const alturaDisponible = (altoPagina - margen * 2) * 0.985;
+  const alturaDisponible = (altoPagina - margen * 2 - altoPie) * 0.985;
   const escala = alturaNecesaria > alturaDisponible ? alturaDisponible / alturaNecesaria : 1;
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala, diaDesde, diaHasta);
+  bloques.forEach((filasPagina, idx) => {
+    if (idx > 0) doc.addPage();
+    rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasPagina, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, escala, diaDesde, diaHasta);
+  });
+
+  rmeAnadirPiePagina(doc, margen);
 
   return doc;
+}
+
+// Añade, abajo del todo y centrado en cada página ya dibujada, el pie
+// "Página X de Y". Se hace al final (con el documento ya completo) para
+// poder saber el total de páginas de una vez.
+function rmeAnadirPiePagina(doc, margen) {
+  const totalPaginas = doc.internal.getNumberOfPages();
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  const altoPagina = doc.internal.pageSize.getHeight();
+  for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+    doc.setPage(pagina);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Página ${pagina} de ${totalPaginas}`, anchoPagina / 2, altoPagina - margen / 2 - 2, { align: 'center' });
+  }
 }
 
 // ---------------------------------------------------------------
