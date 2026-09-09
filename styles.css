@@ -1174,6 +1174,12 @@ body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-reportes-mensuale
 /* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar */
 body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
 body:not(.perm-borrar) .agencia-body [data-borrar]{ display:none !important; }
+/* Quitar fotos, albarán o factura de un siniestro (detalle del Panel
+   siniestros) es también borrar un archivo ya guardado: requiere el mismo
+   permiso de "Borrar registros", no solo el de Panel siniestros. */
+body:not(.perm-borrar) .ps-foto-quitar,
+body:not(.perm-borrar) #btnQuitarFactura,
+body:not(.perm-borrar) #btnQuitarAlbaran{ display:none !important; }
 
 /* Sin permiso de "Editar informes pasados" */
 body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ display:none !important; }
@@ -1231,9 +1237,15 @@ body:not(.perm-siniestros_dia) #siniestroFotosLabel{
 }
 
 /* Sin permiso de "Tiendas y agencias": página visible (si perm-config_tiendas
-   la deja ver) pero sin poder editar/mover/dar de alta */
+   la deja ver) pero sin poder editar/mover/dar de alta.
+   Importante: acotado a #view-config-tiendas — la clase .agencia-body se
+   reutiliza también en Informe del día, Historial e Historial de siniestros,
+   así que un selector ".agencia-body .mini-btn" sin acotar desactivaba
+   también, por ejemplo, la papelera de "Quitar todos los motivos" del
+   Informe del día según el permiso de Tiendas y agencias en vez del de
+   Informe del día. */
 body:not(.perm-config_tiendas) #btnNuevaTienda,
-body:not(.perm-config_tiendas) .agencia-body .mini-btn{
+body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn{
   pointer-events:none !important; opacity:.6;
 }
 
