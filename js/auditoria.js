@@ -50,6 +50,28 @@ function rellenarFiltroUsuariosAuditoria() {
   if (actual && nombres.includes(actual)) sel.value = actual;
 }
 
+// Se llama al entrar en la pestaña (SIN consultar registro_acciones):
+// solo rellena el filtro de usuarios y, la primera vez, deja la tabla
+// a la espera de que se pulse "Consultar". Si ya se había consultado
+// antes en esta sesión, no toca la tabla (se dejan los resultados tal
+// cual estaban).
+let auditoriaAbiertaYa = false;
+
+async function prepararVistaAuditoria() {
+  if (typeof usuariosCache !== 'undefined' && !usuariosCache.length && typeof cargarUsuarios === 'function') {
+    await cargarUsuarios().catch(() => {});
+  }
+  rellenarFiltroUsuariosAuditoria();
+
+  if (!auditoriaAbiertaYa) {
+    auditoriaAbiertaYa = true;
+    const tbody = document.getElementById('tablaAuditoriaBody');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--ink-soft);">Elige los filtros que quieras (o ninguno) y pulsa "Consultar".</td></tr>';
+    }
+  }
+}
+
 async function cargarAuditoria() {
   const tbody = document.getElementById('tablaAuditoriaBody');
   if (!tbody) return;
