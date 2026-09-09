@@ -12,7 +12,13 @@
 
 // ---------------------------------------------------------------
 // Helpers de lectura: valores "efectivos" de una tienda para el
-// informe de hoy, teniendo en cuenta el ajuste puntual si existe.
+// informe de hoy, teniendo en cuenta (por este orden):
+//   1) el horario semanal especial de la tienda (tiendas.horario_semana,
+//      configurado en Gestión de tiendas) para el día de la semana de
+//      la fecha del informe — p. ej. Martes y Viernes con otra hora;
+//   2) por encima de lo anterior, un ajuste puntual de "Utilidades"
+//      (solo para el informe de hoy), que sigue teniendo la última
+//      palabra si existe.
 // ---------------------------------------------------------------
 function ajustePuntualDeTienda(tiendaId) {
   const mapa = informeHoyCache?.ajustes_puntuales;
@@ -20,15 +26,41 @@ function ajustePuntualDeTienda(tiendaId) {
   return mapa[String(tiendaId)] || null;
 }
 
-function tiendaEfectivaHoy(tiendaId) {
+// Día ISO de una fecha: 1=lunes … 7=domingo (Date.getDay() da 0=domingo).
+// Acepta un objeto Date o una fecha 'YYYY-MM-DD'.
+function diaIsoDeFecha(fecha) {
+  const d = (fecha instanceof Date) ? fecha : new Date(fecha + 'T00:00:00');
+  const jsDay = d.getDay();
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+// Hora del horario semanal especial de la tienda para esa fecha, o null
+// si ese día no tiene horario especial configurado (usa hora_prevista).
+function horaSemanalDeTienda(t, fecha) {
+  if (!t?.horario_semana) return null;
+  const iso = diaIsoDeFecha(fecha);
+  return t.horario_semana[String(iso)] || null;
+}
+
+// Tienda "base" para una fecha dada: la de tiendasCache, con hora_prevista
+// sustituida por la del horario semanal especial si ese día lo tiene.
+// No aplica ningún ajuste puntual (eso es solo para "hoy", ver abajo).
+function tiendaConHorarioDia(tiendaId, fecha) {
   const t = tiendasCache.find(x => x.id === tiendaId);
   if (!t) return null;
+  const horaSemanal = horaSemanalDeTienda(t, fecha);
+  return horaSemanal ? { ...t, hora_prevista: horaSemanal } : t;
+}
+
+function tiendaEfectivaHoy(tiendaId) {
+  const base = tiendaConHorarioDia(tiendaId, hoy);
+  if (!base) return null;
   const aj = ajustePuntualDeTienda(tiendaId);
-  if (!aj) return t;
+  if (!aj) return base;
   return {
-    ...t,
-    hora_prevista: aj.hora_prevista || t.hora_prevista,
-    agencia_id: (aj.agencia_id != null) ? aj.agencia_id : t.agencia_id
+    ...base,
+    hora_prevista: aj.hora_prevista || base.hora_prevista,
+    agencia_id: (aj.agencia_id != null) ? aj.agencia_id : base.agencia_id
   };
 }
 
@@ -224,6 +256,10 @@ function seleccionarTiendaUtilidades(tiendaId) {
 
   const ag = agenciasCache.find(a => a.id === t.agencia_id);
   const aj = ajustePuntualDeTienda(tiendaId);
+  // Hora "de hoy" antes de un posible ajuste puntual: la del horario
+  // semanal especial de hoy si la tienda tiene uno (p. ej. Martes o
+  // Viernes), o si no la hora prevista general.
+  const horaSemanalHoy = horaSemanalDeTienda(t, hoy);
 
   valorBtn.textContent = t.nombre;
   form.style.display = '';
@@ -231,9 +267,12 @@ function seleccionarTiendaUtilidades(tiendaId) {
   const horaInput = document.getElementById('utilNuevaHora');
   const horaOriginal = document.getElementById('utilHoraOriginal');
   horaInput.value = aj?.hora_prevista || '';
+  const horaBaseTexto = horaSemanalHoy
+    ? `${horaSemanalHoy.slice(0, 5)} (horario especial de los ${dias[hoy.getDay()].toLowerCase()}s)`
+    : (t.hora_prevista ? t.hora_prevista.slice(0, 5) : '—');
   horaOriginal.textContent = aj?.hora_prevista
-    ? `Hora habitual: ${t.hora_prevista ? t.hora_prevista.slice(0, 5) : '—'} (cambiada solo hoy)`
-    : `Hora habitual: ${t.hora_prevista ? t.hora_prevista.slice(0, 5) : '—'}`;
+    ? `Hora habitual: ${horaBaseTexto} (cambiada solo hoy)`
+    : `Hora habitual: ${horaBaseTexto}`;
 
   const agenciaSel = document.getElementById('utilNuevaAgencia');
   const agenciaOriginal = document.getElementById('utilAgenciaOriginal');

@@ -11,7 +11,7 @@
 // agenciasCache, tiendasCache, cargarAgenciasYTiendas, badgeMarcaHtml,
 // motivosChecklistHtml, resumenMotivos, calcularTipo, tipoSiniestroDeMotivos,
 // posicionarDropdownMotivo, comprimirImagenParaSubida, sesionActual,
-// dias, formatearFechaCorta, fechaLocalISO.
+// dias, formatearFechaCorta, fechaLocalISO, tiendaConHorarioDia (utilidades-informe.js).
 
 const PS_TIPO_DESDE_SINIESTRO_HIST = { ROTURA: 'ROTURA', FALTA: 'FALTAS', MIXTO: 'FALTAS Y ROTURAS' };
 
@@ -91,11 +91,17 @@ function renderAcordeonHistorialEditable() {
         : esPendiente
           ? '<span class="pill pendiente">Pendiente</span>'
           : `<span class="pill ${tipoCalc.toLowerCase()}">${tipoCalc.charAt(0)+tipoCalc.slice(1).toLowerCase()}</span>`;
+      // Hora de ESE día: si la tienda tenía un horario semanal especial
+      // para el día de la semana de esta fecha (p. ej. era Martes), se
+      // usa esa hora en vez de la hora general actual de la tienda.
+      const horaDelDia = typeof tiendaConHorarioDia === 'function'
+        ? (tiendaConHorarioDia(t.id, informe.fecha)?.hora_prevista || t.hora_prevista)
+        : t.hora_prevista;
 
       return `
         <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
           <td class="col-estado">${marcada ? '🔴' : '—'}</td>
-          <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
+          <td class="col-hora">${horaDelDia ? horaDelDia.slice(0,5) : '—'}</td>
           <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}</td>
           <td class="col-tipo">${badgeTipo}</td>
           <td class="col-motivo">
@@ -272,7 +278,12 @@ async function guardarIncidenciaHistorial(tiendaId, tr) {
   }
 
   try {
-    const tienda = tiendasCache.find(t => t.id === tiendaId);
+    // Snapshot con la hora de ESE día (respeta el horario semanal especial
+    // de la tienda para la fecha del informe que se está editando, no el
+    // de hoy), igual que hace el informe del día en filtros-motivos.js.
+    const tienda = typeof tiendaConHorarioDia === 'function'
+      ? tiendaConHorarioDia(tiendaId, informe.fecha)
+      : tiendasCache.find(t => t.id === tiendaId);
     const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
 
     const { data: guardada, error } = await sb.from('incidencias').upsert({

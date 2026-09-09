@@ -13,6 +13,38 @@
     return `<span class="marca-badge ${MARCA_CLASE[marca]}" title="${MARCA_LABEL[marca]}">${letra}</span>`;
   }
 
+  // ---------------------------------------------------------------
+  // Horario semanal especial (por día de la semana) de una tienda.
+  // Vive en tiendas.horario_semana: { "<día ISO 1-7>": "HH:MM" }
+  // (1=lunes…7=domingo). Los días que no aparecen usan hora_prevista.
+  // Lo resuelve tiendaEfectivaHoy()/tiendaConHorarioDia() en
+  // utilidades-informe.js a la hora de generar cada informe diario,
+  // así que el cambio aquí ya se refleja solo en los informes.
+  // ---------------------------------------------------------------
+  const DIAS_SEMANA_ISO = [
+    { iso: 1, label: 'Lunes' },
+    { iso: 2, label: 'Martes' },
+    { iso: 3, label: 'Miércoles' },
+    { iso: 4, label: 'Jueves' },
+    { iso: 5, label: 'Viernes' },
+    { iso: 6, label: 'Sábado' },
+    { iso: 7, label: 'Domingo' }
+  ];
+
+  // Pequeño badge "🗓️N" junto a la hora, con el detalle en el title, si la
+  // tienda tiene algún día de la semana con horario distinto configurado.
+  function badgeHorarioSemanaHtml(t) {
+    const mapa = t.horario_semana || {};
+    const clavesDias = Object.keys(mapa);
+    if (!clavesDias.length) return '';
+    const detalle = clavesDias
+      .map(iso => DIAS_SEMANA_ISO.find(d => String(d.iso) === iso))
+      .filter(Boolean)
+      .map(d => `${d.label} ${mapa[String(d.iso)].slice(0, 5)}`)
+      .join(', ');
+    return ` <span title="Horario especial — ${escapeHtml(detalle)}" style="display:inline-block; margin-left:4px; font-size:10px; padding:1px 5px; border-radius:8px; background:var(--panel-muted); color:var(--accent-ink); vertical-align:middle;">🗓️${clavesDias.length}</span>`;
+  }
+
   // Normaliza texto para comparar sin distinguir mayúsculas/minúsculas ni acentos
   function normalizarTextoBusqueda(str) {
     return (str || '')
@@ -32,7 +64,7 @@
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, marca, provincia, orden, activo').order('orden')
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo').order('orden')
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
@@ -62,7 +94,7 @@
                 <input class="form-input e-nombre" style="display:none;" value="${escapeHtml(t.nombre)}">
               </td>
               <td class="hora celda-hora">
-                <span class="v-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</span>
+                <span class="v-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</span>
                 <input type="time" class="form-input e-hora" style="display:none;" value="${t.hora_prevista ? t.hora_prevista.slice(0,5) : ''}">
               </td>
               <td class="celda-provincia">
@@ -80,6 +112,7 @@
                   <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                   <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
                   <button class="mini-btn" data-editar title="Editar">✏️</button>
+                  <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
                   <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </button>
@@ -130,6 +163,13 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         entrarModoEdicion(btn.closest('tr'));
+      });
+    });
+    cont.querySelectorAll('[data-horario-semana]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        abrirModalHorarioSemana(Number(tr.dataset.tienda));
       });
     });
     cont.querySelectorAll('[data-cancelar]').forEach(btn => {
@@ -333,5 +373,68 @@
       renderAcordeonTiendas();
     });
   }
+
+  // ---------------------------------------------------------------
+  // Modal "Horario semanal": permite poner, por tienda, una hora
+  // distinta para días concretos de la semana (p. ej. Martes y
+  // Viernes). Se guarda en tiendas.horario_semana y a partir de ahí
+  // lo usa tiendaEfectivaHoy() (utilidades-informe.js) para que el
+  // informe de cada día salga con la hora correcta automáticamente.
+  // ---------------------------------------------------------------
+  let horarioSemanaTiendaId = null;
+
+  function abrirModalHorarioSemana(tiendaId) {
+    const t = tiendasCache.find(x => x.id === tiendaId);
+    const overlay = document.getElementById('modalHorarioOverlay');
+    if (!t || !overlay) return;
+    horarioSemanaTiendaId = tiendaId;
+
+    document.getElementById('modalHorarioTitulo').textContent = `Horario semanal — ${t.nombre}`;
+    const mapa = t.horario_semana || {};
+    const cont = document.getElementById('modalHorarioDias');
+    cont.innerHTML = DIAS_SEMANA_ISO.map(d => `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label style="width:90px; margin:0; font-size:13px;">${d.label}</label>
+        <input type="time" class="form-input mh-hora" data-dia="${d.iso}" style="flex:1;" value="${mapa[String(d.iso)] ? mapa[String(d.iso)].slice(0, 5) : ''}">
+      </div>`).join('');
+
+    document.getElementById('modalHorarioNota').textContent =
+      `Hora general de la tienda: ${t.hora_prevista ? t.hora_prevista.slice(0, 5) : '—'}. Deja en blanco los días que usen esa hora general.`;
+
+    overlay.classList.add('show');
+  }
+
+  function cerrarModalHorarioSemana() {
+    document.getElementById('modalHorarioOverlay')?.classList.remove('show');
+    horarioSemanaTiendaId = null;
+  }
+
+  async function guardarModalHorarioSemana() {
+    if (horarioSemanaTiendaId == null) return;
+    const mapa = {};
+    document.querySelectorAll('#modalHorarioDias .mh-hora').forEach(input => {
+      if (input.value) mapa[input.dataset.dia] = input.value;
+    });
+    try {
+      const { error } = await sb.from('tiendas')
+        .update({ horario_semana: Object.keys(mapa).length ? mapa : null })
+        .eq('id', horarioSemanaTiendaId);
+      if (error) throw error;
+      cerrarModalHorarioSemana();
+      cargarAgenciasYTiendas();
+    } catch (err) {
+      console.error('Error guardando el horario semanal:', err);
+      await modalAlert('No se pudo guardar el horario semanal.', { titulo: 'Error' });
+    }
+  }
+
+  document.getElementById('modalHorarioBtnCancelar')?.addEventListener('click', cerrarModalHorarioSemana);
+  document.getElementById('modalHorarioBtnGuardar')?.addEventListener('click', guardarModalHorarioSemana);
+  document.getElementById('modalHorarioBtnLimpiar')?.addEventListener('click', () => {
+    document.querySelectorAll('#modalHorarioDias .mh-hora').forEach(input => { input.value = ''; });
+  });
+  document.getElementById('modalHorarioOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modalHorarioOverlay') cerrarModalHorarioSemana();
+  });
 
   // ---------------------------------------------------------------
