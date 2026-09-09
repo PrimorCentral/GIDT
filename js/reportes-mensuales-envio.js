@@ -598,7 +598,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     columnStyles: {
       0: { cellWidth: 55, halign: 'center', fontStyle: 'bold' },
       1: { cellWidth: 90, halign: 'center' },
-      2: { cellWidth: 40, halign: 'center' }
+      2: { cellWidth: 58, halign: 'center' }
     },
     body: cuerpo
   });
