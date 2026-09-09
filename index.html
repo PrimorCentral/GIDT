@@ -953,6 +953,23 @@
   </div>
 </div>
 
+<!-- Modal: horario semanal especial de una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalHorarioOverlay">
+  <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="modalHorarioTitulo">
+    <h3 class="modal-title" id="modalHorarioTitulo">Horario semanal</h3>
+    <p class="modal-message">Pon una hora solo en los días que tengan un horario de entrega distinto al general. Los días en blanco usan la hora prevista de la tienda.</p>
+    <div id="modalHorarioDias" style="display:flex; flex-direction:column; gap:10px; margin-bottom:10px;"></div>
+    <p id="modalHorarioNota" style="margin:0 0 16px; font-size:11.5px; color:var(--ink-soft);"></p>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button type="button" class="btn" id="modalHorarioBtnLimpiar">Quitar todos</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn" id="modalHorarioBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="modalHorarioBtnGuardar">Guardar horario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de envío del informe del día -->
 <div class="modal-overlay" id="envioInformeModalOverlay">
   <div class="modal-box envio-modal-box" role="dialog" aria-modal="true" aria-labelledby="envioModalTitulo">
