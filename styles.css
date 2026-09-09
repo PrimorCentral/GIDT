@@ -1051,7 +1051,6 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-visor-pdf-box iframe{
   flex:1 1 auto; width:100%; border:1px solid var(--border); border-radius:10px; background:#525659;
 }
-.ps-visor-pdf-box .modal-footer{ flex-shrink:0; }
 @media (max-width:640px){
   .ps-visor-pdf-box{ width:96vw; height:92vh; padding:18px 14px 14px; }
 }
