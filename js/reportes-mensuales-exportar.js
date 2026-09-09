@@ -56,6 +56,9 @@ function rmxAbrirPanel() {
   rmxPosicionarPanel();
   document.getElementById('rmExportarPanel').classList.add('show');
   document.getElementById('btnRmExportar').classList.add('open');
+  // Si hay algún filtro activo en la pantalla, se propone usarlo de entrada
+  // (se puede desmarcar y elegir agencia a mano igualmente).
+  document.getElementById('rmxUsarFiltroActivo').checked = rmxHayFiltroActivo();
   rmxCargarYRenderPanel();
 }
 function rmxCerrarPanel() {
@@ -86,12 +89,49 @@ function rmxEngancharPanel() {
 
   document.getElementById('btnRmCerrarExportar').addEventListener('click', rmxCerrarPanel);
   document.getElementById('rmxBtnDescargar').addEventListener('click', rmxDescargar);
+  document.getElementById('rmxUsarFiltroActivo').addEventListener('change', rmxActualizarUsoFiltro);
 }
 
 // Primer/último día del mes en pantalla, en formato YYYY-MM-DD (para los
 // <input type="date">, que quedan limitados a ese rango con min/max).
 function rmxFechaISO(anio, mesIndex, dia) {
   return `${anio}-${String(mesIndex + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+// ---------------------------------------------------------------
+// Exportar con el filtro activo de la pantalla (rmFiltros, de
+// reportes-mensuales.js): agencias/tiendas elegidas y "solo con
+// incidencias". Si no hay ningún filtro puesto, se oculta esta opción y
+// se exporta eligiendo agencia como siempre.
+// ---------------------------------------------------------------
+function rmxHayFiltroActivo() {
+  return !!(rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.soloConIncidencias);
+}
+
+function rmxResumenFiltroActivo() {
+  const partes = [];
+  if (rmFiltros.agencias.size) partes.push(`${rmFiltros.agencias.size} agencia${rmFiltros.agencias.size === 1 ? '' : 's'}`);
+  if (rmFiltros.tiendas.size) partes.push(`${rmFiltros.tiendas.size} tienda${rmFiltros.tiendas.size === 1 ? '' : 's'}`);
+  if (rmFiltros.soloConIncidencias) partes.push('solo con incidencias');
+  return partes.join(', ') || 'sin filtros';
+}
+
+function rmxActualizarUsoFiltro() {
+  const wrap = document.getElementById('rmxUsarFiltroWrap');
+  const check = document.getElementById('rmxUsarFiltroActivo');
+  const campoAgencia = document.getElementById('rmxAgenciaCampo');
+  const selectAgencia = document.getElementById('rmxAgenciaSelect');
+  if (!wrap || !check) return;
+
+  const hayFiltro = rmxHayFiltroActivo();
+  wrap.style.display = hayFiltro ? 'flex' : 'none';
+  document.getElementById('rmxFiltroResumen').textContent = rmxResumenFiltroActivo();
+  if (!hayFiltro) check.checked = false;
+
+  const usar = hayFiltro && check.checked;
+  campoAgencia.style.opacity = usar ? '.45' : '';
+  campoAgencia.style.pointerEvents = usar ? 'none' : '';
+  selectAgencia.disabled = usar || !selectAgencia.options.length;
 }
 
 // Carga agencias frescas (con grupo_envio, para agrupar igual que al
@@ -132,11 +172,12 @@ async function rmxCargarYRenderPanel() {
     selectAgencia.innerHTML =
       `<option value="${RMX_VALOR_TODAS}">Todas las agencias (un solo PDF)</option>` +
       grupos.map(g => `<option value="${escapeHtml(g.clave)}">${escapeHtml(g.nombre)}</option>`).join('');
-    selectAgencia.disabled = false;
     document.getElementById('rmxBtnDescargar').disabled = false;
   } catch (err) {
     console.error('Error cargando el panel de exportación del reporte mensual:', err);
     selectAgencia.innerHTML = '<option value="">Error al cargar agencias</option>';
+  } finally {
+    rmxActualizarUsoFiltro();
   }
 }
 
@@ -146,12 +187,13 @@ async function rmxCargarYRenderPanel() {
 async function rmxDescargar() {
   if (rmxDescargando) return;
 
+  const usarFiltro = rmxHayFiltroActivo() && document.getElementById('rmxUsarFiltroActivo').checked;
   const selectAgencia = document.getElementById('rmxAgenciaSelect');
   const clave = selectAgencia.value;
   const fechaDesde = document.getElementById('rmxFechaDesde').value;
   const fechaHasta = document.getElementById('rmxFechaHasta').value;
 
-  if (!clave) return;
+  if (!usarFiltro && !clave) return;
   if (!fechaDesde || !fechaHasta) {
     await modalAlert('Elige una fecha de inicio y una de fin.', { titulo: 'Faltan fechas' });
     return;
@@ -178,20 +220,43 @@ async function rmxDescargar() {
     const { celdas, diasEnviados, totalDias, todasLasFilas, puntualAgenciaPorTienda } = await rmeObtenerDatosMes();
     const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
 
-    const esTodas = clave === RMX_VALOR_TODAS;
-    const grupoElegido = rmxGruposActuales.find(g => g.clave === clave);
-    const nombreGrupo = esTodas ? 'Todas las agencias' : (grupoElegido?.nombre || clave);
+    let nombreGrupo, filasGrupo;
 
-    let filasGrupo = esTodas
-      ? todasLasFilas.slice()
-      : todasLasFilas.filter(f => grupoElegido && grupoElegido.agenciaIds.includes(f.agenciaId));
+    if (usarFiltro) {
+      // Mismo filtro (agencias/tiendas/solo con incidencias) que se ve
+      // aplicado ahora mismo en la pantalla de Reportes mensuales.
+      nombreGrupo = rmFiltros.agencias.size === 1 && !rmFiltros.tiendas.size
+        ? (agenciasCache.find(a => a.id === [...rmFiltros.agencias][0])?.nombre || 'Filtro activo')
+        : 'Filtro activo';
+      filasGrupo = rmFilasSegunFiltros(todasLasFilas);
+      if (rmFiltros.soloConIncidencias) {
+        filasGrupo = filasGrupo.filter(f => {
+          const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
+          const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
+          const celdasTienda = celdas[f.tiendaId] || {};
+          const { totalIncidencias } = rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias);
+          return totalIncidencias > 0;
+        });
+      }
+    } else {
+      const esTodas = clave === RMX_VALOR_TODAS;
+      const grupoElegido = rmxGruposActuales.find(g => g.clave === clave);
+      nombreGrupo = esTodas ? 'Todas las agencias' : (grupoElegido?.nombre || clave);
+      filasGrupo = esTodas
+        ? todasLasFilas.slice()
+        : todasLasFilas.filter(f => grupoElegido && grupoElegido.agenciaIds.includes(f.agenciaId));
+    }
 
     // Solo las filas que tengan algún día dentro del rango elegido.
     filasGrupo = filasGrupo
       .filter(f => f.diaFin >= diaDesde && f.diaInicio <= diaHasta)
       .sort((a, b) => a.agenciaNombre.localeCompare(b.agenciaNombre) || a.tiendaNombre.localeCompare(b.tiendaNombre) || a.diaInicio - b.diaInicio);
 
-    if (!filasGrupo.length) throw new Error('No hay tiendas con datos en ese rango de fechas.');
+    if (!filasGrupo.length) {
+      throw new Error(usarFiltro
+        ? 'No hay tiendas que cumplan el filtro activo en ese rango de fechas.'
+        : 'No hay tiendas con datos en ese rango de fechas.');
+    }
 
     const doc = rmeConstruirPdf(nombreGrupo, rmAnio, rmMes, filasGrupo, segmentosPorTienda, puntualAgenciaPorTienda, celdas, diasEnviados, totalDias, diaDesde, diaHasta);
     doc.save(rmeNombreArchivo(nombreGrupo, rmAnio, rmMes, diaDesde, diaHasta, totalDias));
