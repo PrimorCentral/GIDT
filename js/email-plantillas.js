@@ -794,23 +794,27 @@
     'FALTAS Y ROTURAS': (tienda) => `todas las fotos y productos afectados (roturas y faltas) en la tienda de ${tienda}`
   };
 
-  // Asunto por tipo de siniestro (siempre con la tienda y la fecha del
-  // siniestro, sin nombre de agencia).
-  function psAsuntoFacturacion(tipo, tienda, fecha) {
+  // Asunto por tipo de siniestro: tienda, agencia (si se pasa), fecha del
+  // siniestro y nombre comercial de la agencia (si se pasa).
+  function psAsuntoFacturacion(tipo, tienda, fecha, agenciaNombre, nombreComercial) {
     const t = tienda.toUpperCase();
-    if (tipo === 'ROTURA') return `INCIDENCIA POR ROTURAS EN ${t} - ${fecha}`;
+    const partes = [t];
+    if (agenciaNombre) partes.push(agenciaNombre.toUpperCase());
+    partes.push(fecha);
+    if (nombreComercial) partes.push(nombreComercial.toUpperCase());
+    const base = partes.join(' - ');
+    if (tipo === 'ROTURA') return `INCIDENCIA POR ROTURAS EN ${base}`;
     // FALTAS y FALTAS Y ROTURAS comparten el mismo asunto.
-    return `FALTAS EN EL ENVIO E INCIDENCIA POR ROTURAS EN ${t} - ${fecha}`;
+    return `FALTAS EN EL ENVIO E INCIDENCIA POR ROTURAS EN ${base}`;
   }
 
   // Construye el correo tal cual lo redactáis a mano hoy: asunto según el
-  // tipo de siniestro, cuerpo sencillo en texto plano, fotos + PDF
-  // adjuntos. nombreComercialAgencia se recibe por compatibilidad pero ya
-  // no se usa en el asunto (solo la tienda y la fecha).
+  // tipo de siniestro (tienda, agencia, fecha y nombre comercial de la
+  // agencia), cuerpo sencillo en texto plano, fotos + PDF adjuntos.
   function plantillaFacturacionAlbaran(s, nombreComercialAgencia) {
     const fecha = fechaEs(s.fecha);
     const tienda = s.tienda_nombre || '';
-    const subject = psAsuntoFacturacion(s.tipo, tienda, fecha);
+    const subject = psAsuntoFacturacion(s.tipo, tienda, fecha, s.agencia_nombre, nombreComercialAgencia);
 
     const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
 
