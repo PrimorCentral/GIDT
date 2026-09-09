@@ -572,6 +572,24 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
   // --- Tabla principal ---
   const cabeceraDias = Array.from({ length: diaHasta - diaDesde + 1 }, (_, i) => String(diaDesde + i));
   const cabecera = ['AGENCIA', 'TIENDA', 'PROVINCIA', ...cabeceraDias, 'TOTAL'];
+  // Índice de la columna TOTAL (la última): cambia según cuántos días
+  // tenga el rango, por eso se calcula en vez de ser fijo.
+  const idxColTotal = 3 + cabeceraDias.length;
+
+  // Ancho de columna fijo e IGUAL para todas las columnas de día: si se
+  // deja en automático, jsPDF-autoTable calcula cada columna según lo más
+  // ancho que haya escrito en ella (como el autoajuste de Excel), y dos
+  // columnas de día pueden salir con un ancho ligeramente distinto según
+  // lleven "OK", un código de 1 carácter o de 2. Al fijarlo aquí, todos
+  // los "cuadraditos" de día salen exactamente del mismo ancho siempre
+  // (ese ancho sí cambia de un informe a otro según cuántos días tenga
+  // el rango exportado: un mes de 31 días los deja algo más estrechos
+  // que uno de 28).
+  const anchoColAgencia = 55, anchoColTienda = 90, anchoColProvincia = 92, anchoColTotal = 24;
+  const anchoFijoResto = anchoColAgencia + anchoColTienda + anchoColProvincia + anchoColTotal;
+  const anchoColDia = (anchoUtil - anchoFijoResto) / cabeceraDias.length;
+  const columnStylesDias = {};
+  cabeceraDias.forEach((_, i) => { columnStylesDias[3 + i] = { cellWidth: anchoColDia }; });
 
   const cuerpo = filasGrupo.map(f => {
     const celdasTienda = celdas[f.tiendaId] || {};
@@ -596,9 +614,13 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     head: [cabecera],
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 6.5 * escala },
     columnStyles: {
-      0: { cellWidth: 55, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 90, halign: 'center' },
-      2: { cellWidth: 58, halign: 'center' }
+      0: { cellWidth: anchoColAgencia, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: anchoColTienda, halign: 'center' },
+      // Ancho suficiente para que provincias largas como "VIANA DO
+      // CASTELO" entren en una sola línea y no dupliquen el alto de la fila.
+      2: { cellWidth: anchoColProvincia, halign: 'center' },
+      ...columnStylesDias,
+      [idxColTotal]: { cellWidth: anchoColTotal }
     },
     body: cuerpo
   });
