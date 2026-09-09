@@ -497,7 +497,7 @@
                           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 480px;">
                             <tr>
                               <td align="center" style="font-family: Arial, sans-serif; font-size: 12px; color: #92400e; font-style: italic; line-height: 18px;">
-                                * En caso de necesitar la mercancía averiada para el seguro se deberá recoger en nuestra tienda en los próximos 15 días.
+                                * En caso de necesitar la mercancía averiada para el seguro se deberá recoger en nuestro almacen arriba indicado en los próximos 15 días.
                               </td>
                             </tr>
                             <tr><td height="15" style="font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
@@ -707,7 +707,7 @@
                           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 480px;">
                             <tr>
                               <td align="center" style="font-family: Arial, sans-serif; font-size: 12px; color: #92400e; font-style: italic; line-height: 18px;">
-                                * En caso de necesitar la mercancía averiada para el seguro se deberá recoger en nuestra tienda en los próximos 15 días.
+                                * En caso de necesitar la mercancía averiada para el seguro se deberá recoger en nuestro almacen arriba indicado en los próximos 15 días.
                               </td>
                             </tr>
                             <tr><td height="15" style="font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
