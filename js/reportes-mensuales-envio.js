@@ -115,8 +115,11 @@ function rmePosicionarPanel() {
 
   // Alto máximo según el hueco disponible bajo el botón, para que el panel
   // nunca se salga de la pantalla por abajo (la lista hace scroll interno).
+  // Se limita también por arriba (520px): con muchas agencias, que el panel
+  // no intente ocupar todo el alto de la ventana — a partir de ahí la lista
+  // hace scroll, aunque sobre hueco debajo.
   const espacioAbajo = window.innerHeight - wrapRect.bottom - margen - 16;
-  panel.style.maxHeight = Math.max(280, espacioAbajo) + 'px';
+  panel.style.maxHeight = Math.min(520, Math.max(280, espacioAbajo)) + 'px';
 }
 
 function rmeAbrirPanel() {
