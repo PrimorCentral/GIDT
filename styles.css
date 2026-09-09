@@ -1223,6 +1223,7 @@ body.rol-operador:not(.perm-config_tiendas) [data-view="config-tiendas"]{ displa
 body.rol-operador:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-reportes-mensuales"]{ display:none !important; }
+body.rol-operador:not(.perm-ver_auditoria) [data-view="config-auditoria"]{ display:none !important; }
 
 /* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar */
 body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
