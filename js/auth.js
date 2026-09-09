@@ -102,6 +102,7 @@
 
       // Actualiza última conexión (no bloqueante)
       sb.from('usuarios').update({ ultima_conexion: new Date().toISOString() }).eq('id', data.id).then(() => {});
+      if (typeof registrarAccion === 'function') registrarAccion('sesion', 'Inicio de sesión', sesion.nombre || sesion.usuario);
 
       mostrarApp(sesion);
       cargarKPIs();

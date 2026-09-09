@@ -315,6 +315,7 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
     enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
   }, { onConflict: 'grupo,anio,mes' });
   if (eDb) console.error('El correo se envió, pero no se pudo guardar el estado de envío:', eDb);
+  if (typeof registrarAccion === 'function') registrarAccion('reportes_mensuales', 'Enviar resumen mensual a agencia', `${grupo.nombre} — ${mesTexto}`);
 }
 
 // Envío de una sola agencia/grupo, desde su botón "Enviar PDF"/"Reenviar".

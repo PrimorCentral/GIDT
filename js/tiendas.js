@@ -233,6 +233,7 @@
         nombre, hora_prevista: hora || null, provincia: provincia || null, marca
       }).eq('id', editarTiendaId);
       if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
       cerrarModalEditarTienda();
       cargarAgenciasYTiendas();
     } catch (err) {
@@ -308,6 +309,7 @@
         creado_por: sesionActual?.nombre || sesionActual?.usuario || null
       });
       if (eHist) console.error('No se pudo registrar el historial de cambio de agencia:', eHist);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Mover tienda de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'}`);
 
       cargarAgenciasYTiendas();
     } catch (err) {
@@ -327,6 +329,7 @@
     try {
       const { error } = await sb.from('tiendas').update({ activo: false }).eq('id', id);
       if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Eliminar tienda', t.nombre);
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error eliminando tienda:', err);
@@ -366,6 +369,7 @@
         nombre, agencia_id: agenciaId, hora_prevista: hora || null, provincia: provincia || null, marca, orden: maxOrden + 1
       });
       if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Crear tienda', nombre);
       formNuevaTienda.style.display = 'none';
       document.getElementById('ntNombre').value = '';
       document.getElementById('ntHora').value = '';
@@ -430,6 +434,7 @@
 
   async function guardarModalHorarioSemana() {
     if (horarioSemanaTiendaId == null) return;
+    const t = tiendasCache.find(x => x.id === horarioSemanaTiendaId);
     const mapa = {};
     document.querySelectorAll('#modalHorarioDias .mh-hora').forEach(input => {
       if (input.value) mapa[input.dataset.dia] = input.value;
@@ -439,6 +444,7 @@
         .update({ horario_semana: Object.keys(mapa).length ? mapa : null })
         .eq('id', horarioSemanaTiendaId);
       if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Configurar horario semanal', t?.nombre || '');
       cerrarModalHorarioSemana();
       cargarAgenciasYTiendas();
     } catch (err) {

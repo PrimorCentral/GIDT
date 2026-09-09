@@ -6,7 +6,7 @@
     'informe_dia', 'enviar_informe', 'editar_informes_pasados',
     'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
     'config_tiendas', 'config_emails', 'config_facturacion', 'config_cc_transporte',
-    'gestion_usuarios', 'borrar', 'ver_analisis', 'enviar_reporte_mensual'
+    'gestion_usuarios', 'borrar', 'ver_analisis', 'enviar_reporte_mensual', 'ver_auditoria'
   ];
 
   async function cargarUsuarios() {
@@ -75,6 +75,8 @@
     try {
       const { error } = await sb.from('usuarios').update({ activo: nuevoEstado }).eq('id', id);
       if (error) throw error;
+      const u = usuariosCache.find(x => String(x.id) === String(id));
+      if (typeof registrarAccion === 'function') registrarAccion('usuarios', nuevoEstado ? 'Activar usuario' : 'Desactivar usuario', u?.nombre || '');
       cargarUsuarios();
     } catch (err) {
       console.error('Error cambiando estado de usuario:', err);
@@ -181,6 +183,7 @@
         if (error.code === '23505') throw new Error('Ese nombre de usuario ya existe.');
         throw error;
       }
+      if (typeof registrarAccion === 'function') registrarAccion('usuarios', 'Crear usuario', `${nombre} (${rol})`);
 
       cerrarModalNuevoUsuario();
       cargarUsuarios();
@@ -254,6 +257,7 @@
         if (error.code === '23505') throw new Error('Ese nombre de usuario ya existe.');
         throw error;
       }
+      if (typeof registrarAccion === 'function') registrarAccion('usuarios', 'Editar usuario', `${nombre} (${rol})`);
 
       cerrarModalEditarUsuario();
       cargarUsuarios();
@@ -282,6 +286,7 @@
     try {
       const { error } = await sb.from('usuarios').delete().eq('id', id);
       if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('usuarios', 'Borrar usuario', u ? u.nombre : '');
       cargarUsuarios();
     } catch (err) {
       console.error('Error borrando usuario:', err);

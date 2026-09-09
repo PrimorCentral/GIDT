@@ -329,6 +329,10 @@ async function enviarInformeDelDia() {
   const exitosos = resultados.filter(r => r.ok);
   const fallidos = resultados.filter(r => !r.ok);
 
+  if (exitosos.length && typeof registrarAccion === 'function') {
+    registrarAccion('informes', 'Enviar informe a agencias', `${nombreHoja || ''} — ${exitosos.length} agencia${exitosos.length === 1 ? '' : 's'}`.trim());
+  }
+
   renderBotonEnviarInforme();
 
   let mensajeFinal = `Enviado correctamente a ${exitosos.length} agencia${exitosos.length === 1 ? '' : 's'}.`;
