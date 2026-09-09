@@ -852,17 +852,8 @@ function cerrarModalPanelSiniestroForzado() {
 // ---------------------------------------------------------------
 // Genera un PDF apaisado, con texto grande, con lo justo para
 // identificar el bulto: agencia, tienda, fecha del siniestro y
-// fecha límite de recogida. Se muestra dentro de la propia app
-// (en un iframe), no en una pestaña nueva del navegador — así
-// funciona también con la app instalada (PWA) sin salir de ella.
-let psPdfPreviewUrl = null;
-
-function cerrarPsPdfPreview() {
-  document.getElementById('psPdfPreviewOverlay').classList.remove('show');
-  document.getElementById('psPdfPreviewFrame').src = 'about:blank';
-  if (psPdfPreviewUrl) { URL.revokeObjectURL(psPdfPreviewUrl); psPdfPreviewUrl = null; }
-}
-
+// fecha límite de recogida. Se abre igual que "Ver factura" / "Ver
+// albarán" (pestaña nueva, mismo mecanismo en toda la app).
 function imprimirResumenPanelSiniestro() {
   if (!panelActivoId) return;
   const s = psSiniestroPorId(panelActivoId);
@@ -926,36 +917,12 @@ function imprimirResumenPanelSiniestro() {
   doc.setFontSize(30);
   doc.text(recogidaLimite, centroX, y, { align: 'center' });
 
-  const nombreArchivo = `siniestro_${(s.agencia_nombre || 'agencia').replace(/\s+/g, '_')}_${(s.tienda_nombre || 'tienda').replace(/\s+/g, '_')}.pdf`;
-
-  // Se muestra en el iframe del modal de vista previa, dentro de la app.
-  if (psPdfPreviewUrl) URL.revokeObjectURL(psPdfPreviewUrl);
-  psPdfPreviewUrl = URL.createObjectURL(doc.output('blob'));
-
-  document.getElementById('psPdfPreviewFrame').src = psPdfPreviewUrl;
-  const descarga = document.getElementById('psPdfPreviewDescargar');
-  descarga.href = psPdfPreviewUrl;
-  descarga.download = nombreArchivo;
-
-  document.getElementById('psPdfPreviewOverlay').classList.add('show');
+  // Mismo mecanismo que los enlaces "Ver factura" / "Ver albarán":
+  // se abre en una pestaña nueva (target="_blank", sin forzar descarga).
+  window.open(doc.output('bloburl'), '_blank', 'noopener');
 }
 
 document.getElementById('btnImprimirPanelSiniestro')?.addEventListener('click', imprimirResumenPanelSiniestro);
-document.getElementById('btnCerrarPsPdfPreview')?.addEventListener('click', cerrarPsPdfPreview);
-document.getElementById('psPdfPreviewOverlay')?.addEventListener('click', (e) => {
-  if (e.target === document.getElementById('psPdfPreviewOverlay')) cerrarPsPdfPreview();
-});
-document.getElementById('btnPsPdfPreviewImprimir')?.addEventListener('click', () => {
-  const frame = document.getElementById('psPdfPreviewFrame');
-  try {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-  } catch (err) {
-    // Si el visor de PDF embebido no permite imprimir directamente (pasa en
-    // algún navegador), abrimos el PDF en una pestaña como alternativa.
-    if (psPdfPreviewUrl) window.open(psPdfPreviewUrl, '_blank');
-  }
-});
 
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
