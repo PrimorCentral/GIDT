@@ -384,6 +384,9 @@
       s.fotos = fotosActualizadas;
       pintarModalSiniestro();
       renderKanbanSiniestros();
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('siniestros', 'Borrar foto de siniestro', s?.incidencia?.tiendas?.nombre || '—');
+      }
       if (urlAEliminar) {
         try {
           const marcador = '/object/public/siniestros-fotos/';
