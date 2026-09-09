@@ -1037,6 +1037,25 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
 .ps-modal-box{ width:100%; max-width:1040px; max-height:97vh; overflow-y:auto; position:relative; }
+
+/* ---------- Modal: visor de PDF dentro de la app (Panel siniestros) ---------- */
+/* Se usa para el resumen, la factura, el albarán y el justificante: se
+   muestran embebidos (iframe) en vez de abrir una pestaña nueva del
+   navegador — importante en la app instalada (PWA), donde una pestaña
+   nueva saca a la persona fuera de la app. */
+#psVisorPdfOverlay{ z-index:350; }
+.ps-visor-pdf-box{
+  width:94vw; max-width:760px; height:88vh; max-height:820px;
+  display:flex; flex-direction:column; position:relative;
+}
+.ps-visor-pdf-box iframe{
+  flex:1 1 auto; width:100%; border:1px solid var(--border); border-radius:10px; background:#525659;
+}
+.ps-visor-pdf-box .modal-footer{ flex-shrink:0; }
+@media (max-width:640px){
+  .ps-visor-pdf-box{ width:96vw; height:92vh; padding:18px 14px 14px; }
+}
+
 .ps-modal-titulo-principal{
   margin:0 0 16px; text-align:center; font-size:18px; font-weight:800; color:var(--ink);
 }
@@ -1130,7 +1149,9 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px;
   background:var(--panel-muted); border:1px solid var(--border); font-size:12.5px; font-weight:600;
   color:var(--ink); text-decoration:none; margin-right:8px;
+  font-family:inherit; cursor:pointer; appearance:none;
 }
+.ps-factura-chip:hover{ background:var(--border); }
 
 @media (max-width: 640px){
   .ps-form-grid{ grid-template-columns:1fr; }

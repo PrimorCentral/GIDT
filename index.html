@@ -1156,6 +1156,19 @@
   </div>
 </div>
 
+<!-- Modal: visor de PDF dentro de la app (resumen / factura / albarán / justificante) -->
+<div class="modal-overlay" id="psVisorPdfOverlay">
+  <div class="modal-box ps-visor-pdf-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarPsVisorPdf" style="position:absolute; right:16px; top:16px;">✕</button>
+    <p class="ps-modal-titulo-principal" id="psVisorPdfTitulo" style="margin-bottom:12px;">📄 Documento</p>
+    <iframe id="psVisorPdfFrame" title="Documento" src="about:blank"></iframe>
+    <div class="modal-footer" style="margin-top:14px;">
+      <a id="psVisorPdfDescargar" class="btn" download>⬇️ Descargar</a>
+      <button type="button" class="btn primary" id="btnPsVisorPdfImprimir">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: nuevo siniestro manual (Panel siniestros) -->
 <div class="modal-overlay" id="psNuevoModalOverlay">
   <div class="modal-box" role="dialog" aria-modal="true" style="max-width:520px; position:relative;">
