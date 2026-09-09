@@ -409,40 +409,72 @@
   /* ---------- Acordeón de agencias (Gestión de tiendas) ---------- */
   .agencia-block{
     background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
-    margin-bottom:10px; overflow:hidden;
+    margin-bottom:12px; overflow:hidden; box-shadow:var(--shadow);
   }
   .agencia-head{
     display:flex; align-items:center; gap:10px; padding:13px 16px;
-    cursor:pointer; user-select:none;
+    cursor:pointer; user-select:none; background:var(--panel-muted);
   }
-  .agencia-head:hover{ background:var(--panel-muted); }
+  .agencia-head:hover{ background:#EBEEF2; }
   .agencia-head .caret{ font-size:11px; color:var(--ink-soft); transition:transform .15s ease; }
   .agencia-head.open .caret{ transform:rotate(90deg); }
-  .agencia-head b{ font-size:13.5px; flex:1; }
-  .agencia-head .count{ font-size:12px; color:var(--ink-soft); }
+  .agencia-head b{ font-size:14px; flex:1; letter-spacing:-.1px; }
+  .agencia-head .count{
+    font-size:11.5px; font-weight:700; color:var(--ink-soft);
+    background:var(--panel); border:1px solid var(--border);
+    padding:2px 9px; border-radius:99px;
+  }
 
   .agencia-body{ display:none; border-top:1px solid var(--border); }
   .agencia-body.open{ display:block; }
+  /* Con agencias de muchas tiendas, se limita la altura y se desplaza por
+     dentro (con la cabecera de columnas siempre visible) en vez de alargar
+     toda la página de Gestión de tiendas. */
+  .tabla-tiendas-scroll{ max-height:min(560px, 60vh); overflow-y:auto; }
 
   table.tabla-tiendas{ width:100%; border-collapse:collapse; font-size:13px; }
-  table.tabla-tiendas td{ padding:8px 16px; border-bottom:1px solid var(--panel-muted); vertical-align:middle; }
+  table.tabla-tiendas thead th{
+    position:sticky; top:0; z-index:1; text-align:left; padding:9px 16px;
+    background:var(--panel-muted); color:var(--ink-soft); font-size:10.5px;
+    text-transform:uppercase; letter-spacing:.4px; font-weight:700;
+    border-bottom:1px solid var(--border);
+  }
+  table.tabla-tiendas thead th.th-acciones{ text-align:right; }
+  table.tabla-tiendas td{ padding:10px 16px; border-bottom:1px solid var(--panel-muted); vertical-align:middle; }
+  table.tabla-tiendas tbody tr:hover{ background:var(--panel-muted); }
   table.tabla-tiendas tr:last-child td{ border-bottom:0; }
+  table.tabla-tiendas td.celda-nombre{ font-weight:600; }
   table.tabla-tiendas td.hora{ color:var(--ink-soft); font-family:var(--font-mono); font-size:12.5px; white-space:nowrap; }
   table.tabla-tiendas td.acciones{ text-align:right; white-space:nowrap; }
   .pill.sabado{ background:#FDECD8; color:#A2530B; }
   .pill.prueba,.pill.especial{ background:#EEE6FB; color:#6B3FA0; }
   .mini-btn{
     border:0; background:transparent; cursor:pointer; font-size:13px;
-    padding:3px 5px; color:var(--ink-soft); border-radius:5px;
+    padding:5px 6px; color:var(--ink-soft); border-radius:6px;
   }
   .mini-btn:hover{ background:var(--panel-muted); color:var(--ink); }
+  /* El botón de eliminar avisa en rojo solo al pasar el ratón, para no
+     destacar una acción destructiva con el mismo peso que el resto. */
+  .mini-btn[data-borrar]:hover{ background:var(--grave-bg); color:var(--grave); }
+  /* El de horario semanal se distingue un poco (tono de marca) del resto
+     de iconos "neutros" de la fila. */
+  .mini-btn[data-horario-semana]{ color:var(--accent-ink); }
+  .mini-btn[data-horario-semana]:hover{ background:#FFEEDF; }
+  .acciones-separador{
+    display:inline-block; width:1px; height:16px; background:var(--border);
+    margin:0 4px; vertical-align:middle;
+  }
   table.tabla-tiendas .celda-nombre input,
   table.tabla-tiendas .celda-hora input,
   table.tabla-tiendas .celda-marca select{ padding:6px 8px; font-size:12.5px; }
-  table.tabla-tiendas .celda-hora{ width:120px; }
-  table.tabla-tiendas .celda-provincia{ width:130px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-hora,
+  table.tabla-tiendas th.th-hora{ width:120px; }
+  table.tabla-tiendas .celda-provincia,
+  table.tabla-tiendas th.th-provincia{ width:130px; color:var(--ink-soft); }
   table.tabla-tiendas .celda-provincia input{ color:var(--ink); }
-  table.tabla-tiendas .celda-marca{ width:140px; }
+  table.tabla-tiendas .celda-marca,
+  table.tabla-tiendas th.th-marca{ width:140px; }
+  table.tabla-tiendas th.th-acciones{ white-space:nowrap; }
 
   /* ---------- Emails por agencia ---------- */
   .email-card{
