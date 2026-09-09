@@ -1202,17 +1202,18 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
 });
 
 async function quitarFacturaPanel() {
-  const ok = await modalConfirm('¿Quitar la factura adjunta?', { titulo: 'Quitar factura', danger: true, textoOk: 'Quitar' });
+  const ok = await modalConfirm('¿Quitar la factura adjunta? También se vaciará el importe detectado.', { titulo: 'Quitar factura', danger: true, textoOk: 'Quitar' });
   if (!ok) return;
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.factura_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, valor: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
-    if (s) { s.factura_url = null; s.factura_nombre = null; }
+    if (s) { s.factura_url = null; s.factura_nombre = null; s.valor = null; }
     pintarFacturaModal(s);
-    if (s) aplicarEstadoCampoValor(s); // libera el campo Valor para poder editarlo a mano
+    if (s) aplicarEstadoCampoValor(s); // vacía y libera el campo Valor para poder editarlo a mano
     renderPanelSiniestros();
+    renderPanelKpis();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando factura:', err);
@@ -1345,16 +1346,17 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
 });
 
 async function quitarAlbaranPanel() {
-  const ok = await modalConfirm('¿Quitar el albarán adjunto?', { titulo: 'Quitar albarán', danger: true, textoOk: 'Quitar' });
+  const ok = await modalConfirm('¿Quitar el albarán adjunto? También se vaciará el Nº Albarán detectado.', { titulo: 'Quitar albarán', danger: true, textoOk: 'Quitar' });
   if (!ok) return;
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.albaran_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, num_albaran: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
-    if (s) { s.albaran_url = null; s.albaran_nombre = null; }
+    if (s) { s.albaran_url = null; s.albaran_nombre = null; s.num_albaran = null; }
     pintarAlbaranModal(s);
-    aplicarEstadoCampoAlbaran(s); // libera el campo Nº Albarán para poder editarlo a mano
+    aplicarEstadoCampoAlbaran(s); // vacía y libera el campo Nº Albarán para poder editarlo a mano
+    renderPanelSiniestros();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
   } catch (err) {
     console.error('Error quitando el albarán:', err);
