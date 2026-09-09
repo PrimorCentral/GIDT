@@ -848,12 +848,50 @@ function cerrarModalPanelSiniestroForzado() {
 }
 
 // ---------------------------------------------------------------
+// Visor de PDF dentro de la app (resumen / factura / albarán / justificante)
+// ---------------------------------------------------------------
+// En vez de abrir una pestaña nueva del navegador (que en la app instalada
+// como PWA saca a la persona fuera de la app), estos documentos se
+// muestran embebidos en un modal propio, con opción de descargar o
+// imprimir directamente desde ahí.
+function abrirVisorPdfPanel(url, { titulo = '📄 Documento', nombreArchivo = 'documento.pdf' } = {}) {
+  if (!url) return;
+  document.getElementById('psVisorPdfTitulo').textContent = titulo;
+  document.getElementById('psVisorPdfFrame').src = url;
+  const descarga = document.getElementById('psVisorPdfDescargar');
+  descarga.href = url;
+  descarga.download = nombreArchivo;
+  document.getElementById('psVisorPdfOverlay').classList.add('show');
+}
+
+function cerrarVisorPdfPanel() {
+  document.getElementById('psVisorPdfOverlay').classList.remove('show');
+  document.getElementById('psVisorPdfFrame').src = 'about:blank';
+}
+
+document.getElementById('btnCerrarPsVisorPdf')?.addEventListener('click', cerrarVisorPdfPanel);
+document.getElementById('psVisorPdfOverlay')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('psVisorPdfOverlay')) cerrarVisorPdfPanel();
+});
+document.getElementById('btnPsVisorPdfImprimir')?.addEventListener('click', () => {
+  const frame = document.getElementById('psVisorPdfFrame');
+  try {
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+  } catch (err) {
+    // Si el visor embebido no permite imprimir directamente (pasa en algún
+    // navegador con documentos de otro origen), abrimos el PDF aparte.
+    const url = document.getElementById('psVisorPdfDescargar')?.href;
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+});
+
+// ---------------------------------------------------------------
 // Resumen imprimible del siniestro (etiqueta para pegar en la caja)
 // ---------------------------------------------------------------
 // Genera un PDF apaisado, con texto grande, con lo justo para
 // identificar el bulto: agencia, tienda, fecha del siniestro y
-// fecha límite de recogida. Se abre igual que "Ver factura" / "Ver
-// albarán" (pestaña nueva, mismo mecanismo en toda la app).
+// fecha límite de recogida. Se abre en el visor embebido de la app.
 function imprimirResumenPanelSiniestro() {
   if (!panelActivoId) return;
   const s = psSiniestroPorId(panelActivoId);
@@ -917,9 +955,9 @@ function imprimirResumenPanelSiniestro() {
   doc.setFontSize(30);
   doc.text(recogidaLimite, centroX, y, { align: 'center' });
 
-  // Mismo mecanismo que los enlaces "Ver factura" / "Ver albarán":
-  // se abre en una pestaña nueva (target="_blank", sin forzar descarga).
-  window.open(doc.output('bloburl'), '_blank', 'noopener');
+  const nombreArchivo = `siniestro_${(s.agencia_nombre || 'agencia').replace(/\s+/g, '_')}_${(s.tienda_nombre || 'tienda').replace(/\s+/g, '_')}.pdf`;
+
+  abrirVisorPdfPanel(doc.output('bloburl'), { titulo: '📄 Resumen del siniestro', nombreArchivo });
 }
 
 document.getElementById('btnImprimirPanelSiniestro')?.addEventListener('click', imprimirResumenPanelSiniestro);
@@ -1104,8 +1142,10 @@ function pintarFacturaModal(s) {
   const cont = document.getElementById('psFacturaZona');
   if (s.factura_url) {
     cont.innerHTML = `
-      <a class="ps-factura-chip" href="${s.factura_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.factura_nombre || 'Ver factura')}</a>
+      <button type="button" class="ps-factura-chip" id="btnVerFactura">📄 ${escapeHtml(s.factura_nombre || 'Ver factura')}</button>
       <button type="button" class="mini-btn" id="btnQuitarFactura" title="Quitar factura">✕</button>`;
+    document.getElementById('btnVerFactura').addEventListener('click', () =>
+      abrirVisorPdfPanel(s.factura_url, { titulo: '📄 Factura', nombreArchivo: s.factura_nombre || 'factura.pdf' }));
     document.getElementById('btnQuitarFactura').addEventListener('click', quitarFacturaPanel);
   } else {
     cont.innerHTML = `
@@ -1253,12 +1293,14 @@ function pintarAlbaranModal(s) {
     : '';
   const textoBoton = s.enviado_facturacion ? '↻ Reenviar a Facturación' : '✉️ Enviar a Facturación';
   cont.innerHTML = `
-    <a class="ps-factura-chip" href="${s.albaran_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</a>
+    <button type="button" class="ps-factura-chip" id="btnVerAlbaran">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</button>
     <button type="button" class="mini-btn" id="btnQuitarAlbaran" title="Quitar albarán">✕</button>
     <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       ${estado}
       <button type="button" class="btn" id="btnEnviarFacturacion" style="padding:5px 12px; font-size:12.5px;">${textoBoton}</button>
     </div>`;
+  document.getElementById('btnVerAlbaran').addEventListener('click', () =>
+    abrirVisorPdfPanel(s.albaran_url, { titulo: '📄 Albarán', nombreArchivo: s.albaran_nombre || 'albaran.pdf' }));
   document.getElementById('btnQuitarAlbaran').addEventListener('click', quitarAlbaranPanel);
   document.getElementById('btnEnviarFacturacion').addEventListener('click', () => ofrecerEnvioFacturacion(s));
 }
@@ -1329,8 +1371,10 @@ function pintarJustificanteModal(s) {
   if (!cont) return;
   if (s.justificante_recogida_url) {
     cont.innerHTML = `
-      <a class="ps-factura-chip" href="${s.justificante_recogida_url}" target="_blank" rel="noopener">📄 ${escapeHtml(s.justificante_recogida_nombre || 'Ver justificante')}</a>
+      <button type="button" class="ps-factura-chip" id="btnVerJustificante">📄 ${escapeHtml(s.justificante_recogida_nombre || 'Ver justificante')}</button>
       <button type="button" class="mini-btn" id="btnQuitarJustificante" title="Quitar justificante">✕</button>`;
+    document.getElementById('btnVerJustificante').addEventListener('click', () =>
+      abrirVisorPdfPanel(s.justificante_recogida_url, { titulo: '📄 Justificante de recogida', nombreArchivo: s.justificante_recogida_nombre || 'justificante.pdf' }));
     document.getElementById('btnQuitarJustificante').addEventListener('click', quitarJustificantePanel);
   } else {
     cont.innerHTML = `
