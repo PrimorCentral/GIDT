@@ -1161,6 +1161,9 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
   const errEl = document.getElementById('psFacturaError');
   errEl.style.display = 'none';
   try {
+    document.getElementById('cargandoEnvioTexto').textContent = 'Subiendo factura…';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
     const comprimido = await comprimirImagenParaSubida(file);
     const path = `panel/${panelActivoId}/${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
@@ -1197,6 +1200,7 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
     errEl.textContent = 'No se pudo subir la factura.';
     errEl.style.display = 'block';
   } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     e.target.value = '';
   }
 });
@@ -1312,6 +1316,9 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
   const errEl = document.getElementById('psAlbaranError');
   errEl.style.display = 'none';
   try {
+    document.getElementById('cargandoEnvioTexto').textContent = 'Subiendo albarán…';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
     const path = `panel/${panelActivoId}/albaran-${Date.now()}-${nombreSeguroParaStorage(file.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, file);
     if (eUp) throw eUp;
@@ -1333,6 +1340,7 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     pintarAlbaranModal(s);
     aplicarEstadoCampoAlbaran(s);
     renderPanelSiniestros();
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     // Recién adjuntado: preguntamos directamente si se envía a Facturación
     // (ya no hay botón "Guardar" que sirva de punto de corte para preguntar).
     await ofrecerEnvioFacturacion(s);
@@ -1341,6 +1349,7 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     errEl.textContent = 'No se pudo subir el albarán.';
     errEl.style.display = 'block';
   } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     e.target.value = '';
   }
 });
@@ -1392,6 +1401,9 @@ document.getElementById('psJustificanteInput')?.addEventListener('change', async
   const errEl = document.getElementById('psJustificanteError');
   errEl.style.display = 'none';
   try {
+    document.getElementById('cargandoEnvioTexto').textContent = 'Subiendo justificante…';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
     const comprimido = await comprimirImagenParaSubida(file);
     const path = `panel/${panelActivoId}/justificante-${Date.now()}-${nombreSeguroParaStorage(comprimido.name)}`;
     const { error: eUp } = await sb.storage.from(BUCKET_FACTURAS_PANEL).upload(path, comprimido);
@@ -1410,6 +1422,7 @@ document.getElementById('psJustificanteInput')?.addEventListener('change', async
     errEl.textContent = 'No se pudo subir el justificante.';
     errEl.style.display = 'block';
   } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     e.target.value = '';
   }
 });
