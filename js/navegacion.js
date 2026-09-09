@@ -72,7 +72,7 @@
         if (item.dataset.view === 'siniestros') renderVistaSiniestros();
         if (item.dataset.view === 'analisis-ranking') renderVistaAnalisisRanking();
         if (item.dataset.view === 'analisis-reportes-mensuales') renderVistaReportesMensuales();
-        if (item.dataset.view === 'config-auditoria' && typeof cargarAuditoria === 'function') cargarAuditoria();
+        if (item.dataset.view === 'config-auditoria' && typeof prepararVistaAuditoria === 'function') prepararVistaAuditoria();
       });
     });
   });
