@@ -1499,14 +1499,12 @@ document.getElementById('btnCerrarPsModal')?.addEventListener('click', cerrarMod
 // para evitar cerrarlo sin querer con cambios a medio escribir.
 document.getElementById('btnBorrarPanelSiniestro')?.addEventListener('click', eliminarPanelSiniestro);
 
-// Carga perezosa: solo la primera vez que se entra en la pestaña
+// Cada vez que se entra en la pestaña se recarga desde la base de datos,
+// para que el Panel siempre muestre los datos más recientes (por ejemplo,
+// un siniestro recién enviado desde "Siniestros del día").
 document.querySelectorAll('[data-view="panel-siniestros"]').forEach(el => {
   el.addEventListener('click', async () => {
     if (!agenciasCache.length) await cargarAgenciasYTiendas();
-    if (!panelCargado) {
-      await cargarPanelSiniestros();
-    } else {
-      rellenarFiltroAgenciasPanel(); // por si el panel ya estaba cargado pero las agencias no
-    }
+    await cargarPanelSiniestros();
   });
 });
