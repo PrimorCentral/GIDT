@@ -1044,7 +1044,15 @@
 <!-- Modal: completar datos de un siniestro (Panel siniestros) -->
 <div class="modal-overlay" id="psModalOverlay">
   <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
-    <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Eliminar siniestro">🗑️</button>
+    <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:96px; top:16px;" title="Eliminar siniestro">🗑️</button>
+    <button class="filtros-modal-close ps-btn-pdf-fila" id="btnImprimirPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Imprimir resumen (PDF)">
+      <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M5 2h9l5 5v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" fill="#fff" stroke="#B0B0B0" stroke-width="1"/>
+        <path d="M14 2v5h5" fill="none" stroke="#B0B0B0" stroke-width="1"/>
+        <rect x="3" y="13.5" width="16" height="7.5" rx="1.2" fill="#E02424"/>
+        <text x="11" y="19.3" font-family="Arial, Helvetica, sans-serif" font-size="6.4" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>
+      </svg>
+    </button>
     <button class="ps-guardado-icono" id="psGuardadoEstado" type="button" title=""></button>
     <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
 
