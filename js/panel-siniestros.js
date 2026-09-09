@@ -854,16 +854,14 @@ function cerrarModalPanelSiniestroForzado() {
 // como PWA saca a la persona fuera de la app), estos documentos se
 // muestran embebidos en un modal propio, con opción de descargar o
 // imprimir directamente desde ahí.
-function abrirVisorPdfPanel(url, { titulo = '📄 Documento', nombreArchivo = 'documento.pdf' } = {}) {
+function abrirVisorPdfPanel(url, { titulo = '📄 Documento' } = {}) {
   if (!url) return;
   document.getElementById('psVisorPdfTitulo').textContent = titulo;
   // "navpanes=0" oculta el panel lateral de miniaturas que el visor de PDF
   // del navegador abre por defecto (parámetro estándar de los visores
-  // basados en pdf.js/PDFium; no aparece en la URL de descarga).
+  // basados en pdf.js/PDFium). El propio visor ya trae sus botones de
+  // descargar e imprimir en la barra de herramientas de arriba.
   document.getElementById('psVisorPdfFrame').src = url + (url.includes('#') ? '&' : '#') + 'navpanes=0';
-  const descarga = document.getElementById('psVisorPdfDescargar');
-  descarga.href = url;
-  descarga.download = nombreArchivo;
   document.getElementById('psVisorPdfOverlay').classList.add('show');
 }
 
@@ -875,18 +873,6 @@ function cerrarVisorPdfPanel() {
 document.getElementById('btnCerrarPsVisorPdf')?.addEventListener('click', cerrarVisorPdfPanel);
 document.getElementById('psVisorPdfOverlay')?.addEventListener('click', (e) => {
   if (e.target === document.getElementById('psVisorPdfOverlay')) cerrarVisorPdfPanel();
-});
-document.getElementById('btnPsVisorPdfImprimir')?.addEventListener('click', () => {
-  const frame = document.getElementById('psVisorPdfFrame');
-  try {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-  } catch (err) {
-    // Si el visor embebido no permite imprimir directamente (pasa en algún
-    // navegador con documentos de otro origen), abrimos el PDF aparte.
-    const url = document.getElementById('psVisorPdfDescargar')?.href;
-    if (url) window.open(url, '_blank', 'noopener');
-  }
 });
 
 // ---------------------------------------------------------------
