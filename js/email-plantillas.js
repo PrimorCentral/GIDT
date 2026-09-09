@@ -391,15 +391,15 @@
 
     if (s.tipo === 'ROTURA') {
       html = plantillaHtmlRotura(tienda, fechaInformeStr, fechaLimite);
-      subject = `Aviso de roturas en la entrega de mercancía – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
+      subject = `INCIDENCIA POR ROTURAS EN EL ENVIO – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
       text = `Se han detectado roturas en la mercancía recibida en la tienda ${tienda} (recepción ${fechaInformeStr}). Fecha límite de recogida para reclamación al seguro: ${fechaLimite}.`;
     } else if (s.tipo === 'MIXTO') {
       html = plantillaHtmlMixto(tienda, fechaInformeStr, fechaLimite);
-      subject = `Aviso de roturas y faltas en la entrega de mercancía – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
+      subject = `FALTAS E INCIDENCIAS EN EL ENVIO – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
       text = `Se han detectado roturas y faltas en la mercancía recibida en la tienda ${tienda} (recepción ${fechaInformeStr}). Fecha límite de recogida para reclamación al seguro: ${fechaLimite}.`;
     } else {
       html = plantillaHtmlFalta(tienda, fechaInformeStr);
-      subject = `Aviso de faltas en la entrega de mercancía – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
+      subject = `FALTAS EN EL ENVIO – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
       text = `Se han detectado faltas en la mercancía recibida en la tienda ${tienda} (recepción ${fechaInformeStr}).`;
     }
 
