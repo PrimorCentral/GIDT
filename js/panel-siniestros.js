@@ -857,7 +857,10 @@ function cerrarModalPanelSiniestroForzado() {
 function abrirVisorPdfPanel(url, { titulo = '📄 Documento', nombreArchivo = 'documento.pdf' } = {}) {
   if (!url) return;
   document.getElementById('psVisorPdfTitulo').textContent = titulo;
-  document.getElementById('psVisorPdfFrame').src = url;
+  // "navpanes=0" oculta el panel lateral de miniaturas que el visor de PDF
+  // del navegador abre por defecto (parámetro estándar de los visores
+  // basados en pdf.js/PDFium; no aparece en la URL de descarga).
+  document.getElementById('psVisorPdfFrame').src = url + (url.includes('#') ? '&' : '#') + 'navpanes=0';
   const descarga = document.getElementById('psVisorPdfDescargar');
   descarga.href = url;
   descarga.download = nombreArchivo;
