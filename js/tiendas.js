@@ -89,41 +89,21 @@
       const filas = tds.length
         ? tds.map(t => `
             <tr data-tienda="${t.id}">
-              <td class="celda-nombre">
-                <span class="v-nombre">${escapeHtml(t.nombre)}</span>
-                <input class="form-input e-nombre" style="display:none;" value="${escapeHtml(t.nombre)}">
-              </td>
-              <td class="hora celda-hora">
-                <span class="v-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</span>
-                <input type="time" class="form-input e-hora" style="display:none;" value="${t.hora_prevista ? t.hora_prevista.slice(0,5) : ''}">
-              </td>
-              <td class="celda-provincia">
-                <span class="v-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</span>
-                <input type="text" class="form-input e-provincia" style="display:none;" placeholder="Provincia" value="${t.provincia ? escapeHtml(t.provincia) : ''}">
-              </td>
-              <td class="celda-marca">
-                <span class="v-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span></span>
-                <select class="form-input e-marca" style="display:none;">
-                  ${Object.entries(MARCA_LABEL).map(([k,v]) => `<option value="${k}" ${k===t.marca?'selected':''}>${v}</option>`).join('')}
-                </select>
-              </td>
+              <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
+              <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
+              <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
+              <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span></td>
               <td class="acciones">
-                <span class="v-acciones">
-                  <button class="mini-btn" data-mover="up" title="Subir">▲</button>
-                  <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
-                  <span class="acciones-separador"></span>
-                  <button class="mini-btn" data-editar title="Editar">✏️</button>
-                  <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
-                  <span class="acciones-separador"></span>
-                  <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                  <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
-                </span>
-                <span class="e-acciones" style="display:none;">
-                  <button class="mini-btn" data-guardar title="Guardar">✅</button>
-                  <button class="mini-btn" data-cancelar title="Cancelar">✖️</button>
-                </span>
+                <button class="mini-btn" data-mover="up" title="Subir">▲</button>
+                <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
+                <span class="acciones-separador"></span>
+                <button class="mini-btn" data-editar title="Editar">✏️</button>
+                <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
+                <span class="acciones-separador"></span>
+                <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
               </td>
             </tr>`).join('')
         : `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
@@ -177,7 +157,8 @@
     cont.querySelectorAll('[data-editar]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        entrarModoEdicion(btn.closest('tr'));
+        const tr = btn.closest('tr');
+        abrirModalEditarTienda(Number(tr.dataset.tienda));
       });
     });
     cont.querySelectorAll('[data-horario-semana]').forEach(btn => {
@@ -185,18 +166,6 @@
         e.stopPropagation();
         const tr = btn.closest('tr');
         abrirModalHorarioSemana(Number(tr.dataset.tienda));
-      });
-    });
-    cont.querySelectorAll('[data-cancelar]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        salirModoEdicion(btn.closest('tr'));
-      });
-    });
-    cont.querySelectorAll('[data-guardar]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        guardarEdicionTienda(btn.closest('tr'));
       });
     });
     cont.querySelectorAll('[data-cambiar-agencia]').forEach(btn => {
@@ -215,34 +184,69 @@
     });
   }
 
-  function entrarModoEdicion(tr) {
-    tr.querySelectorAll('.v-nombre,.v-hora,.v-provincia,.v-marca,.v-acciones').forEach(el => el.style.display = 'none');
-    tr.querySelectorAll('.e-nombre,.e-hora,.e-provincia,.e-marca,.e-acciones').forEach(el => el.style.display = '');
-  }
-  function salirModoEdicion(tr) {
-    tr.querySelectorAll('.v-nombre,.v-hora,.v-provincia,.v-marca,.v-acciones').forEach(el => el.style.display = '');
-    tr.querySelectorAll('.e-nombre,.e-hora,.e-provincia,.e-marca,.e-acciones').forEach(el => el.style.display = 'none');
+  // ---------------------------------------------------------------
+  // Modal "Editar tienda": nombre, hora prevista, provincia y marca.
+  // Sustituye a la antigua edición en línea dentro de la propia fila.
+  // ---------------------------------------------------------------
+  let editarTiendaId = null;
+
+  function abrirModalEditarTienda(tiendaId) {
+    const t = tiendasCache.find(x => x.id === tiendaId);
+    const overlay = document.getElementById('modalEditarTiendaOverlay');
+    if (!t || !overlay) return;
+    editarTiendaId = tiendaId;
+
+    document.getElementById('metNombre').value = t.nombre || '';
+    document.getElementById('metHora').value = t.hora_prevista ? t.hora_prevista.slice(0, 5) : '';
+    document.getElementById('metProvincia').value = t.provincia || '';
+    document.getElementById('metMarca').value = t.marca || 'HABITUAL';
+    const errEl = document.getElementById('metError');
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+
+    overlay.classList.add('show');
+    setTimeout(() => document.getElementById('metNombre').focus(), 30);
   }
 
-  async function guardarEdicionTienda(tr) {
-    const id = Number(tr.dataset.tienda);
-    const nombre = tr.querySelector('.e-nombre').value.trim();
-    const hora = tr.querySelector('.e-hora').value;
-    const provincia = tr.querySelector('.e-provincia').value.trim();
-    const marca = tr.querySelector('.e-marca').value;
-    if (!nombre) return;
+  function cerrarModalEditarTienda() {
+    document.getElementById('modalEditarTiendaOverlay')?.classList.remove('show');
+    editarTiendaId = null;
+  }
+
+  async function guardarModalEditarTienda() {
+    if (editarTiendaId == null) return;
+    const nombre = document.getElementById('metNombre').value.trim();
+    const hora = document.getElementById('metHora').value;
+    const provincia = document.getElementById('metProvincia').value.trim();
+    const marca = document.getElementById('metMarca').value;
+    const errEl = document.getElementById('metError');
+    errEl.style.display = 'none';
+
+    if (!nombre) {
+      errEl.textContent = 'Ponle un nombre a la tienda.';
+      errEl.style.display = 'block';
+      return;
+    }
 
     try {
       const { error } = await sb.from('tiendas').update({
         nombre, hora_prevista: hora || null, provincia: provincia || null, marca
-      }).eq('id', id);
+      }).eq('id', editarTiendaId);
       if (error) throw error;
+      cerrarModalEditarTienda();
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error editando tienda:', err);
-      await modalAlert('No se pudo guardar el cambio.', { titulo: 'Error' });
+      errEl.textContent = 'No se pudo guardar el cambio.';
+      errEl.style.display = 'block';
     }
   }
+
+  document.getElementById('modalEditarTiendaBtnCancelar')?.addEventListener('click', cerrarModalEditarTienda);
+  document.getElementById('modalEditarTiendaBtnGuardar')?.addEventListener('click', guardarModalEditarTienda);
+  document.getElementById('modalEditarTiendaOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modalEditarTiendaOverlay') cerrarModalEditarTienda();
+  });
 
   async function moverTienda(id, direccion) {
     const t = tiendasCache.find(x => x.id === id);
@@ -316,7 +320,7 @@
     const t = tiendasCache.find(x => x.id === id);
     if (!t) return;
     const ok = await modalConfirm(
-      `¿Eliminar "${t.nombre}"? Esta acción se puede deshacer reactivándola por SQL si hace falta.`,
+      `¿Eliminar "${t.nombre}"?`,
       { titulo: 'Eliminar tienda', danger: true, textoOk: 'Eliminar' }
     );
     if (!ok) return;
