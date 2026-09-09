@@ -8,16 +8,16 @@
 //
 // registrarAccion(categoria, accion, detalle) se llama desde los
 // puntos de la app donde ocurre algo que merece quedar registrado
-// (crear/editar/borrar tiendas y usuarios, inicio de sesión, envío
-// de informes...). Nunca debe romper la acción real del usuario si
-// falla, así que solo deja constancia en consola.
+// (crear/editar/borrar tiendas y usuarios, envío de informes,
+// borrados en siniestros...). Nunca debe romper la acción real del
+// usuario si falla, así que solo deja constancia en consola.
 
 const CATEGORIAS_AUDITORIA = {
-  sesion: 'Sesión',
   tiendas: 'Tiendas y agencias',
   usuarios: 'Usuarios',
   informes: 'Informes',
-  reportes_mensuales: 'Reportes mensuales'
+  reportes_mensuales: 'Reportes mensuales',
+  siniestros: 'Siniestros'
 };
 
 async function registrarAccion(categoria, accion, detalle) {
@@ -107,9 +107,4 @@ document.getElementById('btnAudLimpiar')?.addEventListener('click', () => {
   document.getElementById('audDesde').value = '';
   document.getElementById('audHasta').value = '';
   cargarAuditoria();
-});
-
-// Recarga automática al cambiar cualquier filtro (además del botón "Consultar")
-['audFiltroUsuario', 'audFiltroCategoria'].forEach(id => {
-  document.getElementById(id)?.addEventListener('change', cargarAuditoria);
 });
