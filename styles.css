@@ -1037,6 +1037,24 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-badge-estado i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
 .ps-modal-box{ width:100%; max-width:1040px; max-height:97vh; overflow-y:auto; position:relative; }
+
+/* ---------- Modal: vista previa del PDF resumen (Panel siniestros) ---------- */
+/* Se muestra dentro de la propia app (iframe), en vez de abrir una pestaña
+   nueva del navegador — importante en el PWA instalado, donde una pestaña
+   nueva saca a la persona fuera de la app. */
+#psPdfPreviewOverlay{ z-index:350; }
+.ps-pdf-preview-box{
+  width:94vw; max-width:760px; height:88vh; max-height:820px;
+  display:flex; flex-direction:column; position:relative;
+}
+.ps-pdf-preview-box iframe{
+  flex:1 1 auto; width:100%; border:1px solid var(--border); border-radius:10px; background:#525659;
+}
+.ps-pdf-preview-box .modal-footer{ flex-shrink:0; }
+@media (max-width:640px){
+  .ps-pdf-preview-box{ width:96vw; height:92vh; padding:18px 14px 14px; }
+}
+
 .ps-modal-titulo-principal{
   margin:0 0 16px; text-align:center; font-size:18px; font-weight:800; color:var(--ink);
 }
