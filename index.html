@@ -953,6 +953,41 @@
   </div>
 </div>
 
+<!-- Modal: editar datos de una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalEditarTiendaOverlay">
+  <div class="modal-box" style="max-width:380px;" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
+    <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+      <div>
+        <label class="form-label">Nombre tienda</label>
+        <input type="text" id="metNombre" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Hora prevista</label>
+        <input type="time" id="metHora" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Provincia</label>
+        <input type="text" id="metProvincia" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Marca</label>
+        <select id="metMarca" class="form-input">
+          <option value="HABITUAL">Habitual</option>
+          <option value="SABADO">Sábado</option>
+          <option value="PRUEBA">Prueba</option>
+          <option value="ESPECIAL">Especial</option>
+        </select>
+      </div>
+    </div>
+    <p id="metError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
+      <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: horario semanal especial de una tienda (Gestión de tiendas) -->
 <div class="modal-overlay" id="modalHorarioOverlay">
   <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="modalHorarioTitulo">
