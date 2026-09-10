@@ -208,7 +208,7 @@
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url');
+        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
@@ -243,6 +243,15 @@
           items.push({
             icono: '🧾',
             texto: `${sinFactura.length} siniestro${sinFactura.length === 1 ? '' : 's'} sin factura`,
+            vista: 'panel-siniestros'
+          });
+        }
+
+        const sinOrigen = data.filter(s => s.estado === 'PDTE COBRO' && !s.origen);
+        if (sinOrigen.length) {
+          items.push({
+            icono: '🏷️',
+            texto: `${sinOrigen.length} siniestro${sinOrigen.length === 1 ? '' : 's'} sin origen de mercancía`,
             vista: 'panel-siniestros'
           });
         }
