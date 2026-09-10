@@ -176,6 +176,16 @@
   .page-head h1{ font-size:20px; margin:0 0 4px; letter-spacing:-.2px; }
   .page-head p{ margin:0; color:var(--ink-soft); font-size:13px; }
 
+  /* Cabecera fija: mantiene el título y la barra de acciones (Exportar,
+     Utilidades, Filtros, Buscar, Enviar informe...) siempre visibles
+     mientras se hace scroll por la tabla; usa el scroll real de <main>,
+     igual que el panel de siniestros (.ps-panel-fijo). */
+  .cabecera-fija{
+    position:sticky; top:0; z-index:15;
+    background:var(--panel-muted);
+    margin:0 -18px; padding:0 18px 4px;
+  }
+
   .informe-titulo-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; row-gap:6px; }
   .informe-titulo{
     margin:0; font-size:17px; font-weight:800; letter-spacing:.3px;
