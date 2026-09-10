@@ -284,7 +284,7 @@
               </div>
               <div class="filtros-modal-body">
                   <div class="filtros-grid">
-                    <div class="filtro-campo filtros-span2">
+                    <div class="filtro-campo">
                       <label>Agencia</label>
                       <div class="filtro-select" data-grupo="agencia">
                         <button type="button" class="filtro-select-btn">
@@ -296,18 +296,6 @@
                             <input type="text" placeholder="Buscar agencia…">
                           </div>
                           <div class="filtro-select-lista" id="filtrosAgenciasLista"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="filtro-campo">
-                      <label>Tipo</label>
-                      <div class="filtro-select" data-grupo="tipo">
-                        <button type="button" class="filtro-select-btn">
-                          <span class="filtro-select-valor">Todos</span>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                        <div class="filtro-select-dropdown">
-                          <div class="filtro-select-lista" id="filtrosTiposLista"></div>
                         </div>
                       </div>
                     </div>
@@ -327,6 +315,18 @@
                       </div>
                     </div>
                     <div class="filtro-campo">
+                      <label>Tipo</label>
+                      <div class="filtro-select" data-grupo="tipo">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-lista" id="filtrosTiposLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
                       <label>Marca</label>
                       <div class="filtro-select" data-grupo="marca">
                         <button type="button" class="filtro-select-btn">
@@ -338,10 +338,14 @@
                         </div>
                       </div>
                     </div>
-                    <div class="filtro-campo filtros-span2">
+                    <div class="filtro-campo filtros-span2" style="display:flex; gap:22px; flex-wrap:wrap;">
                       <label class="filtro-check" style="padding:2px 0;">
                         <input type="checkbox" id="filtroSoloConIncidencias">
                         <span>Solo con incidencias</span>
+                      </label>
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="filtroSoloPendientes">
+                        <span>Solo pendientes</span>
                       </label>
                     </div>
                   </div>
