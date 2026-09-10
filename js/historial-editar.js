@@ -57,7 +57,7 @@ async function activarEdicionHistorial() {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
   const { data, error } = await sb.from('incidencias')
-    .select('id, tienda_id, marcada, tipo, motivo, observaciones')
+    .select('id, tienda_id, marcada, tipo, motivo, observaciones, tienda_nombre, tienda_hora_prevista, tienda_marca, agencia_id, agencia_nombre')
     .eq('informe_id', historialInformeActual.id);
   if (error) {
     console.error('Error cargando incidencias para editar:', error);
