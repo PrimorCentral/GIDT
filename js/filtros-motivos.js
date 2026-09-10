@@ -1,6 +1,6 @@
 // Selects desplegables (Agencia / Tipo / Motivo) dentro del panel
   // ---------------------------------------------------------------
-  const NOMBRES_FILTRO_GRUPO = { agencia: 'agencia', tipo: 'tipo', motivo: 'motivo' };
+  const NOMBRES_FILTRO_GRUPO = { agencia: 'agencia', tipo: 'tipo', motivo: 'motivo', marca: 'marca' };
 
   function actualizarValoresSelects() {
     // Ojo: solo los selects DEL PANEL de Informe del día — de lo contrario
@@ -10,6 +10,7 @@
       const grupo = sel.dataset.grupo;
       const set = grupo === 'agencia' ? filtrosIncidencias.agencias
                 : grupo === 'tipo' ? filtrosIncidencias.tipos
+                : grupo === 'marca' ? filtrosIncidencias.marcas
                 : filtrosIncidencias.motivos;
       const valor = sel.querySelector('.filtro-select-valor');
       if (set.size === 0) {
@@ -62,10 +63,18 @@
     { v: 'PENDIENTE', label: 'Pendiente' }
   ];
 
+  const MARCAS_FILTRO = [
+    { v: 'HABITUAL', label: 'Habitual' },
+    { v: 'SABADO', label: 'Sábado' },
+    { v: 'PRUEBA', label: 'Prueba' },
+    { v: 'ESPECIAL', label: 'Especial' }
+  ];
+
   function construirPanelFiltrosIncidencias() {
     const listaAg = document.getElementById('filtrosAgenciasLista');
     const listaTipos = document.getElementById('filtrosTiposLista');
     const listaMotivos = document.getElementById('filtrosMotivosLista');
+    const listaMarcas = document.getElementById('filtrosMarcasLista');
 
     if (!listaAg.dataset.built) {
       listaAg.innerHTML = agenciasCache.map(ag => `
@@ -94,6 +103,15 @@
       listaMotivos.dataset.built = '1';
     }
 
+    if (!listaMarcas.dataset.built) {
+      listaMarcas.innerHTML = MARCAS_FILTRO.map(m => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${m.v}" data-filtro="marca">
+          <span>${m.label}</span>
+        </label>`).join('');
+      listaMarcas.dataset.built = '1';
+    }
+
     const panel = document.getElementById('filtrosPanel');
     if (!panel.dataset.wired) {
       panel.addEventListener('change', (e) => {
@@ -108,6 +126,7 @@
         const grupo = cb.dataset.filtro;
         const set = grupo === 'agencia' ? filtrosIncidencias.agencias
                   : grupo === 'tipo' ? filtrosIncidencias.tipos
+                  : grupo === 'marca' ? filtrosIncidencias.marcas
                   : filtrosIncidencias.motivos;
         const val = grupo === 'agencia' ? Number(cb.value) : cb.value;
         if (cb.checked) set.add(val); else set.delete(val);
@@ -120,7 +139,7 @@
   }
 
   function actualizarBadgeFiltros() {
-    const total = filtrosIncidencias.agencias.size + filtrosIncidencias.tipos.size + filtrosIncidencias.motivos.size + (filtrosIncidencias.soloConIncidencias ? 1 : 0);
+    const total = filtrosIncidencias.agencias.size + filtrosIncidencias.tipos.size + filtrosIncidencias.motivos.size + filtrosIncidencias.marcas.size + (filtrosIncidencias.soloConIncidencias ? 1 : 0);
     const badge = document.getElementById('filtrosCount');
     const btn = document.getElementById('btnFiltrosIncidencias');
     if (total > 0) {
@@ -188,6 +207,7 @@
     filtrosIncidencias.agencias.clear();
     filtrosIncidencias.tipos.clear();
     filtrosIncidencias.motivos.clear();
+    filtrosIncidencias.marcas.clear();
     filtrosIncidencias.soloConIncidencias = false;
     document.querySelectorAll('#filtrosPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
     actualizarBadgeFiltros();

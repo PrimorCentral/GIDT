@@ -210,6 +210,7 @@
 
     construirPanelFiltrosIncidencias();
     if (typeof actualizarBadgeFiltros === 'function') actualizarBadgeFiltros();
+    if (typeof actualizarBadgeUtilidades === 'function') actualizarBadgeUtilidades();
     renderAcordeonIncidencias();
     actualizarKpiIncidencias();
   }
@@ -254,16 +255,20 @@
   }
 
   let agenciasAbiertasIncidencias = new Set(); // ids de agencia desplegados en "Incidencias del día"
-  let filtrosIncidencias = { agencias: new Set(), tipos: new Set(), motivos: new Set(), soloConIncidencias: false };
+  let filtrosIncidencias = { agencias: new Set(), tipos: new Set(), motivos: new Set(), marcas: new Set(), soloConIncidencias: false };
 
   function filtrosActivos() {
-    return filtrosIncidencias.agencias.size > 0 || filtrosIncidencias.tipos.size > 0 || filtrosIncidencias.motivos.size > 0 || filtrosIncidencias.soloConIncidencias;
+    return filtrosIncidencias.agencias.size > 0 || filtrosIncidencias.tipos.size > 0 || filtrosIncidencias.motivos.size > 0 || filtrosIncidencias.marcas.size > 0 || filtrosIncidencias.soloConIncidencias;
   }
 
   function renderAcordeonIncidencias(filtroTexto = '') {
     const cont = document.getElementById('contenidoIncidencias');
     const f = filtroTexto.trim().toUpperCase();
     const hayFiltros = filtrosActivos();
+    // Las tiendas marca "Sábado" solo reciben entrega ese día, así que no
+    // deben aparecer en el informe de hoy el resto de días de la semana
+    // (salvo que el usuario las pida explícitamente desde el filtro Marca).
+    const hoyEsSabado = hoy.getDay() === 6;
 
     let agenciasAMostrar = agenciasCache;
     if (filtrosIncidencias.agencias.size) {
@@ -280,6 +285,14 @@
     cont.innerHTML = agenciasAMostrar.map(ag => {
       let tds = tiendasEfectivas.filter(t => t.agencia_id === ag.id);
       if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
+
+      // Filtro Marca: exclusión automática de "Sábado" fuera de los sábados,
+      // más la selección manual del usuario (Habitual/Sábado/Prueba/Especial).
+      tds = tds.filter(t => {
+        if (!hoyEsSabado && t.marca === 'SABADO' && !filtrosIncidencias.marcas.has('SABADO')) return false;
+        if (filtrosIncidencias.marcas.size && !filtrosIncidencias.marcas.has(t.marca)) return false;
+        return true;
+      });
 
       if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias) {
         tds = tds.filter(t => {

@@ -284,8 +284,25 @@ function seleccionarTiendaUtilidades(tiendaId) {
   document.getElementById('utilBtnQuitarAjuste').style.display = aj ? '' : 'none';
 }
 
+// Refleja en el botón "Utilidades" el número de cambios puntuales
+// configurados hoy, igual que el botón "Filtros" con su contador.
+function actualizarBadgeUtilidades() {
+  const badge = document.getElementById('utilidadesCount');
+  if (!badge || !btnUtilidadesInforme) return;
+  const total = Object.keys(informeHoyCache?.ajustes_puntuales || {}).length;
+  if (total > 0) {
+    badge.textContent = total;
+    badge.style.display = '';
+    btnUtilidadesInforme.classList.add('activo');
+  } else {
+    badge.style.display = 'none';
+    btnUtilidadesInforme.classList.remove('activo');
+  }
+}
+
 function renderListaAjustesPuntuales() {
   const cont = document.getElementById('utilListaAjustes');
+  actualizarBadgeUtilidades();
   if (!cont) return;
   const mapa = informeHoyCache?.ajustes_puntuales || {};
   const ids = Object.keys(mapa);
