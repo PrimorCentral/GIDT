@@ -237,7 +237,7 @@
       historialInformeActual = informe;
       historialIncidenciasActual = incs || [];
       if (wrapExportar) wrapExportar.style.display = '';
-      if (wrapFiltros) wrapFiltros.style.display = '';
+      if (wrapFiltros) wrapFiltros.style.display = 'flex';
       if (btnEditar) btnEditar.style.display = (informe.fecha === fechaHoyISO) ? 'none' : '';
 
       renderHistorialInforme();
