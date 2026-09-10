@@ -589,7 +589,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
   // (ese ancho sí cambia de un informe a otro según cuántos días tenga
   // el rango exportado: un mes de 31 días los deja algo más estrechos
   // que uno de 28).
-  const anchoColAgencia = 55, anchoColTienda = 90, anchoColProvincia = 92, anchoColTotal = 24;
+  const anchoColAgencia = 55, anchoColTienda = 90, anchoColProvincia = 92, anchoColTotal = 32;
   const anchoFijoResto = anchoColAgencia + anchoColTienda + anchoColProvincia + anchoColTotal;
   const anchoColDia = (anchoUtil - anchoFijoResto) / cabeceraDias.length;
   const columnStylesDias = {};
