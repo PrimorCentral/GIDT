@@ -569,7 +569,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     tableWidth: anchoTitulo,
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 17 * escala, fontStyle: 'bold', textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: Math.max(0.15, 0.75 * escala), cellPadding: 8 * escala, halign: 'center', valign: 'middle', fillColor: [255, 242, 204], minCellHeight: altoLeyenda },
-    body: [[`ENTREGAS MERCANCIA ${grupoNombre.toUpperCase()}\n${esMesCompleto ? rmeTituloMes(anio, mesIndex) : `${diaDesde}-${diaHasta} ${rmeTituloMes(anio, mesIndex)}`}`]]
+    body: [[`ENTREGAS MERCANCIA\n${grupoNombre.toUpperCase()}\n${esMesCompleto ? rmeTituloMes(anio, mesIndex) : `${diaDesde}-${diaHasta} ${rmeTituloMes(anio, mesIndex)}`}`]]
   });
   const finalYTitulo = doc.lastAutoTable.finalY;
 
