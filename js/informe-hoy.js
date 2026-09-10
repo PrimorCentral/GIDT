@@ -175,17 +175,32 @@
   async function cargarInformeHistorial(fecha) {
     const cont = document.getElementById('contenidoHistorial');
     const wrapExportar = document.getElementById('exportarWrapHistorial');
+    const wrapFiltros = document.getElementById('historialFiltrosWrap');
     const btnEditar = document.getElementById('btnEditarHistorial');
     if (!fecha) {
       await modalAlert('Selecciona primero una fecha.', { titulo: 'Historial' });
       return;
     }
+
+    // Si se estaba editando otro informe con cambios sin guardar, hay que
+    // preguntar antes de abandonarlos (igual que el botón "Salir").
+    if (historialEditando && typeof hayCambiosSinGuardarHistorial === 'function' && hayCambiosSinGuardarHistorial()) {
+      const ok = await modalConfirm('Tienes cambios sin guardar en el informe que estabas editando. ¿Descartarlos y consultar otra fecha?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
+      if (!ok) return;
+      if (typeof borrarFotosBorradorStorage === 'function') await borrarFotosBorradorStorage();
+      historialBorrador = new Map();
+      historialSiniestrosDraft = new Map();
+    }
+
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
     if (wrapExportar) wrapExportar.style.display = 'none';
+    if (wrapFiltros) wrapFiltros.style.display = 'none';
     if (btnEditar) btnEditar.style.display = 'none';
     historialInformeActual = null;
     historialIncidenciasActual = [];
     historialEditando = false;
+    if (typeof mostrarFiltroSoloConIncidenciasHistorial === 'function') mostrarFiltroSoloConIncidenciasHistorial(false);
+    if (typeof limpiarFiltrosHistorialCompleto === 'function') limpiarFiltrosHistorialCompleto();
 
     try {
       const { data: informe, error: eInf } = await sb
@@ -222,9 +237,10 @@
       historialInformeActual = informe;
       historialIncidenciasActual = incs || [];
       if (wrapExportar) wrapExportar.style.display = '';
+      if (wrapFiltros) wrapFiltros.style.display = '';
       if (btnEditar) btnEditar.style.display = (informe.fecha === fechaHoyISO) ? 'none' : '';
 
-      renderHistorialInforme(informe, incs || []);
+      renderHistorialInforme();
     } catch (err) {
       console.error('Error cargando historial de informe:', err);
       cont.innerHTML = `
@@ -238,13 +254,15 @@
     }
   }
 
-  function renderHistorialInforme(informe, incidenciasActivas) {
+  function renderHistorialInforme() {
+    const informe = historialInformeActual;
+    if (!informe) return;
     const cont = document.getElementById('contenidoHistorial');
     const fechaInforme = new Date(informe.fecha + 'T00:00:00');
     const fechaTexto = `${dias[fechaInforme.getDay()]}, ${formatearFechaCorta(fechaInforme)}`;
     const estadoTexto = informe.informe_enviado ? 'ENVIADO' : informe.estado;
 
-    if (!incidenciasActivas.length) {
+    if (!historialIncidenciasActual.length) {
       cont.innerHTML = `
         <div class="card" style="margin-bottom:14px; padding:16px 20px;">
           <b style="text-transform:capitalize;">${fechaTexto}</b>
@@ -255,6 +273,35 @@
             <div class="glyph">✅</div>
             <h3>Sin incidencias ese día</h3>
             <p>No hubo ninguna incidencia activa registrada el ${fechaTexto}.</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Búsqueda por tienda + filtros (Agencia/Motivo/Tipo/Marca/Solo pendientes),
+    // igual que en "Informe del día" (js/historial-filtros.js).
+    const f = (document.getElementById('buscarTiendaHistorial')?.value || '').trim().toUpperCase();
+    let incidenciasActivas = historialIncidenciasActual;
+    if (f) incidenciasActivas = incidenciasActivas.filter(i => (i.tienda_nombre || '').toUpperCase().includes(f));
+    if (typeof filtrosHistorial !== 'undefined') {
+      if (filtrosHistorial.agencias.size) incidenciasActivas = incidenciasActivas.filter(i => filtrosHistorial.agencias.has(i.agencia_id));
+      if (filtrosHistorial.marcas.size) incidenciasActivas = incidenciasActivas.filter(i => filtrosHistorial.marcas.has(i.tienda_marca));
+      if (filtrosHistorial.tipos.size) incidenciasActivas = incidenciasActivas.filter(i => filtrosHistorial.tipos.has(i.tipo || 'PENDIENTE'));
+      if (filtrosHistorial.motivos.size) incidenciasActivas = incidenciasActivas.filter(i => (i.motivo || []).some(m => filtrosHistorial.motivos.has(m)));
+      if (filtrosHistorial.soloPendientes) incidenciasActivas = incidenciasActivas.filter(i => (i.motivo || []).some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA'));
+    }
+
+    if (!incidenciasActivas.length) {
+      cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px; padding:16px 20px;">
+          <b style="text-transform:capitalize;">${fechaTexto}</b>
+          ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${estadoTexto}
+        </div>
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">🔎</div>
+            <h3>Sin resultados</h3>
+            <p>Ninguna incidencia de ese día coincide con la búsqueda o los filtros.</p>
           </div>
         </div>`;
       return;

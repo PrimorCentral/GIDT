@@ -371,9 +371,11 @@
     if (!els.panel) return;
     cerrarTodosLosExportarPaneles(contexto);
     // Si el panel de "Filtros" o el de "Utilidades" están abiertos (vista
-    // "Informe del día"), los cerramos primero para que no se solapen.
+    // "Informe del día"), o el de "Filtros" del Historial, los cerramos
+    // primero para que no se solapen.
     if (typeof cerrarFiltrosPanel === 'function') cerrarFiltrosPanel();
     if (typeof cerrarUtilidadesPanel === 'function') cerrarUtilidadesPanel();
+    if (typeof cerrarHistorialFiltrosPanel === 'function') cerrarHistorialFiltrosPanel();
 
     await ensureAgenciasYTiendasCargadas();
     construirTiposExport(contexto);

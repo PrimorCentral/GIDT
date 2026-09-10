@@ -10,7 +10,7 @@
 //  1. Al marcar FALTAS o NO ENTREGAN, se pregunta el submotivo con el
 //     modal ya existente (modalSeleccionar) y se guarda como un checkbox
 //     OCULTO más dentro de la misma fila <tr>, con class="i-motivo-check"
-//     — por eso guardarIncidencia() / guardarIncidenciaHistorial() lo
+//     — por eso guardarIncidencia() / actualizarBorradorIncidencia() lo
 //     incluyen solas al hacer
 //     Array.from(tr.querySelectorAll('.i-motivo-check:checked'))...
 //  2. Al desmarcar FALTAS/NO ENTREGAN, o al pulsar "Quitar todos los
