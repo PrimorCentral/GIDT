@@ -218,6 +218,7 @@
             <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales de hoy (hora / agencia de entrega)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2-2 2.5-2.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Utilidades
+              <span class="filtros-count" id="utilidadesCount" style="display:none;"></span>
             </button>
             <div class="filtros-modal-overlay" id="utilidadesPanel">
               <div class="filtros-modal-header">
@@ -322,6 +323,18 @@
                             <input type="text" placeholder="Buscar motivo…">
                           </div>
                           <div class="filtro-select-lista" id="filtrosMotivosLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Marca</label>
+                      <div class="filtro-select" data-grupo="marca">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-lista" id="filtrosMarcasLista"></div>
                         </div>
                       </div>
                     </div>

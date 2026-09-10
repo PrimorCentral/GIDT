@@ -553,6 +553,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   #btnFiltrosIncidencias.open,
   #btnFiltrosIncidencias.activo{ border-color:var(--accent); color:var(--accent-ink); }
   #btnFiltrosIncidencias svg{ flex:0 0 auto; }
+  #btnUtilidadesInforme.open,
+  #btnUtilidadesInforme.activo{ border-color:var(--accent); color:var(--accent-ink); }
   .filtros-count{
     display:inline-flex; align-items:center; justify-content:center;
     min-width:16px; height:16px; padding:0 4px; border-radius:99px;
