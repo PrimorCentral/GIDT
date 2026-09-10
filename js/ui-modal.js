@@ -131,6 +131,7 @@
   });
 
   document.getElementById('userChip').addEventListener('click', async () => {
+    if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
     if (!(await modalConfirm('¿Cerrar sesión?', { titulo: 'Cerrar sesión' }))) return;
     sessionStorage.removeItem(SESSION_KEY);
     if (typeof activarVista === 'function') activarVista('inicio');

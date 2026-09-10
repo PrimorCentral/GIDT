@@ -64,7 +64,8 @@
             <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
           </div>
         </div>`;
-      card.querySelector('[data-view="incidencias"]').addEventListener('click', () => {
+      card.querySelector('[data-view="incidencias"]').addEventListener('click', async () => {
+        if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
         activarVista('incidencias');
         renderVistaIncidencias();
       });
@@ -183,14 +184,8 @@
     }
 
     // Si se estaba editando otro informe con cambios sin guardar, hay que
-    // preguntar antes de abandonarlos (igual que el botón "Salir").
-    if (historialEditando && typeof hayCambiosSinGuardarHistorial === 'function' && hayCambiosSinGuardarHistorial()) {
-      const ok = await modalConfirm('Tienes cambios sin guardar en el informe que estabas editando. ¿Descartarlos y consultar otra fecha?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
-      if (!ok) return;
-      if (typeof borrarFotosBorradorStorage === 'function') await borrarFotosBorradorStorage();
-      historialBorrador = new Map();
-      historialSiniestrosDraft = new Map();
-    }
+    // preguntar antes de abandonarlos (mismo modal que el botón "Salir").
+    if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
 
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
     if (wrapExportar) wrapExportar.style.display = 'none';

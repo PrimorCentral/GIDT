@@ -20,7 +20,8 @@
   }
 
   document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
+      if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
       activarVista(btn.dataset.view);
       if (btn.dataset.view === 'inicio') {
         if (typeof cargarKPIs === 'function') cargarKPIs();
@@ -63,7 +64,8 @@
     });
 
     panel.querySelectorAll('button[data-view]').forEach(item => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', async () => {
+        if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
         activarVista(item.dataset.view);
         cerrarTodosLosDropdowns();
         if (item.dataset.view === 'incidencias' && informeHoyCache !== undefined) renderVistaIncidencias();
@@ -302,7 +304,8 @@
       </button>`).join('');
 
     cont.querySelectorAll('[data-ir]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
         const vista = btn.dataset.ir;
         activarVista(vista);
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();

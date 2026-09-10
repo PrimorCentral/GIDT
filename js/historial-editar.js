@@ -204,14 +204,28 @@ async function crearSiniestroPanelDesdeBorrador(incidencia, draftSin, informe) {
 // ---------------- "Salir": descarta el borrador ----------------
 
 async function cancelarEdicionHistorial() {
+  await confirmarDescartarEdicionHistorial();
+}
+
+// Comprueba si hay cambios sin guardar en la edición del histórico y, si
+// los hay, pregunta antes de continuar (mismo modal que el botón "Salir").
+// Si se confirma, descarta el borrador (incluidas las fotos ya subidas a
+// Storage) y sale del modo edición. Pensada para usarse como guarda antes
+// de cualquier navegación fuera de esta pantalla (cambiar de pestaña,
+// cerrar sesión, ir a "Informe de hoy"…).
+// Devuelve true si se puede continuar (no había cambios, o se confirmó
+// descartarlos), false si hay que quedarse donde se está.
+async function confirmarDescartarEdicionHistorial() {
+  if (!historialEditando) return true;
   if (hayCambiosSinGuardarHistorial()) {
     const ok = await modalConfirm('Tienes cambios sin guardar en este informe. ¿Descartarlos?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
-    if (!ok) return;
+    if (!ok) return false;
     await borrarFotosBorradorStorage();
   }
   historialBorrador = new Map();
   historialSiniestrosDraft = new Map();
   salirDeEdicionHistorial();
+  return true;
 }
 
 function salirDeEdicionHistorial() {
