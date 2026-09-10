@@ -377,6 +377,91 @@
           <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
           <button class="btn" id="btnEditarHistorial" style="display:none;" title="Editar este informe">✏️ Editar informe</button>
+          <div class="filtros-wrap" id="historialFiltrosWrap" style="display:none;">
+            <button class="btn" id="btnHistorialFiltros">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="historialFiltrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="historialFiltrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar incidencias</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnHistorialLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnHistorialCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <div class="filtros-grid">
+                  <div class="filtro-campo">
+                    <label>Agencia</label>
+                    <div class="filtro-select" data-grupo="agencia">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="historialFiltrosAgenciasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Motivo</label>
+                    <div class="filtro-select" data-grupo="motivo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar motivo…">
+                        </div>
+                        <div class="filtro-select-lista" id="historialFiltrosMotivosLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tipo</label>
+                    <div class="filtro-select" data-grupo="tipo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="historialFiltrosTiposLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Marca</label>
+                    <div class="filtro-select" data-grupo="marca">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="historialFiltrosMarcasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2" style="flex-direction:row; align-items:center; gap:22px; flex-wrap:wrap;">
+                    <label class="filtro-check" id="historialFiltroSoloConIncidenciasWrap" style="padding:2px 0; display:none;">
+                      <input type="checkbox" id="historialFiltroSoloConIncidencias">
+                      <span>Solo con incidencias</span>
+                    </label>
+                    <label class="filtro-check" style="padding:2px 0;">
+                      <input type="checkbox" id="historialFiltroSoloPendientes">
+                      <span>Solo pendientes</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="text" id="buscarTiendaHistorial" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
+          </div>
           <div class="filtros-wrap" id="exportarWrapHistorial" style="display:none;">
             <button class="btn" id="btnExportarHistorial" title="Exportar este informe">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1717,6 +1802,7 @@
 <script src="js/siniestros-historial.js"></script>
 <script src="js/historial-editar.js"></script>
 <script src="js/filtros-motivos.js"></script>
+<script src="js/historial-filtros.js"></script>
 <script src="js/reportes-mensuales.js"></script>
 <script src="js/email-plantillas.js"></script>
 <script src="js/email-service.js"></script>
