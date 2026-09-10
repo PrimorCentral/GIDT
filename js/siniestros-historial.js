@@ -255,10 +255,10 @@
   }
 
   let agenciasAbiertasIncidencias = new Set(); // ids de agencia desplegados en "Incidencias del día"
-  let filtrosIncidencias = { agencias: new Set(), tipos: new Set(), motivos: new Set(), marcas: new Set(), soloConIncidencias: false };
+  let filtrosIncidencias = { agencias: new Set(), tipos: new Set(), motivos: new Set(), marcas: new Set(), soloConIncidencias: false, soloPendientes: false };
 
   function filtrosActivos() {
-    return filtrosIncidencias.agencias.size > 0 || filtrosIncidencias.tipos.size > 0 || filtrosIncidencias.motivos.size > 0 || filtrosIncidencias.marcas.size > 0 || filtrosIncidencias.soloConIncidencias;
+    return filtrosIncidencias.agencias.size > 0 || filtrosIncidencias.tipos.size > 0 || filtrosIncidencias.motivos.size > 0 || filtrosIncidencias.marcas.size > 0 || filtrosIncidencias.soloConIncidencias || filtrosIncidencias.soloPendientes;
   }
 
   function renderAcordeonIncidencias(filtroTexto = '') {
@@ -294,7 +294,7 @@
         return true;
       });
 
-      if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias) {
+      if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias || filtrosIncidencias.soloPendientes) {
         tds = tds.filter(t => {
           const inc = incidenciaDeTienda(t.id);
           const motivosActuales = inc?.motivo || [];
@@ -303,6 +303,7 @@
           const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
 
           if (filtrosIncidencias.soloConIncidencias && !marcada) return false;
+          if (filtrosIncidencias.soloPendientes && !motivosActuales.some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA')) return false;
           if (filtrosIncidencias.tipos.size && (!tipoEfectivo || !filtrosIncidencias.tipos.has(tipoEfectivo))) return false;
           if (filtrosIncidencias.motivos.size && !motivosActuales.some(m => filtrosIncidencias.motivos.has(m))) return false;
           return true;

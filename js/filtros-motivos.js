@@ -123,6 +123,12 @@
           renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
           return;
         }
+        if (cb.id === 'filtroSoloPendientes') {
+          filtrosIncidencias.soloPendientes = cb.checked;
+          actualizarBadgeFiltros();
+          renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
+          return;
+        }
         const grupo = cb.dataset.filtro;
         const set = grupo === 'agencia' ? filtrosIncidencias.agencias
                   : grupo === 'tipo' ? filtrosIncidencias.tipos
@@ -139,7 +145,7 @@
   }
 
   function actualizarBadgeFiltros() {
-    const total = filtrosIncidencias.agencias.size + filtrosIncidencias.tipos.size + filtrosIncidencias.motivos.size + filtrosIncidencias.marcas.size + (filtrosIncidencias.soloConIncidencias ? 1 : 0);
+    const total = filtrosIncidencias.agencias.size + filtrosIncidencias.tipos.size + filtrosIncidencias.motivos.size + filtrosIncidencias.marcas.size + (filtrosIncidencias.soloConIncidencias ? 1 : 0) + (filtrosIncidencias.soloPendientes ? 1 : 0);
     const badge = document.getElementById('filtrosCount');
     const btn = document.getElementById('btnFiltrosIncidencias');
     if (total > 0) {
@@ -209,6 +215,7 @@
     filtrosIncidencias.motivos.clear();
     filtrosIncidencias.marcas.clear();
     filtrosIncidencias.soloConIncidencias = false;
+    filtrosIncidencias.soloPendientes = false;
     document.querySelectorAll('#filtrosPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
     actualizarBadgeFiltros();
     actualizarValoresSelects();
