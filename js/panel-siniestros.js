@@ -166,7 +166,7 @@ function siniestrosPanelFiltrados() {
     if (f.sinAlbaran && s.albaran_url) return false;
     if (f.sinCorreo && s.correo_enviado) return false;
     if (texto) {
-      const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran]
+      const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura]
         .filter(Boolean).join(' ').toUpperCase();
       if (!campo.includes(texto)) return false;
     }
@@ -238,7 +238,7 @@ function renderPanelSiniestros() {
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td>${numFotos ? `📷 ${numFotos}` : '—'}</td>
-        <td>${tieneFactura ? '📄' : '—'}</td>
+        <td>${escapeHtml(s.num_factura || '—')}${tieneFactura ? ' 📄' : ''}</td>
         <td>${psFormatearValor(s.valor)}</td>
         <td>${psBadgeEstado(s.estado)}</td>
         <td class="${vencido ? 'ps-vencido' : ''}">${recogidaTexto}</td>
@@ -557,6 +557,7 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psInformacion').value = s.informacion || '';
   aplicarEstadoCampoAlbaran(s);
   aplicarEstadoCampoValor(s);
+  aplicarEstadoCampoFactura(s);
   document.getElementById('psEstado').value = s.estado || 'PDTE COBRO';
   document.getElementById('psError').style.display = 'none';
 
@@ -761,6 +762,7 @@ async function guardarCamposPanelAhora() {
     origen: document.getElementById('psOrigen').value || null,
     informacion: document.getElementById('psInformacion').value.trim() || null,
     num_albaran: document.getElementById('psAlbaran').value.trim() || null,
+    num_factura: document.getElementById('psFacturaNum').value.trim() || null,
     valor: valorTxt ? Number(valorTxt) : null,
     estado: document.getElementById('psEstado').value,
     recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
@@ -802,7 +804,7 @@ function flushAutoguardadoPanel() {
 ['psOrigen', 'psEstado', 'psRecogida'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', programarAutoguardadoPanel);
 });
-['psInformacion', 'psAlbaran', 'psValor'].forEach(id => {
+['psInformacion', 'psAlbaran', 'psFacturaNum', 'psValor'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
 });
 
@@ -1186,8 +1188,15 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
       totalDetectado = await extraerTotalFacturaDePdf(file);
     }
 
+    const campoFacturaNum = document.getElementById('psFacturaNum');
+    let numeroFacturaDetectado = null;
+    if (!campoFacturaNum.value.trim()) {
+      numeroFacturaDetectado = await extraerNumFacturaDePdf(file);
+    }
+
     const cambios = { factura_url: pub.publicUrl, factura_nombre: comprimido.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
     if (totalDetectado !== null) cambios.valor = totalDetectado;
+    if (numeroFacturaDetectado) cambios.num_factura = numeroFacturaDetectado;
 
     const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
     if (eDb) throw eDb;
@@ -1198,6 +1207,10 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
       s.valor = totalDetectado;
       campoValor.value = totalDetectado;
       aplicarEstadoCampoValor(s);
+    }
+    if (numeroFacturaDetectado) {
+      s.num_factura = numeroFacturaDetectado;
+      aplicarEstadoCampoFactura(s);
     }
     pintarFacturaModal(s);
     renderPanelSiniestros();
@@ -1213,16 +1226,17 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
 });
 
 async function quitarFacturaPanel() {
-  const ok = await modalConfirm('¿Quitar la factura adjunta? También se vaciará el importe detectado.', { titulo: 'Quitar factura', danger: true, textoOk: 'Quitar' });
+  const ok = await modalConfirm('¿Quitar la factura adjunta? También se vaciarán el importe y el nº de factura detectados.', { titulo: 'Quitar factura', danger: true, textoOk: 'Quitar' });
   if (!ok) return;
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.factura_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, valor: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, valor: null, num_factura: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
-    if (s) { s.factura_url = null; s.factura_nombre = null; s.valor = null; }
+    if (s) { s.factura_url = null; s.factura_nombre = null; s.valor = null; s.num_factura = null; }
     pintarFacturaModal(s);
     if (s) aplicarEstadoCampoValor(s); // vacía y libera el campo Valor para poder editarlo a mano
+    if (s) aplicarEstadoCampoFactura(s); // vacía y libera el campo Nº Factura para poder editarlo a mano
     renderPanelSiniestros();
     renderPanelKpis();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
@@ -1282,6 +1296,33 @@ function aplicarEstadoCampoValor(s) {
     hint.innerHTML = `🔒 Detectado importe de factura automáticamente · <button type="button" id="btnEditarValor">editar manualmente</button>`;
     hint.style.display = 'block';
     document.getElementById('btnEditarValor').addEventListener('click', () => {
+      input.disabled = false;
+      input.focus();
+      hint.style.display = 'none';
+    });
+  } else if (!s.factura_url) {
+    hint.textContent = '🔒 Se rellena al subir la factura';
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+// Igual que el Nº Albarán: el campo Nº Factura empieza BLOQUEADO hasta que
+// se sube la factura y se detecta el número; "editar manualmente" solo
+// aparece una vez hay algo detectado que corregir.
+function aplicarEstadoCampoFactura(s) {
+  const input = document.getElementById('psFacturaNum');
+  const hint = document.getElementById('psFacturaNumHint');
+  input.value = s.num_factura || '';
+
+  const detectado = !!(s.factura_url && s.num_factura);
+  input.disabled = detectado || !s.factura_url;
+
+  if (detectado) {
+    hint.innerHTML = `🔒 Detectado número de factura automáticamente · <button type="button" id="btnEditarNumFactura">editar manualmente</button>`;
+    hint.style.display = 'block';
+    document.getElementById('btnEditarNumFactura').addEventListener('click', () => {
       input.disabled = false;
       input.focus();
       hint.style.display = 'none';

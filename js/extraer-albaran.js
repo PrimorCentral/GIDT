@@ -102,3 +102,45 @@ async function extraerTotalFacturaDePdf(fuente) {
     return null;
   }
 }
+
+// ---------------------------------------------------------------
+// Detección automática del Nº de Factura a partir del PDF
+// ---------------------------------------------------------------
+// En la cabecera de la factura hay una tabla "Número | Fecha | Cliente"
+// y justo debajo, en la fila de datos, el número real (p.ej. "9H 7741").
+// Buscamos la etiqueta "Número" y, en el texto que viene justo después,
+// el primer código con forma de nº de factura: unas pocas cifras+letra
+// seguidas de más cifras (a veces con espacio, a veces pegado). Igual
+// que con el albarán, es best-effort: si no encaja el formato, el campo
+// se queda editable a mano.
+
+async function extraerNumFacturaDePdf(fuente) {
+  if (typeof pdfjsLib === 'undefined') return null;
+  asegurarPdfWorker();
+
+  try {
+    let arrayBuffer;
+    if (fuente instanceof File || fuente instanceof Blob) {
+      arrayBuffer = await fuente.arrayBuffer();
+    } else if (typeof fuente === 'string') {
+      const resp = await fetch(fuente);
+      arrayBuffer = await resp.arrayBuffer();
+    } else {
+      return null;
+    }
+
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1); // el número de factura va en la cabecera de la 1ª página
+    const contenido = await page.getTextContent();
+    const texto = contenido.items.map(it => it.str).join(' ');
+
+    const ancla = texto.match(/n[uú]mero/i);
+    if (!ancla) return null;
+    const desdeAncla = texto.slice(ancla.index + ancla[0].length, ancla.index + ancla[0].length + 500);
+    const numero = desdeAncla.match(/\b\d{1,4}[A-Z]{1,3}\s?\d{2,8}\b/);
+    return numero ? numero[0].replace(/\s+/g, ' ').trim() : null;
+  } catch (err) {
+    console.error('Error leyendo el nº de factura:', err);
+    return null;
+  }
+}
