@@ -114,6 +114,22 @@ async function extraerTotalFacturaDePdf(fuente) {
 // que con el albarán, es best-effort: si no encaja el formato, el campo
 // se queda editable a mano.
 
+// ---------------------------------------------------------------
+// Detección automática del Nº de Factura a partir del PDF
+// ---------------------------------------------------------------
+// El nº de factura (p.ej. "9H 7741") se imprime en la misma línea que
+// el código de cliente ("430/00/0036") y la fecha ("9.09.26"). El texto
+// que extrae pdf.js NO sigue siempre el orden visual de lectura (las
+// etiquetas de cabecera como "Número" pueden quedar muy lejos, en otro
+// bloque, del valor real), así que buscar el primer código después de
+// la etiqueta "Número" es poco fiable y puede confundirse con un código
+// de producto de la tabla (p.ej. "6XS02461").
+//
+// En vez de eso, buscamos directamente el TRÍO tal y como se imprime
+// junto en esa línea: serie+número de factura, seguido del código de
+// cliente (con barras) y de la fecha (con puntos). Es un patrón mucho
+// más específico que no se confunde con nada de la tabla de artículos.
+
 async function extraerNumFacturaDePdf(fuente) {
   if (typeof pdfjsLib === 'undefined') return null;
   asegurarPdfWorker();
@@ -134,9 +150,19 @@ async function extraerNumFacturaDePdf(fuente) {
     const contenido = await page.getTextContent();
     const texto = contenido.items.map(it => it.str).join(' ');
 
+    // Serie+número ("9H 7741") seguido, pegado en la misma línea, de la
+    // fecha ("9.09.26") o del código de cliente ("430/00/0036") — el
+    // orden entre estos dos últimos varía según la factura, así que
+    // aceptamos cualquiera de los dos justo después del número.
+    const trio = texto.match(/\b(\d{1,4}[A-Z]{1,3})\s+(\d{2,7})\s+(?:\d{1,2}\.\d{2}\.\d{2,4}|\d{1,4}\/\d{1,3}\/\d{2,6})\b/);
+    if (trio) return `${trio[1]} ${trio[2]}`;
+
+    // Fallback best-effort: primer código con forma de nº de factura que
+    // aparezca cerca de la etiqueta "Número" (por si el formato de la
+    // factura no trae el trío completo pegado).
     const ancla = texto.match(/n[uú]mero/i);
     if (!ancla) return null;
-    const desdeAncla = texto.slice(ancla.index + ancla[0].length, ancla.index + ancla[0].length + 500);
+    const desdeAncla = texto.slice(ancla.index + ancla[0].length, ancla.index + ancla[0].length + 200);
     const numero = desdeAncla.match(/\b\d{1,4}[A-Z]{1,3}\s?\d{2,8}\b/);
     return numero ? numero[0].replace(/\s+/g, ' ').trim() : null;
   } catch (err) {
