@@ -227,7 +227,7 @@ function renderPanelSiniestros() {
     const vencido = limite && limite < hoy && s.estado !== 'COBRADO' && !s.recogida_estado;
     const recogidaTexto = aplicaRecogida
       ? `${psFormatearFecha(s.recogida_limite)}${s.recogida_estado ? `<br><span class="ps-recogida-mini">${s.recogida_estado === 'ENVIADO A CENTRAL' ? '🏢 A central' : '📦 Recogido'}</span>` : ''}`
-      : '—';
+      : 'NO APLICA';
     return `
       <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
         <td>${psFormatearFecha(s.fecha)}</td>
