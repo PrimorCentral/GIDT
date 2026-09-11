@@ -727,6 +727,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   @keyframes modalIn{ from{ opacity:0; transform:translateY(8px) scale(.97); } to{ opacity:1; transform:none; } }
   .modal-icon{ font-size:24px; line-height:1; margin-bottom:8px; }
   .modal-title{ margin:0 0 7px; font-size:16px; font-weight:700; color:var(--ink); letter-spacing:-.1px; }
+  .modal-title-danger{ color:var(--grave); }
   .modal-message{ margin:0 0 16px; font-size:13.5px; color:var(--ink-soft); line-height:1.5; white-space:pre-line; }
   .modal-input{ margin-bottom:18px; }
   .modal-footer{ display:flex; justify-content:flex-end; gap:10px; }
@@ -1278,16 +1279,21 @@ body:not(.perm-borrar) #btnQuitarFactura,
 body:not(.perm-borrar) #btnQuitarAlbaran{ display:none !important; }
 
 /* Sin permiso de "Editar informes pasados" */
-body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ pointer-events:none !important; opacity:.6; }
+body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ opacity:.6; }
 
-/* Sin permiso de "Informe del día" */
+/* Sin permiso de "Informe del día": los botones se ven atenuados pero
+   siguen siendo pulsables (permisos-aviso.js intercepta el clic y
+   avisa); los campos de cada fila (checks de motivo, observaciones)
+   se quedan solo atenuados y sin poder tocarse, sin aviso por cada uno. */
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
 body:not(.perm-informe_dia) #btnGenerarInformeDesdeIncidencias,
 body:not(.perm-informe_dia) #btnEditarPalets,
 body:not(.perm-informe_dia) #btnUtilidadesInforme,
-body:not(.perm-informe_dia) .i-motivo-check,
-body:not(.perm-informe_dia) .i-obs,
 body:not(.perm-informe_dia) .btn-borrar-motivos{
+  opacity:.6;
+}
+body:not(.perm-informe_dia) .i-motivo-check,
+body:not(.perm-informe_dia) .i-obs{
   pointer-events:none !important; opacity:.6;
 }
 /* La casilla va dentro de una <label>, y el navegador la marca igual si
@@ -1309,27 +1315,33 @@ body:not(.perm-enviar_reporte_mensual) #btnRmeEnviarTodas{ display:none !importa
 
 /* Sin permiso de "Panel siniestros": se puede ver la tabla, pero no
    dar de alta ni editar filas (fila entera bloqueada al abrirla). El
-   botón "Añadir siniestro" se ve igual que "Nueva tienda": visible
-   pero atenuado y sin poder pincharlo, no desaparece del todo. */
+   botón "Añadir siniestro" y los botones del modal se ven igual que
+   "Nueva tienda": visibles pero atenuados, pulsables (avisan al
+   pulsar en vez de desaparecer). Los campos del formulario del modal
+   se quedan solo atenuados y sin poder tocarse. */
 body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual,
+body:not(.perm-panel_siniestros) #psModalOverlay .btn{
+  opacity:.6;
+}
 body:not(.perm-panel_siniestros) .ps-form-grid input,
 body:not(.perm-panel_siniestros) .ps-form-grid select,
 body:not(.perm-panel_siniestros) .ps-form-grid textarea,
 body:not(.perm-panel_siniestros) .ps-recogida-fila input,
 body:not(.perm-panel_siniestros) .ps-recogida-fila select,
-body:not(.perm-panel_siniestros) #psModalOverlay .btn,
 body:not(.perm-panel_siniestros) #psModalOverlay input[type="file"]{
   pointer-events:none !important; opacity:.6;
 }
 
 /* Sin permiso de "Enviar a Facturación" */
-body:not(.perm-enviar_facturacion) #psJustificanteInput,
-body:not(.perm-enviar_facturacion) [id^="btnEnviarFacturacion"]{
+body:not(.perm-enviar_facturacion) #psJustificanteInput{
   pointer-events:none !important; opacity:.6;
+}
+body:not(.perm-enviar_facturacion) [id^="btnEnviarFacturacion"]{
+  opacity:.6;
 }
 
 /* Sin permiso de "Siniestros del día" */
-body:not(.perm-siniestros_dia) #btnEnviarSiniestro,
+body:not(.perm-siniestros_dia) #btnEnviarSiniestro{ opacity:.6; }
 body:not(.perm-siniestros_dia) #siniestroFotosLabel{
   pointer-events:none !important; opacity:.6;
 }
@@ -1344,44 +1356,58 @@ body:not(.perm-siniestros_dia) #siniestroFotosLabel{
    Informe del día. */
 body:not(.perm-config_tiendas) #btnNuevaTienda,
 body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn{
-  pointer-events:none !important; opacity:.6;
+  opacity:.6;
 }
 
 /* Sin permiso de "Emails y nombre comercial": página visible (si
    perm-config_emails la deja ver) pero sin poder añadir agencia,
    editar nombre comercial/grupo de envío, ni añadir/quitar emails.
    Acotado a #listaEmailsAgencias para no afectar a los listados de
-   Facturación/CC (justo debajo), que ya tienen su propio permiso. */
+   Facturación/CC (justo debajo), que ya tienen su propio permiso.
+   El campo de texto de "añadir email" se queda solo atenuado; el
+   botón "Añadir" se queda pulsable (avisa al pulsar). */
 body:not(.perm-config_emails) #btnNuevaAgencia,
 body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-comercial],
 body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-grupo],
 body:not(.perm-config_emails) #listaEmailsAgencias [data-quitar],
-body:not(.perm-config_emails) #listaEmailsAgencias .email-add-row{
+body:not(.perm-config_emails) #listaEmailsAgencias .email-add-row button{
+  opacity:.5;
+}
+body:not(.perm-config_emails) #listaEmailsAgencias .email-add-row input{
   pointer-events:none !important; opacity:.5;
 }
 
 /* Sin permiso de "Destinatarios de Facturación" (dentro de la página
    de Emails, que si comparten página necesita perm-config_emails
    para verse siquiera) */
-body:not(.perm-config_facturacion) #listaEmailsFacturacion .email-add-row,
+body:not(.perm-config_facturacion) #listaEmailsFacturacion .email-add-row button,
 body:not(.perm-config_facturacion) #listaEmailsFacturacion [data-quitar-facturacion]{
+  opacity:.5;
+}
+body:not(.perm-config_facturacion) #listaEmailsFacturacion .email-add-row input{
   pointer-events:none !important; opacity:.5;
 }
 
 /* Sin permiso de "CC Transporte" (misma página de Emails, necesita
    también perm-config_emails para verse siquiera) */
-body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row,
+body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row button,
 body:not(.perm-config_cc_transporte) #listaEmailsCC [data-quitar-cc]{
+  opacity:.5;
+}
+body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row input{
   pointer-events:none !important; opacity:.5;
 }
 
 /* Modo LECTURA: deshabilita todos los botones y campos de acción, deja
-   intacta la navegación, los filtros y los buscadores. */
+   intacta la navegación, los filtros y los buscadores. Los botones se
+   quedan pulsables (permisos-aviso.js avisa al pulsar); los campos de
+   formulario siguen bloqueados sin más (un aviso por cada campo sería
+   spam navegando/leyendo). */
 body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]),
 body.rol-lectura .btn,
 body.rol-lectura .link-accion,
 body.rol-lectura .mini-btn{
-  opacity:.45 !important; pointer-events:none !important; cursor:not-allowed !important;
+  opacity:.45 !important; cursor:not-allowed !important;
 }
 body.rol-lectura .ps-form-grid input,
 body.rol-lectura .ps-form-grid select,
