@@ -1308,8 +1308,10 @@ body:not(.perm-enviar_reporte_mensual) .rme-grupo-row .rme-btn-enviar{ display:n
 body:not(.perm-enviar_reporte_mensual) #btnRmeEnviarTodas{ display:none !important; }
 
 /* Sin permiso de "Panel siniestros": se puede ver la tabla, pero no
-   dar de alta ni editar filas (fila entera bloqueada al abrirla). */
-body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual{ display:none !important; }
+   dar de alta ni editar filas (fila entera bloqueada al abrirla). El
+   botón "Añadir siniestro" se ve igual que "Nueva tienda": visible
+   pero atenuado y sin poder pincharlo, no desaparece del todo. */
+body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual,
 body:not(.perm-panel_siniestros) .ps-form-grid input,
 body:not(.perm-panel_siniestros) .ps-form-grid select,
 body:not(.perm-panel_siniestros) .ps-form-grid textarea,
