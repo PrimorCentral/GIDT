@@ -1006,28 +1006,51 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
     .ranking-bar-label{ width:110px; flex-basis:110px; }
   }
 
-  /* ---------- Modal de detalle (tienda/agencia del Ranking) ---------- */
-  .detalle-modal-box{ max-width:600px; position:relative; max-height:min(680px, 84vh); display:flex; flex-direction:column; }
-  .detalle-modal-box .modal-title{ padding-right:30px; font-size:18px; }
-  .detalle-seccion{ min-height:0; display:flex; flex-direction:column; margin-bottom:20px; }
-  .detalle-seccion:last-child{ margin-bottom:0; }
+  /* ---------- Modal de detalle (tienda/agencia del Ranking) ----------
+     Se ha ensanchado y alargado a propósito (respecto a los demás modales
+     de la app, más estrechos) porque aquí es donde de verdad hace falta
+     espacio: dos listas de eventos que conviene ver casi de un vistazo,
+     sin scroll constante. En pantallas amplias, incidencias y siniestros
+     se muestran en dos columnas lado a lado en vez de una debajo de otra. */
+  .detalle-modal-box{
+    max-width:600px; width:100%; position:relative;
+    max-height:min(700px, 88vh); display:flex; flex-direction:column;
+    padding:26px 26px 22px;
+  }
+  .detalle-modal-box .modal-title{ padding-right:30px; font-size:19px; }
+  .detalle-modal-box .envio-modal-sub{ font-size:13.5px; }
+  .detalle-cuerpo{ display:flex; flex-direction:column; gap:20px; min-height:0; flex:1; }
+  .detalle-seccion{ min-height:0; display:flex; flex-direction:column; }
   .detalle-seccion-titulo{
-    margin:0 0 9px; font-size:12.5px; font-weight:800; color:var(--ink-soft);
+    margin:0 0 10px; font-size:13px; font-weight:800; color:var(--ink-soft);
     text-transform:uppercase; letter-spacing:.3px;
   }
   .detalle-lista{
-    max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius);
+    max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius);
   }
   .detalle-fila{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:13px 15px; font-size:12.5px;
+    padding:14px 16px; font-size:13px;
     border-left:4px solid transparent;
   }
   .detalle-fila + .detalle-fila{ border-top:1px solid var(--border); }
   .detalle-fila-izq{ display:flex; align-items:center; gap:10px; flex:0 0 auto; }
-  .detalle-fila-icono{ font-size:12px; line-height:1; flex:0 0 auto; }
+  .detalle-fila-icono{ font-size:12.5px; line-height:1; flex:0 0 auto; }
   .detalle-fila-fecha{ color:var(--ink); font-weight:600; flex:0 0 auto; }
   .detalle-fila-info{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; justify-content:flex-end; text-align:right; }
+
+  /* A partir de aquí hay ancho de sobra: modal grande y las dos secciones
+     en columnas, cada una con su propia lista más alta. */
+  @media (min-width:760px){
+    .detalle-modal-box{ max-width:1000px; max-height:min(780px, 90vh); padding:30px 32px 26px; }
+    .detalle-modal-box .modal-title{ font-size:21px; }
+    .detalle-modal-box .envio-modal-sub{ font-size:14px; margin-bottom:22px !important; }
+    .detalle-cuerpo{ flex-direction:row; gap:24px; }
+    .detalle-seccion{ flex:1 1 0; min-width:0; }
+    .detalle-seccion + .detalle-seccion{ border-left:1px solid var(--border); padding-left:24px; }
+    .detalle-lista{ max-height:min(560px, 60vh); }
+    .detalle-fila{ padding:15px 17px; }
+  }
 
   /* Franja de color a la izquierda + fondo muy suave, según severidad/tipo —
      mismo criterio de color que usan ya los pills y las filas de la tabla de
