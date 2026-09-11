@@ -1268,15 +1268,16 @@ body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ dis
 body.rol-operador:not(.perm-ver_auditoria) [data-view="config-auditoria"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_log_cambios_informes) .perm-gated-log-cambios{ display:none !important; }
 
-/* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar */
-body:not(.perm-borrar) #btnBorrarPanelSiniestro{ display:none !important; }
-body:not(.perm-borrar) .agencia-body [data-borrar]{ display:none !important; }
-/* Quitar fotos, albarán o factura de un siniestro (detalle del Panel
-   siniestros) es también borrar un archivo ya guardado: requiere el mismo
-   permiso de "Borrar registros", no solo el de Panel siniestros. */
+/* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar.
+   Igual que el resto: visible pero atenuado y pulsable, avisa al
+   pulsar en vez de desaparecer (permisos-aviso.js). */
+body:not(.perm-borrar) #btnBorrarPanelSiniestro,
+body:not(.perm-borrar) .agencia-body [data-borrar],
 body:not(.perm-borrar) .ps-foto-quitar,
 body:not(.perm-borrar) #btnQuitarFactura,
-body:not(.perm-borrar) #btnQuitarAlbaran{ display:none !important; }
+body:not(.perm-borrar) #btnQuitarAlbaran{
+  opacity:.6;
+}
 
 /* Sin permiso de "Editar informes pasados" */
 body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ opacity:.6; }
