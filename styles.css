@@ -480,6 +480,11 @@
   /* El botón de eliminar avisa en rojo solo al pasar el ratón, para no
      destacar una acción destructiva con el mismo peso que el resto. */
   .mini-btn[data-borrar]:hover{ background:var(--grave-bg); color:var(--grave); }
+  /* Quitar factura / Quitar albarán en el Panel siniestros: sí destaca en
+     rojo desde el principio (no solo al pasar el ratón), para que se note
+     que es una acción destructiva sobre un archivo ya guardado. */
+  .mini-btn-danger{ background:var(--grave-bg); color:var(--grave); }
+  .mini-btn-danger:hover{ background:var(--grave); color:#fff; }
   /* El de horario semanal se distingue un poco (tono de marca) del resto
      de iconos "neutros" de la fila. */
   .mini-btn[data-horario-semana]{ color:var(--accent-ink); }
