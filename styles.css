@@ -1264,8 +1264,6 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
    cualquier operador puede entrar a verlas, el permiso solo controla
    si además puede editar (igual que Facturación/CC más abajo). */
 body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
-body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
-body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-reportes-mensuales"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_auditoria) [data-view="config-auditoria"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_log_cambios_informes) .perm-gated-log-cambios{ display:none !important; }
 
