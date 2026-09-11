@@ -220,8 +220,10 @@ function ocultarCargandoEnvio() {
 function renderBotonEnviarInforme() {
   const badge = document.getElementById('informeEnviadoBadge');
   const btn = document.getElementById('btnEnviarInforme');
+  const btnLog = document.getElementById('btnLogCambiosHoy');
 
   const enviado = !!informeHoyCache?.informe_enviado;
+  if (btnLog) btnLog.style.display = enviado ? '' : 'none';
 
   if (badge) {
     if (enviado) {

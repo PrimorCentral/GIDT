@@ -178,6 +178,7 @@
     const wrapExportar = document.getElementById('exportarWrapHistorial');
     const wrapFiltros = document.getElementById('historialFiltrosWrap');
     const btnEditar = document.getElementById('btnEditarHistorial');
+    const btnLog = document.getElementById('btnLogCambiosHistorial');
     if (!fecha) {
       await modalAlert('Selecciona primero una fecha.', { titulo: 'Historial' });
       return;
@@ -191,6 +192,7 @@
     if (wrapExportar) wrapExportar.style.display = 'none';
     if (wrapFiltros) wrapFiltros.style.display = 'none';
     if (btnEditar) btnEditar.style.display = 'none';
+    if (btnLog) btnLog.style.display = 'none';
     historialInformeActual = null;
     historialIncidenciasActual = [];
     historialEditando = false;
@@ -234,6 +236,7 @@
       if (wrapExportar) wrapExportar.style.display = '';
       if (wrapFiltros) wrapFiltros.style.display = 'flex';
       if (btnEditar) btnEditar.style.display = (informe.fecha === fechaHoyISO) ? 'none' : '';
+      if (btnLog) btnLog.style.display = informe.informe_enviado ? '' : 'none';
 
       renderHistorialInforme();
     } catch (err) {

@@ -278,6 +278,18 @@
       }, { onConflict: 'informe_id,tienda_id' });
       if (error) throw error;
 
+      if (typeof registrarCambioInformeSiEnviado === 'function') {
+        registrarCambioInformeSiEnviado(informeHoyCache, {
+          tiendaId,
+          tiendaNombre: tienda?.nombre || existente?.tienda_nombre,
+          agenciaNombre: agencia?.nombre || existente?.agencia_nombre,
+          motivosAntes: existente?.motivo || [],
+          motivosDespues: motivos,
+          observacionesAntes: existente?.observaciones || '',
+          observacionesDespues: observaciones
+        });
+      }
+
       await cargarIncidenciasHoy();
 
       // Crea/actualiza/borra el siniestro asociado (ROTURA/FALTA/MIXTO) al instante,

@@ -130,6 +130,17 @@ async function finalizarEdicionHistorial() {
           const { error } = await sb.from('incidencias').delete().eq('id', existente.id);
           if (error) throw error;
           historialTodasIncidencias = historialTodasIncidencias.filter(i => i.id !== existente.id);
+          if (typeof registrarCambioInformeSiEnviado === 'function') {
+            registrarCambioInformeSiEnviado(historialInformeActual, {
+              tiendaId,
+              tiendaNombre: existente.tienda_nombre,
+              agenciaNombre: existente.agencia_nombre,
+              motivosAntes: existente.motivo || [],
+              motivosDespues: [],
+              observacionesAntes: existente.observaciones || '',
+              observacionesDespues: ''
+            });
+          }
         }
         continue;
       }
@@ -152,6 +163,18 @@ async function finalizarEdicionHistorial() {
         agencia_nombre: agencia?.nombre || null
       }, { onConflict: 'informe_id,tienda_id' }).select().single();
       if (error) throw error;
+
+      if (typeof registrarCambioInformeSiEnviado === 'function') {
+        registrarCambioInformeSiEnviado(historialInformeActual, {
+          tiendaId,
+          tiendaNombre: tienda?.nombre || existente?.tienda_nombre,
+          agenciaNombre: agencia?.nombre || existente?.agencia_nombre,
+          motivosAntes: existente?.motivo || [],
+          motivosDespues: motivos,
+          observacionesAntes: existente?.observaciones || '',
+          observacionesDespues: observaciones
+        });
+      }
 
       if (existente) Object.assign(existente, guardada);
       else historialTodasIncidencias.push(guardada);

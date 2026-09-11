@@ -19,7 +19,8 @@ const CLAVES_PERMISOS_APP = [
   'informe_dia', 'enviar_informe', 'editar_informes_pasados',
   'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
   'config_tiendas', 'config_emails', 'config_facturacion', 'config_cc_transporte',
-  'gestion_usuarios', 'borrar', 'ver_analisis', 'enviar_reporte_mensual', 'ver_auditoria'
+  'gestion_usuarios', 'borrar', 'ver_analisis', 'enviar_reporte_mensual', 'ver_auditoria',
+  'ver_log_cambios_informes'
 ];
 
 function esAdmin() { return sesionActual?.rol === 'admin'; }
