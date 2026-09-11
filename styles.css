@@ -1266,11 +1266,12 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
    Admin siempre las ve (nunca coincide ".rol-operador"), y LECTURA
    también las ve todas — lectura ve todo, solo no puede escribir
    (eso lo bloquean las reglas de más abajo).
-   "Tiendas y agencias" y "Emails y nombre comercial" NO se ocultan:
-   cualquier operador puede entrar a verlas, el permiso solo controla
-   si además puede editar (igual que Facturación/CC más abajo). */
-body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
-body.rol-operador:not(.perm-ver_auditoria) [data-view="config-auditoria"]{ display:none !important; }
+   "Tiendas y agencias", "Emails y nombre comercial", "Gestión de
+   usuarios" y "Registro de auditoría" NO se ocultan: cualquier
+   operador puede entrar a verlas, el permiso solo controla si además
+   puede editar (igual que Facturación/CC más abajo) — y en el caso de
+   Usuarios/Auditoría, si puede entrar siquiera (permisos-aviso.js
+   avisa al pulsar en vez de dejar navegar). */
 body.rol-operador:not(.perm-ver_log_cambios_informes) .perm-gated-log-cambios{ display:none !important; }
 
 /* Borrar (siniestros del Panel, tiendas) solo con permiso de borrar.
