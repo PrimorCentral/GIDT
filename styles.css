@@ -1259,10 +1259,11 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 /* Páginas de menú: ocultas SOLO para operador sin ese permiso concreto.
    Admin siempre las ve (nunca coincide ".rol-operador"), y LECTURA
    también las ve todas — lectura ve todo, solo no puede escribir
-   (eso lo bloquean las reglas de más abajo). */
+   (eso lo bloquean las reglas de más abajo).
+   "Tiendas y agencias" y "Emails y nombre comercial" NO se ocultan:
+   cualquier operador puede entrar a verlas, el permiso solo controla
+   si además puede editar (igual que Facturación/CC más abajo). */
 body.rol-operador:not(.perm-gestion_usuarios) [data-view="config-usuarios"]{ display:none !important; }
-body.rol-operador:not(.perm-config_tiendas) [data-view="config-tiendas"]{ display:none !important; }
-body.rol-operador:not(.perm-config_emails) [data-view="config-emails"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-ranking"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_analisis) [data-view="analisis-reportes-mensuales"]{ display:none !important; }
 body.rol-operador:not(.perm-ver_auditoria) [data-view="config-auditoria"]{ display:none !important; }
@@ -1344,6 +1345,19 @@ body:not(.perm-siniestros_dia) #siniestroFotosLabel{
 body:not(.perm-config_tiendas) #btnNuevaTienda,
 body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn{
   pointer-events:none !important; opacity:.6;
+}
+
+/* Sin permiso de "Emails y nombre comercial": página visible (si
+   perm-config_emails la deja ver) pero sin poder añadir agencia,
+   editar nombre comercial/grupo de envío, ni añadir/quitar emails.
+   Acotado a #listaEmailsAgencias para no afectar a los listados de
+   Facturación/CC (justo debajo), que ya tienen su propio permiso. */
+body:not(.perm-config_emails) #btnNuevaAgencia,
+body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-comercial],
+body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-grupo],
+body:not(.perm-config_emails) #listaEmailsAgencias [data-quitar],
+body:not(.perm-config_emails) #listaEmailsAgencias .email-add-row{
+  pointer-events:none !important; opacity:.5;
 }
 
 /* Sin permiso de "Destinatarios de Facturación" (dentro de la página
