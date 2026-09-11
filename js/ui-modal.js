@@ -12,21 +12,23 @@
   function _abrirModal() { modalOverlay.classList.add('show'); }
   function _cerrarModal() { modalOverlay.classList.remove('show'); }
 
-  function modalAlert(mensaje, { titulo = 'Aviso', icono = '' } = {}) {
+  function modalAlert(mensaje, { titulo = 'Aviso', icono = '', danger = false } = {}) {
     return new Promise(resolve => {
       modalIconEl.style.display = icono ? '' : 'none';
       modalIconEl.textContent = icono;
       modalTitleEl.textContent = titulo;
+      modalTitleEl.classList.toggle('modal-title-danger', danger);
       modalMessageEl.textContent = mensaje;
       modalInputEl.style.display = 'none';
       modalBtnCancel.style.display = 'none';
       modalBtnOk.textContent = 'Aceptar';
-      modalBtnOk.className = 'btn primary';
+      modalBtnOk.className = danger ? 'btn danger' : 'btn primary';
       _abrirModal();
 
       const onOk = () => { limpiar(); resolve(); };
       function limpiar() {
         _cerrarModal();
+        modalTitleEl.classList.remove('modal-title-danger');
         modalBtnOk.removeEventListener('click', onOk);
       }
       modalBtnOk.addEventListener('click', onOk);

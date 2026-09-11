@@ -420,7 +420,7 @@ function renderAcordeonHistorialEditable() {
         if (existente) {
           const panelId = await panelSiniestroDeIncidencia(existente.id);
           if (panelId) {
-            await modalAlert('Este siniestro ya está en el Panel siniestros. Para eliminarlo, hazlo desde ahí.', { titulo: 'No se puede eliminar' });
+            await modalAlert('Este siniestro ya se ha enviado, para eliminarlo, contacta con su responsable.', { titulo: 'No se puede eliminar' });
             return;
           }
         }
@@ -536,7 +536,7 @@ async function actualizarBorradorIncidencia(tiendaId, tr) {
   if (existente && !tipoSiniestroNuevo) {
     const panelId = await panelSiniestroDeIncidencia(existente.id);
     if (panelId) {
-      await modalAlert('Este siniestro ya está en el Panel siniestros. Para eliminarlo, hazlo desde ahí.', { titulo: 'No se puede modificar' });
+      await modalAlert('Este siniestro ya se ha enviado, para eliminarlo, contacta con su responsable.', { titulo: 'No se puede modificar' });
       const estadoPrevio = estadoEfectivoHistorial(tiendaId);
       tr.querySelectorAll('.i-motivo-check').forEach(cb => { cb.checked = estadoPrevio.motivos.includes(cb.value); });
       const hayMotivo = estadoPrevio.motivos.length > 0;
