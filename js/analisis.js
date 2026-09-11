@@ -475,10 +475,10 @@
     const wrap = btnAnalisisFiltros.closest('.filtros-wrap');
     const wrapRect = wrap.getBoundingClientRect();
     const margen = 12;
-    const ancho = Math.min(560, window.innerWidth - margen * 2);
+    const ancho = Math.min(560, document.documentElement.clientWidth - margen * 2);
     analisisFiltrosPanel.style.width = ancho + 'px';
     let left = 0;
-    const desbordeDerecha = (wrapRect.left + left + ancho) - (window.innerWidth - margen);
+    const desbordeDerecha = (wrapRect.left + left + ancho) - (document.documentElement.clientWidth - margen);
     if (desbordeDerecha > 0) left -= desbordeDerecha;
     if (wrapRect.left + left < margen) left = margen - wrapRect.left;
     analisisFiltrosPanel.style.left = left + 'px';
