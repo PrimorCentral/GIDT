@@ -400,6 +400,18 @@
   }
   .form-input:focus{ border-color:var(--accent); }
 
+  /* ---------- Botón "x" para vaciar buscadores (js/buscador-clear.js) ---------- */
+  .buscador-clear-wrap{ position:relative; display:block; }
+  .buscador-clear-wrap input{ width:100%; padding-right:26px; }
+  .buscador-clear-btn{
+    position:absolute; right:3px; top:50%; transform:translateY(-50%);
+    width:20px; height:20px; border:none; background:transparent; cursor:pointer;
+    font-size:16px; line-height:1; color:var(--ink-soft); border-radius:50%;
+    display:none; align-items:center; justify-content:center;
+  }
+  .buscador-clear-btn.visible{ display:flex; }
+  .buscador-clear-btn:hover{ background:var(--panel-muted); color:var(--ink); }
+
   /* ---------- Tabla usuarios ---------- */
   table.tabla-usuarios{ width:100%; border-collapse:collapse; font-size:13.5px; }
   table.tabla-usuarios th{
