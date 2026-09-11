@@ -547,7 +547,15 @@ function rmActualizarCabecera() {
 function renderVistaReportesMensuales() {
   rmPintarLeyendaCompacta();
 
-  if (rmInicializado) return;
+  // Aunque los botones ya estén enganchados de una entrada anterior a esta
+  // vista, los datos (incidencias, informes enviados...) pueden haber
+  // cambiado desde entonces, así que siempre recalculamos el cuadro al
+  // entrar de nuevo — solo el enganche de los botones se hace una vez.
+  if (rmInicializado) {
+    rmActualizarCabecera();
+    rmRender();
+    return;
+  }
   rmInicializado = true;
 
   document.getElementById('rmBtnMesAnterior').addEventListener('click', () => {

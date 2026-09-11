@@ -435,6 +435,11 @@
           if (!ok) return;
 
           try {
+            // Motivos que tenía antes de borrar (para el log de cambios y
+            // para el aviso al usuario de qué se ha quitado).
+            const motivosAntes = inc.motivo || [];
+            const observacionesAntes = inc.observaciones || '';
+
             // 1. Si tenía siniestro asociado, se borra primero (por la FK incidencia_id)
             const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', inc.id);
             if (eSin) throw eSin;
@@ -443,6 +448,23 @@
             const { error: eInc } = await sb.from('incidencias').delete().eq('id', inc.id);
             if (eInc) throw eInc;
 
+            // 3. Si el informe de hoy ya estaba enviado a las agencias, dejamos
+            // constancia en el log de cambios (igual que hace guardarIncidencia()
+            // al guardar desde el desplegable de motivos).
+            if (typeof registrarCambioInformeSiEnviado === 'function') {
+              const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(tiendaId) : tiendasCache.find(t => t.id === tiendaId);
+              const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
+              registrarCambioInformeSiEnviado(informeHoyCache, {
+                tiendaId,
+                tiendaNombre: tienda?.nombre,
+                agenciaNombre: agencia?.nombre,
+                motivosAntes,
+                motivosDespues: [],
+                observacionesAntes,
+                observacionesDespues: ''
+              });
+            }
+
                        tr.querySelectorAll('.i-motivo-check:checked').forEach(cb => cb.checked = false);
             inputObs.value = '';
             inputObs.disabled = true;
@@ -450,6 +472,14 @@
             await cargarIncidenciasHoy();
             actualizarFilaIncidencia(tiendaId, tr);
             actualizarKpiIncidencias();
+
+            // Avisamos de qué motivos se han quitado (la papelera puede borrar
+            // varios motivos marcados a la vez en la misma incidencia).
+            const textoMotivos = typeof resumenMotivos === 'function' ? resumenMotivos(motivosAntes) : motivosAntes.join(', ');
+            await modalAlert(
+              `Se ${motivosAntes.length === 1 ? 'ha' : 'han'} eliminado ${motivosAntes.length} motivo${motivosAntes.length === 1 ? '' : 's'}: ${textoMotivos}`,
+              { titulo: 'Incidencia eliminada' }
+            );
 
             // Si la vista de Siniestros ya se había cargado, refrescamos su caché y KPI
             if (typeof siniestrosHoyCache !== 'undefined') {
