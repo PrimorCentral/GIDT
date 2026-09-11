@@ -354,6 +354,7 @@
             </div>
           </div>
           <input type="text" id="buscarTiendaIncidencias" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
+          <button class="btn perm-gated-log-cambios" id="btnLogCambiosHoy" style="display:none; white-space:nowrap; flex-shrink:0;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
           <span id="informeEnviadoBadge" class="badge-envio enviado" style="display:none; white-space:nowrap; flex-shrink:0;"></span>
           <button class="btn primary" id="btnEnviarInforme" style="white-space:nowrap; flex-shrink:0;">📧 Enviar informe</button>
         </div>
@@ -377,6 +378,7 @@
           <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
           <button class="btn" id="btnEditarHistorial" style="display:none;" title="Editar este informe">✏️ Editar informe</button>
+          <button class="btn perm-gated-log-cambios" id="btnLogCambiosHistorial" style="display:none;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
           <div class="filtros-wrap" id="historialFiltrosWrap" style="display:none; align-items:center; gap:8px;">
             <button class="btn" id="btnHistorialFiltros">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -1394,6 +1396,16 @@
   </div>
 </div>
 
+<!-- Modal: Log de cambios de un informe tras su envío (Informe del día / Historial) -->
+<div class="modal-overlay" id="iclogOverlay">
+  <div class="modal-box iclog-modal-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarLogCambios" style="position:absolute; right:16px; top:16px;">✕</button>
+    <p class="ps-modal-titulo-principal" style="margin-bottom:2px;">🕘 Log de cambios</p>
+    <p style="text-align:center; margin:0 0 18px; font-size:12.5px; color:var(--ink-soft);" id="iclogFecha"></p>
+    <div id="iclogLista"></div>
+  </div>
+</div>
+
 <!-- Modal: nuevo siniestro manual (Panel siniestros) -->
 <div class="modal-overlay" id="psNuevoModalOverlay">
   <div class="modal-box" role="dialog" aria-modal="true" style="max-width:520px; position:relative;">
@@ -1591,6 +1603,10 @@
               <input type="checkbox" id="euPerm_ver_auditoria">
               <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_ver_log_cambios_informes">
+              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+            </label>
           </div>
         </div>
       </div>
@@ -1710,6 +1726,10 @@
               <input type="checkbox" id="nuPerm_ver_auditoria">
               <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_ver_log_cambios_informes">
+              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+            </label>
           </div>
         </div>
       </div>
@@ -1796,6 +1816,7 @@
 <script src="js/navegacion.js"></script>
 <script src="js/usuarios.js"></script>
 <script src="js/auditoria.js"></script>
+<script src="js/informes-cambios-log.js"></script>
 <script src="js/tiendas.js"></script>
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
@@ -1808,6 +1829,7 @@
 <script src="js/historial-editar.js"></script>
 <script src="js/filtros-motivos.js"></script>
 <script src="js/historial-filtros.js"></script>
+<script src="js/informes-cambios-log-panel.js"></script>
 <script src="js/reportes-mensuales.js"></script>
 <script src="js/email-plantillas.js"></script>
 <script src="js/email-service.js"></script>
