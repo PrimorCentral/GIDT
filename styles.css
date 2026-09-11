@@ -1485,6 +1485,9 @@ body.rol-lectura input[type="file"]{
 .tabla-reporte-mensual th, .tabla-reporte-mensual td{ border:1px solid var(--border); padding:4px 6px; text-align:center; }
 .tabla-reporte-mensual thead th{ background:var(--panel-muted); position:sticky; top:0; z-index:2; }
 .rm-col-fija{ text-align:left; background:#fff; }
+.tabla-reporte-mensual th:nth-child(1), .tabla-reporte-mensual td:nth-child(1){ min-width:140px; }
+.tabla-reporte-mensual th:nth-child(2), .tabla-reporte-mensual td:nth-child(2){ min-width:170px; }
+.tabla-reporte-mensual th:nth-child(3), .tabla-reporte-mensual td:nth-child(3){ min-width:120px; }
 .tabla-reporte-mensual td.rm-td-ok{ color:var(--ink-soft); font-weight:600; }
 .tabla-reporte-mensual td.rm-td-pendiente{ color:var(--ink-soft); opacity:.4; }
 .tabla-reporte-mensual td.rm-td-cambio{
