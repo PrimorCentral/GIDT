@@ -1278,7 +1278,7 @@ body:not(.perm-borrar) #btnQuitarFactura,
 body:not(.perm-borrar) #btnQuitarAlbaran{ display:none !important; }
 
 /* Sin permiso de "Editar informes pasados" */
-body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ display:none !important; }
+body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ pointer-events:none !important; opacity:.6; }
 
 /* Sin permiso de "Informe del día" */
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
