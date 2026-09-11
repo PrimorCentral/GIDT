@@ -1152,7 +1152,7 @@ function pintarFacturaModal(s) {
   if (s.factura_url) {
     cont.innerHTML = `
       <button type="button" class="ps-factura-chip" id="btnVerFactura">📄 ${escapeHtml(s.factura_nombre || 'Ver factura')}</button>
-      <button type="button" class="mini-btn" id="btnQuitarFactura" title="Quitar factura">✕</button>`;
+      <button type="button" class="mini-btn mini-btn-danger" id="btnQuitarFactura" title="Quitar factura">🗑️</button>`;
     document.getElementById('btnVerFactura').addEventListener('click', () =>
       abrirVisorPdfPanel(s.factura_url, { titulo: '📄 Factura', nombreArchivo: s.factura_nombre || 'factura.pdf' }));
     document.getElementById('btnQuitarFactura').addEventListener('click', quitarFacturaPanel);
@@ -1350,7 +1350,7 @@ function pintarAlbaranModal(s) {
   const textoBoton = s.enviado_facturacion ? '↻ Reenviar a Facturación' : '✉️ Enviar a Facturación';
   cont.innerHTML = `
     <button type="button" class="ps-factura-chip" id="btnVerAlbaran">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</button>
-    <button type="button" class="mini-btn" id="btnQuitarAlbaran" title="Quitar albarán">✕</button>
+    <button type="button" class="mini-btn mini-btn-danger" id="btnQuitarAlbaran" title="Quitar albarán">🗑️</button>
     <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       ${estado}
       <button type="button" class="btn" id="btnEnviarFacturacion" style="padding:5px 12px; font-size:12.5px;">${textoBoton}</button>
