@@ -1,6 +1,22 @@
 // ---------------------------------------------------------------
-  // Navegación por pestañas + submenú desplegable de Configuración
-  // ---------------------------------------------------------------
+// Navegación por pestañas + submenú desplegable de Configuración
+// ---------------------------------------------------------------
+
+// Borde derecho REALMENTE visible del área de contenido, en coordenadas
+// de viewport. Usado por los paneles de filtros/exportar/utilidades para
+// no salirse por la derecha (y provocar scroll lateral de toda la
+// página). No se puede usar document.documentElement.clientWidth para
+// esto: el scroll vertical de la app no lo lleva <html>, lo lleva
+// <main> (ver CSS "main{ overflow-y:auto }"), así que cuando <main>
+// tiene muchas filas y saca su propia barra de scroll, el ancho de
+// <html> no la descuenta y esos paneles calculaban de más.
+function bordeDerechoVisible() {
+  const main = document.querySelector('main');
+  if (!main) return document.documentElement.clientWidth;
+  const rect = main.getBoundingClientRect();
+  return rect.left + main.clientWidth;
+}
+
   function activarVista(nombreVista) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));

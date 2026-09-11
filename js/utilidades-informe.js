@@ -111,10 +111,10 @@ let utilTiendaSeleccionada = null; // id de la tienda elegida en el desplegable
 function posicionarUtilidadesPanel() {
   const wrapRect = utilidadesWrap.getBoundingClientRect();
   const margen = 12;
-  const ancho = Math.min(480, document.documentElement.clientWidth - margen * 2);
+  const ancho = Math.min(480, bordeDerechoVisible() - margen * 2);
   utilidadesPanel.style.width = ancho + 'px';
   let left = 0;
-  const desbordeDerecha = (wrapRect.left + left + ancho) - (document.documentElement.clientWidth - margen);
+  const desbordeDerecha = (wrapRect.left + left + ancho) - (bordeDerechoVisible() - margen);
   if (desbordeDerecha > 0) left -= desbordeDerecha;
   if (wrapRect.left + left < margen) left = margen - wrapRect.left;
   utilidadesPanel.style.left = left + 'px';

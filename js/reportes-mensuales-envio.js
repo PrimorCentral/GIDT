@@ -105,10 +105,10 @@ function rmePosicionarPanel() {
   const wrap = btn.closest('.filtros-wrap');
   const wrapRect = wrap.getBoundingClientRect();
   const margen = 12;
-  const ancho = Math.min(640, document.documentElement.clientWidth - margen * 2);
+  const ancho = Math.min(640, bordeDerechoVisible() - margen * 2);
   panel.style.width = ancho + 'px';
   let left = 0;
-  const desbordeDerecha = (wrapRect.left + left + ancho) - (document.documentElement.clientWidth - margen);
+  const desbordeDerecha = (wrapRect.left + left + ancho) - (bordeDerechoVisible() - margen);
   if (desbordeDerecha > 0) left -= desbordeDerecha;
   if (wrapRect.left + left < margen) left = margen - wrapRect.left;
   panel.style.left = left + 'px';

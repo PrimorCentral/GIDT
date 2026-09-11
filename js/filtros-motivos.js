@@ -165,10 +165,10 @@
     const wrap = btnFiltrosIncidencias.closest('.filtros-wrap');
     const wrapRect = wrap.getBoundingClientRect();
     const margen = 12;
-    const ancho = Math.min(560, document.documentElement.clientWidth - margen * 2);
+    const ancho = Math.min(560, bordeDerechoVisible() - margen * 2);
     filtrosPanel.style.width = ancho + 'px';
     let left = 0;
-    const desbordeDerecha = (wrapRect.left + left + ancho) - (document.documentElement.clientWidth - margen);
+    const desbordeDerecha = (wrapRect.left + left + ancho) - (bordeDerechoVisible() - margen);
     if (desbordeDerecha > 0) left -= desbordeDerecha;
     if (wrapRect.left + left < margen) left = margen - wrapRect.left;
     filtrosPanel.style.left = left + 'px';
