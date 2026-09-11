@@ -45,7 +45,12 @@ const BOTONES_CON_PERMISO = [
   ['#listaEmailsFacturacion .email-add-row button', 'config_facturacion'],
   ['#listaEmailsFacturacion [data-quitar-facturacion]', 'config_facturacion'],
   ['#listaEmailsCC .email-add-row button', 'config_cc_transporte'],
-  ['#listaEmailsCC [data-quitar-cc]', 'config_cc_transporte']
+  ['#listaEmailsCC [data-quitar-cc]', 'config_cc_transporte'],
+  ['#btnBorrarPanelSiniestro', 'borrar'],
+  ['.agencia-body [data-borrar]', 'borrar'],
+  ['.ps-foto-quitar', 'borrar'],
+  ['#btnQuitarFactura', 'borrar'],
+  ['#btnQuitarAlbaran', 'borrar']
 ];
 
 // Modo LECTURA: mismo selector de botones de acción que ya usa
