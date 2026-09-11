@@ -60,6 +60,17 @@ const BOTONES_CON_PERMISO = [
 const SELECTOR_BOTONES_LECTURA =
   'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]), .btn, .link-accion, .mini-btn';
 
+// Páginas del menú que antes se ocultaban del todo para operadores sin
+// el permiso (Gestión de usuarios, Registro de auditoría): ahora se ven
+// siempre en el desplegable, pero si se pulsan sin el permiso no
+// navegan, avisan. A diferencia de BOTONES_CON_PERMISO, esto NO aplica
+// a lectura ni admin (igual que hacía la regla CSS que ocultaba antes:
+// estaba acotada a "body.rol-operador").
+const PESTAÑAS_SOLO_OPERADOR = [
+  ['[data-view="config-usuarios"]', 'gestion_usuarios'],
+  ['[data-view="config-auditoria"]', 'ver_auditoria']
+];
+
 document.addEventListener('click', (e) => {
   if (typeof esLectura === 'function' && esLectura()) {
     const elLectura = e.target.closest(SELECTOR_BOTONES_LECTURA);
@@ -68,6 +79,18 @@ document.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       mostrarModalSinPermiso();
       return;
+    }
+  }
+
+  if (typeof esOperador === 'function' && esOperador()) {
+    for (const [selector, permiso] of PESTAÑAS_SOLO_OPERADOR) {
+      const elPestaña = e.target.closest(selector);
+      if (elPestaña && typeof tienePermiso === 'function' && !tienePermiso(permiso)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        mostrarModalSinPermiso();
+        return;
+      }
     }
   }
 
