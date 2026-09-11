@@ -1290,11 +1290,12 @@ body:not(.perm-editar_informes_pasados) #btnEditarHistorial{ opacity:.6; }
 /* Sin permiso de "Informe del día": los botones se ven atenuados pero
    siguen siendo pulsables (permisos-aviso.js intercepta el clic y
    avisa); los campos de cada fila (checks de motivo, observaciones)
-   se quedan solo atenuados y sin poder tocarse, sin aviso por cada uno. */
+   se quedan solo atenuados y sin poder tocarse, sin aviso por cada uno.
+   "Utilidades" es aparte: se puede abrir y ver los cambios puntuales
+   de hoy sin este permiso, solo se bloquean añadir/quitar (más abajo). */
 body:not(.perm-informe_dia) #btnGenerarInformeEmpty,
 body:not(.perm-informe_dia) #btnGenerarInformeDesdeIncidencias,
 body:not(.perm-informe_dia) #btnEditarPalets,
-body:not(.perm-informe_dia) #btnUtilidadesInforme,
 body:not(.perm-informe_dia) .btn-borrar-motivos{
   opacity:.6;
 }
@@ -1309,6 +1310,19 @@ body:not(.perm-informe_dia) .i-obs{
    que debe seguir funcionando sin este permiso. */
 body:not(.perm-informe_dia) td.col-motivo .filtro-check{
   pointer-events:none !important; opacity:.6;
+}
+
+/* "Utilidades" (cambios puntuales de hoy): el botón que abre el panel
+   y el buscador de tienda quedan siempre activos; solo se bloquean
+   los campos de edición y los botones de aplicar/quitar. */
+body:not(.perm-informe_dia) #utilNuevaHora,
+body:not(.perm-informe_dia) #utilNuevaAgencia{
+  pointer-events:none !important; opacity:.6;
+}
+body:not(.perm-informe_dia) #utilBtnGuardarAjuste,
+body:not(.perm-informe_dia) #utilBtnQuitarAjuste,
+body:not(.perm-informe_dia) .util-btn-quitar{
+  opacity:.6;
 }
 
 /* Sin permiso de "Enviar informe a agencias" */
