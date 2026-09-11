@@ -414,6 +414,7 @@
           // puede borrar la incidencia desde aquí (se perdería el rastro de
           // algo ya reclamado): hay que borrarlo desde el Panel siniestros,
           // que es quien se encarga de arrastrar también esta incidencia.
+          let haySiniestro = false;
           try {
             const { data: sinExistente } = await sb.from('siniestros')
               .select('id, estado').eq('incidencia_id', inc.id).maybeSingle();
@@ -424,22 +425,26 @@
               );
               return;
             }
+            haySiniestro = !!sinExistente;
           } catch (err) {
             console.error('Error comprobando el estado del siniestro:', err);
           }
 
+          // Motivos que tiene ahora mismo (para el log de cambios y para
+          // que el usuario vea exactamente qué se va a quitar antes de
+          // confirmar).
+          const motivosAntes = inc.motivo || [];
+          const observacionesAntes = inc.observaciones || '';
+          const textoMotivos = typeof resumenMotivos === 'function' ? resumenMotivos(motivosAntes) : motivosAntes.join(', ');
+
           const ok = await modalConfirm(
-            '¿Eliminar por completo esta incidencia? Si tiene un siniestro asociado (rotura/falta), también se eliminará.',
+            `¿Eliminar por completo esta incidencia? Se ${motivosAntes.length === 1 ? 'quitará' : 'quitarán'} ${motivosAntes.length} motivo${motivosAntes.length === 1 ? '' : 's'}: ${textoMotivos}.` +
+            (haySiniestro ? ' Tiene un siniestro asociado (rotura/falta) que también se eliminará.' : ''),
             { titulo: 'Eliminar incidencia', danger: true, textoOk: 'Eliminar' }
           );
           if (!ok) return;
 
           try {
-            // Motivos que tenía antes de borrar (para el log de cambios y
-            // para el aviso al usuario de qué se ha quitado).
-            const motivosAntes = inc.motivo || [];
-            const observacionesAntes = inc.observaciones || '';
-
             // 1. Si tenía siniestro asociado, se borra primero (por la FK incidencia_id)
             const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', inc.id);
             if (eSin) throw eSin;
@@ -472,14 +477,6 @@
             await cargarIncidenciasHoy();
             actualizarFilaIncidencia(tiendaId, tr);
             actualizarKpiIncidencias();
-
-            // Avisamos de qué motivos se han quitado (la papelera puede borrar
-            // varios motivos marcados a la vez en la misma incidencia).
-            const textoMotivos = typeof resumenMotivos === 'function' ? resumenMotivos(motivosAntes) : motivosAntes.join(', ');
-            await modalAlert(
-              `Se ${motivosAntes.length === 1 ? 'ha' : 'han'} eliminado ${motivosAntes.length} motivo${motivosAntes.length === 1 ? '' : 's'}: ${textoMotivos}`,
-              { titulo: 'Incidencia eliminada' }
-            );
 
             // Si la vista de Siniestros ya se había cargado, refrescamos su caché y KPI
             if (typeof siniestrosHoyCache !== 'undefined') {
