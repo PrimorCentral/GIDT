@@ -945,7 +945,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 
   /* ---------- Análisis: Ranking de tiendas y agencias ---------- */
   .analisis-filtros{
-    display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px;
+    display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px;
   }
   .toggle-seg{ display:flex; gap:8px; flex-wrap:wrap; }
   .toggle-seg-btn{
@@ -959,16 +959,9 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .analisis-fechas{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; }
   .analisis-fechas .form-input{ width:150px; }
 
-  .analisis-toolbar{
-    display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between;
-    margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
-  }
-
-  /* La barra de arriba del todo (periodo + filtros/tiendas-agencias/orden) se
-     queda fija al hacer scroll por el ranking, igual que .cabecera-fija en
-     otras pantallas; solo se le añade un poco más de aire debajo, ya que
-     aquí lo que sigue son los KPIs, no una tabla pegada. */
-  .cabecera-fija-ranking{ padding-bottom:18px; }
+  /* Título y barra de controles del ranking van en la misma fila (título a
+     la izquierda, botones a la derecha), igual que en Historial de informes;
+     .cabecera-fija ya se encarga de fijarla al hacer scroll. */
 
   .ranking-chart-card{ padding:18px 20px; margin-bottom:16px; }
   .ranking-chart-title{

@@ -822,15 +822,13 @@
 
     <!-- ============ ANÁLISIS: RANKING DE TIENDAS Y AGENCIAS ============ -->
     <section class="view" id="view-analisis-ranking">
-      <div class="page-head">
+      <div class="cabecera-fija">
+      <div class="page-head" style="align-items:center; margin-bottom:14px;">
         <div>
           <h1>🏆 Ranking de incidencias</h1>
           <p>Incidencias y siniestros por tienda y por agencia en el periodo seleccionado.</p>
         </div>
-      </div>
-
-      <div class="cabecera-fija cabecera-fija-ranking">
-        <div class="card" style="padding:16px 18px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; row-gap:8px;">
           <div class="analisis-filtros">
             <div class="toggle-seg" id="analisisRangoRapido">
               <button type="button" class="toggle-seg-btn" data-rango="mes">Mes en curso</button>
@@ -848,26 +846,23 @@
               </div>
               <button class="btn primary" id="btnAnalisisConsultar">Consultar</button>
             </div>
-          </div>
 
-          <div class="analisis-toolbar">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <div class="filtros-wrap">
-                <button class="btn" id="btnAnalisisFiltros">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                  Filtros
-                  <span class="filtros-count" id="analisisFiltrosCount" style="display:none;"></span>
-                </button>
-                <div class="filtros-modal-overlay" id="analisisFiltrosPanel">
-                  <div class="filtros-modal-header">
-                    <b>Filtrar ranking</b>
-                    <div class="filtros-modal-header-actions">
-                      <button class="link-accion" id="btnAnalisisLimpiarFiltros">Limpiar</button>
-                      <button class="filtros-modal-close" id="btnAnalisisCerrarFiltros" aria-label="Cerrar">✕</button>
-                    </div>
+            <div class="filtros-wrap">
+              <button class="btn" id="btnAnalisisFiltros">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                Filtros
+                <span class="filtros-count" id="analisisFiltrosCount" style="display:none;"></span>
+              </button>
+              <div class="filtros-modal-overlay" id="analisisFiltrosPanel">
+                <div class="filtros-modal-header">
+                  <b>Filtrar ranking</b>
+                  <div class="filtros-modal-header-actions">
+                    <button class="link-accion" id="btnAnalisisLimpiarFiltros">Limpiar</button>
+                    <button class="filtros-modal-close" id="btnAnalisisCerrarFiltros" aria-label="Cerrar">✕</button>
                   </div>
-                  <div class="filtros-modal-body">
-                    <div class="filtros-grid">
+                </div>
+                <div class="filtros-modal-body">
+                  <div class="filtros-grid">
                       <div class="filtro-campo">
                         <label>Agencia</label>
                         <div class="filtro-select" data-grupo="agencia">
@@ -931,27 +926,29 @@
                           </div>
                         </div>
                       </div>
-                      <div class="filtro-campo filtros-span2">
-                        <label class="filtro-check" style="padding:2px 0;">
-                          <input type="checkbox" id="analisisFiltroSoloConSiniestros">
-                          <span>Solo con siniestros</span>
-                        </label>
-                      </div>
+                    <div class="filtro-campo filtros-span2">
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="analisisFiltroSoloConSiniestros">
+                        <span>Solo con siniestros</span>
+                      </label>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="toggle-seg" id="analisisEntidadToggle">
-                <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
-                <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
-              </div>
             </div>
+
+            <div class="toggle-seg" id="analisisEntidadToggle">
+              <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
+              <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
+            </div>
+
             <div class="toggle-seg" id="analisisOrdenToggle">
               <button type="button" class="toggle-seg-btn activo" data-orden="incidencias">Ordenar por incidencias</button>
               <button type="button" class="toggle-seg-btn" data-orden="siniestros">Ordenar por siniestros</button>
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <div class="grid-kpi">
