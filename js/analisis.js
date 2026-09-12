@@ -421,14 +421,6 @@
       </div>`;
   }
 
-  // Chip compacto para los desgloses de la tabla (sustituye a las pills
-  // largas — "3 graves" pasa a "3 G" — dejando el texto completo en el
-  // title para no perder información).
-  function chipMini(valor, letra, clase, textoCompleto) {
-    if (!valor) return '';
-    return `<span class="chip-mini chip-mini-${clase}" title="${escapeHtml(textoCompleto)}">${valor}<b>${letra}</b></span>`;
-  }
-
   function renderAnalisisRanking() {
     const cont = document.getElementById('contenidoAnalisisRanking');
     if (!analisisDatos) return;
@@ -479,17 +471,17 @@
         </td>
         <td class="col-num">${f.incidencias}</td>
         <td class="col-desglose">
-          ${chipMini(f.grave, 'G', 'grave', `${f.grave} grave${f.grave === 1 ? '' : 's'}`)}
-          ${chipMini(f.moderado, 'M', 'moderado', `${f.moderado} moderada${f.moderado === 1 ? '' : 's'}`)}
-          ${chipMini(f.leve, 'L', 'leve', `${f.leve} leve${f.leve === 1 ? '' : 's'}`)}
-          ${chipMini(f.pendiente, 'P', 'pendiente', `${f.pendiente} pdte. confirmar`)}
+          ${f.grave ? `<span class="pill grave">${f.grave} grave${f.grave === 1 ? '' : 's'}</span>` : ''}
+          ${f.moderado ? `<span class="pill moderado">${f.moderado} moderada${f.moderado === 1 ? '' : 's'}</span>` : ''}
+          ${f.leve ? `<span class="pill leve">${f.leve} leve${f.leve === 1 ? '' : 's'}</span>` : ''}
+          ${f.pendiente ? `<span class="pill pendiente">${f.pendiente} pdte. confirmar</span>` : ''}
           ${!f.grave && !f.moderado && !f.leve && !f.pendiente ? '—' : ''}
         </td>
         <td class="col-num">${f.siniestros}</td>
         <td class="col-desglose">
-          ${chipMini(f.sinRotura, 'R', 'moderado', `${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}`)}
-          ${chipMini(f.sinFalta, 'F', 'grave', `${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}`)}
-          ${chipMini(f.sinMixto, 'X', 'grave', `${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}`)}
+          ${f.sinRotura ? `<span class="pill moderado">${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinFalta ? `<span class="pill grave">${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinMixto ? `<span class="pill grave">${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}</span>` : ''}
           ${!f.sinRotura && !f.sinFalta && !f.sinMixto ? '—' : ''}
         </td>
         <td class="col-detalle">
@@ -526,10 +518,8 @@
     const donut = renderTarjetaDonutAgencias();
 
     cont.innerHTML = `
-      <div class="ranking-layout">
-        <div class="ranking-col-left">${chart}${tabla}</div>
-        <div class="ranking-col-right">${donut}</div>
-      </div>`;
+      <div class="ranking-top-row">${chart}${donut}</div>
+      ${tabla}`;
   }
 
   // ---------------------------------------------------------------
