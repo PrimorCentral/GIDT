@@ -1227,6 +1227,14 @@
   </div>
 </div>
 
+<!-- Spinner de carga global: aparece centrado en pantalla mientras se están
+     cargando datos (cambiar de pantalla, consultar el ranking, un historial,
+     etc.), independiente del modal de "enviando informe" de arriba. Lo
+     controlan mostrarCargandoGlobal()/ocultarCargandoGlobal() (js/carga-global.js). -->
+<div class="modal-overlay carga-global-overlay" id="cargaGlobalOverlay" aria-hidden="true">
+  <div class="spinner spinner-grande"></div>
+</div>
+
 <!-- Modal de actualización disponible (no se cierra clicando fuera: la actualización no es opcional) -->
 <div class="modal-overlay actualizacion-overlay" id="actualizacionModalOverlay">
   <div class="modal-box actualizacion-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="actualizacionModalTitulo">
@@ -1803,6 +1811,7 @@
 <script src="js/auth.js"></script>
 <script src="js/permisos.js"></script>
 <script src="js/ui-modal.js"></script>
+<script src="js/carga-global.js"></script>
 <script src="js/permisos-aviso.js"></script>
 <script src="js/actualizaciones.js"></script>
 <script src="js/navegacion.js"></script>
