@@ -698,7 +698,6 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
     font-size:12px; border:1px solid var(--border); border-radius:6px;
     padding:4px 5px; background:var(--panel); font-family:inherit;
   }
-  .gravedad-guardar-row{ margin-top:18px; display:flex; align-items:center; gap:12px; }
   .gravedad-guardado-ok{ color:var(--moderado); font-size:13px; font-weight:600; }
 
   /* Sin permiso de "Gravedad de motivos": página visible para todos
