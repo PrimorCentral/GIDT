@@ -701,19 +701,13 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   }
   .gravedad-btn:hover{ background:var(--panel-muted); }
   .gravedad-btn:disabled{ opacity:.3; cursor:default; }
-  .gravedad-select{
-    font-size:12px; border:1px solid var(--border); border-radius:6px;
-    padding:4px 5px; background:var(--panel); font-family:inherit;
-  }
   .gravedad-guardado-ok{ color:var(--moderado); font-size:13px; font-weight:600; }
 
   /* Sin permiso de "Gravedad de motivos": página visible para todos
      (se puede entrar y consultar), pero sin poder mover/reclasificar
      ni guardar. */
-  body:not(.perm-config_gravedad_motivos) #contenidoGravedadMotivos .gravedad-select{
-    pointer-events:none !important; opacity:.5;
-  }
   body:not(.perm-config_gravedad_motivos) #contenidoGravedadMotivos .gravedad-btn,
+  body:not(.perm-config_gravedad_motivos) #contenidoGravedadMotivos [data-cambiar-nivel],
   body:not(.perm-config_gravedad_motivos) #btnGuardarGravedadMotivos{
     opacity:.5;
   }
