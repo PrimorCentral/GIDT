@@ -152,7 +152,7 @@
   }
   .dropdown.open{ display:block; }
   .dropdown button{
-    width:100%; text-align:left; background:transparent; border:0;
+    display:block; text-align:left; background:transparent; border:0;
     padding:9px 12px; border-radius:8px; cursor:pointer;
     font-size:13px; color:var(--ink); font-weight:600;
     white-space:nowrap;
