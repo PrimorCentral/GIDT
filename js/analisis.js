@@ -305,6 +305,10 @@
     return segmentos;
   }
 
+  // Dimensiones del viewBox del SVG del donut (se reutilizan al rasterizarlo
+  // para el PDF, para calcular bien su proporción ancho/alto).
+  const DONUT_VIEWBOX = { w: 260, h: 210, depth: 16 };
+
   function calcularArcosDonut(segmentos) {
     const total = segmentos.reduce((s, x) => s + x.valor, 0) || 1;
     let angulo = -Math.PI / 2;
@@ -374,7 +378,7 @@
   // (cx,cy), más un aplastado vertical del grupo entero para dar
   // sensación de perspectiva — sin depender de ninguna librería externa.
   function renderDonutSvgAgencias(arcos) {
-    const W = 260, H = 210, depth = 16;
+    const { w: W, h: H, depth } = DONUT_VIEWBOX;
     const cx = W / 2, cy = 106, rExt = 104, rInt = 60;
     const squash = `translate(${cx},${cy}) scale(1,0.82) translate(${-cx},${-cy})`;
 
@@ -393,7 +397,7 @@
     ).join('');
 
     return `
-      <svg viewBox="0 0 ${W} ${H + depth}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Incidencias por agencia">
+      <svg width="${W}" height="${H + depth}" viewBox="0 0 ${W} ${H + depth}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Incidencias por agencia">
         <defs>
           ${defs}
           <filter id="donutSombra" x="-40%" y="-40%" width="180%" height="180%">
