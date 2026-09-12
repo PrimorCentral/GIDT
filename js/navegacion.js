@@ -38,6 +38,7 @@ function bordeDerechoVisible() {
   document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+      if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
       activarVista(btn.dataset.view);
       if (btn.dataset.view === 'inicio') {
         if (typeof cargarKPIs === 'function') cargarKPIs();
@@ -82,6 +83,7 @@ function bordeDerechoVisible() {
     panel.querySelectorAll('button[data-view]').forEach(item => {
       item.addEventListener('click', async () => {
         if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+        if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
         activarVista(item.dataset.view);
         cerrarTodosLosDropdowns();
         if (item.dataset.view === 'incidencias' && informeHoyCache !== undefined) renderVistaIncidencias();
@@ -322,6 +324,7 @@ function bordeDerechoVisible() {
     cont.querySelectorAll('[data-ir]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+        if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
         const vista = btn.dataset.ir;
         activarVista(vista);
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();

@@ -69,6 +69,7 @@
         </div>`;
       card.querySelector('[data-view="incidencias"]').addEventListener('click', async () => {
         if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+        if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
         activarVista('incidencias');
         renderVistaIncidencias();
       });
@@ -190,6 +191,7 @@
     // Si se estaba editando otro informe con cambios sin guardar, hay que
     // preguntar antes de abandonarlos (mismo modal que el botón "Salir").
     if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+    if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
 
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando informe del ${fecha}…</p></div></div>`;
     if (wrapExportar) wrapExportar.style.display = 'none';

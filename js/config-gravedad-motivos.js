@@ -98,6 +98,37 @@ async function renderVistaGravedadMotivos() {
   pintarGravedadMotivos();
 }
 
+// ¿Hay algo movido/reclasificado en pantalla que todavía no se ha
+// guardado? Compara la copia de trabajo contra la última versión
+// guardada (gravedadMotivosCache); si se deshace un cambio a mano
+// (se vuelve a dejar como estaba) no cuenta como pendiente.
+function hayCambiosSinGuardarGravedadMotivos() {
+  if (!gravedadMotivosEdicion) return false;
+  const base = gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO;
+  if (gravedadMotivosEdicion.length !== base.length) return true;
+  const baseMapa = {};
+  base.forEach(f => { baseMapa[f.motivo] = f; });
+  return gravedadMotivosEdicion.some(f => {
+    const b = baseMapa[f.motivo];
+    return !b || b.nivel !== f.nivel || b.orden !== f.orden;
+  });
+}
+
+// Mismo patrón que confirmarDescartarEdicionHistorial() (historial-editar.js):
+// si hay cambios sin guardar, pregunta antes de dejar la pantalla. Devuelve
+// true si se puede continuar (no había cambios, o se confirmó descartarlos).
+async function confirmarDescartarEdicionGravedadMotivos() {
+  if (!hayCambiosSinGuardarGravedadMotivos()) return true;
+  return await modalConfirm('Tienes cambios sin guardar en la gravedad de motivos. ¿Descartarlos?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (hayCambiosSinGuardarGravedadMotivos()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 function pintarGravedadMotivos() {
   const cont = document.getElementById('contenidoGravedadMotivos');
   if (!cont) return;
