@@ -144,6 +144,7 @@
     border:1px solid var(--border);
     border-radius:0 0 12px 12px;
     box-shadow:var(--shadow);
+    width:max-content;
     min-width:190px;
     padding:6px;
     display:none;
