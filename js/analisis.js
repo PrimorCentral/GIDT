@@ -127,6 +127,7 @@
     cont.innerHTML = `<div class="card"><div class="empty"><p>Calculando ranking…</p></div></div>`;
     pintarKpisAnalisis(null);
 
+    mostrarCargandoGlobal();
     try {
       let q = sb.from('informes_diarios').select('id, fecha').lte('fecha', hasta);
       if (desde) q = q.gte('fecha', desde);
@@ -178,6 +179,8 @@
     } catch (err) {
       console.error('Error cargando ranking de análisis:', err);
       cont.innerHTML = `<div class="card"><div class="empty"><p style="color:var(--grave);">Error al calcular el ranking.</p></div></div>`;
+    } finally {
+      ocultarCargandoGlobal();
     }
   }
 

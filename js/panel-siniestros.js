@@ -111,6 +111,7 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
 async function cargarPanelSiniestros() {
   const tbody = document.getElementById('panelSiniestrosBody');
   if (!tbody) return;
+  mostrarCargandoGlobal();
   try {
     const { data, error } = await sb
       .from('panel_siniestros')
@@ -126,6 +127,8 @@ async function cargarPanelSiniestros() {
   } catch (err) {
     console.error('Error cargando panel de siniestros:', err);
     tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar los siniestros.</td></tr>`;
+  } finally {
+    ocultarCargandoGlobal();
   }
 }
 

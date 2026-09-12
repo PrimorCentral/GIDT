@@ -20,6 +20,7 @@
     cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando siniestros del ${fecha}…</p></div></div>`;
 
     try {
+      mostrarCargandoGlobal();
       // 1. Informe diario de esa fecha
       const { data: informe, error: eInf } = await sb
         .from('informes_diarios')
@@ -89,6 +90,8 @@
             <p>No se pudo consultar los siniestros de ese día.</p>
           </div>
         </div>`;
+    } finally {
+      ocultarCargandoGlobal();
     }
   }
 

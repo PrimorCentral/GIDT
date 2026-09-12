@@ -87,6 +87,7 @@ async function cargarAuditoria() {
   const hasta = document.getElementById('audHasta')?.value || '';
 
   try {
+    mostrarCargandoGlobal();
     let query = sb.from('registro_acciones')
       .select('id, usuario, categoria, accion, detalle, creado_en')
       .order('creado_en', { ascending: false })
@@ -119,6 +120,8 @@ async function cargarAuditoria() {
   } catch (err) {
     console.error('Error cargando el registro de auditoría:', err);
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar el registro.</td></tr>';
+  } finally {
+    ocultarCargandoGlobal();
   }
 }
 

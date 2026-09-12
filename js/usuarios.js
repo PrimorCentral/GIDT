@@ -12,6 +12,7 @@
 
   async function cargarUsuarios() {
     const tbody = document.getElementById('tablaUsuariosBody');
+    mostrarCargandoGlobal();
     try {
       const { data, error } = await sb
         .from('usuarios')
@@ -59,6 +60,8 @@
     } catch (err) {
       console.error('Error cargando usuarios:', err);
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar usuarios.</td></tr>';
+    } finally {
+      ocultarCargandoGlobal();
     }
   }
 

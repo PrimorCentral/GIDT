@@ -6,6 +6,7 @@
   let incidenciasHoyCache = []; // filas de la tabla `incidencias` del informe de hoy
 
   async function cargarInformeHoy() {
+    mostrarCargandoGlobal();
     try {
       const { data, error } = await sb
         .from('informes_diarios')
@@ -17,6 +18,8 @@
     } catch (err) {
       console.error('Error cargando informe de hoy:', err);
       informeHoyCache = null;
+    } finally {
+      ocultarCargandoGlobal();
     }
     renderCardEstadoInforme();
     if (informeHoyCache) await cargarIncidenciasHoy();
@@ -200,6 +203,7 @@
     if (typeof limpiarFiltrosHistorialCompleto === 'function') limpiarFiltrosHistorialCompleto();
 
     try {
+      mostrarCargandoGlobal();
       const { data: informe, error: eInf } = await sb
         .from('informes_diarios')
         .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en')
@@ -249,6 +253,8 @@
             <p>No se pudo consultar el informe de ese día.</p>
           </div>
         </div>`;
+    } finally {
+      ocultarCargandoGlobal();
     }
   }
 
