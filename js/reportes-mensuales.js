@@ -486,12 +486,15 @@ async function rmRender() {
   cont.innerHTML = `<div class="card"><div class="empty"><p>Cargando…</p></div></div>`;
 
   let datos;
+  mostrarCargandoGlobal();
   try {
     datos = await rmCargarDatosMes(rmAnio, rmMes);
   } catch (err) {
     console.error('Error cargando el reporte mensual:', err);
     cont.innerHTML = `<div class="card"><div class="empty"><p>No se pudo cargar el reporte de este mes.</p></div></div>`;
     return;
+  } finally {
+    ocultarCargandoGlobal();
   }
 
   rmConstruirPanelFiltros();
