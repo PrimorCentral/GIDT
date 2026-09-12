@@ -444,7 +444,7 @@
     const metrica = analisisOrden === 'siniestros' ? 'siniestros' : 'incidencias';
     filas.sort((a, b) => b[metrica] - a[metrica] || b.incidencias - a.incidencias || a.nombre.localeCompare(b.nombre));
 
-    const top = filas.slice(0, 10);
+    const top = filas.slice(0, 15);
     const max = Math.max(1, ...top.map(f => f[metrica]));
     const etiquetaEntidad = analisisEntidad === 'tiendas' ? 'tiendas' : 'agencias';
     const etiquetaMetrica = metrica === 'siniestros' ? 'siniestros' : 'incidencias';
