@@ -17,7 +17,8 @@ const CATEGORIAS_AUDITORIA = {
   usuarios: 'Usuarios',
   informes: 'Informes',
   reportes_mensuales: 'Reportes mensuales',
-  siniestros: 'Siniestros'
+  siniestros: 'Siniestros',
+  gravedad_motivos: 'Gravedad de motivos'
 };
 
 async function registrarAccion(categoria, accion, detalle) {

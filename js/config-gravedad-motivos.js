@@ -219,6 +219,31 @@ function cambiarNivelMotivo(motivo, nuevoNivel) {
   pintarGravedadMotivos();
 }
 
+// Resumen legible de lo que cambió, para el detalle del Registro de
+// auditoría: reclasificaciones de nivel (motivo, de dónde a dónde) y,
+// si solo cambió el orden dentro de un nivel, en qué niveles.
+function resumenCambiosGravedadMotivos(antes, despues) {
+  const mapaAntes = {};
+  antes.forEach(f => { mapaAntes[f.motivo] = f; });
+  const cambiosNivel = [];
+  const nivelesConOrdenCambiado = new Set();
+  despues.forEach(f => {
+    const a = mapaAntes[f.motivo];
+    if (!a) return;
+    if (a.nivel !== f.nivel) {
+      const nombre = f.motivo.charAt(0) + f.motivo.slice(1).toLowerCase();
+      cambiosNivel.push(`${nombre}: ${ETIQUETA_NIVEL[a.nivel]} → ${ETIQUETA_NIVEL[f.nivel]}`);
+    } else if (a.orden !== f.orden) {
+      nivelesConOrdenCambiado.add(f.nivel);
+    }
+  });
+  const partes = [...cambiosNivel];
+  if (nivelesConOrdenCambiado.size) {
+    partes.push(`Orden cambiado dentro de: ${[...nivelesConOrdenCambiado].map(n => ETIQUETA_NIVEL[n]).join(', ')}`);
+  }
+  return partes.join(' · ') || null;
+}
+
 async function guardarGravedadMotivos() {
   if (!tienePermiso('config_gravedad_motivos')) { mostrarModalSinPermiso(); return; }
   const btn = document.getElementById('btnGuardarGravedadMotivos');
@@ -233,9 +258,15 @@ async function guardarGravedadMotivos() {
         .forEach((f, idx) => { f.orden = idx + 1; });
     });
 
+    const antesDeGuardar = gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO;
+
     const { error } = await sb.from('config_gravedad_motivos')
       .upsert(gravedadMotivosEdicion.map(f => ({ motivo: f.motivo, nivel: f.nivel, orden: f.orden })), { onConflict: 'motivo' });
     if (error) throw error;
+
+    if (typeof registrarAccion === 'function') {
+      registrarAccion('gravedad_motivos', 'Cambiar gravedad de motivos', resumenCambiosGravedadMotivos(antesDeGuardar, gravedadMotivosEdicion));
+    }
 
     gravedadMotivosCache = gravedadMotivosEdicion.map(f => ({ ...f }));
     pintarGravedadMotivos();
