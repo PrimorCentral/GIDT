@@ -960,8 +960,15 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .analisis-fechas .form-input{ width:150px; }
 
   .analisis-toolbar{
-    display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; margin-bottom:16px;
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between;
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
   }
+
+  /* La barra de arriba del todo (periodo + filtros/tiendas-agencias/orden) se
+     queda fija al hacer scroll por el ranking, igual que .cabecera-fija en
+     otras pantallas; solo se le añade un poco más de aire debajo, ya que
+     aquí lo que sigue son los KPIs, no una tabla pegada. */
+  .cabecera-fija-ranking{ padding-bottom:18px; }
 
   .ranking-chart-card{ padding:18px 20px; margin-bottom:16px; }
   .ranking-chart-title{
