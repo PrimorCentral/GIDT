@@ -70,13 +70,65 @@ function rpdfFilasActuales() {
   return filas;
 }
 
-function rpdfResumenDesglose(f) {
-  const partes = [];
-  if (f.grave) partes.push(`${f.grave} grave${f.grave === 1 ? '' : 's'}`);
-  if (f.moderado) partes.push(`${f.moderado} moderada${f.moderado === 1 ? '' : 's'}`);
-  if (f.leve) partes.push(`${f.leve} leve${f.leve === 1 ? '' : 's'}`);
-  if (f.pendiente) partes.push(`${f.pendiente} pdte. confirmar`);
-  return partes.length ? partes.join(', ') : '—';
+// Texto (singular/plural) de cada motivo cerrado del catálogo, para poder
+// escribir "3 retrasos importantes" en vez de solo agrupar por gravedad.
+const RPDF_MOTIVO_TEXTO = {
+  'RETRASO PDTE CONFIRMAR':       { s: 'retraso pdte. confirmar',      p: 'retrasos pdte. confirmar' },
+  'REVISANDO POSIBLE INCIDENCIA': { s: 'revisando posible incidencia', p: 'revisando posible incidencia' },
+  'ROTURA SIN INCIDENCIA':        { s: 'rotura sin incidencia',        p: 'roturas sin incidencia' },
+  'ROTURA ALMACEN':               { s: 'rotura de almacén',            p: 'roturas de almacén' },
+  'RETRASO LEVE':                 { s: 'retraso leve',                 p: 'retrasos leves' },
+  'PALETS NO RETIRADOS':          { s: 'palet no retirado',            p: 'palets no retirados' },
+  'DESCARGA MANUAL':              { s: 'descarga manual',              p: 'descargas manuales' },
+  'ROTURA CONFIRMADA':            { s: 'rotura confirmada',            p: 'roturas confirmadas' },
+  'PALETS SIN VIGILANCIA':        { s: 'palet sin vigilancia',         p: 'palets sin vigilancia' },
+  'MEZCLAN FECHAS':               { s: 'mezcla de fechas',             p: 'mezclas de fechas' },
+  'RETRASO IMPORTANTE':           { s: 'retraso importante',           p: 'retrasos importantes' },
+  'ADELANTAN ENTREGA':            { s: 'entrega adelantada',           p: 'entregas adelantadas' },
+  'INCOMPLETO':                   { s: 'incompleto',                   p: 'incompletos' },
+  'FALTAS':                       { s: 'falta',                        p: 'faltas' },
+  'NO ENTREGAN':                  { s: 'no entrega',                   p: 'no entregas' },
+  'PALET PERDIDO':                { s: 'palet perdido',                p: 'palets perdidos' },
+  'PALET MANIPULADO':             { s: 'palet manipulado',             p: 'palets manipulados' }
+};
+
+function rpdfTextoMotivo(motivo, cantidad) {
+  const par = RPDF_MOTIVO_TEXTO[motivo];
+  if (!par) return motivo.charAt(0) + motivo.slice(1).toLowerCase();
+  return cantidad === 1 ? par.s : par.p;
+}
+
+// Cuenta, por tienda o agencia (según la vista activa), cuántas veces
+// aparece cada motivo entre las incidencias ya filtradas — igual que se
+// hace con incidencias/siniestros en agregarAnalisis, pero por motivo.
+// Los submotivos (p. ej. dentro de FALTAS) no se cuentan aparte: solo el
+// motivo principal, igual que en el resto de la app.
+function rpdfDesgloseMotivosPorClave() {
+  const submotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
+  const mapa = new Map();
+  incidenciasFiltradas().forEach(i => {
+    const clave = analisisEntidad === 'tiendas' ? i.tienda_id : i.agencia_id;
+    if (clave == null) return;
+    if (!mapa.has(clave)) mapa.set(clave, new Map());
+    const porMotivo = mapa.get(clave);
+    const principales = (i.motivo || []).filter(m => !submotivos.includes(m));
+    if (!principales.length) {
+      porMotivo.set('__SIN_MOTIVO__', (porMotivo.get('__SIN_MOTIVO__') || 0) + 1);
+    } else {
+      principales.forEach(m => porMotivo.set(m, (porMotivo.get(m) || 0) + 1));
+    }
+  });
+  return mapa;
+}
+
+function rpdfResumenMotivos(mapaMotivo) {
+  if (!mapaMotivo || !mapaMotivo.size) return '—';
+  return Array.from(mapaMotivo.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([motivo, cantidad]) => motivo === '__SIN_MOTIVO__'
+      ? `${cantidad} sin motivo registrado`
+      : `${cantidad} ${rpdfTextoMotivo(motivo, cantidad)}`)
+    .join(', ');
 }
 
 function rpdfResumenSiniestros(f) {
@@ -334,13 +386,14 @@ async function exportarRankingPdf() {
     // --- Tabla completa de desglose (en página aparte, como anexo) ---
     doc.addPage();
     const cabeceraCol = analisisEntidad === 'tiendas' ? 'Tienda' : 'Agencia';
+    const desgloseMotivos = rpdfDesgloseMotivosPorClave();
     const cuerpoTabla = filas.map((f, idx) => [
       String(idx + 1),
       f.agenciaNombre
         ? `${f.nombre}\n${f.variasAgencias ? 'Varias agencias en el periodo' : f.agenciaNombre}`
         : f.nombre,
       String(f.incidencias),
-      rpdfResumenDesglose(f),
+      rpdfResumenMotivos(desgloseMotivos.get(f.clave)),
       String(f.siniestros),
       rpdfResumenSiniestros(f)
     ]);
@@ -351,15 +404,17 @@ async function exportarRankingPdf() {
       tableWidth: anchoUtil,
       theme: 'grid',
       styles: { font: 'helvetica', fontSize: 8.5, lineColor: RPDF_COLOR_BORDE, lineWidth: 0.5, cellPadding: 6, valign: 'middle', textColor: RPDF_COLOR_INK },
-      head: [['#', cabeceraCol, 'Incid.', 'Desglose incidencias', 'Sin.', 'Tipo de siniestro']],
+      head: [['#', cabeceraCol, 'Incid.', 'Motivos de la incidencia', 'Sin.', 'Tipo siniestro']],
       headStyles: { fillColor: RPDF_COLOR_HEADER, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 8.5 },
       columnStyles: {
         0: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
         1: { cellWidth: 150, fontStyle: 'bold' },
         2: { cellWidth: 48, halign: 'center', fontStyle: 'bold' },
-        3: { cellWidth: 220 },
-        4: { cellWidth: 42, halign: 'center', fontStyle: 'bold' }
-        // Tipo de siniestro (col. 5): ancho automático con el resto del sitio.
+        3: { cellWidth: anchoUtil - (26 + 150 + 48 + 42 + 90) },
+        4: { cellWidth: 42, halign: 'center', fontStyle: 'bold' },
+        // Tipo de siniestro: solo puede ser "rotura", "falta" o "mixto"
+        // (o combinaciones cortas de esos tres), no necesita más ancho.
+        5: { cellWidth: 90 }
       },
       body: cuerpoTabla.length ? cuerpoTabla : [[{ content: 'Sin resultados para este periodo y filtros.', colSpan: 6, styles: { halign: 'center', textColor: RPDF_COLOR_INK_SOFT } }]]
     });
