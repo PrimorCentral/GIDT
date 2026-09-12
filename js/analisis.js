@@ -571,7 +571,7 @@
       listaSin.innerHTML = TIPOS_SINIESTRO_FILTRO.map(t => `
         <label class="filtro-check">
           <input type="checkbox" value="${t.v}" data-filtro="siniestro">
-          <span class="pill ${t.v === 'FALTA' ? 'moderado' : 'grave'}">${t.label}</span>
+          <span class="pill ${t.v === 'ROTURA' ? 'moderado' : 'grave'}">${t.label}</span>
         </label>`).join('');
       listaSin.dataset.built = '1';
     }
