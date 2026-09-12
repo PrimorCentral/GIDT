@@ -119,7 +119,12 @@ function hayCambiosSinGuardarGravedadMotivos() {
 // true si se puede continuar (no había cambios, o se confirmó descartarlos).
 async function confirmarDescartarEdicionGravedadMotivos() {
   if (!hayCambiosSinGuardarGravedadMotivos()) return true;
-  return await modalConfirm('Tienes cambios sin guardar en la gravedad de motivos. ¿Descartarlos?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
+  const ok = await modalConfirm('Tienes cambios sin guardar en la gravedad de motivos. ¿Descartarlos?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
+  if (!ok) return false;
+  // Descarta de verdad el borrador: si no, la próxima vez se seguiría
+  // detectando el mismo cambio como pendiente y volvería a preguntar.
+  gravedadMotivosEdicion = (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).map(f => ({ ...f }));
+  return true;
 }
 
 window.addEventListener('beforeunload', (e) => {
