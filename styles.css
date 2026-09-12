@@ -254,19 +254,6 @@
   .pill.grave{ background:var(--grave-bg); color:var(--grave); }
   .pill.leve{ background:#EEF0F3; color:var(--leve); }
 
-  /* Chip compacto (tabla de ranking): "3G" en vez de "3 graves", con el
-     texto completo disponible al pasar el cursor (title). */
-  .chip-mini{
-    display:inline-flex; align-items:baseline; gap:1px;
-    padding:2px 6px; border-radius:99px; margin:0 3px 3px 0;
-    font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; cursor:default;
-  }
-  .chip-mini b{ font-size:9.5px; font-weight:800; opacity:.8; }
-  .chip-mini-grave{ background:var(--grave-bg); color:var(--grave); }
-  .chip-mini-moderado{ background:var(--moderado-bg); color:var(--moderado); }
-  .chip-mini-leve{ background:#EEF0F3; color:var(--leve); }
-  .chip-mini-pendiente{ background:#FDE2DD; color:#B23A28; }
-
   /* ---------- Login ---------- */
   #loginScreen{
     position:fixed; inset:0; z-index:100;
@@ -982,15 +969,13 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
      la izquierda, botones a la derecha), igual que en Historial de informes;
      .cabecera-fija ya se encarga de fijarla al hacer scroll. */
 
-  /* Ranking de incidencias: columna izquierda (gráfica de barras Top 10 +
-     tabla, igual que antes) y columna derecha fija con el donut 3D de
-     incidencias por agencia. */
-  .ranking-layout{ display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:16px; align-items:start; }
-  .ranking-col-left{ min-width:0; }
-  .ranking-col-right{ position:sticky; top:16px; }
-  @media (max-width:980px){
-    .ranking-layout{ grid-template-columns:1fr; }
-    .ranking-col-right{ position:static; }
+  /* Ranking de incidencias: fila superior con las dos gráficas (barras Top
+     10 a la izquierda, donut 3D por agencia a la derecha) y, debajo, la
+     tabla de desglose a todo el ancho, sin que la columna del donut le
+     reste espacio. */
+  .ranking-top-row{ display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:16px; align-items:start; }
+  @media (max-width:900px){
+    .ranking-top-row{ grid-template-columns:1fr; }
   }
 
   .ranking-chart-card{ padding:18px 20px; margin-bottom:16px; }
