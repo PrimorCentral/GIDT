@@ -117,9 +117,9 @@ function pintarGravedadMotivos() {
                   <div class="gravedad-fila-acciones">
                     <button type="button" class="gravedad-btn" data-mover="arriba" title="Subir" ${idx === 0 ? 'disabled' : ''}>▲</button>
                     <button type="button" class="gravedad-btn" data-mover="abajo" title="Bajar" ${idx === arr.length - 1 ? 'disabled' : ''}>▼</button>
-                    <select class="gravedad-select" data-cambiar-nivel>
-                      ${NIVELES_GRAVEDAD.map(n => `<option value="${n}" ${n === nivel ? 'selected' : ''}>${ETIQUETA_NIVEL[n]}</option>`).join('')}
-                    </select>
+                    <button type="button" class="mini-btn" data-cambiar-nivel title="Cambiar de nivel">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
                   </div>
                 </div>`).join('')}
           </div>
@@ -133,12 +133,25 @@ function pintarGravedadMotivos() {
     });
   });
 
-  cont.querySelectorAll('[data-cambiar-nivel]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      const fila = sel.closest('.gravedad-fila');
-      cambiarNivelMotivo(fila.dataset.motivo, sel.value);
+  cont.querySelectorAll('[data-cambiar-nivel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fila = btn.closest('.gravedad-fila');
+      abrirCambiarNivelMotivo(fila.dataset.motivo);
     });
   });
+}
+
+async function abrirCambiarNivelMotivo(motivo) {
+  const item = gravedadMotivosEdicion.find(f => f.motivo === motivo);
+  if (!item) return;
+  const opciones = NIVELES_GRAVEDAD.map(n => ({ id: n, nombre: ETIQUETA_NIVEL[n] }));
+  const nuevoNivel = await modalSeleccionar(
+    `Nivel de gravedad de "${motivo.charAt(0) + motivo.slice(1).toLowerCase()}":`,
+    opciones,
+    { titulo: 'Cambiar de nivel', textoOk: 'Cambiar', valorInicial: item.nivel }
+  );
+  if (!nuevoNivel || nuevoNivel === item.nivel) return;
+  cambiarNivelMotivo(motivo, nuevoNivel);
 }
 
 function moverMotivo(motivo, direccion) {

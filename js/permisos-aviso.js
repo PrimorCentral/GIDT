@@ -49,6 +49,7 @@ const BOTONES_CON_PERMISO = [
   ['#listaEmailsCC .email-add-row button', 'config_cc_transporte'],
   ['#listaEmailsCC [data-quitar-cc]', 'config_cc_transporte'],
   ['#contenidoGravedadMotivos .gravedad-btn', 'config_gravedad_motivos'],
+  ['#contenidoGravedadMotivos [data-cambiar-nivel]', 'config_gravedad_motivos'],
   ['#btnGuardarGravedadMotivos', 'config_gravedad_motivos'],
   ['#btnBorrarPanelSiniestro', 'borrar'],
   ['.agencia-body [data-borrar]', 'borrar'],

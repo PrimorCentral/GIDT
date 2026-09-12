@@ -111,7 +111,14 @@
       modalBtnOk.className = 'btn primary';
       _abrirModal();
 
-      const onOk = () => { const v = Number(modalSelectEl.value); limpiar(); resolve(v); };
+      // Convierte a número solo si el valor es numérico (p.ej. IDs de
+      // agencia); si es texto (p.ej. "leve"/"moderado"/"grave"), se
+      // devuelve tal cual.
+      const onOk = () => {
+        const raw = modalSelectEl.value;
+        const v = /^-?\d+$/.test(raw) ? Number(raw) : raw;
+        limpiar(); resolve(v);
+      };
       const onCancel = () => { limpiar(); resolve(null); };
       function limpiar() {
         _cerrarModal();
