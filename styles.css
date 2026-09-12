@@ -1037,7 +1037,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
      aplastado vertical) construido en SVG puro. */
   .ranking-donut-card{ padding:18px 18px 16px; }
   .donut-wrap{
-    position:relative; width:100%; max-width:216px; margin:6px auto 4px;
+    position:relative; width:100%; max-width:246px; margin:6px auto 4px;
     aspect-ratio:260/226;
   }
   .donut-svg{ width:100%; height:100%; }
