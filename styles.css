@@ -254,6 +254,19 @@
   .pill.grave{ background:var(--grave-bg); color:var(--grave); }
   .pill.leve{ background:#EEF0F3; color:var(--leve); }
 
+  /* Chip compacto (tabla de ranking): "3G" en vez de "3 graves", con el
+     texto completo disponible al pasar el cursor (title). */
+  .chip-mini{
+    display:inline-flex; align-items:baseline; gap:1px;
+    padding:2px 6px; border-radius:99px; margin:0 3px 3px 0;
+    font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; cursor:default;
+  }
+  .chip-mini b{ font-size:9.5px; font-weight:800; opacity:.8; }
+  .chip-mini-grave{ background:var(--grave-bg); color:var(--grave); }
+  .chip-mini-moderado{ background:var(--moderado-bg); color:var(--moderado); }
+  .chip-mini-leve{ background:#EEF0F3; color:var(--leve); }
+  .chip-mini-pendiente{ background:#FDE2DD; color:#B23A28; }
+
   /* ---------- Login ---------- */
   #loginScreen{
     position:fixed; inset:0; z-index:100;
@@ -969,6 +982,17 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
      la izquierda, botones a la derecha), igual que en Historial de informes;
      .cabecera-fija ya se encarga de fijarla al hacer scroll. */
 
+  /* Ranking de incidencias: columna izquierda (gráfica de barras Top 10 +
+     tabla, igual que antes) y columna derecha fija con el donut 3D de
+     incidencias por agencia. */
+  .ranking-layout{ display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:16px; align-items:start; }
+  .ranking-col-left{ min-width:0; }
+  .ranking-col-right{ position:sticky; top:16px; }
+  @media (max-width:980px){
+    .ranking-layout{ grid-template-columns:1fr; }
+    .ranking-col-right{ position:static; }
+  }
+
   .ranking-chart-card{ padding:18px 20px; margin-bottom:16px; }
   .ranking-chart-title{
     margin:0 0 14px; font-size:11.5px; color:var(--ink-soft); text-transform:uppercase;
@@ -1022,6 +1046,43 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 
   @media (max-width:560px){
     .ranking-bar-label{ width:110px; flex-basis:110px; }
+  }
+
+  /* Tarjeta "Incidencias por agencia" — donut con efecto 3D (relieve +
+     aplastado vertical) construido en SVG puro. */
+  .ranking-donut-card{ padding:18px 18px 16px; }
+  .donut-wrap{
+    position:relative; width:100%; max-width:216px; margin:6px auto 4px;
+    aspect-ratio:260/226;
+  }
+  .donut-svg{ width:100%; height:100%; }
+  .donut-svg svg{ display:block; width:100%; height:100%; overflow:visible; }
+  .donut-center{
+    position:absolute; left:50%; top:42.5%; transform:translate(-50%,-50%);
+    text-align:center; pointer-events:none;
+  }
+  .donut-center-num{ display:block; font-size:21px; font-weight:800; color:var(--ink); line-height:1; }
+  .donut-center-label{
+    display:block; margin-top:2px; font-size:9px; font-weight:700; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.4px;
+  }
+  .donut-leyenda{ display:flex; flex-direction:column; gap:7px; margin-top:8px; }
+  .donut-leyenda-fila{ display:flex; align-items:center; gap:7px; font-size:12px; }
+  .donut-leyenda-dot{
+    width:9px; height:9px; border-radius:50%; flex:0 0 auto;
+    box-shadow:0 1px 1px rgba(18,24,31,.2);
+  }
+  .donut-leyenda-nombre{
+    flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; font-weight:600; color:var(--ink);
+  }
+  .donut-leyenda-pct{
+    flex:0 0 auto; width:32px; text-align:right; font-weight:700;
+    color:var(--ink-soft); font-variant-numeric:tabular-nums;
+  }
+  .donut-leyenda-num{
+    flex:0 0 auto; width:24px; text-align:right; font-weight:700;
+    color:var(--ink); font-variant-numeric:tabular-nums;
   }
 
   /* ---------- Modal de detalle (tienda/agencia del Ranking) ----------
