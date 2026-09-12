@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------
-  // Análisis · Ranking de tiendas y agencias
+  // Análisis · Ranking de incidencias
   // ---------------------------------------------------------------
   // Cuenta incidencias (activas, marcada=true) y siniestros generados en un
   // rango de fechas, agrupados por tienda o por agencia, usando el snapshot
@@ -571,6 +571,11 @@
     return `<span class="pill agencia-detalle">🏢 ${escapeHtml(nombre)}</span>`;
   }
 
+  function pillTiendaDetalle(nombre) {
+    if (!nombre) return '';
+    return `<span class="pill agencia-detalle">🏬 ${escapeHtml(nombre)}</span>`;
+  }
+
   function capitalizar(str) {
     return str.charAt(0) + str.slice(1).toLowerCase();
   }
@@ -587,9 +592,13 @@
       return fb.localeCompare(fa);
     });
 
-    // La agencia de cada incidencia solo se muestra cuando se está viendo el
-    // detalle "por tienda" (si es "por agencia" todas comparten la misma).
+    // La entidad por la que se agrupa (tienda o agencia) es la misma para
+    // todas las filas del detalle, así que no hace falta repetirla; lo que
+    // sí varía fila a fila es la otra entidad, y esa es la que se muestra:
+    // la agencia cuando se ve el detalle "por tienda", y la tienda cuando
+    // se ve el detalle "por agencia".
     const mostrarAgenciaPorFila = entidad === 'tiendas';
+    const mostrarTiendaPorFila = entidad === 'agencias';
 
     const listaIncs = incs.length ? incs.map(i => {
       const t = i.tipo || 'PENDIENTE';
@@ -603,6 +612,7 @@
           ${pillTipoIncidencia(i.tipo)}
           ${(i.motivo || []).length ? `<span class="detalle-motivo">${(i.motivo || []).map(m => escapeHtml(capitalizar(m))).join(', ')}</span>` : ''}
           ${mostrarAgenciaPorFila ? pillAgenciaDetalle(i.agencia_nombre) : ''}
+          ${mostrarTiendaPorFila ? pillTiendaDetalle(i.tienda_nombre) : ''}
         </div>
       </div>`;
     }).join('') : `<p class="detalle-vacio">Sin incidencias en el periodo y filtros elegidos.</p>`;
@@ -619,6 +629,7 @@
           ${pillTipoSiniestro(s.tipo)}
           <span class="badge-envio ${s.estado === 'PENDIENTE' ? 'pendiente' : 'enviado'}">${s.estado === 'PENDIENTE' ? 'Pendiente' : 'Enviado'}</span>
           ${mostrarAgenciaPorFila ? pillAgenciaDetalle(inc?.agencia_nombre) : ''}
+          ${mostrarTiendaPorFila ? pillTiendaDetalle(inc?.tienda_nombre) : ''}
         </div>
       </div>`;
     }).join('') : `<p class="detalle-vacio">Sin siniestros en el periodo y filtros elegidos.</p>`;
