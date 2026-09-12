@@ -344,7 +344,7 @@
         <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border: 1px solid #edf2f7; border-radius: 24px;">
           <tr>
             <td style="padding: 40px; background-color: #ffffff;">
-              <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">Buenos días,</p>
+              <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">Buenas,</p>
               <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
                 Adjuntamos resumen de las entregas de <b style="color: #000000;">${escapeHtml(nombreMesConAnio)}</b> con las incidencias que hayan tenido lugar.
               </p>
