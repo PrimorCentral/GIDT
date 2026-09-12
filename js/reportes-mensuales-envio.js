@@ -709,19 +709,24 @@ function rmeConstruirPdf(grupoNombre, anio, mesIndex, filasGrupo, segmentosPorTi
   return doc;
 }
 
-// Añade, abajo del todo y centrado en cada página ya dibujada, el pie
-// "Página X de Y". Se hace al final (con el documento ya completo) para
-// poder saber el total de páginas de una vez.
+// Añade, abajo del todo en cada página ya dibujada, el mismo pie de tres
+// columnas que el PDF del Ranking de incidencias: marca a la izquierda,
+// "Página X de Y" centrado, y la fecha/hora de generación a la derecha.
+// Se hace al final (con el documento ya completo) para poder saber el
+// total de páginas de una vez.
 function rmeAnadirPiePagina(doc, margen) {
   const totalPaginas = doc.internal.getNumberOfPages();
   const anchoPagina = doc.internal.pageSize.getWidth();
   const altoPagina = doc.internal.pageSize.getHeight();
+  const generadoTexto = `Generado el ${formatearFechaHoraCorta(new Date())}`;
   for (let pagina = 1; pagina <= totalPaginas; pagina++) {
     doc.setPage(pagina);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(7.5);
+    doc.setTextColor(91, 101, 114);
+    doc.text('GIDT · Reportes mensuales', margen, altoPagina - margen / 2 - 2);
     doc.text(`Página ${pagina} de ${totalPaginas}`, anchoPagina / 2, altoPagina - margen / 2 - 2, { align: 'center' });
+    doc.text(generadoTexto, anchoPagina - margen, altoPagina - margen / 2 - 2, { align: 'right' });
   }
 }
 
