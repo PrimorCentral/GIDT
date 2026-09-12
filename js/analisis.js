@@ -371,6 +371,19 @@
     ].join(' ');
   }
 
+  // Recorta el nombre para que quepa en el hueco disponible de la
+  // porción (ancho aproximado de la cuerda a media distancia del
+  // anillo). Si la porción es demasiado pequeña ni para 3 caracteres,
+  // no se pone etiqueta dentro — ese caso ya queda cubierto por la
+  // leyenda de debajo.
+  function etiquetaCabeEnPorcion(nombre, span, rMedio, fontSize) {
+    const cuerda = 2 * rMedio * Math.sin(Math.min(span, Math.PI) / 2);
+    const maxChars = Math.floor(cuerda / (fontSize * 0.62));
+    if (maxChars < 3) return '';
+    if (nombre.length <= maxChars) return nombre;
+    return nombre.slice(0, Math.max(2, maxChars - 1)) + '…';
+  }
+
   // El efecto 3D se consigue dibujando el anillo dos veces: una base cuyo
   // borde EXTERIOR está desplazado hacia abajo (el "canto" del donut, en
   // un tono oscuro) pero cuyo borde interior coincide con el del anillo
@@ -380,6 +393,8 @@
   function renderDonutSvgAgencias(arcos) {
     const { w: W, h: H, depth } = DONUT_VIEWBOX;
     const cx = W / 2, cy = 106, rExt = 104, rInt = 60;
+    const rMedio = (rExt + rInt) / 2;
+    const fontSizeEtiqueta = 10.5;
     const squash = `translate(${cx},${cy}) scale(1,0.82) translate(${-cx},${-cy})`;
 
     const defs = arcos.map((s, i) => `
@@ -396,6 +411,18 @@
       `<path d="${trazoAnilloDonut(cx, cy, rExt, rInt, s.a0, s.a1)}" fill="url(#donutGrad${i})" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>`
     ).join('');
 
+    // Nombre dentro de cada porción (con halo blanco detrás del texto
+    // oscuro) para poder identificar cada agencia sin depender del
+    // color — imprescindible al imprimir en blanco y negro.
+    const etiquetas = arcos.map(s => {
+      const texto = etiquetaCabeEnPorcion(s.nombre, s.a1 - s.a0, rMedio, fontSizeEtiqueta);
+      if (!texto) return '';
+      const p = puntoPolarDonut(cx, cy, rMedio, (s.a0 + s.a1) / 2);
+      return `<text x="${p.x.toFixed(2)}" y="${p.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle"
+        font-family="Arial, Helvetica, sans-serif" font-size="${fontSizeEtiqueta}" font-weight="700"
+        fill="#12181F" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${escapeHtml(texto)}</text>`;
+    }).join('');
+
     return `
       <svg width="${W}" height="${H + depth}" viewBox="0 0 ${W} ${H + depth}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Incidencias por agencia">
         <defs>
@@ -408,6 +435,7 @@
           <g transform="${squash}">
             ${base}
             <g>${top}</g>
+            <g>${etiquetas}</g>
           </g>
         </g>
       </svg>`;
