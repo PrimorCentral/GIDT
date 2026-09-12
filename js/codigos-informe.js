@@ -53,16 +53,14 @@
   // (todavía no son una incidencia cerrada).
   const MOTIVOS_PENDIENTES_INFORME = ['RETRASO PDTE CONFIRMAR', 'REVISANDO POSIBLE INCIDENCIA'];
 
-  // Mismo criterio de gravedad que calcularTipo() en filtros-motivos.js,
-  // para saber qué motivo "gana" cuando hay varios marcados el mismo día.
-  const RE_GRAVE_CI    = /faltas|no entregan|palet perdido|palet manipulado/i;
-  const RE_MODERADO_CI = /rotura confirmada|palets sin vigilancia|mezclan fechas|retraso importante|adelantan entrega|incompleto/i;
-  const RE_LEVE_CI     = /rotura sin incidencia|rotura almacen|retraso leve|descarga manual|palets no retirados/i;
-
+  // Mismo criterio de gravedad que calcularTipo() en filtros-motivos.js:
+  // viene de la tabla `config_gravedad_motivos` (Configuración → Gravedad
+  // de motivos, ver js/config-gravedad-motivos.js), no de regex fijas.
   function severidad(motivo) {
-    if (RE_GRAVE_CI.test(motivo)) return 3;
-    if (RE_MODERADO_CI.test(motivo)) return 2;
-    if (RE_LEVE_CI.test(motivo)) return 1;
+    const nivel = (typeof nivelDeMotivo === 'function') ? nivelDeMotivo(motivo) : null;
+    if (nivel === 'grave') return 3;
+    if (nivel === 'moderado') return 2;
+    if (nivel === 'leve') return 1;
     return 0;
   }
 
@@ -81,12 +79,16 @@
     const principales = arr.filter(m => CODIGOS_INFORME.some(c => c.motivo === m));
     if (!principales.length) return null;
 
-    // El más grave gana; en empate, el primero marcado (orden en el array).
+    // El más grave gana; en empate de gravedad, decide el orden configurado
+    // en Configuración → Gravedad de motivos (menor número = más prioritario).
     let ganador = principales[0];
     let mejor = severidad(ganador);
     for (let i = 1; i < principales.length; i++) {
       const s = severidad(principales[i]);
-      if (s > mejor) { ganador = principales[i]; mejor = s; }
+      if (s > mejor || (s === mejor && typeof ordenDeMotivo === 'function' && ordenDeMotivo(principales[i]) < ordenDeMotivo(ganador))) {
+        ganador = principales[i];
+        mejor = s;
+      }
     }
 
     const candidatos = CODIGOS_INFORME.filter(c => c.motivo === ganador);

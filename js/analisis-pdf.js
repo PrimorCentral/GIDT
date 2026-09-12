@@ -100,19 +100,21 @@ function rpdfTextoMotivo(motivo, cantidad) {
 
 // De los motivos marcados en una incidencia (puede haber varios a la
 // vez), se queda con UNO solo: el que determina su gravedad real, con
-// el mismo criterio que ya usa calcularTipo (RE_GRAVE/RE_MODERADO/
-// RE_LEVE, de filtros-motivos.js) para decidir si la incidencia es
-// grave/moderada/leve. Así, en el desglose por motivo, cada incidencia
-// cuenta una sola vez — la suma siempre coincide con "Incidencias",
-// igual que ya pasa con el desglose por gravedad.
+// el mismo criterio que ya usa calcularTipo (nivelDeMotivo, según la
+// gravedad configurada en Configuración → Gravedad de motivos) para
+// decidir si la incidencia es grave/moderada/leve. Así, en el desglose
+// por motivo, cada incidencia cuenta una sola vez — la suma siempre
+// coincide con "Incidencias", igual que ya pasa con el desglose por
+// gravedad.
 function rpdfMotivoPrincipal(incidencia) {
   const submotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
   const principales = (incidencia.motivo || []).filter(m => !submotivos.includes(m));
   if (!principales.length) return null;
   if (principales.length === 1) return principales[0];
-  return principales.find(m => RE_GRAVE.test(m))
-    || principales.find(m => RE_MODERADO.test(m))
-    || principales.find(m => RE_LEVE.test(m))
+  const nivel = m => (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(m) : null);
+  return principales.find(m => nivel(m) === 'grave')
+    || principales.find(m => nivel(m) === 'moderado')
+    || principales.find(m => nivel(m) === 'leve')
     || principales[0];
 }
 

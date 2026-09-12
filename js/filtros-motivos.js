@@ -392,18 +392,21 @@
     { v: 'PALET MANIPULADO',             clase: 'grave' }
   ];
 
-  const RE_GRAVE = /faltas|no entregan|palet perdido|palet manipulado/i;
-  const RE_MODERADO = /rotura confirmada|palets sin vigilancia|mezclan fechas|retraso importante|adelantan entrega|incompleto/i;
-  const RE_LEVE = /rotura sin incidencia|rotura almacen|retraso leve|descarga manual|palets no retirados/i;
+  // La clasificación Leve/Moderado/Grave de cada motivo ya no está fija
+  // aquí: viene de la tabla `config_gravedad_motivos`, editable en
+  // Configuración → Gravedad de motivos (ver js/config-gravedad-motivos.js,
+  // función nivelDeMotivo()). Si esa caché aún no ha cargado, usa el mismo
+  // respaldo que tenía hardcodeado antes.
 
   // Calcula el tipo (GRAVE/MODERADO/LEVE/null) a partir de uno o varios motivos.
   // Si hay varios motivos seleccionados, se queda con el más grave de todos.
   function calcularTipo(motivos) {
     const arr = Array.isArray(motivos) ? motivos : (motivos ? [motivos] : []);
     if (!arr.length) return null;
-    if (arr.some(m => RE_GRAVE.test(m))) return 'GRAVE';
-    if (arr.some(m => RE_MODERADO.test(m))) return 'MODERADO';
-    if (arr.some(m => RE_LEVE.test(m))) return 'LEVE';
+    const niveles = arr.map(m => (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(m) : null)).filter(Boolean);
+    if (niveles.includes('grave')) return 'GRAVE';
+    if (niveles.includes('moderado')) return 'MODERADO';
+    if (niveles.includes('leve')) return 'LEVE';
     return null; // motivos "pendientes" (RETRASO PDTE CONFIRMAR / REVISANDO POSIBLE INCIDENCIA)
   }
 
@@ -437,8 +440,12 @@
         const guardado = window.SUBMOTIVOS_POR_MOTIVO[m.v].find(op => sel.includes(op));
         if (guardado) atrSubmotivo = ` data-submotivo-guardado="${escapeHtml(guardado)}"`;
       }
+      // El color (leve/moderado/grave) sigue la gravedad configurada en
+      // Configuración → Gravedad de motivos; "pendiente" (los 2 motivos
+      // sin gravedad) no cambia nunca.
+      const claseColor = (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(m.v) : null) || m.clase;
       return `
-      <label class="filtro-check motivo-${m.clase}">
+      <label class="filtro-check motivo-${claseColor}">
         <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}"${atrSubmotivo} ${sel.includes(m.v) ? 'checked' : ''}>
         <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
       </label>`;
