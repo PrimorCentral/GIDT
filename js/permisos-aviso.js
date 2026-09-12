@@ -14,7 +14,7 @@
 
 function mostrarModalSinPermiso() {
   if (typeof modalAlert !== 'function') return;
-  modalAlert('Usuario no cuenta con los permisos necesarios, por favor, contacte con su responsable.', {
+  modalAlert('Usuario no cuenta con los permisos necesarios.', {
     titulo: 'Sin permiso',
     icono: '⛔',
     danger: true
