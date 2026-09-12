@@ -1043,7 +1043,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .donut-svg{ width:100%; height:100%; }
   .donut-svg svg{ display:block; width:100%; height:100%; overflow:visible; }
   .donut-center{
-    position:absolute; left:50%; top:42.5%; transform:translate(-50%,-50%);
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     text-align:center; pointer-events:none;
   }
   .donut-center-num{ display:block; font-size:21px; font-weight:800; color:var(--ink); line-height:1; }
