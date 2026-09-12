@@ -343,11 +343,36 @@
     ].join(' ');
   }
 
-  // El efecto 3D se consigue dibujando el anillo dos veces: una base
-  // desplazada hacia abajo (el "canto" del donut, en un tono oscuro) y
-  // encima el anillo real con degradado, más un aplastado vertical del
-  // grupo entero para dar sensación de perspectiva — sin depender de
-  // ninguna librería externa.
+  // Igual que trazoAnilloDonut, pero permite que el borde exterior y el
+  // interior usen un centro vertical distinto: así el "canto" del donut
+  // (el borde exterior, desplazado hacia abajo para el efecto 3D) no
+  // arrastra el agujero central, que se queda fijo — el centro del donut
+  // (y el texto que se pone encima) no se desalinea.
+  function trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0, a1) {
+    if (a1 - a0 >= Math.PI * 2 - 0.0001) {
+      return trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0, a0 + Math.PI) + ' ' +
+             trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0 + Math.PI, a0 + Math.PI * 2);
+    }
+    const pExtIni = puntoPolarDonut(cx, cyExt, rExt, a0);
+    const pExtFin = puntoPolarDonut(cx, cyExt, rExt, a1);
+    const pIntFin = puntoPolarDonut(cx, cyInt, rInt, a1);
+    const pIntIni = puntoPolarDonut(cx, cyInt, rInt, a0);
+    const largo = (a1 - a0) > Math.PI ? 1 : 0;
+    return [
+      `M ${pExtIni.x.toFixed(2)} ${pExtIni.y.toFixed(2)}`,
+      `A ${rExt} ${rExt} 0 ${largo} 1 ${pExtFin.x.toFixed(2)} ${pExtFin.y.toFixed(2)}`,
+      `L ${pIntFin.x.toFixed(2)} ${pIntFin.y.toFixed(2)}`,
+      `A ${rInt} ${rInt} 0 ${largo} 0 ${pIntIni.x.toFixed(2)} ${pIntIni.y.toFixed(2)}`,
+      'Z'
+    ].join(' ');
+  }
+
+  // El efecto 3D se consigue dibujando el anillo dos veces: una base cuyo
+  // borde EXTERIOR está desplazado hacia abajo (el "canto" del donut, en
+  // un tono oscuro) pero cuyo borde interior coincide con el del anillo
+  // real de encima — así el agujero central siempre queda centrado en
+  // (cx,cy), más un aplastado vertical del grupo entero para dar
+  // sensación de perspectiva — sin depender de ninguna librería externa.
   function renderDonutSvgAgencias(arcos) {
     const W = 260, H = 210, depth = 16;
     const cx = W / 2, cy = 106, rExt = 104, rInt = 60;
@@ -360,7 +385,7 @@
       </linearGradient>`).join('');
 
     const base = arcos.map(s =>
-      `<path d="${trazoAnilloDonut(cx, cy, rExt, rInt, s.a0, s.a1)}" fill="${s.color.base}"/>`
+      `<path d="${trazoAnilloDonutBorde(cx, cy + depth, cy, rExt, rInt, s.a0, s.a1)}" fill="${s.color.base}"/>`
     ).join('');
 
     const top = arcos.map((s, i) =>
@@ -377,7 +402,7 @@
         </defs>
         <g filter="url(#donutSombra)">
           <g transform="${squash}">
-            <g transform="translate(0,${depth})">${base}</g>
+            ${base}
             <g>${top}</g>
           </g>
         </g>
