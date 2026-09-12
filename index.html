@@ -98,6 +98,7 @@
       <div class="dropdown" id="configDropdown">
         <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
         <button data-view="config-emails">✉️ Emails por agencia</button>
+        <button data-view="config-gravedad-motivos">⚖️ Gravedad de motivos</button>
         <button data-view="config-usuarios">👤 Usuarios</button>
         <button data-view="config-auditoria">🕵️ Registro de auditoría</button>
       </div>
@@ -728,6 +729,17 @@
         </div>
       </div>
       <div id="listaEmailsCC"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: GRAVEDAD DE MOTIVOS ============ -->
+    <section class="view" id="view-config-gravedad-motivos">
+      <div class="page-head">
+        <div>
+          <h1>⚖️ Gravedad de motivos</h1>
+          <p>Clasificación y orden de los motivos de incidencia, usados en Análisis y en el Reporte mensual.</p>
+        </div>
+      </div>
+      <div id="contenidoGravedadMotivos"></div>
     </section>
 
     <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
@@ -1590,6 +1602,10 @@
               <input type="checkbox" id="euPerm_config_cc_transporte">
               <span><b>Destinatarios para CC</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_gravedad_motivos">
+              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+            </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
@@ -1709,6 +1725,10 @@
               <input type="checkbox" id="nuPerm_config_cc_transporte">
               <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
             </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_gravedad_motivos">
+              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+            </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
@@ -1827,6 +1847,7 @@
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
 <script src="js/cc-config.js"></script>
+<script src="js/config-gravedad-motivos.js"></script>
 <script src="js/codigos-informe.js"></script>
 <script src="js/submotivos-informe.js"></script>
 <script src="js/buscador-clear.js"></script>
