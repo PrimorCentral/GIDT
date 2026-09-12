@@ -255,6 +255,180 @@
     return Array.from(mapa.values());
   }
 
+  // ---------------------------------------------------------------
+  // Gráfica "Incidencias por agencia" (donut 3D) — panel derecho del
+  // ranking. Siempre agrupa por agencia (independientemente de si el
+  // ranking principal está viendo tiendas o agencias) y respeta los
+  // mismos filtros que la tabla de la izquierda.
+  // ---------------------------------------------------------------
+  const RANKING_DONUT_PALETTE = [
+    { top: '#FF7A1A', base: '#A8460A' },
+    { top: '#1B6DE0', base: '#0E4694' },
+    { top: '#1E9E6B', base: '#0F6B46' },
+    { top: '#A855F7', base: '#6B2FA6' },
+    { top: '#00AFC2', base: '#037680' },
+    { top: '#F2B705', base: '#A9800A' },
+    { top: '#D12B0D', base: '#8E1D08' },
+    { top: '#6B7684', base: '#454C56' }
+  ];
+
+  function ajustarColor(hex, cantidad) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, Math.max(0, (n >> 16) + cantidad));
+    const g = Math.min(255, Math.max(0, ((n >> 8) & 0xFF) + cantidad));
+    const b = Math.min(255, Math.max(0, (n & 0xFF) + cantidad));
+    return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+  }
+
+  // Agrupa por agencia (usando la misma agregación que el ranking, aunque
+  // esté viendo "tiendas") y se queda con el Top 6 + "Otras agencias".
+  function construirSegmentosDonutAgencias() {
+    const filas = agregarAnalisis('agencias')
+      .filter(f => f.incidencias > 0)
+      .sort((a, b) => b.incidencias - a.incidencias || a.nombre.localeCompare(b.nombre));
+    const TOP_N = 6;
+    const top = filas.slice(0, TOP_N);
+    const resto = filas.slice(TOP_N);
+    const totalResto = resto.reduce((s, f) => s + f.incidencias, 0);
+    const segmentos = top.map((f, idx) => ({
+      nombre: f.nombre,
+      valor: f.incidencias,
+      color: RANKING_DONUT_PALETTE[idx % RANKING_DONUT_PALETTE.length]
+    }));
+    if (totalResto > 0) {
+      segmentos.push({
+        nombre: `Otras agencias (${resto.length})`,
+        valor: totalResto,
+        color: RANKING_DONUT_PALETTE[RANKING_DONUT_PALETTE.length - 1]
+      });
+    }
+    return segmentos;
+  }
+
+  function calcularArcosDonut(segmentos) {
+    const total = segmentos.reduce((s, x) => s + x.valor, 0) || 1;
+    let angulo = -Math.PI / 2;
+    return segmentos.map(seg => {
+      const span = (seg.valor / total) * Math.PI * 2;
+      const a0 = angulo, a1 = angulo + span;
+      angulo = a1;
+      return { ...seg, a0, a1, pct: (seg.valor / total) * 100 };
+    });
+  }
+
+  function puntoPolarDonut(cx, cy, r, angulo) {
+    return { x: cx + r * Math.cos(angulo), y: cy + r * Math.sin(angulo) };
+  }
+
+  // Path SVG de un "trozo de anillo" (donut) entre dos ángulos. Si el
+  // trozo es una vuelta completa (un único segmento al 100%) se parte en
+  // dos semicírculos, porque un arco SVG no puede empezar y acabar en el
+  // mismo punto.
+  function trazoAnilloDonut(cx, cy, rExt, rInt, a0, a1) {
+    if (a1 - a0 >= Math.PI * 2 - 0.0001) {
+      return trazoAnilloDonut(cx, cy, rExt, rInt, a0, a0 + Math.PI) + ' ' +
+             trazoAnilloDonut(cx, cy, rExt, rInt, a0 + Math.PI, a0 + Math.PI * 2);
+    }
+    const pExtIni = puntoPolarDonut(cx, cy, rExt, a0);
+    const pExtFin = puntoPolarDonut(cx, cy, rExt, a1);
+    const pIntFin = puntoPolarDonut(cx, cy, rInt, a1);
+    const pIntIni = puntoPolarDonut(cx, cy, rInt, a0);
+    const largo = (a1 - a0) > Math.PI ? 1 : 0;
+    return [
+      `M ${pExtIni.x.toFixed(2)} ${pExtIni.y.toFixed(2)}`,
+      `A ${rExt} ${rExt} 0 ${largo} 1 ${pExtFin.x.toFixed(2)} ${pExtFin.y.toFixed(2)}`,
+      `L ${pIntFin.x.toFixed(2)} ${pIntFin.y.toFixed(2)}`,
+      `A ${rInt} ${rInt} 0 ${largo} 0 ${pIntIni.x.toFixed(2)} ${pIntIni.y.toFixed(2)}`,
+      'Z'
+    ].join(' ');
+  }
+
+  // El efecto 3D se consigue dibujando el anillo dos veces: una base
+  // desplazada hacia abajo (el "canto" del donut, en un tono oscuro) y
+  // encima el anillo real con degradado, más un aplastado vertical del
+  // grupo entero para dar sensación de perspectiva — sin depender de
+  // ninguna librería externa.
+  function renderDonutSvgAgencias(arcos) {
+    const W = 260, H = 210, depth = 16;
+    const cx = W / 2, cy = 96, rExt = 80, rInt = 46;
+    const squash = `translate(${cx},${cy}) scale(1,0.82) translate(${-cx},${-cy})`;
+
+    const defs = arcos.map((s, i) => `
+      <linearGradient id="donutGrad${i}" x1="0" y1="0" x2="0.25" y2="1">
+        <stop offset="0%" stop-color="${ajustarColor(s.color.top, 22)}"/>
+        <stop offset="100%" stop-color="${s.color.top}"/>
+      </linearGradient>`).join('');
+
+    const base = arcos.map(s =>
+      `<path d="${trazoAnilloDonut(cx, cy, rExt, rInt, s.a0, s.a1)}" fill="${s.color.base}"/>`
+    ).join('');
+
+    const top = arcos.map((s, i) =>
+      `<path d="${trazoAnilloDonut(cx, cy, rExt, rInt, s.a0, s.a1)}" fill="url(#donutGrad${i})" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>`
+    ).join('');
+
+    return `
+      <svg viewBox="0 0 ${W} ${H + depth}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Incidencias por agencia">
+        <defs>
+          ${defs}
+          <filter id="donutSombra" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#12181F" flood-opacity="0.22"/>
+          </filter>
+        </defs>
+        <g filter="url(#donutSombra)">
+          <g transform="${squash}">
+            <g transform="translate(0,${depth})">${base}</g>
+            <g>${top}</g>
+          </g>
+        </g>
+      </svg>`;
+  }
+
+  function renderLeyendaDonutAgencias(arcos) {
+    return arcos.map(s => `
+      <div class="donut-leyenda-fila">
+        <span class="donut-leyenda-dot" style="background:${s.color.top}"></span>
+        <span class="donut-leyenda-nombre" title="${escapeHtml(s.nombre)}">${escapeHtml(s.nombre)}</span>
+        <span class="donut-leyenda-pct">${s.pct.toFixed(0)}%</span>
+        <span class="donut-leyenda-num">${s.valor}</span>
+      </div>`).join('');
+  }
+
+  function renderTarjetaDonutAgencias() {
+    const segmentos = construirSegmentosDonutAgencias();
+    const total = segmentos.reduce((s, x) => s + x.valor, 0);
+    if (!total) {
+      return `
+        <div class="card ranking-donut-card">
+          <h3 class="ranking-chart-title">Incidencias por agencia</h3>
+          <div class="empty" style="padding:20px 0;">
+            <p>Sin datos para este periodo.</p>
+          </div>
+        </div>`;
+    }
+    const arcos = calcularArcosDonut(segmentos);
+    return `
+      <div class="card ranking-donut-card">
+        <h3 class="ranking-chart-title">Incidencias por agencia</h3>
+        <div class="donut-wrap">
+          <div class="donut-svg">${renderDonutSvgAgencias(arcos)}</div>
+          <div class="donut-center">
+            <span class="donut-center-num">${total}</span>
+            <span class="donut-center-label">Total</span>
+          </div>
+        </div>
+        <div class="donut-leyenda">${renderLeyendaDonutAgencias(arcos)}</div>
+      </div>`;
+  }
+
+  // Chip compacto para los desgloses de la tabla (sustituye a las pills
+  // largas — "3 graves" pasa a "3 G" — dejando el texto completo en el
+  // title para no perder información).
+  function chipMini(valor, letra, clase, textoCompleto) {
+    if (!valor) return '';
+    return `<span class="chip-mini chip-mini-${clase}" title="${escapeHtml(textoCompleto)}">${valor}<b>${letra}</b></span>`;
+  }
+
   function renderAnalisisRanking() {
     const cont = document.getElementById('contenidoAnalisisRanking');
     if (!analisisDatos) return;
@@ -305,17 +479,17 @@
         </td>
         <td class="col-num">${f.incidencias}</td>
         <td class="col-desglose">
-          ${f.grave ? `<span class="pill grave">${f.grave} grave${f.grave === 1 ? '' : 's'}</span>` : ''}
-          ${f.moderado ? `<span class="pill moderado">${f.moderado} moderada${f.moderado === 1 ? '' : 's'}</span>` : ''}
-          ${f.leve ? `<span class="pill leve">${f.leve} leve${f.leve === 1 ? '' : 's'}</span>` : ''}
-          ${f.pendiente ? `<span class="pill pendiente">${f.pendiente} pdte. confirmar</span>` : ''}
+          ${chipMini(f.grave, 'G', 'grave', `${f.grave} grave${f.grave === 1 ? '' : 's'}`)}
+          ${chipMini(f.moderado, 'M', 'moderado', `${f.moderado} moderada${f.moderado === 1 ? '' : 's'}`)}
+          ${chipMini(f.leve, 'L', 'leve', `${f.leve} leve${f.leve === 1 ? '' : 's'}`)}
+          ${chipMini(f.pendiente, 'P', 'pendiente', `${f.pendiente} pdte. confirmar`)}
           ${!f.grave && !f.moderado && !f.leve && !f.pendiente ? '—' : ''}
         </td>
         <td class="col-num">${f.siniestros}</td>
         <td class="col-desglose">
-          ${f.sinRotura ? `<span class="pill grave">${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}</span>` : ''}
-          ${f.sinFalta ? `<span class="pill moderado">${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}</span>` : ''}
-          ${f.sinMixto ? `<span class="pill grave">${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}</span>` : ''}
+          ${chipMini(f.sinRotura, 'R', 'moderado', `${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}`)}
+          ${chipMini(f.sinFalta, 'F', 'grave', `${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}`)}
+          ${chipMini(f.sinMixto, 'X', 'grave', `${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}`)}
           ${!f.sinRotura && !f.sinFalta && !f.sinMixto ? '—' : ''}
         </td>
         <td class="col-detalle">
@@ -349,7 +523,13 @@
         </table>
       </div>`;
 
-    cont.innerHTML = chart + tabla;
+    const donut = renderTarjetaDonutAgencias();
+
+    cont.innerHTML = `
+      <div class="ranking-layout">
+        <div class="ranking-col-left">${chart}${tabla}</div>
+        <div class="ranking-col-right">${donut}</div>
+      </div>`;
   }
 
   // ---------------------------------------------------------------
