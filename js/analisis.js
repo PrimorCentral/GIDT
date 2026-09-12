@@ -350,7 +350,7 @@
   // ninguna librería externa.
   function renderDonutSvgAgencias(arcos) {
     const W = 260, H = 210, depth = 16;
-    const cx = W / 2, cy = 96, rExt = 94, rInt = 54;
+    const cx = W / 2, cy = 106, rExt = 104, rInt = 60;
     const squash = `translate(${cx},${cy}) scale(1,0.82) translate(${-cx},${-cy})`;
 
     const defs = arcos.map((s, i) => `
