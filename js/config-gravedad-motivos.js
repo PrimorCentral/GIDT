@@ -124,10 +124,6 @@ function pintarGravedadMotivos() {
                 </div>`).join('')}
           </div>
         </div>`).join('')}
-    </div>
-    <div class="gravedad-guardar-row">
-      <button type="button" class="btn primary" id="btnGuardarGravedadMotivos">💾 Guardar</button>
-      <span id="gravedadGuardadoOk" class="gravedad-guardado-ok" style="display:none;">Guardado ✓</span>
     </div>`;
 
   cont.querySelectorAll('[data-mover]').forEach(btn => {
@@ -143,8 +139,6 @@ function pintarGravedadMotivos() {
       cambiarNivelMotivo(fila.dataset.motivo, sel.value);
     });
   });
-
-  document.getElementById('btnGuardarGravedadMotivos').addEventListener('click', guardarGravedadMotivos);
 }
 
 function moverMotivo(motivo, direccion) {
@@ -217,3 +211,6 @@ if (typeof sesionActiva !== 'undefined' && sesionActiva) cargarGravedadMotivos()
 document.querySelectorAll('[data-view="config-gravedad-motivos"]').forEach(el => {
   el.addEventListener('click', () => renderVistaGravedadMotivos());
 });
+
+const btnGuardarGravedadMotivosEl = document.getElementById('btnGuardarGravedadMotivos');
+if (btnGuardarGravedadMotivosEl) btnGuardarGravedadMotivosEl.addEventListener('click', guardarGravedadMotivos);
