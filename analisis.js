@@ -1,0 +1,890 @@
+// ---------------------------------------------------------------
+  // Análisis · Ranking de incidencias
+  // ---------------------------------------------------------------
+  // Cuenta incidencias (activas, marcada=true) y siniestros generados en un
+  // rango de fechas, agrupados por tienda o por agencia, usando el snapshot
+  // que ya guarda cada incidencia (tienda_nombre/agencia_nombre) — igual que
+  // hace el historial de informes, para no depender de tiendas/agencias que
+  // puedan haber cambiado desde entonces.
+  let analisisEntidad = 'tiendas';    // 'tiendas' | 'agencias'
+  let analisisOrden = 'incidencias';  // 'incidencias' | 'siniestros'
+  let analisisDatos = null;           // { incidencias:[...], siniestros:[...] } del último rango consultado
+  let analisisInicializado = false;
+
+  // Filtros del panel "Filtrar ranking" (agencia/tienda/tipo/motivo/tipo de
+  // siniestro + "solo con siniestros"). Independientes de los filtros del
+  // Informe del día, aunque reutilizan el mismo componente visual.
+  const filtrosAnalisis = {
+    agencias: new Set(),
+    tiendas: new Set(),
+    tipos: new Set(),
+    motivos: new Set(),
+    siniestroTipos: new Set(),
+    soloConSiniestros: false
+  };
+  const TIPOS_SINIESTRO_FILTRO = [
+    { v: 'ROTURA', label: 'Rotura' },
+    { v: 'FALTA', label: 'Falta' },
+    { v: 'MIXTO', label: 'Mixto' }
+  ];
+
+  // ¿Esta incidencia pasa los filtros de agencia/tienda/tipo/motivo?
+  function pasaFiltrosIncidencia(i) {
+    if (filtrosAnalisis.agencias.size && !filtrosAnalisis.agencias.has(i.agencia_id)) return false;
+    if (filtrosAnalisis.tiendas.size && !filtrosAnalisis.tiendas.has(i.tienda_id)) return false;
+    if (filtrosAnalisis.tipos.size && !filtrosAnalisis.tipos.has(i.tipo || 'PENDIENTE')) return false;
+    if (filtrosAnalisis.motivos.size) {
+      const motivos = i.motivo || [];
+      if (!motivos.some(m => filtrosAnalisis.motivos.has(m))) return false;
+    }
+    return true;
+  }
+
+  function incidenciasFiltradas() {
+    return (analisisDatos?.incidencias || []).filter(pasaFiltrosIncidencia);
+  }
+
+  // Siniestros cuya incidencia asociada pasa los filtros de arriba, y que
+  // además cumplen el filtro de "Tipo de siniestro" si hay alguno marcado.
+  function siniestrosFiltrados(idsIncidenciasFiltradas) {
+    return (analisisDatos?.siniestros || []).filter(s =>
+      idsIncidenciasFiltradas.has(s.incidencia_id) &&
+      (!filtrosAnalisis.siniestroTipos.size || filtrosAnalisis.siniestroTipos.has(s.tipo))
+    );
+  }
+
+  const analisisDesdeInput = document.getElementById('analisisDesde');
+  const analisisHastaInput = document.getElementById('analisisHasta');
+
+  function primerDiaMesActualISO() {
+    const d = new Date();
+    return fechaLocalISO(new Date(d.getFullYear(), d.getMonth(), 1));
+  }
+
+  function aplicarRangoRapido(rango) {
+    if (rango === 'mes') {
+      analisisDesdeInput.value = primerDiaMesActualISO();
+      analisisHastaInput.value = fechaHoyISO;
+    } else if (rango === '30d') {
+      const d = new Date();
+      d.setDate(d.getDate() - 29);
+      analisisDesdeInput.value = fechaLocalISO(d);
+      analisisHastaInput.value = fechaHoyISO;
+    } else if (rango === 'todo') {
+      analisisDesdeInput.value = '';
+      analisisHastaInput.value = fechaHoyISO;
+    }
+    document.querySelectorAll('#analisisRangoRapido [data-rango]')
+      .forEach(b => b.classList.toggle('activo', b.dataset.rango === rango));
+    cargarAnalisisRanking();
+  }
+
+  document.querySelectorAll('#analisisRangoRapido [data-rango]').forEach(btn => {
+    btn.addEventListener('click', () => aplicarRangoRapido(btn.dataset.rango));
+  });
+
+  document.getElementById('btnAnalisisConsultar').addEventListener('click', () => {
+    document.querySelectorAll('#analisisRangoRapido [data-rango]').forEach(b => b.classList.remove('activo'));
+    cargarAnalisisRanking();
+  });
+
+  document.querySelectorAll('#analisisEntidadToggle [data-entidad]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('activo')) return;
+      analisisEntidad = btn.dataset.entidad;
+      document.querySelectorAll('#analisisEntidadToggle [data-entidad]').forEach(b => b.classList.toggle('activo', b === btn));
+      renderAnalisisRanking();
+    });
+  });
+
+  document.querySelectorAll('#analisisOrdenToggle [data-orden]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('activo')) return;
+      analisisOrden = btn.dataset.orden;
+      document.querySelectorAll('#analisisOrdenToggle [data-orden]').forEach(b => b.classList.toggle('activo', b === btn));
+      renderAnalisisRanking();
+    });
+  });
+
+  // Al entrar por primera vez en la pestaña, consulta el mes en curso.
+  // En visitas siguientes se respeta el último rango/filtro que eligió el usuario.
+  function renderVistaAnalisisRanking() {
+    if (analisisInicializado) return;
+    analisisInicializado = true;
+    aplicarRangoRapido('mes');
+  }
+
+  async function cargarAnalisisRanking() {
+    const cont = document.getElementById('contenidoAnalisisRanking');
+    const desde = analisisDesdeInput.value || null;
+    const hasta = analisisHastaInput.value || fechaHoyISO;
+
+    if (desde && desde > hasta) {
+      await modalAlert('La fecha "Desde" no puede ser posterior a "Hasta".', { titulo: 'Rango de fechas' });
+      return;
+    }
+
+    cont.innerHTML = `<div class="card"><div class="empty"><p>Calculando ranking…</p></div></div>`;
+    pintarKpisAnalisis(null);
+
+    mostrarCargandoGlobal();
+    try {
+      let q = sb.from('informes_diarios').select('id, fecha').lte('fecha', hasta);
+      if (desde) q = q.gte('fecha', desde);
+      const { data: informes, error: eInf } = await q;
+      if (eInf) throw eInf;
+
+      if (!informes || !informes.length) {
+        analisisDatos = { incidencias: [], siniestros: [] };
+        pintarKpisAnalisis(analisisDatos);
+        cont.innerHTML = `
+          <div class="card">
+            <div class="empty">
+              <div class="glyph">📭</div>
+              <h3>Sin informes en ese periodo</h3>
+              <p>No se generó ningún informe diario entre esas fechas.</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const idsInformes = informes.map(i => i.id);
+      const mapaFechaInforme = new Map(informes.map(i => [i.id, i.fecha]));
+
+      const { data: incsRaw, error: eInc } = await sb
+        .from('incidencias')
+        .select('id, informe_id, tipo, motivo, tienda_id, tienda_nombre, agencia_id, agencia_nombre')
+        .in('informe_id', idsInformes)
+        .eq('marcada', true);
+      if (eInc) throw eInc;
+
+      // Se añade la fecha del informe a cada incidencia (para el detalle por
+      // tienda/agencia) — las incidencias no guardan su propia fecha, solo el
+      // informe_id al que pertenecen.
+      const incs = (incsRaw || []).map(i => ({ ...i, fecha: mapaFechaInforme.get(i.informe_id) || null }));
+
+      const idsIncidencias = (incs || []).map(i => i.id);
+      let sins = [];
+      if (idsIncidencias.length) {
+        const { data: sinsData, error: eSin } = await sb
+          .from('siniestros')
+          .select('id, incidencia_id, tipo, estado')
+          .in('incidencia_id', idsIncidencias);
+        if (eSin) throw eSin;
+        sins = sinsData || [];
+      }
+
+      analisisDatos = { incidencias: incs || [], siniestros: sins };
+      renderAnalisisRanking();
+    } catch (err) {
+      console.error('Error cargando ranking de análisis:', err);
+      cont.innerHTML = `<div class="card"><div class="empty"><p style="color:var(--grave);">Error al calcular el ranking.</p></div></div>`;
+    } finally {
+      ocultarCargandoGlobal();
+    }
+  }
+
+  function pintarKpisAnalisis(datos) {
+    if (!datos) {
+      document.getElementById('akIncidencias').textContent = '—';
+      document.getElementById('akGraves').textContent = '—';
+      document.getElementById('akSiniestros').textContent = '—';
+      document.getElementById('akSiniestrosPend').textContent = '—';
+      return;
+    }
+    // Los KPI respetan los filtros de agencia/tienda/tipo/motivo/tipo de
+    // siniestro (así no muestran un total distinto al de la tabla de abajo).
+    const incs = incidenciasFiltradas();
+    const sins = siniestrosFiltrados(new Set(incs.map(i => i.id)));
+    document.getElementById('akIncidencias').textContent = incs.length;
+    document.getElementById('akGraves').textContent = incs.filter(i => i.tipo === 'GRAVE').length;
+    document.getElementById('akSiniestros').textContent = sins.length;
+    document.getElementById('akSiniestrosPend').textContent = sins.filter(s => s.estado === 'PENDIENTE').length;
+  }
+
+  // Agrupa incidencias + siniestros por tienda o por agencia, ya filtradas.
+  function agregarAnalisis(entidad) {
+    const incs = incidenciasFiltradas();
+    const sins = siniestrosFiltrados(new Set(incs.map(i => i.id)));
+    const porIncidencia = new Map(incs.map(i => [i.id, i]));
+    const mapa = new Map();
+
+    incs.forEach(i => {
+      const clave = entidad === 'tiendas' ? i.tienda_id : i.agencia_id;
+      if (clave == null) return;
+      if (!mapa.has(clave)) {
+        mapa.set(clave, {
+          clave,
+          nombre: entidad === 'tiendas' ? (i.tienda_nombre || '—') : (i.agencia_nombre || 'Sin agencia'),
+          agenciaNombre: entidad === 'tiendas' ? (i.agencia_nombre || null) : null,
+          variasAgencias: false,
+          leve: 0, moderado: 0, grave: 0, pendiente: 0, incidencias: 0,
+          sinFalta: 0, sinRotura: 0, sinMixto: 0, siniestros: 0
+        });
+      }
+      const e = mapa.get(clave);
+      // Una tienda puede haber cambiado de agencia dentro del periodo
+      // consultado — cada incidencia conserva la agencia que tenía en su
+      // momento (snapshot), así que si aparecen nombres distintos se avisa
+      // en vez de mostrar solo la primera agencia encontrada.
+      if (entidad === 'tiendas' && i.agencia_nombre && e.agenciaNombre && i.agencia_nombre !== e.agenciaNombre) {
+        e.variasAgencias = true;
+      }
+      e.incidencias++;
+      // Una incidencia "marcada" puede no tener tipo todavía (motivo aún sin
+      // confirmar, ej. "RETRASO PDTE CONFIRMAR"/"REVISANDO POSIBLE INCIDENCIA").
+      // Se cuenta como "pendiente" para que el desglose siempre sume el total.
+      if (i.tipo === 'LEVE') e.leve++;
+      else if (i.tipo === 'MODERADO') e.moderado++;
+      else if (i.tipo === 'GRAVE') e.grave++;
+      else e.pendiente++;
+    });
+
+    sins.forEach(s => {
+      const inc = porIncidencia.get(s.incidencia_id);
+      if (!inc) return;
+      const clave = entidad === 'tiendas' ? inc.tienda_id : inc.agencia_id;
+      if (clave == null || !mapa.has(clave)) return;
+      const e = mapa.get(clave);
+      e.siniestros++;
+      if (s.tipo === 'FALTA') e.sinFalta++;
+      else if (s.tipo === 'ROTURA') e.sinRotura++;
+      else if (s.tipo === 'MIXTO') e.sinMixto++;
+    });
+
+    return Array.from(mapa.values());
+  }
+
+  // ---------------------------------------------------------------
+  // Gráfica "Incidencias por agencia" (donut 3D) — panel derecho del
+  // ranking. Siempre agrupa por agencia (independientemente de si el
+  // ranking principal está viendo tiendas o agencias) y respeta los
+  // mismos filtros que la tabla de la izquierda.
+  // ---------------------------------------------------------------
+  const RANKING_DONUT_PALETTE = [
+    { top: '#FF7A1A', base: '#A8460A' },
+    { top: '#1B6DE0', base: '#0E4694' },
+    { top: '#1E9E6B', base: '#0F6B46' },
+    { top: '#A855F7', base: '#6B2FA6' },
+    { top: '#00AFC2', base: '#037680' },
+    { top: '#F2B705', base: '#A9800A' },
+    { top: '#D12B0D', base: '#8E1D08' },
+    { top: '#6B7684', base: '#454C56' }
+  ];
+
+  function ajustarColor(hex, cantidad) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, Math.max(0, (n >> 16) + cantidad));
+    const g = Math.min(255, Math.max(0, ((n >> 8) & 0xFF) + cantidad));
+    const b = Math.min(255, Math.max(0, (n & 0xFF) + cantidad));
+    return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+  }
+
+  // Agrupa por agencia (usando la misma agregación que el ranking, aunque
+  // esté viendo "tiendas") y se queda con el Top 6 + "Otras agencias".
+  function construirSegmentosDonutAgencias() {
+    const filas = agregarAnalisis('agencias')
+      .filter(f => f.incidencias > 0)
+      .sort((a, b) => b.incidencias - a.incidencias || a.nombre.localeCompare(b.nombre));
+    const TOP_N = 6;
+    const top = filas.slice(0, TOP_N);
+    const resto = filas.slice(TOP_N);
+    const totalResto = resto.reduce((s, f) => s + f.incidencias, 0);
+    const segmentos = top.map((f, idx) => ({
+      nombre: f.nombre,
+      valor: f.incidencias,
+      color: RANKING_DONUT_PALETTE[idx % RANKING_DONUT_PALETTE.length]
+    }));
+    if (totalResto > 0) {
+      segmentos.push({
+        nombre: `Otras agencias (${resto.length})`,
+        valor: totalResto,
+        color: RANKING_DONUT_PALETTE[RANKING_DONUT_PALETTE.length - 1]
+      });
+    }
+    return segmentos;
+  }
+
+  // Dimensiones del viewBox del SVG del donut (se reutilizan al rasterizarlo
+  // para el PDF, para calcular bien su proporción ancho/alto).
+  const DONUT_VIEWBOX = { w: 260, h: 210, depth: 16 };
+
+  function calcularArcosDonut(segmentos) {
+    const total = segmentos.reduce((s, x) => s + x.valor, 0) || 1;
+    let angulo = -Math.PI / 2;
+    return segmentos.map(seg => {
+      const span = (seg.valor / total) * Math.PI * 2;
+      const a0 = angulo, a1 = angulo + span;
+      angulo = a1;
+      return { ...seg, a0, a1, pct: (seg.valor / total) * 100 };
+    });
+  }
+
+  function puntoPolarDonut(cx, cy, r, angulo) {
+    return { x: cx + r * Math.cos(angulo), y: cy + r * Math.sin(angulo) };
+  }
+
+  // Path SVG de un "trozo de anillo" (donut) entre dos ángulos. Si el
+  // trozo es una vuelta completa (un único segmento al 100%) se parte en
+  // dos semicírculos, porque un arco SVG no puede empezar y acabar en el
+  // mismo punto.
+  function trazoAnilloDonut(cx, cy, rExt, rInt, a0, a1) {
+    if (a1 - a0 >= Math.PI * 2 - 0.0001) {
+      return trazoAnilloDonut(cx, cy, rExt, rInt, a0, a0 + Math.PI) + ' ' +
+             trazoAnilloDonut(cx, cy, rExt, rInt, a0 + Math.PI, a0 + Math.PI * 2);
+    }
+    const pExtIni = puntoPolarDonut(cx, cy, rExt, a0);
+    const pExtFin = puntoPolarDonut(cx, cy, rExt, a1);
+    const pIntFin = puntoPolarDonut(cx, cy, rInt, a1);
+    const pIntIni = puntoPolarDonut(cx, cy, rInt, a0);
+    const largo = (a1 - a0) > Math.PI ? 1 : 0;
+    return [
+      `M ${pExtIni.x.toFixed(2)} ${pExtIni.y.toFixed(2)}`,
+      `A ${rExt} ${rExt} 0 ${largo} 1 ${pExtFin.x.toFixed(2)} ${pExtFin.y.toFixed(2)}`,
+      `L ${pIntFin.x.toFixed(2)} ${pIntFin.y.toFixed(2)}`,
+      `A ${rInt} ${rInt} 0 ${largo} 0 ${pIntIni.x.toFixed(2)} ${pIntIni.y.toFixed(2)}`,
+      'Z'
+    ].join(' ');
+  }
+
+  // Igual que trazoAnilloDonut, pero permite que el borde exterior y el
+  // interior usen un centro vertical distinto: así el "canto" del donut
+  // (el borde exterior, desplazado hacia abajo para el efecto 3D) no
+  // arrastra el agujero central, que se queda fijo — el centro del donut
+  // (y el texto que se pone encima) no se desalinea.
+  function trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0, a1) {
+    if (a1 - a0 >= Math.PI * 2 - 0.0001) {
+      return trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0, a0 + Math.PI) + ' ' +
+             trazoAnilloDonutBorde(cx, cyExt, cyInt, rExt, rInt, a0 + Math.PI, a0 + Math.PI * 2);
+    }
+    const pExtIni = puntoPolarDonut(cx, cyExt, rExt, a0);
+    const pExtFin = puntoPolarDonut(cx, cyExt, rExt, a1);
+    const pIntFin = puntoPolarDonut(cx, cyInt, rInt, a1);
+    const pIntIni = puntoPolarDonut(cx, cyInt, rInt, a0);
+    const largo = (a1 - a0) > Math.PI ? 1 : 0;
+    return [
+      `M ${pExtIni.x.toFixed(2)} ${pExtIni.y.toFixed(2)}`,
+      `A ${rExt} ${rExt} 0 ${largo} 1 ${pExtFin.x.toFixed(2)} ${pExtFin.y.toFixed(2)}`,
+      `L ${pIntFin.x.toFixed(2)} ${pIntFin.y.toFixed(2)}`,
+      `A ${rInt} ${rInt} 0 ${largo} 0 ${pIntIni.x.toFixed(2)} ${pIntIni.y.toFixed(2)}`,
+      'Z'
+    ].join(' ');
+  }
+
+  // Recorta el nombre para que quepa en el hueco disponible de la
+  // porción (ancho aproximado de la cuerda a media distancia del
+  // anillo). Si la porción es demasiado pequeña ni para 3 caracteres,
+  // no se pone etiqueta dentro — ese caso ya queda cubierto por la
+  // leyenda de debajo.
+  function etiquetaCabeEnPorcion(nombre, span, rMedio, fontSize) {
+    const cuerda = 2 * rMedio * Math.sin(Math.min(span, Math.PI) / 2);
+    const maxChars = Math.floor(cuerda / (fontSize * 0.62));
+    if (maxChars < 3) return '';
+    if (nombre.length <= maxChars) return nombre;
+    return nombre.slice(0, Math.max(2, maxChars - 1)) + '…';
+  }
+
+  // El efecto 3D se consigue dibujando el anillo dos veces: una base cuyo
+  // borde EXTERIOR está desplazado hacia abajo (el "canto" del donut, en
+  // un tono oscuro) pero cuyo borde interior coincide con el del anillo
+  // real de encima — así el agujero central siempre queda centrado en
+  // (cx,cy), más un aplastado vertical del grupo entero para dar
+  // sensación de perspectiva — sin depender de ninguna librería externa.
+  function renderDonutSvgAgencias(arcos) {
+    const { w: W, h: H, depth } = DONUT_VIEWBOX;
+    const cx = W / 2, cy = 106, rExt = 104, rInt = 60;
+    const rMedio = (rExt + rInt) / 2;
+    const fontSizeEtiqueta = 10.5;
+    const squash = `translate(${cx},${cy}) scale(1,0.82) translate(${-cx},${-cy})`;
+
+    const defs = arcos.map((s, i) => `
+      <linearGradient id="donutGrad${i}" x1="0" y1="0" x2="0.25" y2="1">
+        <stop offset="0%" stop-color="${ajustarColor(s.color.top, 22)}"/>
+        <stop offset="100%" stop-color="${s.color.top}"/>
+      </linearGradient>`).join('');
+
+    const base = arcos.map(s =>
+      `<path d="${trazoAnilloDonutBorde(cx, cy + depth, cy, rExt, rInt, s.a0, s.a1)}" fill="${s.color.base}"/>`
+    ).join('');
+
+    const top = arcos.map((s, i) =>
+      `<path d="${trazoAnilloDonut(cx, cy, rExt, rInt, s.a0, s.a1)}" fill="url(#donutGrad${i})" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>`
+    ).join('');
+
+    // Nombre dentro de cada porción (con halo blanco detrás del texto
+    // oscuro) para poder identificar cada agencia sin depender del
+    // color — imprescindible al imprimir en blanco y negro.
+    const etiquetas = arcos.map(s => {
+      const texto = etiquetaCabeEnPorcion(s.nombre, s.a1 - s.a0, rMedio, fontSizeEtiqueta);
+      if (!texto) return '';
+      const p = puntoPolarDonut(cx, cy, rMedio, (s.a0 + s.a1) / 2);
+      return `<text x="${p.x.toFixed(2)}" y="${p.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle"
+        font-family="Arial, Helvetica, sans-serif" font-size="${fontSizeEtiqueta}" font-weight="700"
+        fill="#12181F" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${escapeHtml(texto)}</text>`;
+    }).join('');
+
+    return `
+      <svg width="${W}" height="${H + depth}" viewBox="0 0 ${W} ${H + depth}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Incidencias por agencia">
+        <defs>
+          ${defs}
+          <filter id="donutSombra" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#12181F" flood-opacity="0.22"/>
+          </filter>
+        </defs>
+        <g filter="url(#donutSombra)">
+          <g transform="${squash}">
+            ${base}
+            <g>${top}</g>
+            <g>${etiquetas}</g>
+          </g>
+        </g>
+      </svg>`;
+  }
+
+  function renderLeyendaDonutAgencias(arcos) {
+    return arcos.map(s => `
+      <div class="donut-leyenda-fila">
+        <span class="donut-leyenda-dot" style="background:${s.color.top}"></span>
+        <span class="donut-leyenda-nombre" title="${escapeHtml(s.nombre)}">${escapeHtml(s.nombre)}</span>
+        <span class="donut-leyenda-pct">${s.pct.toFixed(0)}%</span>
+        <span class="donut-leyenda-num">${s.valor}</span>
+      </div>`).join('');
+  }
+
+  function renderTarjetaDonutAgencias() {
+    const segmentos = construirSegmentosDonutAgencias();
+    const total = segmentos.reduce((s, x) => s + x.valor, 0);
+    if (!total) {
+      return `
+        <div class="card ranking-donut-card">
+          <h3 class="ranking-chart-title">Incidencias por agencia</h3>
+          <div class="empty" style="padding:20px 0;">
+            <p>Sin datos para este periodo.</p>
+          </div>
+        </div>`;
+    }
+    const arcos = calcularArcosDonut(segmentos);
+    return `
+      <div class="card ranking-donut-card">
+        <h3 class="ranking-chart-title">Incidencias por agencia</h3>
+        <div class="donut-wrap">
+          <div class="donut-svg">${renderDonutSvgAgencias(arcos)}</div>
+          <div class="donut-center">
+            <span class="donut-center-num">${total}</span>
+            <span class="donut-center-label">Total</span>
+          </div>
+        </div>
+        <div class="donut-leyenda">${renderLeyendaDonutAgencias(arcos)}</div>
+      </div>`;
+  }
+
+  function renderAnalisisRanking() {
+    const cont = document.getElementById('contenidoAnalisisRanking');
+    if (!analisisDatos) return;
+    pintarKpisAnalisis(analisisDatos);
+
+    let filas = agregarAnalisis(analisisEntidad);
+    if (filtrosAnalisis.soloConSiniestros) filas = filas.filter(f => f.siniestros > 0);
+
+    if (!filas.length) {
+      cont.innerHTML = `
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">✅</div>
+            <h3>Sin resultados</h3>
+            <p>No hay ${analisisEntidad === 'tiendas' ? 'tiendas' : 'agencias'} que coincidan con el periodo y los filtros elegidos.</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const metrica = analisisOrden === 'siniestros' ? 'siniestros' : 'incidencias';
+    filas.sort((a, b) => b[metrica] - a[metrica] || b.incidencias - a.incidencias || a.nombre.localeCompare(b.nombre));
+
+    const top = filas.slice(0, 15);
+    const max = Math.max(1, ...top.map(f => f[metrica]));
+    const etiquetaEntidad = analisisEntidad === 'tiendas' ? 'tiendas' : 'agencias';
+    const etiquetaMetrica = metrica === 'siniestros' ? 'siniestros' : 'incidencias';
+
+    const chart = `
+      <div class="card ranking-chart-card">
+        <h3 class="ranking-chart-title">Top ${top.length} ${etiquetaEntidad} por ${etiquetaMetrica}</h3>
+        <div class="ranking-chart">
+          ${top.map((f, idx) => `
+            <div class="ranking-bar-row">
+              <span class="ranking-bar-label" title="${escapeHtml(f.nombre)}">${idx + 1}. ${escapeHtml(f.nombre)}</span>
+              <div class="ranking-bar-track"><div class="ranking-bar-fill" style="width:${(f[metrica] / max * 100).toFixed(1)}%"></div></div>
+              <span class="ranking-bar-value">${f[metrica]}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+    const filasTabla = filas.map((f, idx) => `
+      <tr>
+        <td class="col-pos">${idx + 1}</td>
+        <td>
+          <b>${escapeHtml(f.nombre)}</b>
+          ${f.agenciaNombre ? `<div style="font-size:11.5px; color:var(--ink-soft);">${f.variasAgencias ? '⚠️ Varias agencias en el periodo' : escapeHtml(f.agenciaNombre)}</div>` : ''}
+        </td>
+        <td class="col-num">${f.incidencias}</td>
+        <td class="col-desglose">
+          ${f.grave ? `<span class="pill grave">${f.grave} grave${f.grave === 1 ? '' : 's'}</span>` : ''}
+          ${f.moderado ? `<span class="pill moderado">${f.moderado} moderada${f.moderado === 1 ? '' : 's'}</span>` : ''}
+          ${f.leve ? `<span class="pill leve">${f.leve} leve${f.leve === 1 ? '' : 's'}</span>` : ''}
+          ${f.pendiente ? `<span class="pill pendiente">${f.pendiente} pdte. confirmar</span>` : ''}
+          ${!f.grave && !f.moderado && !f.leve && !f.pendiente ? '—' : ''}
+        </td>
+        <td class="col-num">${f.siniestros}</td>
+        <td class="col-desglose">
+          ${f.sinRotura ? `<span class="pill moderado">${f.sinRotura} rotura${f.sinRotura === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinFalta ? `<span class="pill grave">${f.sinFalta} falta${f.sinFalta === 1 ? '' : 's'}</span>` : ''}
+          ${f.sinMixto ? `<span class="pill grave">${f.sinMixto} mixto${f.sinMixto === 1 ? '' : 's'}</span>` : ''}
+          ${!f.sinRotura && !f.sinFalta && !f.sinMixto ? '—' : ''}
+        </td>
+        <td class="col-detalle">
+          <button type="button" class="btn-lupa" data-detalle-clave="${f.clave}" title="Ver detalle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </td>
+      </tr>`).join('');
+
+    const tabla = `
+      <div class="card" style="overflow-x:auto;">
+        <table class="tabla-ranking">
+          <colgroup>
+            <col class="cg-pos"><col class="cg-nombre">
+            <col class="cg-num"><col class="cg-desglose">
+            <col class="cg-num"><col class="cg-desglose">
+            <col class="cg-detalle">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>${analisisEntidad === 'tiendas' ? 'Tienda' : 'Agencia'}</th>
+              <th class="col-num">Incidencias</th>
+              <th>Desglose incidencias</th>
+              <th class="col-num">Siniestros</th>
+              <th>Tipo de siniestro</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${filasTabla}</tbody>
+        </table>
+      </div>`;
+
+    const donut = renderTarjetaDonutAgencias();
+
+    cont.innerHTML = `
+      <div class="ranking-top-row">${chart}${donut}</div>
+      ${tabla}`;
+  }
+
+  // ---------------------------------------------------------------
+  // Panel "Filtrar ranking" (mismo componente visual que el de Informe del
+  // día: botón + panel flotante con selects de checkboxes buscables).
+  // ---------------------------------------------------------------
+  async function construirPanelFiltrosAnalisis() {
+    await ensureAgenciasYTiendasCargadas();
+
+    const listaAg = document.getElementById('analisisFiltrosAgenciasLista');
+    const listaTd = document.getElementById('analisisFiltrosTiendasLista');
+    const listaTipos = document.getElementById('analisisFiltrosTiposLista');
+    const listaMotivos = document.getElementById('analisisFiltrosMotivosLista');
+    const listaSin = document.getElementById('analisisFiltrosSiniestroTiposLista');
+
+    if (!listaAg.dataset.built) {
+      listaAg.innerHTML = agenciasCache.map(ag => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${ag.id}" data-filtro="agencia">
+          <span>${escapeHtml(ag.nombre)}</span>
+        </label>`).join('');
+      listaAg.dataset.built = '1';
+    }
+    if (!listaTd.dataset.built) {
+      listaTd.innerHTML = tiendasCache.filter(t => t.activo).map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.id}" data-filtro="tienda">
+          <span>${escapeHtml(t.nombre)}</span>
+        </label>`).join('');
+      listaTd.dataset.built = '1';
+    }
+    if (!listaTipos.dataset.built) {
+      listaTipos.innerHTML = TIPOS_FILTRO.map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.v}" data-filtro="tipo">
+          <span class="pill ${t.v.toLowerCase()}">${t.label}</span>
+        </label>`).join('');
+      listaTipos.dataset.built = '1';
+    }
+    if (!listaMotivos.dataset.built) {
+      listaMotivos.innerHTML = MOTIVOS.map(m => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${escapeHtml(m.v)}" data-filtro="motivo">
+          <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
+        </label>`).join('');
+      listaMotivos.dataset.built = '1';
+    }
+    if (!listaSin.dataset.built) {
+      listaSin.innerHTML = TIPOS_SINIESTRO_FILTRO.map(t => `
+        <label class="filtro-check">
+          <input type="checkbox" value="${t.v}" data-filtro="siniestro">
+          <span class="pill ${t.v === 'ROTURA' ? 'moderado' : 'grave'}">${t.label}</span>
+        </label>`).join('');
+      listaSin.dataset.built = '1';
+    }
+
+    const panel = document.getElementById('analisisFiltrosPanel');
+    if (!panel.dataset.wired) {
+      panel.addEventListener('change', (e) => {
+        const cb = e.target;
+        if (!cb.matches('input[type="checkbox"]')) return;
+        if (cb.id === 'analisisFiltroSoloConSiniestros') {
+          filtrosAnalisis.soloConSiniestros = cb.checked;
+          actualizarBadgeFiltrosAnalisis();
+          renderAnalisisRanking();
+          return;
+        }
+        const grupo = cb.dataset.filtro;
+        const set = grupo === 'agencia' ? filtrosAnalisis.agencias
+                  : grupo === 'tienda' ? filtrosAnalisis.tiendas
+                  : grupo === 'tipo' ? filtrosAnalisis.tipos
+                  : grupo === 'siniestro' ? filtrosAnalisis.siniestroTipos
+                  : filtrosAnalisis.motivos;
+        const val = (grupo === 'agencia' || grupo === 'tienda') ? Number(cb.value) : cb.value;
+        if (cb.checked) set.add(val); else set.delete(val);
+        actualizarBadgeFiltrosAnalisis();
+        actualizarValoresSelectsAnalisis();
+        renderAnalisisRanking();
+      });
+      panel.dataset.wired = '1';
+    }
+  }
+
+  function actualizarValoresSelectsAnalisis() {
+    document.querySelectorAll('#analisisFiltrosPanel .filtro-select').forEach(sel => {
+      const grupo = sel.dataset.grupo;
+      const set = grupo === 'agencia' ? filtrosAnalisis.agencias
+                : grupo === 'tienda' ? filtrosAnalisis.tiendas
+                : grupo === 'tipo' ? filtrosAnalisis.tipos
+                : grupo === 'siniestro' ? filtrosAnalisis.siniestroTipos
+                : filtrosAnalisis.motivos;
+      const valor = sel.querySelector('.filtro-select-valor');
+      if (set.size === 0) {
+        valor.textContent = grupo === 'agencia' || grupo === 'tienda' ? 'Todas' : 'Todos';
+        sel.classList.remove('activo');
+      } else if (set.size === 1) {
+        const cb = sel.querySelector('input[type="checkbox"]:checked');
+        valor.textContent = cb ? cb.closest('.filtro-check').textContent.trim() : `${set.size} seleccionados`;
+        sel.classList.add('activo');
+      } else {
+        valor.textContent = `${set.size} seleccionados`;
+        sel.classList.add('activo');
+      }
+    });
+  }
+
+  function actualizarBadgeFiltrosAnalisis() {
+    const total = filtrosAnalisis.agencias.size + filtrosAnalisis.tiendas.size + filtrosAnalisis.tipos.size
+      + filtrosAnalisis.motivos.size + filtrosAnalisis.siniestroTipos.size + (filtrosAnalisis.soloConSiniestros ? 1 : 0);
+    const badge = document.getElementById('analisisFiltrosCount');
+    const btn = document.getElementById('btnAnalisisFiltros');
+    if (total > 0) {
+      badge.textContent = total;
+      badge.style.display = '';
+      btn.classList.add('activo');
+    } else {
+      badge.style.display = 'none';
+      btn.classList.remove('activo');
+    }
+  }
+
+  const btnAnalisisFiltros = document.getElementById('btnAnalisisFiltros');
+  const analisisFiltrosPanel = document.getElementById('analisisFiltrosPanel');
+
+  function posicionarAnalisisFiltrosPanel() {
+    const wrap = btnAnalisisFiltros.closest('.filtros-wrap');
+    const wrapRect = wrap.getBoundingClientRect();
+    const margen = 12;
+    const ancho = Math.min(560, bordeDerechoVisible() - margen * 2);
+    analisisFiltrosPanel.style.width = ancho + 'px';
+    let left = 0;
+    const desbordeDerecha = (wrapRect.left + left + ancho) - (bordeDerechoVisible() - margen);
+    if (desbordeDerecha > 0) left -= desbordeDerecha;
+    if (wrapRect.left + left < margen) left = margen - wrapRect.left;
+    analisisFiltrosPanel.style.left = left + 'px';
+  }
+
+  async function abrirAnalisisFiltrosPanel() {
+    await construirPanelFiltrosAnalisis();
+    posicionarAnalisisFiltrosPanel();
+    analisisFiltrosPanel.classList.add('show');
+    btnAnalisisFiltros.classList.add('open');
+  }
+  function cerrarAnalisisFiltrosPanel() {
+    analisisFiltrosPanel.classList.remove('show');
+    btnAnalisisFiltros.classList.remove('open');
+  }
+
+  window.addEventListener('resize', () => {
+    if (analisisFiltrosPanel.classList.contains('show')) posicionarAnalisisFiltrosPanel();
+  });
+
+  btnAnalisisFiltros.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (analisisFiltrosPanel.classList.contains('show')) cerrarAnalisisFiltrosPanel();
+    else abrirAnalisisFiltrosPanel();
+  });
+
+  analisisFiltrosPanel.addEventListener('click', (e) => e.stopPropagation());
+
+  document.addEventListener('click', (e) => {
+    if (!analisisFiltrosPanel.contains(e.target) && !btnAnalisisFiltros.contains(e.target)) {
+      cerrarAnalisisFiltrosPanel();
+    }
+  });
+
+  document.getElementById('btnAnalisisCerrarFiltros').addEventListener('click', cerrarAnalisisFiltrosPanel);
+
+  document.getElementById('btnAnalisisLimpiarFiltros').addEventListener('click', () => {
+    filtrosAnalisis.agencias.clear();
+    filtrosAnalisis.tiendas.clear();
+    filtrosAnalisis.tipos.clear();
+    filtrosAnalisis.motivos.clear();
+    filtrosAnalisis.siniestroTipos.clear();
+    filtrosAnalisis.soloConSiniestros = false;
+    document.querySelectorAll('#analisisFiltrosPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    actualizarBadgeFiltrosAnalisis();
+    actualizarValoresSelectsAnalisis();
+    renderAnalisisRanking();
+  });
+
+  // ---------------------------------------------------------------
+  // Modal de detalle: al pulsar la lupa de una fila se listan, con su
+  // fecha, todas las incidencias y siniestros de esa tienda/agencia (ya
+  // con los filtros y el periodo activos aplicados).
+  // ---------------------------------------------------------------
+  function detalleDeEntidad(entidad, clave) {
+    const todasIncs = incidenciasFiltradas();
+    const incs = todasIncs.filter(i => (entidad === 'tiendas' ? i.tienda_id : i.agencia_id) === clave);
+    const idsIncs = new Set(incs.map(i => i.id));
+    const sins = siniestrosFiltrados(idsIncs);
+    const porIncidencia = new Map(incs.map(i => [i.id, i]));
+    return { incs, sins, porIncidencia };
+  }
+
+  function fechaBonitaISO(iso) {
+    if (!iso) return 'Fecha desconocida';
+    const d = new Date(iso + 'T00:00:00');
+    return `${dias[d.getDay()]}, ${formatearFechaCorta(d)}`;
+  }
+
+  // Icono + clase de color por severidad/tipo, para poder identificar cada
+  // fila del detalle de un vistazo (color del borde + icono) además del pill.
+  const ICONO_TIPO_INCIDENCIA = { GRAVE: '🔴', MODERADO: '🔵', LEVE: '⚪', PENDIENTE: '🟡' };
+  const ICONO_TIPO_SINIESTRO = { ROTURA: '🔴', FALTA: '🔵', MIXTO: '🟣' };
+
+  function pillTipoIncidencia(tipo) {
+    const t = tipo || 'PENDIENTE';
+    const clase = t.toLowerCase();
+    const label = t === 'GRAVE' ? 'Grave' : t === 'MODERADO' ? 'Moderado' : t === 'LEVE' ? 'Leve' : 'Pdte. confirmar';
+    return `<span class="pill ${clase}">${label}</span>`;
+  }
+
+  function pillTipoSiniestro(tipo) {
+    const clase = tipo === 'FALTA' ? 'moderado' : 'grave';
+    const label = tipo === 'FALTA' ? 'Falta' : tipo === 'ROTURA' ? 'Rotura' : 'Mixto';
+    return `<span class="pill ${clase}">${label}</span>`;
+  }
+
+  function pillAgenciaDetalle(nombre) {
+    if (!nombre) return '';
+    return `<span class="pill agencia-detalle">🏢 ${escapeHtml(nombre)}</span>`;
+  }
+
+  function pillTiendaDetalle(nombre) {
+    if (!nombre) return '';
+    return `<span class="pill agencia-detalle">🏬 ${escapeHtml(nombre)}</span>`;
+  }
+
+  function capitalizar(str) {
+    return str.charAt(0) + str.slice(1).toLowerCase();
+  }
+
+  function abrirDetalleAnalisis(claveStr, nombre) {
+    const entidad = analisisEntidad;
+    const clave = Number(claveStr);
+    const { incs, sins, porIncidencia } = detalleDeEntidad(entidad, clave);
+
+    incs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+    sins.sort((a, b) => {
+      const fa = porIncidencia.get(a.incidencia_id)?.fecha || '';
+      const fb = porIncidencia.get(b.incidencia_id)?.fecha || '';
+      return fb.localeCompare(fa);
+    });
+
+    // La entidad por la que se agrupa (tienda o agencia) es la misma para
+    // todas las filas del detalle, así que no hace falta repetirla; lo que
+    // sí varía fila a fila es la otra entidad, y esa es la que se muestra:
+    // la agencia cuando se ve el detalle "por tienda", y la tienda cuando
+    // se ve el detalle "por agencia".
+    const mostrarAgenciaPorFila = entidad === 'tiendas';
+    const mostrarTiendaPorFila = entidad === 'agencias';
+
+    const listaIncs = incs.length ? incs.map(i => {
+      const t = i.tipo || 'PENDIENTE';
+      return `
+      <div class="detalle-fila detalle-fila-${t.toLowerCase()}">
+        <div class="detalle-fila-izq">
+          <span class="detalle-fila-icono">${ICONO_TIPO_INCIDENCIA[t]}</span>
+          <div class="detalle-fila-fecha">${fechaBonitaISO(i.fecha)}</div>
+        </div>
+        <div class="detalle-fila-info">
+          ${pillTipoIncidencia(i.tipo)}
+          ${(i.motivo || []).length ? `<span class="detalle-motivo">${(i.motivo || []).map(m => escapeHtml(capitalizar(m))).join(', ')}</span>` : ''}
+          ${mostrarAgenciaPorFila ? pillAgenciaDetalle(i.agencia_nombre) : ''}
+          ${mostrarTiendaPorFila ? pillTiendaDetalle(i.tienda_nombre) : ''}
+        </div>
+      </div>`;
+    }).join('') : `<p class="detalle-vacio">Sin incidencias en el periodo y filtros elegidos.</p>`;
+
+    const listaSins = sins.length ? sins.map(s => {
+      const inc = porIncidencia.get(s.incidencia_id);
+      return `
+      <div class="detalle-fila detalle-fila-${s.tipo === 'FALTA' ? 'moderado' : 'grave'}">
+        <div class="detalle-fila-izq">
+          <span class="detalle-fila-icono">${ICONO_TIPO_SINIESTRO[s.tipo] || '⚪'}</span>
+          <div class="detalle-fila-fecha">${fechaBonitaISO(inc?.fecha)}</div>
+        </div>
+        <div class="detalle-fila-info">
+          ${pillTipoSiniestro(s.tipo)}
+          <span class="badge-envio ${s.estado === 'PENDIENTE' ? 'pendiente' : 'enviado'}">${s.estado === 'PENDIENTE' ? 'Pendiente' : 'Enviado'}</span>
+          ${mostrarAgenciaPorFila ? pillAgenciaDetalle(inc?.agencia_nombre) : ''}
+          ${mostrarTiendaPorFila ? pillTiendaDetalle(inc?.tienda_nombre) : ''}
+        </div>
+      </div>`;
+    }).join('') : `<p class="detalle-vacio">Sin siniestros en el periodo y filtros elegidos.</p>`;
+
+    document.getElementById('analisisDetalleTitulo').textContent = nombre;
+    document.getElementById('analisisDetalleSubtitulo').textContent =
+      `${incs.length} incidencia${incs.length === 1 ? '' : 's'} · ${sins.length} siniestro${sins.length === 1 ? '' : 's'} en el periodo y filtros elegidos`;
+    document.getElementById('analisisDetalleIncidenciasLista').innerHTML = listaIncs;
+    document.getElementById('analisisDetalleSiniestrosLista').innerHTML = listaSins;
+
+    document.getElementById('analisisDetalleModalOverlay').classList.add('show');
+  }
+
+  document.getElementById('contenidoAnalisisRanking').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-detalle-clave]');
+    if (!btn) return;
+    const nombre = btn.closest('tr').querySelector('td:nth-child(2) b').textContent.trim();
+    abrirDetalleAnalisis(btn.dataset.detalleClave, nombre);
+  });
+
+  document.getElementById('btnAnalisisDetalleCerrar').addEventListener('click', () => {
+    document.getElementById('analisisDetalleModalOverlay').classList.remove('show');
+  });
+
+  // Cerrar al pulsar fuera del cuadro, igual que el resto de modales de la app.
+  document.getElementById('analisisDetalleModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'analisisDetalleModalOverlay') e.currentTarget.classList.remove('show');
+  });
