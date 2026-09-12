@@ -98,25 +98,36 @@ function rpdfTextoMotivo(motivo, cantidad) {
   return cantidad === 1 ? par.s : par.p;
 }
 
-// Cuenta, por tienda o agencia (según la vista activa), cuántas veces
-// aparece cada motivo entre las incidencias ya filtradas — igual que se
-// hace con incidencias/siniestros en agregarAnalisis, pero por motivo.
-// Los submotivos (p. ej. dentro de FALTAS) no se cuentan aparte: solo el
-// motivo principal, igual que en el resto de la app.
-function rpdfDesgloseMotivosPorClave() {
+// De los motivos marcados en una incidencia (puede haber varios a la
+// vez), se queda con UNO solo: el que determina su gravedad real, con
+// el mismo criterio que ya usa calcularTipo (RE_GRAVE/RE_MODERADO/
+// RE_LEVE, de filtros-motivos.js) para decidir si la incidencia es
+// grave/moderada/leve. Así, en el desglose por motivo, cada incidencia
+// cuenta una sola vez — la suma siempre coincide con "Incidencias",
+// igual que ya pasa con el desglose por gravedad.
+function rpdfMotivoPrincipal(incidencia) {
   const submotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
+  const principales = (incidencia.motivo || []).filter(m => !submotivos.includes(m));
+  if (!principales.length) return null;
+  if (principales.length === 1) return principales[0];
+  return principales.find(m => RE_GRAVE.test(m))
+    || principales.find(m => RE_MODERADO.test(m))
+    || principales.find(m => RE_LEVE.test(m))
+    || principales[0];
+}
+
+// Cuenta, por tienda o agencia (según la vista activa), el motivo
+// principal de cada incidencia ya filtrada — igual que se hace con
+// incidencias/siniestros en agregarAnalisis, pero por motivo.
+function rpdfDesgloseMotivosPorClave() {
   const mapa = new Map();
   incidenciasFiltradas().forEach(i => {
     const clave = analisisEntidad === 'tiendas' ? i.tienda_id : i.agencia_id;
     if (clave == null) return;
     if (!mapa.has(clave)) mapa.set(clave, new Map());
     const porMotivo = mapa.get(clave);
-    const principales = (i.motivo || []).filter(m => !submotivos.includes(m));
-    if (!principales.length) {
-      porMotivo.set('__SIN_MOTIVO__', (porMotivo.get('__SIN_MOTIVO__') || 0) + 1);
-    } else {
-      principales.forEach(m => porMotivo.set(m, (porMotivo.get(m) || 0) + 1));
-    }
+    const motivo = rpdfMotivoPrincipal(i) || '__SIN_MOTIVO__';
+    porMotivo.set(motivo, (porMotivo.get(motivo) || 0) + 1);
   });
   return mapa;
 }
