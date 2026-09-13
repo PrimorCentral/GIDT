@@ -156,3 +156,30 @@
   } else {
     mostrarLogin();
   }
+
+  // ---------------------------------------------------------------
+  // Toasts: avisos flotantes breves (p.ej. "Correo enviado
+  // correctamente"), arriba a la derecha. No bloquean la interfaz
+  // como los modales de arriba, y se quitan solos a los 3 segundos.
+  // ---------------------------------------------------------------
+  function mostrarToast(mensaje, { icono = '✓', duracionMs = 3000 } = {}) {
+    let cont = document.getElementById('toastContainer');
+    if (!cont) {
+      cont = document.createElement('div');
+      cont.id = 'toastContainer';
+      document.body.appendChild(cont);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    const textoSeguro = typeof escapeHtml === 'function' ? escapeHtml(mensaje) : mensaje;
+    toast.innerHTML = `<span class="toast-glyph">${icono}</span><span>${textoSeguro}</span>`;
+    cont.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 200);
+    }, duracionMs);
+  }
