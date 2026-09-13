@@ -26,9 +26,13 @@
     });
   }
 
-  // Debe coincidir EXACTAMENTE con el secret "FUNCTION_SECRET" configurado
-  // en Supabase → Edge Functions → Secrets para este proyecto.
-  const EMAIL_FUNCTION_SECRET = '57df76248d11eaa48e01cbe71eb09883a329fa01b5f7948ae0cd91195e7da52c';
+  // La Edge Function ya no se protege con un secreto fijo (que por
+  // fuerza tenía que viajar en este mismo archivo, visible para
+  // cualquiera): ahora comprueba que quien llama tiene una sesión de
+  // Supabase Auth real (ver js/auth.js), algo que no se puede copiar
+  // del código. `sb.functions.invoke` manda automáticamente el token
+  // de la sesión iniciada, así que no hace falta añadir ninguna
+  // cabecera aquí.
 
   // ---------------------------------------------------------------
   // CC global: direcciones que van SIEMPRE en copia en todos los
@@ -67,8 +71,7 @@
     }
 
     const { data, error } = await sb.functions.invoke('send-email', {
-      body: { to, cc: ccFinal.length ? ccFinal : undefined, subject, html, text, attachmentUrls, attachments: attachmentsFinal },
-      headers: { 'x-function-secret': EMAIL_FUNCTION_SECRET }
+      body: { to, cc: ccFinal.length ? ccFinal : undefined, subject, html, text, attachmentUrls, attachments: attachmentsFinal }
     });
 
     if (error) {
