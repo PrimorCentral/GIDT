@@ -624,6 +624,7 @@
             </select>
             <select id="psFiltroRecogida" class="form-input" style="max-width:150px;">
               <option value="">Toda recogida</option>
+              <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
               <option value="ENVIADO A CENTRAL">Enviado a central</option>
               <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
               <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
@@ -1354,28 +1355,30 @@
           <label class="form-label">Información</label>
           <textarea id="psInformacion" class="form-input" rows="2" placeholder="Texto libre…"></textarea>
         </div>
-        <div>
-          <label class="form-label">Importe (€)</label>
-          <div class="campo-valor-detectado" id="psValorWrap">
-            <span class="cvd-candado" id="psValorCandado">🔒</span>
-            <input type="number" step="0.01" id="psValor" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
-            <button type="button" class="cvd-editar" id="btnEditarValor" title="Editar manualmente">✏️</button>
+        <div style="grid-column:1/-1;" class="ps-fila-3-campos">
+          <div>
+            <label class="form-label">Importe (€)</label>
+            <div class="campo-valor-detectado" id="psValorWrap">
+              <span class="cvd-candado" id="psValorCandado">🔒</span>
+              <input type="number" step="0.01" id="psValor" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
+              <button type="button" class="cvd-editar" id="btnEditarValor" title="Editar manualmente">✏️</button>
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="form-label">Nº Factura</label>
-          <div class="campo-valor-detectado" id="psFacturaNumWrap">
-            <span class="cvd-candado" id="psFacturaNumCandado">🔒</span>
-            <input type="text" id="psFacturaNum" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
-            <button type="button" class="cvd-editar" id="btnEditarNumFactura" title="Editar manualmente">✏️</button>
+          <div>
+            <label class="form-label">Nº Factura</label>
+            <div class="campo-valor-detectado" id="psFacturaNumWrap">
+              <span class="cvd-candado" id="psFacturaNumCandado">🔒</span>
+              <input type="text" id="psFacturaNum" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
+              <button type="button" class="cvd-editar" id="btnEditarNumFactura" title="Editar manualmente">✏️</button>
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="form-label">Estado</label>
-          <select id="psEstado" class="form-input">
-            <option value="PDTE COBRO">PDTE COBRO</option>
-            <option value="COBRADO">COBRADO</option>
-          </select>
+          <div>
+            <label class="form-label">Estado</label>
+            <select id="psEstado" class="form-input">
+              <option value="PDTE COBRO">PDTE COBRO</option>
+              <option value="COBRADO">COBRADO</option>
+            </select>
+          </div>
         </div>
         <div style="grid-column:1/-1;" id="psRecogidaBloque">
           <div class="ps-recogida-fila">
@@ -1387,6 +1390,7 @@
               <label class="form-label">Estado de la recogida</label>
               <select id="psRecogidaEstado" class="form-input">
                 <option value="">— Pendiente —</option>
+                <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
                 <option value="ENVIADO A CENTRAL">Enviado a central</option>
                 <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
               </select>

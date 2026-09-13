@@ -1290,7 +1290,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .step-cuerpo{ min-width:0; padding-top:2px; }
 .step-label{ margin:0; font-size:12.5px; font-weight:700; color:var(--ink); line-height:1.3; }
 .step-pending .step-label{ color:var(--ink-soft); font-weight:600; }
-.step-detalle{ margin:3px 0 0; font-size:11px; color:var(--ink-soft); line-height:1.4; }
+.step-detalle{ margin:5px 0 4px; font-size:12.5px; color:var(--ink-soft); line-height:1.55; }
 .step-warn .step-detalle{ color:var(--grave); font-weight:700; }
 .step-chip{
   display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:10.5px; font-weight:800;
@@ -1390,6 +1390,9 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-archivos-col{ min-width:0; }
 
 .ps-recogida-fila{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+/* Importe, Nº Factura y Estado en la misma fila (en vez de que "Estado"
+   ocupe una fila entera él solo), para achicar el alto del modal. */
+.ps-fila-3-campos{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 
 .ps-archivos-bloque{
   margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
@@ -1452,6 +1455,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   .ps-form-grid{ grid-template-columns:1fr; }
   .ps-archivos-fila{ grid-template-columns:1fr; }
   .ps-recogida-fila{ grid-template-columns:1fr; }
+  .ps-fila-3-campos{ grid-template-columns:1fr; }
 }
 
 .ps-btn-icon{
