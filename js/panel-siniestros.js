@@ -578,34 +578,127 @@ async function abrirModalPanelSiniestro(id) {
   pintarAlbaranModal(s);
   pintarJustificanteModal(s);
   pintarBloqueEnvioAgencia(s);
+  renderSeguimientoPanel(s);
 
   document.getElementById('psModalOverlay').classList.add('show');
 }
 
-// Botón "Enviar a agencia" (si aún no se ha enviado el correo de
-// reclamación a la agencia) o el estado "CORREO ENVIADO" con fecha/hora
-// (si ya se envió), en la cabecera del detalle del siniestro.
+// Botón "Enviar a agencia" en la cabecera del detalle del siniestro: solo se
+// muestra mientras el correo de reclamación no se haya enviado todavía — en
+// cuanto se envía, esa información pasa a mostrarse en el paso "Enviado a
+// agencia" del seguimiento (columna de la izquierda), así que aquí el botón
+// simplemente desaparece.
 function pintarBloqueEnvioAgencia(s) {
   const btn = document.getElementById('btnPsEnviarAgencia');
-  const estado = document.getElementById('psEnvioAgenciaEstado');
   if (s.correo_enviado) {
     btn.style.display = 'none';
-    estado.style.display = '';
-    estado.innerHTML = `
-      <div class="ps-correo-enviado-card">
-        <span class="ps-correo-enviado-titulo">✅ Correo enviado</span>
-        ${s.correo_enviado_por ? `<span class="ps-correo-fecha">Usuario envío: ${escapeHtml(s.correo_enviado_por)}</span>` : ''}
-        ${s.correo_enviado_en ? `<span class="ps-correo-fecha">Fecha y hora envío: ${psFormatearFechaHora(s.correo_enviado_en)}</span>` : ''}
-      </div>`;
   } else {
     btn.style.display = '';
     const sinFotos = !(s.fotos || []).length;
     btn.disabled = sinFotos;
     btn.title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
     btn.textContent = '✉️ Enviar a agencia';
-    estado.style.display = 'none';
-    estado.innerHTML = '';
   }
+}
+
+// ---------------- Seguimiento del siniestro (columna izquierda) ----------------
+// Muestra, como si fuera el seguimiento de un envío, los pasos por los que
+// va pasando el siniestro: se van marcando en cuanto ocurren de verdad
+// (fecha, hora y usuario), a partir de los mismos campos que ya se guardan
+// en panel_siniestros.
+
+function psPasoSeguimientoHtml({ estado, icono, titulo, detalle, chip }) {
+  return `
+    <div class="step step-${estado}">
+      <div class="step-nodo">${icono}</div>
+      <div class="step-cuerpo">
+        <p class="step-label">${escapeHtml(titulo)}</p>
+        ${detalle ? `<p class="step-detalle">${escapeHtml(detalle)}</p>` : ''}
+        ${chip ? `<span class="step-chip">${escapeHtml(chip)}</span>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderSeguimientoPanel(s) {
+  const cont = document.getElementById('psStepper');
+  if (!cont || !s) return;
+
+  const aplicaRecogida = s.tipo !== 'FALTAS';
+  const pasos = [];
+
+  // 1) Siniestro generado — siempre está hecho, es el punto de partida.
+  pasos.push(psPasoSeguimientoHtml({
+    estado: 'done', icono: '✓', titulo: 'Siniestro generado',
+    detalle: s.creado_en ? `${s.creado_por || '—'} · ${psFormatearFechaHora(s.creado_en)}` : ''
+  }));
+
+  // 2) Enviado a agencia
+  if (s.correo_enviado) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '✓', titulo: 'Enviado a agencia',
+      detalle: `${s.correo_enviado_por || '—'} · ${psFormatearFechaHora(s.correo_enviado_en)}`
+    }));
+  } else {
+    pasos.push(psPasoSeguimientoHtml({ estado: 'current', icono: '2', titulo: 'Enviado a agencia', detalle: 'Todavía sin enviar' }));
+  }
+
+  // 3) Albarán enviado a Facturación
+  if (s.enviado_facturacion) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '✓', titulo: 'Albarán enviado a facturación',
+      detalle: `${s.facturacion_enviado_por || '—'} · ${psFormatearFechaHora(s.facturacion_enviado_en)}`
+    }));
+  } else {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: s.correo_enviado ? 'current' : 'pending', icono: '3',
+      titulo: 'Albarán enviado a facturación', detalle: 'Todavía sin enviar'
+    }));
+  }
+
+  // 4) Factura emitida
+  if (s.factura_url) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '✓', titulo: 'Factura emitida',
+      detalle: `${s.factura_adjuntada_por || '—'} · ${psFormatearFechaHora(s.factura_adjuntada_en)}`
+    }));
+  } else {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: s.enviado_facturacion ? 'current' : 'pending', icono: '4',
+      titulo: 'Factura emitida', detalle: 'Todavía sin emitir'
+    }));
+  }
+
+  // Los pasos 5 y 6 solo aplican cuando hay mercancía física que recoger
+  // (una FALTA pura no tiene nada que recoger en tienda).
+  if (aplicaRecogida) {
+    // 5) En tiempo legal 15 días
+    if (s.recogida_estado) {
+      pasos.push(psPasoSeguimientoHtml({ estado: 'done', icono: '✓', titulo: 'En tiempo legal 15 días', detalle: 'Gestionado dentro de plazo' }));
+    } else if (s.recogida_limite) {
+      const hoy = (typeof fechaLocalISO === 'function') ? fechaLocalISO(new Date()) : new Date().toISOString().slice(0, 10);
+      const fueraDePlazo = hoy > s.recogida_limite;
+      pasos.push(psPasoSeguimientoHtml({
+        estado: fueraDePlazo ? 'warn' : 'current', icono: fueraDePlazo ? '!' : '5',
+        titulo: 'En tiempo legal 15 días',
+        detalle: `${fueraDePlazo ? 'Fuera de plazo desde el' : 'Vence el'} ${psFormatearFecha(s.recogida_limite)}`
+      }));
+    } else {
+      pasos.push(psPasoSeguimientoHtml({ estado: 'pending', icono: '5', titulo: 'En tiempo legal 15 días', detalle: 'Todavía sin fecha límite' }));
+    }
+
+    // 6) Recogida de la mercancía
+    if (s.recogida_estado) {
+      const textoEstado = s.recogida_estado === 'RECOGIDO POR AGENCIA' ? 'Recogido por agencia' : 'Enviado a central';
+      pasos.push(psPasoSeguimientoHtml({
+        estado: 'done', icono: '✓', titulo: 'Recogida de la mercancía',
+        detalle: `${textoEstado} · ${s.recogida_estado_por || '—'} · ${psFormatearFechaHora(s.recogida_estado_en)}`
+      }));
+    } else {
+      pasos.push(psPasoSeguimientoHtml({ estado: 'pending', icono: '6', titulo: 'Recogida de la mercancía', detalle: 'Todavía sin gestionar' }));
+    }
+  }
+
+  cont.innerHTML = pasos.join('');
 }
 
 // Envía el correo de reclamación a la agencia (misma plantilla que usa
@@ -674,6 +767,7 @@ async function enviarCorreoAgenciaDesdePanel() {
     s.correo_enviado_en = correoEnviadoEn;
     s.correo_enviado_por = correoEnviadoPor;
     pintarBloqueEnvioAgencia(s);
+    renderSeguimientoPanel(s);
     renderPanelSiniestros();
   } catch (err) {
     console.error('Error enviando el correo a la agencia desde el Panel siniestros:', err);
@@ -758,6 +852,7 @@ async function guardarCamposPanelAhora() {
   if (!panelActivoId) return;
   guardadoPanelTimer = null;
 
+  const s = psSiniestroPorId(panelActivoId);
   const valorTxt = document.getElementById('psValor').value;
   const ahora = new Date().toISOString();
   const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
@@ -768,23 +863,29 @@ async function guardarCamposPanelAhora() {
     num_factura: document.getElementById('psFacturaNum').value.trim() || null,
     valor: valorTxt ? Number(valorTxt) : null,
     estado: document.getElementById('psEstado').value,
-    recogida_limite: (psSiniestroPorId(panelActivoId)?.tipo !== 'FALTAS')
+    recogida_limite: (s?.tipo !== 'FALTAS')
       ? (document.getElementById('psRecogida').value || null)
       : null,
     recogida_estado: document.getElementById('psRecogidaEstado').value || null,
+    // Quién y cuándo se marcó el estado de la recogida (para el paso
+    // "Recogida de la mercancía" del seguimiento) ya se anota al vuelo, en
+    // caliente, desde el propio listener de "change" del select — aquí solo
+    // se persiste lo que ya quedó anotado en la copia local (s).
+    recogida_estado_en: s?.recogida_estado_en || null,
+    recogida_estado_por: s?.recogida_estado_por || null,
     actualizado_por: usuarioActual
   };
 
   try {
     const { error } = await sb.from('panel_siniestros').update(datos).eq('id', panelActivoId);
     if (error) throw error;
-    const s = psSiniestroPorId(panelActivoId);
     if (s) {
       Object.assign(s, datos);
       s.actualizado_en = ahora;
       document.getElementById('psActualizadoTexto').textContent = usuarioActual
         ? `Actualizado por: ${usuarioActual} · ${psFormatearFechaHora(ahora)}`
         : '';
+      renderSeguimientoPanel(s);
     }
     renderPanelSiniestros();
     renderPanelKpis();
@@ -826,6 +927,21 @@ document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
   const s = psSiniestroPorId(panelActivoId);
   const esRecogidoAgencia = e.target.value === 'RECOGIDO POR AGENCIA';
   document.getElementById('psJustificanteBloque').style.display = esRecogidoAgencia ? '' : 'none';
+
+  // Anotamos quién y cuándo se marca el estado de la recogida (para el
+  // paso "Recogida de la mercancía" del seguimiento); se guarda de verdad
+  // enseguida, con el resto de campos, en el autoguardado de abajo.
+  if (s) {
+    if (e.target.value) {
+      s.recogida_estado_en = new Date().toISOString();
+      s.recogida_estado_por = sesionActual?.nombre || sesionActual?.usuario || null;
+    } else {
+      s.recogida_estado_en = null;
+      s.recogida_estado_por = null;
+    }
+    renderSeguimientoPanel(s);
+  }
+
   programarAutoguardadoPanel();
   // Si se acaba de elegir "Recogido por agencia" y todavía no hay
   // justificante, abrimos directamente el selector de archivo.
@@ -1154,8 +1270,12 @@ function pintarFacturaModal(s) {
   const cont = document.getElementById('psFacturaZona');
   if (s.factura_url) {
     cont.innerHTML = `
-      <button type="button" class="ps-factura-chip" id="btnVerFactura">📄 ${escapeHtml(s.factura_nombre || 'Ver factura')}</button>
-      <button type="button" class="mini-btn mini-btn-danger" id="btnQuitarFactura" title="Quitar factura">🗑️</button>`;
+      <div class="archivo-fila-pdf">
+        <button type="button" class="ps-factura-chip" id="btnVerFactura">📄 ${escapeHtml(s.factura_nombre || 'Ver factura')}</button>
+        <div class="archivo-iconos">
+          <button type="button" class="icono-accion" id="btnQuitarFactura" title="Quitar factura">🗑️</button>
+        </div>
+      </div>`;
     document.getElementById('btnVerFactura').addEventListener('click', () =>
       abrirVisorPdfPanel(s.factura_url, { titulo: '📄 Factura', nombreArchivo: s.factura_nombre || 'factura.pdf' }));
     document.getElementById('btnQuitarFactura').addEventListener('click', quitarFacturaPanel);
@@ -1197,7 +1317,13 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
       numeroFacturaDetectado = await extraerNumFacturaDePdf(file);
     }
 
-    const cambios = { factura_url: pub.publicUrl, factura_nombre: comprimido.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
+    const facturaAdjuntadaEn = new Date().toISOString();
+    const facturaAdjuntadaPor = sesionActual?.nombre || sesionActual?.usuario || null;
+    const cambios = {
+      factura_url: pub.publicUrl, factura_nombre: comprimido.name,
+      factura_adjuntada_en: facturaAdjuntadaEn, factura_adjuntada_por: facturaAdjuntadaPor,
+      actualizado_por: facturaAdjuntadaPor
+    };
     if (totalDetectado !== null) cambios.valor = totalDetectado;
     if (numeroFacturaDetectado) cambios.num_factura = numeroFacturaDetectado;
 
@@ -1206,6 +1332,8 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
     const s = psSiniestroPorId(panelActivoId);
     s.factura_url = pub.publicUrl;
     s.factura_nombre = comprimido.name;
+    s.factura_adjuntada_en = facturaAdjuntadaEn;
+    s.factura_adjuntada_por = facturaAdjuntadaPor;
     if (totalDetectado !== null) {
       s.valor = totalDetectado;
       campoValor.value = totalDetectado;
@@ -1216,6 +1344,7 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
       aplicarEstadoCampoFactura(s);
     }
     pintarFacturaModal(s);
+    renderSeguimientoPanel(s);
     renderPanelSiniestros();
     if (totalDetectado !== null) renderPanelKpis();
   } catch (err) {
@@ -1234,12 +1363,13 @@ async function quitarFacturaPanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.factura_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, valor: null, num_factura: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ factura_url: null, factura_nombre: null, valor: null, num_factura: null, factura_adjuntada_en: null, factura_adjuntada_por: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
-    if (s) { s.factura_url = null; s.factura_nombre = null; s.valor = null; s.num_factura = null; }
+    if (s) { s.factura_url = null; s.factura_nombre = null; s.valor = null; s.num_factura = null; s.factura_adjuntada_en = null; s.factura_adjuntada_por = null; }
     pintarFacturaModal(s);
     if (s) aplicarEstadoCampoValor(s); // vacía y libera el campo Valor para poder editarlo a mano
     if (s) aplicarEstadoCampoFactura(s); // vacía y libera el campo Nº Factura para poder editarlo a mano
+    if (s) renderSeguimientoPanel(s);
     renderPanelSiniestros();
     renderPanelKpis();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
@@ -1255,88 +1385,63 @@ async function quitarFacturaPanel() {
 
 // El campo Nº Albarán empieza BLOQUEADO (no se escribe "a ojo"): solo se
 // rellena cuando se detecta el número al subir el PDF del albarán. Solo
-// entonces aparece "editar manualmente", por si la lectura automática
-// fallase alguna vez — mientras no se haya subido nada, no hay nada que
-// editar, así que no se ofrece esa opción.
+// entonces aparece el candado + el lápiz de "editar manualmente", por si la
+// lectura automática fallase alguna vez — mientras no se haya subido nada,
+// no hay nada que editar, así que no se ofrece esa opción.
 function aplicarEstadoCampoAlbaran(s) {
+  const wrap = document.getElementById('psAlbaranWrap');
   const input = document.getElementById('psAlbaran');
-  const hint = document.getElementById('psAlbaranNumHint');
   input.value = s.num_albaran || '';
-  input.placeholder = '';
 
   const detectado = !!(s.albaran_url && s.num_albaran);
   input.disabled = detectado || !s.albaran_url;
-
-  if (detectado) {
-    hint.innerHTML = `🔒 Detectado número albarán automáticamente · <button type="button" id="btnEditarNumAlbaran">editar manualmente</button>`;
-    hint.style.display = 'block';
-    document.getElementById('btnEditarNumAlbaran').addEventListener('click', () => {
-      input.disabled = false;
-      input.focus();
-      hint.style.display = 'none';
-    });
-  } else if (!s.albaran_url) {
-    hint.textContent = '🔒 Se rellena al subir el albarán';
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
-  }
+  wrap.classList.toggle('detectado', detectado);
 }
 
 // Igual que con el Nº Albarán: el campo Valor empieza BLOQUEADO hasta que
-// se sube la factura (y se detecta el importe); "editar manualmente" solo
-// aparece una vez hay algo detectado que corregir.
+// se sube la factura (y se detecta el importe); el lápiz de "editar
+// manualmente" solo aparece una vez hay algo detectado que corregir.
 function aplicarEstadoCampoValor(s) {
+  const wrap = document.getElementById('psValorWrap');
   const input = document.getElementById('psValor');
-  const hint = document.getElementById('psValorNumHint');
   const tieneValor = s.valor !== null && s.valor !== undefined && s.valor !== '';
   input.value = tieneValor ? s.valor : '';
 
   const detectado = !!(s.factura_url && tieneValor);
   input.disabled = detectado || !s.factura_url;
-
-  if (detectado) {
-    hint.innerHTML = `🔒 Detectado importe de factura automáticamente · <button type="button" id="btnEditarValor">editar manualmente</button>`;
-    hint.style.display = 'block';
-    document.getElementById('btnEditarValor').addEventListener('click', () => {
-      input.disabled = false;
-      input.focus();
-      hint.style.display = 'none';
-    });
-  } else if (!s.factura_url) {
-    hint.textContent = '🔒 Se rellena al subir la factura';
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
-  }
+  wrap.classList.toggle('detectado', detectado);
 }
 
 // Igual que el Nº Albarán: el campo Nº Factura empieza BLOQUEADO hasta que
-// se sube la factura y se detecta el número; "editar manualmente" solo
-// aparece una vez hay algo detectado que corregir.
+// se sube la factura y se detecta el número; el lápiz de "editar
+// manualmente" solo aparece una vez hay algo detectado que corregir.
 function aplicarEstadoCampoFactura(s) {
+  const wrap = document.getElementById('psFacturaNumWrap');
   const input = document.getElementById('psFacturaNum');
-  const hint = document.getElementById('psFacturaNumHint');
   input.value = s.num_factura || '';
 
   const detectado = !!(s.factura_url && s.num_factura);
   input.disabled = detectado || !s.factura_url;
-
-  if (detectado) {
-    hint.innerHTML = `🔒 Detectado número de factura automáticamente · <button type="button" id="btnEditarNumFactura">editar manualmente</button>`;
-    hint.style.display = 'block';
-    document.getElementById('btnEditarNumFactura').addEventListener('click', () => {
-      input.disabled = false;
-      input.focus();
-      hint.style.display = 'none';
-    });
-  } else if (!s.factura_url) {
-    hint.textContent = '🔒 Se rellena al subir la factura';
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
-  }
+  wrap.classList.toggle('detectado', detectado);
 }
+
+// Los tres botones-lápiz son fijos en el HTML (ya no se recrean cada vez
+// que se pinta el campo), así que sus listeners se enganchan una sola vez.
+document.getElementById('btnEditarNumAlbaran')?.addEventListener('click', () => {
+  document.getElementById('psAlbaran').disabled = false;
+  document.getElementById('psAlbaran').focus();
+  document.getElementById('psAlbaranWrap').classList.remove('detectado');
+});
+document.getElementById('btnEditarValor')?.addEventListener('click', () => {
+  document.getElementById('psValor').disabled = false;
+  document.getElementById('psValor').focus();
+  document.getElementById('psValorWrap').classList.remove('detectado');
+});
+document.getElementById('btnEditarNumFactura')?.addEventListener('click', () => {
+  document.getElementById('psFacturaNum').disabled = false;
+  document.getElementById('psFacturaNum').focus();
+  document.getElementById('psFacturaNumWrap').classList.remove('detectado');
+});
 
 function pintarAlbaranModal(s) {
   const cont = document.getElementById('psAlbaranZona');
@@ -1347,16 +1452,17 @@ function pintarAlbaranModal(s) {
     document.getElementById('btnAdjuntarAlbaran').addEventListener('click', () => document.getElementById('psAlbaranInput').click());
     return;
   }
-  const estado = s.enviado_facturacion
-    ? `<span class="ps-fact-enviado">✅ Enviado a Facturación${s.facturacion_enviado_en ? ' · ' + psFormatearFecha(s.facturacion_enviado_en.slice(0, 10)) : ''}</span>`
-    : '';
-  const textoBoton = s.enviado_facturacion ? '↻ Reenviar a Facturación' : '✉️ Enviar a Facturación';
+  // El estado "Enviado a Facturación" (quién y cuándo) ya se ve en el paso
+  // "Albarán enviado a facturación" del seguimiento, así que aquí solo
+  // quedan los iconos de acción, en línea con el nombre del archivo.
+  const tituloReenvio = s.enviado_facturacion ? 'Reenviar a Facturación' : 'Enviar a Facturación';
   cont.innerHTML = `
-    <button type="button" class="ps-factura-chip" id="btnVerAlbaran">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</button>
-    <button type="button" class="mini-btn mini-btn-danger" id="btnQuitarAlbaran" title="Quitar albarán">🗑️</button>
-    <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      ${estado}
-      <button type="button" class="btn" id="btnEnviarFacturacion" style="padding:5px 12px; font-size:12.5px;">${textoBoton}</button>
+    <div class="archivo-fila-pdf">
+      <button type="button" class="ps-factura-chip" id="btnVerAlbaran">📄 ${escapeHtml(s.albaran_nombre || 'Ver albarán')}</button>
+      <div class="archivo-iconos">
+        <button type="button" class="icono-accion" id="btnEnviarFacturacion" title="${tituloReenvio}">↻</button>
+        <button type="button" class="icono-accion" id="btnQuitarAlbaran" title="Quitar albarán">🗑️</button>
+      </div>
     </div>`;
   document.getElementById('btnVerAlbaran').addEventListener('click', () =>
     abrirVisorPdfPanel(s.albaran_url, { titulo: '📄 Albarán', nombreArchivo: s.albaran_nombre || 'albaran.pdf' }));
@@ -1536,16 +1642,20 @@ async function ofrecerEnvioFacturacion(s) {
 
     await enviarEmail({ to: destinatarios, subject, html, text, attachmentUrls: adjuntos });
 
+    const facturacionEnviadoEn = new Date().toISOString();
+    const facturacionEnviadoPor = sesionActual?.nombre || sesionActual?.usuario || null;
     const { error: eUpd } = await sb.from('panel_siniestros').update({
       enviado_facturacion: true,
-      facturacion_enviado_en: new Date().toISOString(),
-      facturacion_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+      facturacion_enviado_en: facturacionEnviadoEn,
+      facturacion_enviado_por: facturacionEnviadoPor
     }).eq('id', s.id);
     if (eUpd) throw eUpd;
 
     s.enviado_facturacion = true;
-    s.facturacion_enviado_en = new Date().toISOString();
+    s.facturacion_enviado_en = facturacionEnviadoEn;
+    s.facturacion_enviado_por = facturacionEnviadoPor;
     pintarAlbaranModal(s);
+    renderSeguimientoPanel(s);
   } catch (err) {
     console.error('Error enviando el albarán a Facturación:', err);
     await modalAlert(`No se pudo enviar el correo a Facturación: ${err.message}`, { titulo: 'Error de envío' });
