@@ -88,6 +88,8 @@
       throw new Error('El servicio de correo no confirmó el envío.');
     }
 
+    if (typeof mostrarToast === 'function') mostrarToast('Correo enviado correctamente');
+
     return data; // { ok: true, adjuntos: N }
   }
 
