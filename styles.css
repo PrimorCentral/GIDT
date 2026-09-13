@@ -1256,8 +1256,9 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
 }
 .ps-modal-conjunto .ps-modal-box{
-  flex:1 1 auto; min-width:0; max-height:none; overflow-y:visible;
+  flex:1 1 auto; min-width:0; max-width:none; max-height:none; overflow-y:visible;
   border-radius:0; box-shadow:none;
+  background:var(--panel);
 }
 .seguimiento-panel{
   flex:0 0 254px; width:254px;
