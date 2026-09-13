@@ -1266,7 +1266,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   padding:20px 18px;
   display:flex; flex-direction:column;
 }
-.seguimiento-titulo{ flex:0 0 auto; margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); }
+.seguimiento-titulo{ flex:0 0 auto; margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); text-align:center; }
 /* Los pasos se reparten a lo largo de todo el alto disponible (el mismo que
    el modal de al lado), en vez de quedar todos apretados arriba y dejar un
    hueco en blanco abajo. */
