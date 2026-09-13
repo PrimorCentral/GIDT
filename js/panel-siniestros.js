@@ -153,7 +153,7 @@ function siniestrosPanelFiltrados() {
     if (f.agenciaId && String(s.agencia_id) !== String(f.agenciaId)) return false;
     if (f.estado && s.estado !== f.estado) return false;
     if (f.recogida) {
-      if (f.recogida === 'ENVIADO A CENTRAL' || f.recogida === 'RECOGIDO POR AGENCIA') {
+      if (f.recogida === 'ENVIADO A CENTRAL' || f.recogida === 'RECOGIDO POR AGENCIA' || f.recogida === 'EN ESPERA DE TIENDA') {
         if (s.recogida_estado !== f.recogida) return false;
       } else {
         // PDTE_DENTRO / PDTE_FUERA: solo tiene sentido para lo que aún no
@@ -228,8 +228,12 @@ function renderPanelSiniestros() {
     const aplicaRecogida = s.tipo !== 'FALTAS';
     const limite = (aplicaRecogida && s.recogida_limite) ? new Date(s.recogida_limite + 'T00:00:00') : null;
     const vencido = limite && limite < hoy && s.estado !== 'COBRADO' && !s.recogida_estado;
+    const recogidaEstadoTexto = s.recogida_estado === 'ENVIADO A CENTRAL' ? '🏢 A central'
+      : s.recogida_estado === 'RECOGIDO POR AGENCIA' ? '📦 Recogido'
+      : s.recogida_estado === 'EN ESPERA DE TIENDA' ? '🏬 Espera tienda'
+      : '';
     const recogidaTexto = aplicaRecogida
-      ? `${psFormatearFecha(s.recogida_limite)}${s.recogida_estado ? `<br><span class="ps-recogida-mini">${s.recogida_estado === 'ENVIADO A CENTRAL' ? '🏢 A central' : '📦 Recogido'}</span>` : ''}`
+      ? `${psFormatearFecha(s.recogida_limite)}${recogidaEstadoTexto ? `<br><span class="ps-recogida-mini">${recogidaEstadoTexto}</span>` : ''}`
       : 'NO APLICA';
     return `
       <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
@@ -688,10 +692,19 @@ function renderSeguimientoPanel(s) {
   // Los pasos 5 y 6 solo aplican cuando hay mercancía física que recoger
   // (una FALTA pura no tiene nada que recoger en tienda).
   if (aplicaRecogida) {
-    // 5) En tiempo legal 15 días — mientras no se ha gestionado la recogida,
-    // muestra un chip con los días que quedan (o si ya se ha pasado el
-    // plazo), calculados a partir de la fecha límite de recogida.
-    if (s.recogida_estado) {
+    // "En espera de tienda" NO es un estado terminado: solo indica que ya
+    // hay alguien chateando con la tienda para conseguir la recogida. Solo
+    // "Enviado a central" y "Recogido por agencia" cierran de verdad la
+    // recogida.
+    const recogidaCompletada = s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
+    const enEsperaTienda = s.recogida_estado === 'EN ESPERA DE TIENDA';
+
+    // 5) En tiempo legal 15 días — mientras no se ha completado la
+    // recogida, muestra un chip con los días que quedan (o si ya se ha
+    // pasado el plazo), calculados a partir de la fecha límite de recogida
+    // — también cuando está "en espera de tienda", para que se siga viendo
+    // si ya está fuera de plazo.
+    if (recogidaCompletada) {
       pasos.push(psPasoSeguimientoHtml({
         estado: 'done', icono: '✓', titulo: 'En tiempo legal 15 días',
         detalleHtml: psLineasDetalle('Gestionado dentro de plazo')
@@ -726,11 +739,19 @@ function renderSeguimientoPanel(s) {
     }
 
     // 6) Recogida de la mercancía
-    if (s.recogida_estado) {
+    if (recogidaCompletada) {
       const tituloHecho = s.recogida_estado === 'RECOGIDO POR AGENCIA' ? 'Recogido por agencia' : 'Enviado a central';
       pasos.push(psPasoSeguimientoHtml({
         estado: 'done', icono: '✓', titulo: tituloHecho,
         detalleHtml: psLineasDetalle(s.recogida_estado_por, psFormatearFechaHora(s.recogida_estado_en))
+      }));
+    } else if (enEsperaTienda) {
+      // Estado intermedio: alguien ya está gestionando la recogida con la
+      // tienda, para que un compañero que vea la recogida fuera de plazo
+      // sepa que ya se está en ello y no vuelva a preguntar por su cuenta.
+      pasos.push(psPasoSeguimientoHtml({
+        estado: 'current', icono: '6', titulo: 'Recogida de la mercancía',
+        detalleHtml: psLineasDetalle('En espera de respuesta de tienda', s.recogida_estado_por, psFormatearFechaHora(s.recogida_estado_en))
       }));
     } else {
       pasos.push(psPasoSeguimientoHtml({
