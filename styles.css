@@ -1262,7 +1262,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 }
 .seguimiento-panel{
   flex:0 0 360px; width:360px;
-  background:var(--panel); border-right:1px solid var(--border);
+  background:var(--panel-muted); border-right:1px solid var(--border);
   padding:20px 18px;
   display:flex; flex-direction:column;
 }
