@@ -1249,21 +1249,29 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
    pantalla cuando el seguimiento + el modal juntos son más altos que la
    ventana. */
 .ps-modal-conjunto{
-  display:flex; align-items:stretch; gap:16px;
+  display:flex; align-items:stretch; gap:0;
   width:100%; max-width:1310px;
-  max-height:97vh; overflow-y:auto;
+  max-height:97vh; overflow-y:auto; overflow-x:hidden;
+  border-radius:var(--radius-lg);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
 }
-.ps-modal-conjunto .ps-modal-box{ flex:1 1 auto; min-width:0; max-height:none; overflow-y:visible; }
+.ps-modal-conjunto .ps-modal-box{
+  flex:1 1 auto; min-width:0; max-height:none; overflow-y:visible;
+  border-radius:0; box-shadow:none;
+}
 .seguimiento-panel{
   flex:0 0 254px; width:254px;
-  background:var(--panel); border-radius:var(--radius-lg);
-  box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
+  background:var(--panel); border-right:1px solid var(--border);
   padding:20px 18px;
+  display:flex; flex-direction:column;
 }
-.seguimiento-titulo{ margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); }
-.stepper{ display:flex; flex-direction:column; }
-.step{ display:flex; gap:10px; position:relative; padding-bottom:20px; }
-.step:last-child{ padding-bottom:0; }
+.seguimiento-titulo{ flex:0 0 auto; margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); }
+/* Los pasos se reparten a lo largo de todo el alto disponible (el mismo que
+   el modal de al lado), en vez de quedar todos apretados arriba y dejar un
+   hueco en blanco abajo. */
+.stepper{ flex:1 1 auto; display:flex; flex-direction:column; }
+.step{ flex:1 1 auto; display:flex; gap:10px; position:relative; padding-bottom:20px; }
+.step:last-child{ padding-bottom:0; flex:0 0 auto; }
 .step::before{
   content:''; position:absolute; left:11px; top:24px; bottom:0; width:2px;
   background:var(--border);
@@ -1293,7 +1301,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 
 @media (max-width: 960px){
   .ps-modal-conjunto{ flex-direction:column; align-items:stretch; }
-  .seguimiento-panel{ width:100%; flex:1 1 auto; max-height:none; order:2; }
+  .seguimiento-panel{ width:100%; flex:1 1 auto; max-height:none; order:2; border-right:0; border-top:1px solid var(--border); }
 }
 
 /* ---------- Detalle del siniestro: campos con valor detectado automáticamente ---------- */
