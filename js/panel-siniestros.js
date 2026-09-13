@@ -553,9 +553,6 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
 
-  document.getElementById('psCreadoTexto').textContent = s.creado_en
-    ? `Creado por: ${s.creado_por || '—'} · ${psFormatearFechaHora(s.creado_en)}`
-    : '';
   document.getElementById('psActualizadoTexto').textContent = s.actualizado_por
     ? `Actualizado por: ${s.actualizado_por} · ${psFormatearFechaHora(s.actualizado_en)}`
     : 'Actualizado por: —';
@@ -638,9 +635,9 @@ function renderSeguimientoPanel(s) {
   const aplicaRecogida = s.tipo !== 'FALTAS';
   const pasos = [];
 
-  // 1) Siniestro generado — siempre está hecho, es el punto de partida.
+  // 1) Siniestro creado — siempre está hecho, es el punto de partida.
   pasos.push(psPasoSeguimientoHtml({
-    estado: 'done', icono: '✓', titulo: 'Siniestro generado',
+    estado: 'done', icono: '✓', titulo: 'Siniestro creado',
     detalleHtml: s.creado_en ? psLineasDetalle(s.creado_por, psFormatearFechaHora(s.creado_en)) : ''
   }));
 
