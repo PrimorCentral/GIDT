@@ -1249,7 +1249,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
    pantalla cuando el seguimiento + el modal juntos son más altos que la
    ventana. */
 .ps-modal-conjunto{
-  display:flex; align-items:flex-start; gap:16px;
+  display:flex; align-items:stretch; gap:16px;
   width:100%; max-width:1310px;
   max-height:97vh; overflow-y:auto;
 }
