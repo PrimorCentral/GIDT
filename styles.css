@@ -1250,7 +1250,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
    ventana. */
 .ps-modal-conjunto{
   display:flex; align-items:stretch; gap:0;
-  width:100%; max-width:1310px;
+  width:100%; max-width:1416px;
   max-height:97vh; overflow-y:auto; overflow-x:hidden;
   border-radius:var(--radius-lg);
   box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
@@ -1261,7 +1261,7 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
   background:var(--panel);
 }
 .seguimiento-panel{
-  flex:0 0 254px; width:254px;
+  flex:0 0 360px; width:360px;
   background:var(--panel); border-right:1px solid var(--border);
   padding:20px 18px;
   display:flex; flex-direction:column;
