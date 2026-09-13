@@ -1,4 +1,4 @@
-  // ---------------------------------------------------------------
+// ---------------------------------------------------------------
   // Modal genérico (sustituye alert / confirm / prompt nativos)
   // ---------------------------------------------------------------
   const modalOverlay   = document.getElementById('modalOverlay');
@@ -144,6 +144,7 @@
     if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
     if (!(await modalConfirm('¿Cerrar sesión?', { titulo: 'Cerrar sesión' }))) return;
     sessionStorage.removeItem(SESSION_KEY);
+    await sb.auth.signOut();
     if (typeof activarVista === 'function') activarVista('inicio');
     mostrarLogin();
   });
@@ -155,4 +156,3 @@
   } else {
     mostrarLogin();
   }
-
