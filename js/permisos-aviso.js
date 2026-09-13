@@ -35,6 +35,7 @@ const BOTONES_CON_PERMISO = [
   ['.util-btn-quitar', 'informe_dia'],
   ['#btnNuevoPanelSiniestroManual', 'panel_siniestros'],
   ['#psModalOverlay .btn', 'panel_siniestros'],
+  ['#psModalOverlay .cvd-editar', 'panel_siniestros'],
   ['#btnEnviarSiniestro', 'siniestros_dia'],
   ['[id^="btnEnviarFacturacion"]', 'enviar_facturacion'],
   ['#btnNuevaTienda', 'config_tiendas'],
