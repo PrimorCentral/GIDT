@@ -607,13 +607,21 @@ function pintarBloqueEnvioAgencia(s) {
 // (fecha, hora y usuario), a partir de los mismos campos que ya se guardan
 // en panel_siniestros.
 
-function psPasoSeguimientoHtml({ estado, icono, titulo, detalle, chip }) {
+// Junta varias líneas (ya pensadas para mostrarse una debajo de otra, p.ej.
+// fecha/hora en una línea y el usuario en la siguiente) en un solo bloque de
+// detalle, escapando cada una por separado. Las líneas vacías/nulas se
+// descartan, para no dejar un <br> suelto cuando falta un dato.
+function psLineasDetalle(...lineas) {
+  return lineas.filter(l => l !== null && l !== undefined && l !== '').map(l => escapeHtml(l)).join('<br>');
+}
+
+function psPasoSeguimientoHtml({ estado, icono, titulo, detalleHtml, chip }) {
   return `
     <div class="step step-${estado}">
       <div class="step-nodo">${icono}</div>
       <div class="step-cuerpo">
         <p class="step-label">${escapeHtml(titulo)}</p>
-        ${detalle ? `<p class="step-detalle">${escapeHtml(detalle)}</p>` : ''}
+        ${detalleHtml ? `<p class="step-detalle">${detalleHtml}</p>` : ''}
         ${chip ? `<span class="step-chip">${escapeHtml(chip)}</span>` : ''}
       </div>
     </div>`;
@@ -629,29 +637,37 @@ function renderSeguimientoPanel(s) {
   // 1) Siniestro generado — siempre está hecho, es el punto de partida.
   pasos.push(psPasoSeguimientoHtml({
     estado: 'done', icono: '✓', titulo: 'Siniestro generado',
-    detalle: s.creado_en ? `${s.creado_por || '—'} · ${psFormatearFechaHora(s.creado_en)}` : ''
+    detalleHtml: s.creado_en ? psLineasDetalle(psFormatearFechaHora(s.creado_en), s.creado_por) : ''
   }));
 
   // 2) Enviado a agencia
   if (s.correo_enviado) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Enviado a agencia',
-      detalle: `${s.correo_enviado_por || '—'} · ${psFormatearFechaHora(s.correo_enviado_en)}`
+      detalleHtml: psLineasDetalle(
+        s.agencia_nombre ? `Correo a ${s.agencia_nombre}` : null,
+        psFormatearFechaHora(s.correo_enviado_en),
+        s.correo_enviado_por
+      )
     }));
   } else {
-    pasos.push(psPasoSeguimientoHtml({ estado: 'current', icono: '2', titulo: 'Enviado a agencia', detalle: 'Todavía sin enviar' }));
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'current', icono: '2', titulo: 'Enviado a agencia',
+      detalleHtml: psLineasDetalle('Todavía no se ha enviado el correo a la agencia')
+    }));
   }
 
   // 3) Albarán enviado a Facturación
   if (s.enviado_facturacion) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Albarán enviado a facturación',
-      detalle: `${s.facturacion_enviado_por || '—'} · ${psFormatearFechaHora(s.facturacion_enviado_en)}`
+      detalleHtml: psLineasDetalle(psFormatearFechaHora(s.facturacion_enviado_en), s.facturacion_enviado_por)
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
       estado: s.correo_enviado ? 'current' : 'pending', icono: '3',
-      titulo: 'Albarán enviado a facturación', detalle: 'Todavía sin enviar'
+      titulo: 'Albarán enviado a facturación',
+      detalleHtml: psLineasDetalle('Todavía no se ha enviado el albarán a Facturación')
     }));
   }
 
@@ -659,42 +675,68 @@ function renderSeguimientoPanel(s) {
   if (s.factura_url) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Factura emitida',
-      detalle: `${s.factura_adjuntada_por || '—'} · ${psFormatearFechaHora(s.factura_adjuntada_en)}`
+      detalleHtml: psLineasDetalle(psFormatearFechaHora(s.factura_adjuntada_en), s.factura_adjuntada_por)
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
       estado: s.enviado_facturacion ? 'current' : 'pending', icono: '4',
-      titulo: 'Factura emitida', detalle: 'Todavía sin emitir'
+      titulo: 'Factura emitida',
+      detalleHtml: psLineasDetalle('Todavía no se ha adjuntado')
     }));
   }
 
   // Los pasos 5 y 6 solo aplican cuando hay mercancía física que recoger
   // (una FALTA pura no tiene nada que recoger en tienda).
   if (aplicaRecogida) {
-    // 5) En tiempo legal 15 días
+    // 5) En tiempo legal 15 días — mientras no se ha gestionado la recogida,
+    // muestra un chip con los días que quedan (o si ya se ha pasado el
+    // plazo), calculados a partir de la fecha límite de recogida.
     if (s.recogida_estado) {
-      pasos.push(psPasoSeguimientoHtml({ estado: 'done', icono: '✓', titulo: 'En tiempo legal 15 días', detalle: 'Gestionado dentro de plazo' }));
+      pasos.push(psPasoSeguimientoHtml({
+        estado: 'done', icono: '✓', titulo: 'En tiempo legal 15 días',
+        detalleHtml: psLineasDetalle('Gestionado dentro de plazo')
+      }));
     } else if (s.recogida_limite) {
       const hoy = (typeof fechaLocalISO === 'function') ? fechaLocalISO(new Date()) : new Date().toISOString().slice(0, 10);
-      const fueraDePlazo = hoy > s.recogida_limite;
+      const hoyDate = new Date(hoy + 'T00:00:00');
+      const limiteDate = new Date(s.recogida_limite + 'T00:00:00');
+      const diasRestantes = Math.round((limiteDate - hoyDate) / 86400000);
+      const fueraDePlazo = diasRestantes < 0;
+
+      let chip;
+      if (fueraDePlazo) {
+        chip = `⚠️ Fuera de plazo (${Math.abs(diasRestantes)} día${Math.abs(diasRestantes) === 1 ? '' : 's'})`;
+      } else if (diasRestantes === 0) {
+        chip = '⏳ Vence hoy';
+      } else {
+        chip = `⏳ Quedan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}`;
+      }
+
       pasos.push(psPasoSeguimientoHtml({
         estado: fueraDePlazo ? 'warn' : 'current', icono: fueraDePlazo ? '!' : '5',
         titulo: 'En tiempo legal 15 días',
-        detalle: `${fueraDePlazo ? 'Fuera de plazo desde el' : 'Vence el'} ${psFormatearFecha(s.recogida_limite)}`
+        detalleHtml: psLineasDetalle(`Recogida límite: ${psFormatearFecha(s.recogida_limite)}`),
+        chip
       }));
     } else {
-      pasos.push(psPasoSeguimientoHtml({ estado: 'pending', icono: '5', titulo: 'En tiempo legal 15 días', detalle: 'Todavía sin fecha límite' }));
+      pasos.push(psPasoSeguimientoHtml({
+        estado: 'pending', icono: '5', titulo: 'En tiempo legal 15 días',
+        detalleHtml: psLineasDetalle('Todavía sin fecha límite')
+      }));
     }
 
     // 6) Recogida de la mercancía
     if (s.recogida_estado) {
-      const textoEstado = s.recogida_estado === 'RECOGIDO POR AGENCIA' ? 'Recogido por agencia' : 'Enviado a central';
+      const tituloHecho = s.recogida_estado === 'RECOGIDO POR AGENCIA' ? 'Recogido por agencia' : 'Enviado a central';
       pasos.push(psPasoSeguimientoHtml({
-        estado: 'done', icono: '✓', titulo: 'Recogida de la mercancía',
-        detalle: `${textoEstado} · ${s.recogida_estado_por || '—'} · ${psFormatearFechaHora(s.recogida_estado_en)}`
+        estado: 'done', icono: '✓', titulo: tituloHecho,
+        detalleHtml: psLineasDetalle(psFormatearFechaHora(s.recogida_estado_en), s.recogida_estado_por)
       }));
     } else {
-      pasos.push(psPasoSeguimientoHtml({ estado: 'pending', icono: '6', titulo: 'Recogida de la mercancía', detalle: 'Todavía sin gestionar' }));
+      pasos.push(psPasoSeguimientoHtml({
+        estado: 'pending', icono: '6', titulo: 'Recogida de la mercancía',
+        detalleHtml: psLineasDetalle('Todavía sin gestionar')
+      }));
     }
   }
 
