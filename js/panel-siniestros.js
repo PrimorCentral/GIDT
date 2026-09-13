@@ -637,7 +637,7 @@ function renderSeguimientoPanel(s) {
   // 1) Siniestro generado — siempre está hecho, es el punto de partida.
   pasos.push(psPasoSeguimientoHtml({
     estado: 'done', icono: '✓', titulo: 'Siniestro generado',
-    detalleHtml: s.creado_en ? psLineasDetalle(psFormatearFechaHora(s.creado_en), s.creado_por) : ''
+    detalleHtml: s.creado_en ? psLineasDetalle(s.creado_por, psFormatearFechaHora(s.creado_en)) : ''
   }));
 
   // 2) Enviado a agencia
@@ -646,8 +646,8 @@ function renderSeguimientoPanel(s) {
       estado: 'done', icono: '✓', titulo: 'Enviado a agencia',
       detalleHtml: psLineasDetalle(
         s.agencia_nombre ? `Correo a ${s.agencia_nombre}` : null,
-        psFormatearFechaHora(s.correo_enviado_en),
-        s.correo_enviado_por
+        s.correo_enviado_por,
+        psFormatearFechaHora(s.correo_enviado_en)
       )
     }));
   } else {
@@ -661,7 +661,7 @@ function renderSeguimientoPanel(s) {
   if (s.enviado_facturacion) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Albarán enviado a facturación',
-      detalleHtml: psLineasDetalle(psFormatearFechaHora(s.facturacion_enviado_en), s.facturacion_enviado_por)
+      detalleHtml: psLineasDetalle(s.facturacion_enviado_por, psFormatearFechaHora(s.facturacion_enviado_en))
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
@@ -675,7 +675,7 @@ function renderSeguimientoPanel(s) {
   if (s.factura_url) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Factura emitida',
-      detalleHtml: psLineasDetalle(psFormatearFechaHora(s.factura_adjuntada_en), s.factura_adjuntada_por)
+      detalleHtml: psLineasDetalle(s.factura_adjuntada_por, psFormatearFechaHora(s.factura_adjuntada_en))
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
@@ -730,7 +730,7 @@ function renderSeguimientoPanel(s) {
       const tituloHecho = s.recogida_estado === 'RECOGIDO POR AGENCIA' ? 'Recogido por agencia' : 'Enviado a central';
       pasos.push(psPasoSeguimientoHtml({
         estado: 'done', icono: '✓', titulo: tituloHecho,
-        detalleHtml: psLineasDetalle(psFormatearFechaHora(s.recogida_estado_en), s.recogida_estado_por)
+        detalleHtml: psLineasDetalle(s.recogida_estado_por, psFormatearFechaHora(s.recogida_estado_en))
       }));
     } else {
       pasos.push(psPasoSeguimientoHtml({
