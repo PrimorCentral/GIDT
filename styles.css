@@ -1779,3 +1779,29 @@ body.rol-lectura input[type="file"]{
 .rme-btn-reenviar{
   font-size:11.5px; color:var(--accent-ink); text-decoration:underline; padding:2px 0;
 }
+
+/* ---------------------------------------------------------------
+   Toasts: avisos flotantes breves (p.ej. "Correo enviado
+   correctamente"), arriba a la derecha. Se apilan si hay varios a la
+   vez y desaparecen solos — no bloquean la interfaz como los modales.
+   --------------------------------------------------------------- */
+#toastContainer{
+  position:fixed; top:20px; right:20px; z-index:9999;
+  display:flex; flex-direction:column; gap:10px;
+  pointer-events:none;
+}
+.toast{
+  display:flex; align-items:center; gap:10px;
+  background:var(--ok); color:#fff;
+  padding:14px 20px; border-radius:var(--radius); box-shadow:var(--shadow);
+  font-size:14.5px; font-weight:600; letter-spacing:.1px;
+  opacity:0; transform:translateY(-8px);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.toast.show{ opacity:1; transform:translateY(0); }
+.toast .toast-glyph{
+  width:20px; height:20px; border-radius:50%;
+  background:rgba(255,255,255,.22);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-size:13px;
+}
