@@ -287,6 +287,18 @@ function bordeDerechoVisible() {
             vista: 'panel-siniestros'
           });
         }
+
+        // Recogidas marcadas como "en espera de tienda": no cuentan como
+        // vencidas sin gestionar (ya hay alguien detrás), pero conviene un
+        // recordatorio aparte para hacer seguimiento de la respuesta.
+        const enEsperaTienda = data.filter(s => s.recogida_estado === 'EN ESPERA DE TIENDA');
+        if (enEsperaTienda.length) {
+          items.push({
+            icono: '🏬',
+            texto: `${enEsperaTienda.length} siniestro${enEsperaTienda.length === 1 ? '' : 's'} en espera de respuesta por parte de tienda`,
+            vista: 'panel-siniestros'
+          });
+        }
       }
     } catch (err) {
       console.error('Error cargando pendientes del Panel siniestros:', err);
