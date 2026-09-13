@@ -1285,9 +1285,11 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .step-detalle{ margin:3px 0 0; font-size:11px; color:var(--ink-soft); line-height:1.4; }
 .step-warn .step-detalle{ color:var(--grave); font-weight:700; }
 .step-chip{
-  display:inline-block; margin-top:4px; font-size:10.5px; font-weight:700;
-  padding:2px 8px; border-radius:99px; background:var(--panel-muted); color:var(--ink-soft);
+  display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:10.5px; font-weight:800;
+  padding:3px 9px 3px 8px; border-radius:99px; background:#FFEEDF; color:var(--accent-ink);
+  text-transform:uppercase; letter-spacing:.2px;
 }
+.step-warn .step-chip{ background:var(--grave-bg); color:var(--grave); }
 
 @media (max-width: 960px){
   .ps-modal-conjunto{ flex-direction:column; align-items:stretch; }
