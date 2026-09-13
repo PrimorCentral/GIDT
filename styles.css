@@ -1561,7 +1561,8 @@ body:not(.perm-enviar_reporte_mensual) #btnRmeEnviarTodas{ display:none !importa
    pulsar en vez de desaparecer). Los campos del formulario del modal
    se quedan solo atenuados y sin poder tocarse. */
 body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual,
-body:not(.perm-panel_siniestros) #psModalOverlay .btn{
+body:not(.perm-panel_siniestros) #psModalOverlay .btn,
+body:not(.perm-panel_siniestros) #psModalOverlay .cvd-editar{
   opacity:.6;
 }
 body:not(.perm-panel_siniestros) .ps-form-grid input,
