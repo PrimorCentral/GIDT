@@ -1243,16 +1243,22 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-modal-box{ width:100%; max-width:1040px; max-height:97vh; overflow-y:auto; position:relative; }
 
 /* ---------- Detalle del siniestro: conjunto (seguimiento + modal) ---------- */
+/* El scroll (si hace falta) se controla aquí, en el conjunto entero, no en
+   cada caja por separado: así la cabecera (papelera, PDF, ✕) siempre queda
+   visible nada más abrirse, en vez de quedar desplazada fuera de la
+   pantalla cuando el seguimiento + el modal juntos son más altos que la
+   ventana. */
 .ps-modal-conjunto{
   display:flex; align-items:flex-start; gap:16px;
   width:100%; max-width:1310px;
+  max-height:97vh; overflow-y:auto;
 }
-.ps-modal-conjunto .ps-modal-box{ flex:1 1 auto; min-width:0; }
+.ps-modal-conjunto .ps-modal-box{ flex:1 1 auto; min-width:0; max-height:none; overflow-y:visible; }
 .seguimiento-panel{
   flex:0 0 254px; width:254px;
   background:var(--panel); border-radius:var(--radius-lg);
   box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
-  padding:20px 18px; max-height:97vh; overflow-y:auto;
+  padding:20px 18px;
 }
 .seguimiento-titulo{ margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); }
 .stepper{ display:flex; flex-direction:column; }
