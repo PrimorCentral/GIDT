@@ -1,4 +1,4 @@
-  // Servicio de envío de correo (vía Edge Function Supabase "send-email")
+// Servicio de envío de correo (vía Edge Function Supabase "send-email")
   // ---------------------------------------------------------------
   // Uso:
   //   await enviarEmail({
@@ -28,7 +28,7 @@
 
   // Debe coincidir EXACTAMENTE con el secret "FUNCTION_SECRET" configurado
   // en Supabase → Edge Functions → Secrets para este proyecto.
-  const EMAIL_FUNCTION_SECRET = '1d970db242f11f82ee869c5d0070438902fc4b2ee8dd4dcf74c1349e65699bba';
+  const EMAIL_FUNCTION_SECRET = '57df76248d11eaa48e01cbe71eb09883a329fa01b5f7948ae0cd91195e7da52c';
 
   // ---------------------------------------------------------------
   // CC global: direcciones que van SIEMPRE en copia en todos los
