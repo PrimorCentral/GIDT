@@ -1242,6 +1242,79 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 
 .ps-modal-box{ width:100%; max-width:1040px; max-height:97vh; overflow-y:auto; position:relative; }
 
+/* ---------- Detalle del siniestro: conjunto (seguimiento + modal) ---------- */
+.ps-modal-conjunto{
+  display:flex; align-items:flex-start; gap:16px;
+  width:100%; max-width:1310px;
+}
+.ps-modal-conjunto .ps-modal-box{ flex:1 1 auto; min-width:0; }
+.seguimiento-panel{
+  flex:0 0 254px; width:254px;
+  background:var(--panel); border-radius:var(--radius-lg);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.45);
+  padding:20px 18px; max-height:97vh; overflow-y:auto;
+}
+.seguimiento-titulo{ margin:0 0 16px; font-size:14px; font-weight:800; color:var(--ink); }
+.stepper{ display:flex; flex-direction:column; }
+.step{ display:flex; gap:10px; position:relative; padding-bottom:20px; }
+.step:last-child{ padding-bottom:0; }
+.step::before{
+  content:''; position:absolute; left:11px; top:24px; bottom:0; width:2px;
+  background:var(--border);
+}
+.step:last-child::before{ display:none; }
+.step-done::before{ background:var(--ok); }
+.step-nodo{
+  flex:0 0 auto; width:23px; height:23px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; z-index:1;
+  background:var(--panel-muted); color:var(--ink-soft); border:2px solid var(--border);
+}
+.step-done .step-nodo{ background:var(--ok); color:#fff; border-color:var(--ok); }
+.step-current .step-nodo{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.step-warn .step-nodo{ background:var(--grave); color:#fff; border-color:var(--grave); }
+.step-cuerpo{ min-width:0; padding-top:2px; }
+.step-label{ margin:0; font-size:12.5px; font-weight:700; color:var(--ink); line-height:1.3; }
+.step-pending .step-label{ color:var(--ink-soft); font-weight:600; }
+.step-detalle{ margin:3px 0 0; font-size:11px; color:var(--ink-soft); line-height:1.4; }
+.step-warn .step-detalle{ color:var(--grave); font-weight:700; }
+.step-chip{
+  display:inline-block; margin-top:4px; font-size:10.5px; font-weight:700;
+  padding:2px 8px; border-radius:99px; background:var(--panel-muted); color:var(--ink-soft);
+}
+
+@media (max-width: 960px){
+  .ps-modal-conjunto{ flex-direction:column; align-items:stretch; }
+  .seguimiento-panel{ width:100%; flex:1 1 auto; max-height:none; order:2; }
+}
+
+/* ---------- Detalle del siniestro: campos con valor detectado automáticamente ---------- */
+.campo-valor-detectado{ position:relative; }
+.campo-valor-detectado .cvd-candado{
+  display:none; position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  font-size:12px; pointer-events:none; z-index:1;
+}
+.campo-valor-detectado .cvd-editar{
+  display:none; align-items:center; justify-content:center;
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:24px; height:24px; border:0; background:transparent; border-radius:6px;
+  cursor:pointer; font-size:13px; padding:0; z-index:1;
+}
+.campo-valor-detectado .cvd-editar:hover{ background:var(--border); }
+.campo-valor-detectado.detectado .cvd-candado,
+.campo-valor-detectado.detectado .cvd-editar{ display:flex; }
+.campo-valor-detectado.detectado .cvd-input{ padding-left:30px; padding-right:30px; }
+
+/* ---------- Detalle del siniestro: fila de archivo PDF con iconos ---------- */
+.archivo-fila-pdf{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.archivo-iconos{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+.icono-accion{
+  width:30px; height:30px; flex:0 0 auto; border-radius:8px; border:1px solid var(--border);
+  background:var(--panel); cursor:pointer; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+}
+.icono-accion:hover{ background:var(--panel-muted); }
+
 /* ---------- Modal: Log de cambios (Informe del día / Historial) ---------- */
 .iclog-modal-box{ width:100%; max-width:720px; max-height:85vh; overflow-y:auto; position:relative; }
 .iclog-fila{ padding:12px 0; border-bottom:1px solid var(--border); }
@@ -1285,15 +1358,6 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 }
 .ps-modal-cabecera-info{ min-width:0; flex:1; }
 .ps-modal-cabecera-envio{ flex:0 0 auto; text-align:right; }
-.ps-correo-enviado-card{
-  display:inline-flex; flex-direction:column; align-items:center; gap:3px;
-  padding:8px 14px; border-radius:12px; background:var(--ok-bg); text-align:center;
-}
-.ps-correo-enviado-card .ps-correo-enviado-titulo{
-  display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800;
-  color:var(--ok); text-transform:uppercase; letter-spacing:.3px; white-space:nowrap;
-}
-.ps-correo-enviado-card .ps-correo-fecha{ font-size:10.5px; color:var(--ok); opacity:.75; font-weight:600; white-space:nowrap; }
 .ps-modal-meta{
   display:flex; flex-direction:column; gap:6px; margin-top:12px;
   font-size:11.5px; color:var(--ink-soft);
@@ -1326,7 +1390,6 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 }
 .ps-foto-quitar:hover{ background:var(--grave-bg); }
 .ps-sin-archivos{ font-size:12.5px; color:var(--ink-soft); margin:4px 0 10px; }
-.ps-fact-enviado{ font-size:12px; font-weight:700; color:var(--ok); }
 .ps-guardado-icono{
   position:absolute; right:136px; top:16px;
   width:27px; height:27px; border-radius:99px; border:0;
@@ -1358,9 +1421,6 @@ table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
 .ps-detalle-fila .agencia{ font-weight:700; font-size:13.5px; }
 .ps-detalle-fila .count{ font-size:11.5px; color:var(--ink-soft); }
 .ps-detalle-fila .valor{ font-weight:700; color:var(--grave); white-space:nowrap; }
-.ps-campo-hint{ font-size:11.5px; color:var(--ink-soft); margin:5px 0 0; }
-.ps-campo-hint button{ border:0; background:transparent; padding:0; cursor:pointer; color:var(--ink-soft); text-decoration:underline; font-size:11.5px; }
-.ps-campo-hint button:hover{ color:var(--ink); }
 .form-input:disabled{ background:var(--panel-muted); color:var(--ink-soft); cursor:not-allowed; }
 .btn:disabled{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
 
