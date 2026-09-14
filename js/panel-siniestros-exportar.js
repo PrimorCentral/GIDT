@@ -34,6 +34,7 @@ const PSX_COLOR_INK_SOFT  = [91, 101, 114];
 const PSX_COLOR_FILA_ALT  = [245, 247, 249];
 const PSX_COLOR_COBRADO   = [22, 130, 82];
 const PSX_COLOR_PDTE      = [176, 76, 12];
+const PSX_COLOR_ANULADO   = [91, 101, 114];
 
 function psxPosicionarPanel() {
   const btn = document.getElementById('btnPsExportar');
@@ -324,7 +325,7 @@ function psxConstruirPdf(filas, fechaDesde, fechaHasta, filtroTexto) {
     { content: f.num_albaran || '—' },
     { content: f.num_factura || '—' },
     { content: psFormatearValor(f.valor), styles: { halign: 'right' } },
-    { content: f.estado || '—', styles: { fontStyle: 'bold', textColor: f.estado === 'COBRADO' ? PSX_COLOR_COBRADO : PSX_COLOR_PDTE } },
+    { content: f.estado || '—', styles: { fontStyle: 'bold', textColor: f.estado === 'COBRADO' ? PSX_COLOR_COBRADO : f.estado === 'ANULADO' ? PSX_COLOR_ANULADO : PSX_COLOR_PDTE } },
     { content: psxRecogidaTexto(f) }
   ]));
 
