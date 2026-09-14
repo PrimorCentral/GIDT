@@ -137,8 +137,9 @@ function listarIncidenciasSinRevisar(grupos) {
 // incidencias "sin revisar" (Retraso Pdte Confirmar / Revisando posible
 // incidencia), lo recuerda en "Pendiente de atención" — sea o no el día
 // de hoy — hasta que esas incidencias se reclasifiquen con un motivo
-// definitivo. Al pulsar el aviso, lleva directamente a ese informe en el
-// Historial de informes.
+// definitivo. Al pulsar el aviso: si es el informe de hoy, lleva a
+// "Incidencias" (donde sí se puede editar); si es de un día anterior,
+// lleva al Historial de informes con esa fecha ya cargada.
 // ---------------------------------------------------------------
 async function informeEnvioComprobarPendientesInicio() {
   try {
@@ -162,11 +163,16 @@ async function informeEnvioComprobarPendientesInicio() {
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
       .map(inf => {
         const n = conteoPorInforme[inf.id];
+        // El informe de hoy no se edita desde el Historial (ahí el botón
+        // "Editar informe" está oculto para la fecha de hoy) — se edita en
+        // la propia pestaña "Incidencias". Solo los informes de días
+        // anteriores llevan al Historial, con la fecha ya cargada.
+        const esHoy = inf.fecha === fechaHoyISO;
         return {
           icono: '🔎',
           texto: `Informe ${formatearFechaCorta(new Date(inf.fecha + 'T00:00:00'))} enviado con ${n} incidencia${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`,
-          vista: 'historial-informes',
-          fecha: inf.fecha
+          vista: esHoy ? 'incidencias' : 'historial-informes',
+          fecha: esHoy ? undefined : inf.fecha
         };
       });
   } catch (err) {
