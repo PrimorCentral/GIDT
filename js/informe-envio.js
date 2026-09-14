@@ -132,6 +132,49 @@ function listarIncidenciasSinRevisar(grupos) {
   return items;
 }
 
+// ---------------------------------------------------------------
+// Tarea pendiente en Inicio: cuando un informe ya enviado se quedó con
+// incidencias "sin revisar" (Retraso Pdte Confirmar / Revisando posible
+// incidencia), lo recuerda en "Pendiente de atención" — sea o no el día
+// de hoy — hasta que esas incidencias se reclasifiquen con un motivo
+// definitivo. Al pulsar el aviso, lleva directamente a ese informe en el
+// Historial de informes.
+// ---------------------------------------------------------------
+async function informeEnvioComprobarPendientesInicio() {
+  try {
+    const { data: incs, error: eInc } = await sb.from('incidencias')
+      .select('informe_id')
+      .eq('marcada', true)
+      .overlaps('motivo', MOTIVOS_SIN_REVISAR);
+    if (eInc) throw eInc;
+    if (!incs || !incs.length) return [];
+
+    const conteoPorInforme = {};
+    incs.forEach(i => { conteoPorInforme[i.informe_id] = (conteoPorInforme[i.informe_id] || 0) + 1; });
+
+    const { data: informes, error: eInf } = await sb.from('informes_diarios')
+      .select('id, fecha, informe_enviado')
+      .in('id', Object.keys(conteoPorInforme).map(Number))
+      .eq('informe_enviado', true);
+    if (eInf) throw eInf;
+
+    return (informes || [])
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .map(inf => {
+        const n = conteoPorInforme[inf.id];
+        return {
+          icono: '🔎',
+          texto: `Informe ${formatearFechaCorta(new Date(inf.fecha + 'T00:00:00'))} enviado con ${n} incidencia${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`,
+          vista: 'historial-informes',
+          fecha: inf.fecha
+        };
+      });
+  } catch (err) {
+    console.error('Error comprobando informes enviados con incidencias pendientes:', err);
+    return [];
+  }
+}
+
 // Modal de confirmación de envío: lista de agencias/incidencias, agencias
 // omitidas por falta de email, aviso de reenvío y aviso de incidencias sin
 // revisar. Devuelve una promesa que resuelve a true (enviar) o false (cancelar).

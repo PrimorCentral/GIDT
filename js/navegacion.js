@@ -316,6 +316,17 @@ function bordeDerechoVisible() {
       console.error('Error comprobando el resumen mensual pendiente:', err);
     }
 
+    // 5. Informes ya enviados que se quedaron con incidencias "sin revisar"
+    // (Retraso Pdte Confirmar / Revisando posible incidencia): avisa aunque
+    // no sea el informe de hoy, y sigue avisando mientras no se reclasifiquen.
+    try {
+      if (typeof informeEnvioComprobarPendientesInicio === 'function') {
+        items.push(...(await informeEnvioComprobarPendientesInicio()));
+      }
+    } catch (err) {
+      console.error('Error comprobando informes enviados con incidencias pendientes:', err);
+    }
+
     if (!items.length) {
       cont.innerHTML = `
         <div class="empty" style="padding:20px;">
@@ -327,7 +338,7 @@ function bordeDerechoVisible() {
     }
 
     cont.innerHTML = items.map(it => `
-      <button type="button" class="inicio-pendiente-item" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}>
+      <button type="button" class="inicio-pendiente-item" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
         <span class="flecha">→</span>
@@ -342,6 +353,10 @@ function bordeDerechoVisible() {
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
         if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
         if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
+        if (vista === 'historial-informes' && btn.dataset.irFecha && typeof cargarInformeHistorial === 'function') {
+          historialFechaInput.value = btn.dataset.irFecha;
+          cargarInformeHistorial(btn.dataset.irFecha);
+        }
         if (vista === 'analisis-reportes-mensuales' && typeof renderVistaReportesMensuales === 'function') {
           if (btn.dataset.irAnio !== undefined) {
             rmAnio = Number(btn.dataset.irAnio);
