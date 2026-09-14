@@ -183,7 +183,7 @@ function psPillTipo(tipo) {
 }
 
 function psBadgeEstado(estado) {
-  const clase = estado === 'COBRADO' ? 'cobrado' : 'pendiente';
+  const clase = estado === 'COBRADO' ? 'cobrado' : estado === 'ANULADO' ? 'anulado' : 'pendiente';
   return `<span class="ps-badge-estado ${clase}"><i></i>${escapeHtml(estado)}</span>`;
 }
 
