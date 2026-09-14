@@ -44,11 +44,18 @@ function tablaHtmlIncidencias(filas) {
 
   const filasHtml = filas.map(({ tienda, inc }, idx) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
-    // Solo los motivos "principales" (p. ej. "FALTAS"), nunca la etiqueta
-    // de submotivo interna que se guarda junto a él (p. ej. "ROBO/FALTAS
-    // DE SELECTIVO") — esa es solo para elegir el código de la leyenda,
-    // no debe verse en el correo.
-    const motivosPrincipales = (inc.motivo || []).filter(m => CODIGOS_INFORME.some(c => c.motivo === m));
+    // Solo los motivos "principales" (p. ej. "FALTAS", o los pendientes
+    // "REVISANDO POSIBLE INCIDENCIA" / "RETRASO PDTE CONFIRMAR"), nunca la
+    // etiqueta de submotivo interna que se guarda junto a él (p. ej.
+    // "ROBO/FALTAS DE SELECTIVO") — esa es solo para elegir el código de
+    // la leyenda del Reporte mensual, no debe verse en el correo.
+    // (Antes se comprobaba contra CODIGOS_INFORME, pero esa lista solo
+    // recoge los motivos "cerrados" del Reporte mensual y no incluye los
+    // motivos pendientes, así que una incidencia con solo un motivo
+    // pendiente salía con el Motivo vacío en el correo, y una con varios
+    // motivos perdía el pendiente y solo mostraba el resto.)
+    const submotivosInternos = CODIGOS_INFORME.filter(c => c.submotivo).map(c => c.submotivo);
+    const motivosPrincipales = (inc.motivo || []).filter(m => !submotivosInternos.includes(m));
     const motivos = motivosPrincipales.map(m => escapeHtml(m)).join('<br>');
     const fondoFila = idx % 2 === 1 ? 'background:#f4f6f8;' : '';
 
