@@ -46,6 +46,30 @@
   }
 
   // ---------------------------------------------------------------
+  // Añade, abajo del todo en cada página ya dibujada, el mismo pie de
+  // tres columnas que usan el PDF de Reportes mensuales y el del
+  // Ranking de incidencias: marca a la izquierda, "Página X de Y"
+  // centrado, y la fecha/hora de generación a la derecha. Se hace al
+  // final (con el documento ya completo) para poder saber el total de
+  // páginas de una vez.
+  // ---------------------------------------------------------------
+  function informePdfAnadirPiePagina(doc, margen) {
+    const totalPaginas = doc.internal.getNumberOfPages();
+    const anchoPagina = doc.internal.pageSize.getWidth();
+    const altoPagina = doc.internal.pageSize.getHeight();
+    const generadoTexto = `Generado el ${formatearFechaHoraCorta(new Date())}`;
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+      doc.setPage(pagina);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(91, 101, 114);
+      doc.text('GIDT · Informe de incidencias', margen, altoPagina - margen / 2 - 2);
+      doc.text(`Página ${pagina} de ${totalPaginas}`, anchoPagina / 2, altoPagina - margen / 2 - 2, { align: 'center' });
+      doc.text(generadoTexto, anchoPagina - margen, altoPagina - margen / 2 - 2, { align: 'right' });
+    }
+  }
+
+  // ---------------------------------------------------------------
   // Construcción del PDF
   // ---------------------------------------------------------------
   function construirPdfInforme(fechaTexto, totalPalets, grupos) {
@@ -107,7 +131,7 @@
 
     doc.autoTable({
       startY: doc.lastAutoTable.finalY,
-      margin: { left: margen, right: margen },
+      margin: { left: margen, right: margen, bottom: margen },
       tableWidth: anchoUtil,
       theme: 'grid',
       styles: { font: 'helvetica', fontSize: 9.5, lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 5, valign: 'middle', overflow: 'linebreak' },
@@ -122,6 +146,8 @@
       },
       body: filasCuerpo
     });
+
+    informePdfAnadirPiePagina(doc, margen);
 
     return doc;
   }
