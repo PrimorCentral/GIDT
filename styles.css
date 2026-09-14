@@ -1197,6 +1197,11 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
 table.tabla-panel-siniestros{ width:100%; border-collapse:collapse; font-size:12.8px; }
 /* Título + KPIs + filtros van arriba, fuera de la zona con scroll. */
 .ps-panel-fijo{ flex:0 0 auto; }
+/* Los otros .view usan el padding-bottom de <main> como colchón final de
+   scroll; aquí, al ser una caja de altura fija (ver arriba), ese mismo
+   padding se comía espacio útil de la tabla en vez de ser un margen al
+   final del scroll. Se reduce solo mientras esta vista está activa. */
+main:has(#view-panel-siniestros.active){ padding-bottom:14px; }
 /* La vista del Panel siniestros se ajusta al alto disponible bajo la
    cabecera (igual que Reportes mensuales) y es la propia tabla
    (.ps-tabla-flex) quien hace scroll por dentro, con su cabecera de
