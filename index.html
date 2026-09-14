@@ -573,6 +573,101 @@
           </div>
           <div style="display:flex; gap:10px;">
             <button class="ps-btn-icon" id="btnRefrescarPanelSiniestros" title="Refrescar"><span class="ps-refresh-icon">🔄</span></button>
+
+            <div class="filtros-wrap">
+              <button class="btn" id="btnPsExportar" title="Exportar el panel de siniestros a PDF">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Exportar
+              </button>
+              <div class="filtros-modal-overlay" id="psxPanel" style="overflow:hidden;">
+                <div class="filtros-modal-header">
+                  <b>Exportar a PDF</b>
+                  <div class="filtros-modal-header-actions">
+                    <button class="filtros-modal-close" id="btnPsxCerrar" aria-label="Cerrar">✕</button>
+                  </div>
+                </div>
+                <div class="filtros-modal-body" style="overflow-y:auto;">
+                  <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                    Descarga en PDF un listado de siniestros, con el mismo formato que el informe mensual.
+                  </p>
+
+                  <div class="filtros-grid">
+                    <div class="filtro-campo">
+                      <label>Desde</label>
+                      <input type="date" class="form-input" id="psxFechaDesde">
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Hasta</label>
+                      <input type="date" class="form-input" id="psxFechaHasta">
+                    </div>
+                  </div>
+
+                  <label class="ps-filtro-check" id="psxUsarFiltroWrap" style="display:none; white-space:normal; align-items:flex-start; margin-top:16px;">
+                    <input type="checkbox" id="psxUsarFiltroActivo" style="margin-top:2px;">
+                    <span>Exportar solo lo que cumple el filtro activo de la pantalla (<span id="psxFiltroResumen"></span>), en vez de elegir abajo.</span>
+                  </label>
+
+                  <div id="psxCamposManual" style="margin-top:16px;">
+                    <div class="filtros-grid">
+                      <div class="filtro-campo">
+                        <label>Agencia</label>
+                        <select id="psxAgencia" class="form-input"><option value="">Todas las agencias</option></select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Estado</label>
+                        <select id="psxEstado" class="form-input">
+                          <option value="">Todos los estados</option>
+                          <option value="COBRADO">COBRADO</option>
+                          <option value="PDTE COBRO">PDTE COBRO</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Tipo</label>
+                        <select id="psxTipo" class="form-input">
+                          <option value="">Todos los tipos</option>
+                          <option value="ROTURA">Rotura</option>
+                          <option value="FALTAS">Faltas</option>
+                          <option value="FALTAS Y ROTURAS">Rotura y falta</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Origen</label>
+                        <select id="psxOrigen" class="form-input">
+                          <option value="">Todo origen</option>
+                          <option value="ALMACEN">Almacén</option>
+                          <option value="WEB">Web</option>
+                          <option value="RETIRADAS">Retiradas</option>
+                          <option value="AGENCIA">Agencia</option>
+                          <option value="OTRO">Otro</option>
+                          <option value="SIN_ORIGEN">Sin origen</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo filtros-span2">
+                        <label>Recogida</label>
+                        <select id="psxRecogida" class="form-input">
+                          <option value="">Toda recogida</option>
+                          <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
+                          <option value="ENVIADO A CENTRAL">Enviado a central</option>
+                          <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+                          <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
+                          <option value="PDTE_FUERA">Pdte. fuera de límite</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo filtros-span2" style="flex-direction:row; flex-wrap:wrap; gap:16px;">
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinFactura"> Sin factura</label>
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinAlbaran"> Sin albarán</label>
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinCorreo"> Sin enviar a agencia</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer" style="margin-top:18px;">
+                    <button type="button" class="btn primary" id="psxBtnDescargar" style="width:100%; justify-content:center;">📄 Descargar PDF</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
           </div>
         </div>
@@ -1890,6 +1985,7 @@
 <script src="js/informe-envio.js"></script>
 <script src="js/siniestros.js"></script>
 <script src="js/panel-siniestros.js"></script>
+<script src="js/panel-siniestros-exportar.js"></script>
 <script src="js/informe-pdf.js"></script>
 <script src="js/reportes-mensuales-envio.js"></script>
 <script src="js/reportes-mensuales-exportar.js"></script>
