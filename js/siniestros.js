@@ -292,7 +292,7 @@
     const ag = t.agencias || {};
 
     document.getElementById('siniestroModalTipo').textContent = s.tipo === 'ROTURA' ? 'Rotura confirmada' : (s.tipo === 'MIXTO' ? 'Rotura y Falta' : 'Falta');
-    document.getElementById('siniestroModalTipo').className = 'pill ' + (s.tipo === 'ROTURA' || s.tipo === 'MIXTO' ? 'grave' : 'moderado');
+    document.getElementById('siniestroModalTipo').className = 'pill ' + (s.tipo === 'ROTURA' ? 'moderado' : 'grave');
     document.getElementById('siniestroModalTitulo').textContent = t.nombre || '—';
 
     const filas = [];
