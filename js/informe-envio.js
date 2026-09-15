@@ -186,18 +186,20 @@ async function informeEnvioComprobarPendientesInicio() {
 // revisar. Devuelve una promesa que resuelve a true (enviar) o false (cancelar).
 function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar }) {
   return new Promise(resolve => {
-    const overlay        = document.getElementById('envioInformeModalOverlay');
-    const sub             = document.getElementById('envioModalSub');
-    const lista           = document.getElementById('envioListaAgencias');
-    const alertaPend      = document.getElementById('envioAlertaPendientes');
-    const alertaPendTexto = document.getElementById('envioAlertaPendientesTexto');
-    const alertaPendLista = document.getElementById('envioAlertaPendientesLista');
-    const alertaReenvio   = document.getElementById('envioAlertaReenvio');
-    const alertaOmitidas  = document.getElementById('envioAlertaOmitidas');
-    const alertaOmitTexto = document.getElementById('envioAlertaOmitidasTexto');
-    const btnOk           = document.getElementById('envioModalBtnOk');
-    const btnCancel       = document.getElementById('envioModalBtnCancel');
-    const btnCerrar       = document.getElementById('btnCerrarEnvioModal');
+    const overlay             = document.getElementById('envioInformeModalOverlay');
+    const sub                 = document.getElementById('envioModalSub');
+    const lista                = document.getElementById('envioListaAgencias');
+    const alertaPend          = document.getElementById('envioAlertaPendientes');
+    const alertaPendTitulo    = document.getElementById('envioAlertaPendientesTitulo');
+    const alertaPendTexto     = document.getElementById('envioAlertaPendientesTexto');
+    const alertaPendLista     = document.getElementById('envioAlertaPendientesLista');
+    const todoRevisado         = document.getElementById('envioTodoRevisado');
+    const alertaReenvio       = document.getElementById('envioAlertaReenvio');
+    const alertaOmitidas      = document.getElementById('envioAlertaOmitidas');
+    const alertaOmitTexto     = document.getElementById('envioAlertaOmitidasTexto');
+    const btnOk                = document.getElementById('envioModalBtnOk');
+    const btnCancel            = document.getElementById('envioModalBtnCancel');
+    const btnCerrar            = document.getElementById('btnCerrarEnvioModal');
 
     const totalInc = conEmails.reduce((s, g) => s + g.filas.length, 0);
     sub.textContent = `${totalInc} incidencia${totalInc === 1 ? '' : 's'} en ${conEmails.length} agencia${conEmails.length === 1 ? '' : 's'}.`;
@@ -214,13 +216,17 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
     }).join('');
 
     if (sinRevisar.length) {
-      alertaPendTexto.textContent = `${sinRevisar.length} incidencia${sinRevisar.length === 1 ? '' : 's'} ${sinRevisar.length === 1 ? 'tiene' : 'tienen'} el motivo "Retraso Pdte Confirmar" o "Revisando posible incidencia". Si envías ahora, se incluirán tal cual en el informe.`;
+      const n = sinRevisar.length;
+      alertaPendTitulo.textContent = `${n} incidencia${n === 1 ? '' : 's'} sin revisar`;
+      alertaPendTexto.innerHTML = `Aún marcada${n === 1 ? '' : 's'} como <b>retraso pdte confirmar</b> o <b>revisando posible incidencia</b> — se enviará${n === 1 ? '' : 'n'} tal cual si no la${n === 1 ? '' : 's'} corriges antes.`;
       alertaPendLista.innerHTML = sinRevisar.map(it => `<li><b>${escapeHtml(it.tienda)}</b> (${escapeHtml(it.agencia)}, ${it.hora})</li>`).join('');
       alertaPend.style.display = '';
+      todoRevisado.style.display = 'none';
       btnOk.textContent = '⚠️ Enviar de todos modos';
     } else {
       alertaPend.style.display = 'none';
       alertaPendLista.innerHTML = '';
+      todoRevisado.style.display = '';
       btnOk.textContent = '✉️ Enviar informe';
     }
 
