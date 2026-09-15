@@ -52,7 +52,7 @@
     }
   }
 
-  async function enviarEmail({ to, cc, subject, html, text, attachmentUrls, attachments } = {}) {
+  async function enviarEmail({ to, cc, subject, html, text, attachmentUrls, attachments, silenciarToast } = {}) {
     if (!to || !subject || !html) {
       throw new Error('Faltan datos para enviar el correo (to, subject, html).');
     }
@@ -88,7 +88,7 @@
       throw new Error('El servicio de correo no confirmó el envío.');
     }
 
-    if (typeof mostrarToast === 'function') mostrarToast('Correo enviado correctamente');
+    if (!silenciarToast && typeof mostrarToast === 'function') mostrarToast('Correo enviado correctamente');
 
     return data; // { ok: true, adjuntos: N }
   }

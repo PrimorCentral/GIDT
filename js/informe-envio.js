@@ -218,7 +218,7 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
     if (sinRevisar.length) {
       const n = sinRevisar.length;
       alertaPendTitulo.textContent = `${n} incidencia${n === 1 ? '' : 's'} sin revisar`;
-      alertaPendTexto.innerHTML = `Aún marcada${n === 1 ? '' : 's'} como <b>retraso pdte confirmar</b> o <b>revisando posible incidencia</b> — se enviará${n === 1 ? '' : 'n'} tal cual si no la${n === 1 ? '' : 's'} corriges antes.`;
+      alertaPendTexto.textContent = `Aún sin motivo confirmado. Se incluirá${n === 1 ? '' : 'n'} tal cual si no la${n === 1 ? '' : 's'} corriges antes de enviar.`;
       alertaPendLista.innerHTML = sinRevisar.map(it => `<li><b>${escapeHtml(it.tienda)}</b> (${escapeHtml(it.agencia)}, ${it.hora})</li>`).join('');
       alertaPend.style.display = '';
       todoRevisado.style.display = 'none';
@@ -362,7 +362,7 @@ async function enviarInformeDelDia() {
       const tabla = tablaHtmlIncidencias(g.filas);
       const { subject, html } = plantillaInformeAgencia(g.agenciaNombre, nombreHoja, tabla);
       try {
-        await enviarEmail({ to: g.emails, subject, html });
+        await enviarEmail({ to: g.emails, subject, html, silenciarToast: true });
         resultados.push({ agencia: g.agenciaNombre, ok: true });
       } catch (err) {
         console.error(`Error enviando informe a ${g.agenciaNombre}:`, err);
@@ -392,6 +392,8 @@ async function enviarInformeDelDia() {
 
   const exitosos = resultados.filter(r => r.ok);
   const fallidos = resultados.filter(r => !r.ok);
+
+  if (exitosos.length && typeof mostrarToast === 'function') mostrarToast('Correo enviado correctamente');
 
   if (exitosos.length && typeof registrarAccion === 'function') {
     registrarAccion('informes', 'Enviar informe a agencias', `${nombreHoja || ''} — ${exitosos.length} agencia${exitosos.length === 1 ? '' : 's'}`.trim());
