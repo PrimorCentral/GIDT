@@ -257,6 +257,60 @@
       }
     }
 
+    // Si se han desmarcado todos los motivos y ya había una incidencia
+    // guardada, se borra la fila entera de Supabase (y su siniestro
+    // asociado, si lo hay) en vez de dejarla guardada "vacía" — mismo
+    // comportamiento que el botón de la papelera (🗑 "Quitar todos los
+    // motivos"), pero sin el modal de confirmación porque aquí es el
+    // usuario quien ya ha ido desmarcando uno a uno, no un borrado de golpe.
+    if (!marcada && existente) {
+      try {
+        const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', existente.id);
+        if (eSin) throw eSin;
+
+        const { error: eInc } = await sb.from('incidencias').delete().eq('id', existente.id);
+        if (eInc) throw eInc;
+
+        if (typeof registrarCambioInformeSiEnviado === 'function') {
+          registrarCambioInformeSiEnviado(informeHoyCache, {
+            tiendaId,
+            tiendaNombre: existente.tienda_nombre,
+            agenciaNombre: existente.agencia_nombre,
+            motivosAntes: existente.motivo || [],
+            motivosDespues: [],
+            observacionesAntes: existente.observaciones || '',
+            observacionesDespues: ''
+          });
+        }
+
+        tr.querySelector('.i-obs').value = '';
+
+        await cargarIncidenciasHoy();
+
+        if (filtrosActivos()) {
+          renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
+        } else {
+          actualizarFilaIncidencia(tiendaId, tr);
+        }
+        actualizarKpiIncidencias();
+
+        // Igual que hace la papelera: refresca también la caché/KPI/kanban
+        // de Siniestros, por si el siniestro borrado ya se había cargado ahí.
+        if (typeof siniestrosHoyCache !== 'undefined') {
+          siniestrosHoyCache = siniestrosHoyCache.filter(s => s.incidencia.id !== existente.id);
+          if (typeof actualizarKpiSiniestros === 'function') actualizarKpiSiniestros();
+          if (document.getElementById('view-siniestros')?.classList.contains('active') && typeof renderKanbanSiniestros === 'function') {
+            renderKanbanSiniestros();
+          }
+        }
+        if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
+      } catch (err) {
+        console.error('Error eliminando incidencia:', err);
+        await modalAlert('No se pudo eliminar la incidencia.', { titulo: 'Error' });
+      }
+      return;
+    }
+
     try {
       // Snapshot: guardamos cómo es la tienda/agencia HOY, en el momento de
       // guardar la incidencia. Así, si más adelante se edita la tienda
