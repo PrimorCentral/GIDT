@@ -345,7 +345,7 @@
                         <td class="col-motivo">
               <div class="motivo-select">
                 <button type="button" class="filtro-select-btn">
-                  <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
+                  <span class="motivo-select-valor" title="${escapeHtml(tituloMotivos(motivosActuales))}">${escapeHtml(resumenMotivos(motivosActuales))}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <button type="button" class="mini-btn btn-borrar-motivos" title="Quitar todos los motivos" style="${marcada ? '' : 'display:none;'}">

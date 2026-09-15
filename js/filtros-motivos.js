@@ -246,7 +246,10 @@
           const btnBorrarMotivos = tr.querySelector('.btn-borrar-motivos');
           if (btnBorrarMotivos) btnBorrarMotivos.style.display = hayMotivoPrevio ? '' : 'none';
           const valorEl = tr.querySelector('.motivo-select-valor');
-          if (valorEl && typeof resumenMotivos === 'function') valorEl.textContent = resumenMotivos(motivosPrevios);
+          if (valorEl && typeof resumenMotivos === 'function') {
+            valorEl.textContent = resumenMotivos(motivosPrevios);
+            valorEl.title = typeof tituloMotivos === 'function' ? tituloMotivos(motivosPrevios) : '';
+          }
           return;
         }
       } catch (err) {
@@ -338,7 +341,10 @@
     // Etiqueta del desplegable de motivos (el desplegable en sí se deja abierto
     // si el usuario lo tenía abierto, para poder seguir marcando varios motivos seguidos).
     const valorEl = tr.querySelector('.motivo-select-valor');
-    if (valorEl) valorEl.textContent = resumenMotivos(motivosActuales);
+    if (valorEl) {
+      valorEl.textContent = resumenMotivos(motivosActuales);
+      valorEl.title = typeof tituloMotivos === 'function' ? tituloMotivos(motivosActuales) : '';
+    }
 
     const bloque = tr.closest('.agencia-block');
     if (bloque) {
@@ -423,6 +429,24 @@
   if (!arr.length) return '— Sin incidencia —';
   return arr.join(', ');
 }
+
+  // Texto detallado para el tooltip (atributo title) del botón del
+  // desplegable: a diferencia de resumenMotivos(), aquí SÍ se incluye el
+  // submotivo (p. ej. "NO ENTREGAN — ADUANAS"), para verlo al pasar el
+  // ratón por encima sin tener que abrir el desplegable.
+  function tituloMotivos(motivos) {
+    const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO
+      ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat()
+      : [];
+    const arr = motivos || [];
+    const principales = arr.filter(m => !todosLosSubmotivos.includes(m));
+    if (!principales.length) return '';
+    return principales.map(m => {
+      const opciones = (window.SUBMOTIVOS_POR_MOTIVO && window.SUBMOTIVOS_POR_MOTIVO[m]) || [];
+      const submotivo = arr.find(x => opciones.includes(x));
+      return submotivo ? `${m} — ${submotivo}` : m;
+    }).join(', ');
+  }
 
   // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
   function motivosChecklistHtml(seleccionados) {

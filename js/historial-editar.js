@@ -329,7 +329,7 @@ function renderAcordeonHistorialEditable() {
           <td class="col-motivo">
             <div class="motivo-select">
               <button type="button" class="filtro-select-btn">
-                <span class="motivo-select-valor">${escapeHtml(resumenMotivos(motivosActuales))}</span>
+                <span class="motivo-select-valor" title="${escapeHtml(tituloMotivos(motivosActuales))}">${escapeHtml(resumenMotivos(motivosActuales))}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
               <button type="button" class="mini-btn btn-borrar-motivos-hist" title="Quitar todos los motivos" style="${marcada ? '' : 'display:none;'}">
@@ -502,7 +502,10 @@ function actualizarFilaHistorial(tiendaId, tr) {
   tr.querySelector('.col-tipo').innerHTML = badgeTipo;
 
   const valorEl = tr.querySelector('.motivo-select-valor');
-  if (valorEl) valorEl.textContent = resumenMotivos(motivosActuales);
+  if (valorEl) {
+    valorEl.textContent = resumenMotivos(motivosActuales);
+    valorEl.title = tituloMotivos(motivosActuales);
+  }
 
   const bloque = tr.closest('.agencia-block');
   if (bloque) {
@@ -544,7 +547,10 @@ async function actualizarBorradorIncidencia(tiendaId, tr) {
       const btnBorrar = tr.querySelector('.btn-borrar-motivos-hist');
       if (btnBorrar) btnBorrar.style.display = hayMotivo ? '' : 'none';
       const valorEl = tr.querySelector('.motivo-select-valor');
-      if (valorEl) valorEl.textContent = resumenMotivos(estadoPrevio.motivos);
+      if (valorEl) {
+        valorEl.textContent = resumenMotivos(estadoPrevio.motivos);
+        valorEl.title = tituloMotivos(estadoPrevio.motivos);
+      }
       return;
     }
   }
