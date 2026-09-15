@@ -1311,16 +1311,28 @@
       </div>
     </div>
 
-    <div class="envio-alerta envio-alerta-pendientes" id="envioAlertaPendientes" style="display:none;">
-      <span class="envio-alerta-icon">⚠️</span>
-      <div>
-        <b>Hay incidencias aún sin revisar</b>
-        <p id="envioAlertaPendientesTexto"></p>
-        <ul id="envioAlertaPendientesLista"></ul>
+    <div class="envio-modal-body">
+      <div class="envio-col envio-col-pendientes">
+        <div class="envio-col-titulo">Incidencias pendientes</div>
+        <div class="envio-alerta envio-alerta-pendientes" id="envioAlertaPendientes" style="display:none;">
+          <span class="envio-alerta-icon">⚠️</span>
+          <div>
+            <b id="envioAlertaPendientesTitulo"></b>
+            <p id="envioAlertaPendientesTexto"></p>
+            <ul id="envioAlertaPendientesLista"></ul>
+          </div>
+        </div>
+        <div class="envio-todo-revisado" id="envioTodoRevisado" style="display:none;">
+          <span class="envio-todo-revisado-icon">✅</span>
+          <p>Todas las incidencias están revisadas.</p>
+        </div>
+      </div>
+
+      <div class="envio-col envio-col-agencias">
+        <div class="envio-col-titulo">Agencias</div>
+        <div class="envio-lista" id="envioListaAgencias"></div>
       </div>
     </div>
-
-    <div class="envio-lista" id="envioListaAgencias"></div>
 
     <div class="envio-alerta envio-alerta-omitidas" id="envioAlertaOmitidas" style="display:none;">
       <span class="envio-alerta-icon">🚫</span>
