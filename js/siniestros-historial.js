@@ -142,7 +142,7 @@
             ${badgeEstado(s.estado)}
           </div>
           <div class="agencia">
-            <span class="pill ${s.tipo === 'ROTURA' ? 'grave' : 'moderado'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
+            <span class="pill ${s.tipo === 'ROTURA' ? 'moderado' : 'grave'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
             · ${s.incidencia.tienda_hora_prevista ? s.incidencia.tienda_hora_prevista.slice(0,5) : '—'}
           </div>
           ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
