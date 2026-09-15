@@ -7,12 +7,12 @@
 // AGENCIA" que antes se mandaba a mano (mismo título, misma leyenda de
 // códigos, misma tabla Agencia/Tienda/Provincia/días/Total), y lo envía
 // por correo a los emails configurados de cada agencia (Configuración →
-// Emails por agencia), con el PDF adjunto.
+// Gestión de agencias), con el PDF adjunto.
 //
 // Agrupación: varias filas de "agencias" pueden ser en realidad la misma
 // empresa cliente (p.ej. "CBL EXTERNO" y "CBL MLG" son ambas CBL). Para
 // que se envíen juntas en un único PDF/correo, se les asigna el mismo
-// "grupo_envio" desde Configuración → Emails por agencia. Sin grupo, cada
+// "grupo_envio" desde Configuración → Gestión de agencias. Sin grupo, cada
 // agencia se envía sola (su grupo es su propio nombre).
 //
 // "Ya enviado": se guarda una fila por (grupo, año, mes) en la tabla
@@ -332,7 +332,7 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
     return;
   }
   if (!grupo.emails.length) {
-    await modalAlert('Esta agencia (o grupo) no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+    await modalAlert('Esta agencia (o grupo) no tiene emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
     return;
   }
   if (!pdfDisponible()) {
@@ -385,7 +385,7 @@ async function rmeEnviarTodosPendientes(grupos) {
   const conEmails = pendientes.filter(g => g.emails.length);
   const sinEmails = pendientes.filter(g => !g.emails.length);
   if (!conEmails.length) {
-    await modalAlert('Las agencias pendientes no tienen emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+    await modalAlert('Las agencias pendientes no tienen emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
     return;
   }
   if (!pdfDisponible()) {

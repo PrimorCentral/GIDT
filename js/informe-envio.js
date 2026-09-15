@@ -227,7 +227,7 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
     alertaReenvio.style.display = reenvio ? '' : 'none';
 
     if (sinEmails.length) {
-      alertaOmitTexto.textContent = `${sinEmails.map(g => g.agenciaNombre).join(', ')} (sin emails configurados en Configuración → Emails por agencia).`;
+      alertaOmitTexto.textContent = `${sinEmails.map(g => g.agenciaNombre).join(', ')} (sin emails configurados en Configuración → Gestión de agencias).`;
       alertaOmitidas.style.display = '';
     } else {
       alertaOmitidas.style.display = 'none';
@@ -331,7 +331,7 @@ async function enviarInformeDelDia() {
   });
 
   if (!conEmails.length) {
-    await modalAlert('Ninguna de las agencias con incidencias tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+    await modalAlert('Ninguna de las agencias con incidencias tiene emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
     return;
   }
 

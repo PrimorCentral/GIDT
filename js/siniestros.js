@@ -412,7 +412,7 @@
     const emails = ag.emails || [];
 
     if (!emails.length) {
-      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Emails por agencia.', { titulo: 'Sin destinatarios' });
+      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
       return;
     }
     if (!(s.fotos || []).length) {

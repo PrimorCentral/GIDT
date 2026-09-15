@@ -1,4 +1,4 @@
-  // Emails por agencia
+  // Gestión de agencias
   // ---------------------------------------------------------------
   async function cargarEmailsAgencias() {
     const cont = document.getElementById('listaEmailsAgencias');
