@@ -1768,6 +1768,11 @@ body.rol-lectura input[type="file"]{
   min-height:0;
 }
 #view-analisis-reportes-mensuales .page-head{ flex:0 0 auto; }
+/* Igual que en Panel siniestros: al ser una caja de altura fija, el
+   padding-bottom de <main> (pensado como colchón final para las vistas
+   que hacen scroll de página completa) aquí solo resta alto útil a la
+   tabla. Se reduce solo mientras esta vista está activa. */
+main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
 
 .rm-layout{
   display:flex; align-items:stretch; gap:16px;
