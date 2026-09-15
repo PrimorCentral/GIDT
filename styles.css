@@ -975,9 +975,9 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
     font-size:11px; font-weight:800; background:var(--panel-muted); color:var(--ink-soft);
     padding:2px 8px; border-radius:99px;
   }
-  .kanban-col.roturas .kanban-col-head{ color:var(--grave); }
-  .kanban-col.faltas .kanban-col-head{ color:var(--accent-ink); }
-  .kanban-col.mixtos .kanban-col-head{ color:#7c3aed; }
+  .kanban-col.roturas .kanban-col-head{ color:var(--moderado); }
+  .kanban-col.faltas .kanban-col-head{ color:var(--grave); }
+  .kanban-col.mixtos .kanban-col-head{ color:var(--grave); }
 
   .siniestro-card{
     background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
