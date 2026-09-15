@@ -98,7 +98,7 @@
       listaMotivos.innerHTML = MOTIVOS.map(m => `
         <label class="filtro-check motivo-${m.clase}">
           <input type="checkbox" value="${escapeHtml(m.v)}" data-filtro="motivo">
-          <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
+          <span>${m.v}</span>
         </label>`).join('');
       listaMotivos.dataset.built = '1';
     }
@@ -421,9 +421,7 @@
     : [];
   const arr = (motivos || []).filter(m => !todosLosSubmotivos.includes(m));
   if (!arr.length) return '— Sin incidencia —';
-  return arr
-    .map(m => m.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()))
-    .join(', ');
+  return arr.join(', ');
 }
 
   // Lista de checkboxes (uno por motivo posible) para el desplegable de cada fila.
@@ -447,7 +445,7 @@
       return `
       <label class="filtro-check motivo-${claseColor}">
         <input type="checkbox" class="i-motivo-check" value="${escapeHtml(m.v)}"${atrSubmotivo} ${sel.includes(m.v) ? 'checked' : ''}>
-        <span>${m.v.charAt(0)}${m.v.slice(1).toLowerCase()}</span>
+        <span>${m.v}</span>
       </label>`;
     }).join('');
   }
