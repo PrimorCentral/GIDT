@@ -670,6 +670,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
      desplegable de cada fila del informe como en el filtro de Motivo. */
   .filtro-check.motivo-moderado span{ color:var(--moderado); }
   .filtro-check.motivo-grave span{ color:var(--grave); }
+  .filtro-check.motivo-pendiente span{ color:var(--accent); }
 
   /* ---------- Configuración → Gravedad de motivos ---------- */
   .gravedad-explicacion{
