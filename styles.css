@@ -561,7 +561,7 @@
   table.tabla-incidencias tr.con-incidencia{ background:#FFFBF5; }
   table.tabla-incidencias tr.con-incidencia.grave{ background:var(--grave-bg); }
   table.tabla-incidencias tr.con-incidencia.moderado{ background:var(--moderado-bg); }
-  table.tabla-incidencias tr.con-incidencia.pendiente td{ background:#FFFDF4; border-bottom:2px solid #F0C420; }
+  table.tabla-incidencias tr.con-incidencia.pendiente td{ background:#FDEDD9; border-bottom:2px solid #F0C420; }
   .pill.pendiente{ background:#FDE2DD; color:#B23A28; }
  table.tabla-incidencias col.cg-estado{ width:34px; }
 table.tabla-incidencias col.cg-hora{ width:60px; }
