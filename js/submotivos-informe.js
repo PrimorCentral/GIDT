@@ -68,7 +68,7 @@ async function preguntarSubmotivo(motivoPrincipal, opciones) {
   const idx = await modalSeleccionar(
     `¿Cuál es el motivo exacto de "${motivoPrincipal.charAt(0)}${motivoPrincipal.slice(1).toLowerCase()}"?`,
     opciones.map((o, i) => ({ id: i, nombre: o.charAt(0) + o.slice(1).toLowerCase() })),
-    { titulo: 'Precisar motivo', textoOk: 'Confirmar' }
+    { titulo: 'Precisar motivo', textoOk: 'Confirmar', bloquearClicFuera: true }
   );
   if (idx === null || Number.isNaN(idx) || !opciones[idx]) return null;
   return opciones[idx];

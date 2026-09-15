@@ -12,6 +12,11 @@
   function _abrirModal() { modalOverlay.classList.add('show'); }
   function _cerrarModal() { modalOverlay.classList.remove('show'); }
 
+  // Cuando es true, clicar fuera del cuadro NO cierra el modal (se usa
+  // para pasos obligatorios, p. ej. precisar el submotivo de FALTAS/NO
+  // ENTREGAN, donde no tiene sentido poder descartarlo sin querer).
+  let modalBloqueaClicFuera = false;
+
   function modalAlert(mensaje, { titulo = 'Aviso', icono = '', danger = false } = {}) {
     return new Promise(resolve => {
       modalIconEl.style.display = icono ? '' : 'none';
@@ -94,7 +99,7 @@
     });
   }
 
-  function modalSeleccionar(mensaje, opciones, { titulo = 'Seleccionar', textoOk = 'Aceptar', valorInicial = null } = {}) {
+  function modalSeleccionar(mensaje, opciones, { titulo = 'Seleccionar', textoOk = 'Aceptar', valorInicial = null, bloquearClicFuera = false } = {}) {
     return new Promise(resolve => {
       const modalSelectEl = document.getElementById('modalSelect');
       modalIconEl.style.display = 'none';
@@ -109,6 +114,7 @@
       modalBtnCancel.textContent = 'Cancelar';
       modalBtnOk.textContent = textoOk;
       modalBtnOk.className = 'btn primary';
+      modalBloqueaClicFuera = bloquearClicFuera;
       _abrirModal();
 
       // Convierte a número solo si el valor es numérico (p.ej. IDs de
@@ -123,6 +129,7 @@
       function limpiar() {
         _cerrarModal();
         modalSelectEl.style.display = 'none';
+        modalBloqueaClicFuera = false;
         modalBtnOk.removeEventListener('click', onOk);
         modalBtnCancel.removeEventListener('click', onCancel);
       }
@@ -131,9 +138,10 @@
     });
   }
 
-  // Cerrar al pulsar fuera del cuadro (equivale a cancelar)
+  // Cerrar al pulsar fuera del cuadro (equivale a cancelar) — salvo que el
+  // propio modal haya pedido bloquear esto (ver modalBloqueaClicFuera).
   modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) {
+    if (e.target === modalOverlay && !modalBloqueaClicFuera) {
       if (modalBtnCancel.style.display !== 'none') modalBtnCancel.click();
       else modalBtnOk.click();
     }
