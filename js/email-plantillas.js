@@ -818,14 +818,21 @@
 
     const linea = (PS_TIPO_CUERPO_FACTURACION[s.tipo] || ((t) => `toda la documentación de la incidencia en la tienda de ${t}`))(tienda);
 
+    // En los siniestros mixtos (rotura + falta) se aclara qué es cada cosa,
+    // ya que en las fotos/albarán lo subrayado en amarillo marca las FALTAS.
+    const aclaracionFaltas = s.tipo === 'FALTAS Y ROTURAS'
+      ? 'Aclaramos que lo subrayado en amarillo son las FALTAS'
+      : '';
+
     const html = `
       <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
         <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
         <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
+        ${aclaracionFaltas ? `<p style="margin:0 0 14px;">${aclaracionFaltas}</p>` : ''}
         <p style="margin:0;">Gracias, un saludo.</p>
       </div>`;
 
-    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}\n\nGracias, un saludo.`;
+    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
 
     return { subject, html, text };
   }
