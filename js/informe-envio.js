@@ -215,6 +215,11 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
         </div>`;
     }).join('');
 
+    let intervaloCuentaAtras = null;
+    const pararCuentaAtras = () => {
+      if (intervaloCuentaAtras) { clearInterval(intervaloCuentaAtras); intervaloCuentaAtras = null; }
+    };
+
     if (sinRevisar.length) {
       const n = sinRevisar.length;
       alertaPendTitulo.textContent = `${n} incidencia${n === 1 ? '' : 's'} sin revisar`;
@@ -222,11 +227,28 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
       alertaPendLista.innerHTML = sinRevisar.map(it => `<li><b>${escapeHtml(it.tienda)}</b> (${escapeHtml(it.agencia)}, ${it.hora})</li>`).join('');
       alertaPend.style.display = '';
       todoRevisado.style.display = 'none';
-      btnOk.textContent = '⚠️ Enviar de todos modos';
+
+      // Como se va a enviar con incidencias aún sin revisar, se obliga a
+      // esperar 5 segundos antes de poder pulsar el botón — para que no
+      // se acabe pulsando por reflejo sin leer el aviso de arriba.
+      let segundos = 5;
+      btnOk.disabled = true;
+      btnOk.textContent = `⚠️ Enviar de todos modos (${segundos})`;
+      intervaloCuentaAtras = setInterval(() => {
+        segundos--;
+        if (segundos > 0) {
+          btnOk.textContent = `⚠️ Enviar de todos modos (${segundos})`;
+        } else {
+          pararCuentaAtras();
+          btnOk.disabled = false;
+          btnOk.textContent = '⚠️ Enviar de todos modos';
+        }
+      }, 1000);
     } else {
       alertaPend.style.display = 'none';
       alertaPendLista.innerHTML = '';
       todoRevisado.style.display = '';
+      btnOk.disabled = false;
       btnOk.textContent = '✉️ Enviar informe';
     }
 
@@ -242,6 +264,7 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
     overlay.classList.add('show');
 
     const cerrar = (resultado) => {
+      pararCuentaAtras();
       overlay.classList.remove('show');
       btnOk.removeEventListener('click', onOk);
       btnCancel.removeEventListener('click', onCancel);
