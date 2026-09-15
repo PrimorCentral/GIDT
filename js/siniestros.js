@@ -281,6 +281,10 @@
     siniestroActivoId = null;
   }
 
+  function escapeHtmlSiniestro(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   function pintarModalSiniestro() {
     const s = siniestroPorId(siniestroActivoId);
     if (!s) return;
@@ -290,10 +294,16 @@
     document.getElementById('siniestroModalTipo').textContent = s.tipo === 'ROTURA' ? 'Rotura confirmada' : (s.tipo === 'MIXTO' ? 'Rotura y Falta' : 'Falta');
     document.getElementById('siniestroModalTipo').className = 'pill ' + (s.tipo === 'ROTURA' || s.tipo === 'MIXTO' ? 'grave' : 'moderado');
     document.getElementById('siniestroModalTitulo').textContent = t.nombre || '—';
-    document.getElementById('siniestroModalInfo').textContent =
-      `${ag.nombre || 'Sin agencia'} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}` +
-      (s.incidencia.observaciones ? `\n${s.incidencia.observaciones}` : '') +
-      (s.fecha_limite ? `\nFecha límite de reclamación: ${formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00'))}` : '');
+
+    const filas = [];
+    filas.push(`<div class="meta-row"><span class="ic">🚚</span>${escapeHtmlSiniestro(ag.nombre || 'Sin agencia')} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</div>`);
+    if (s.incidencia.observaciones) {
+      filas.push(`<div class="meta-row"><span class="ic">📝</span>${escapeHtmlSiniestro(s.incidencia.observaciones)}</div>`);
+    }
+    if (s.fecha_limite) {
+      filas.push(`<div class="meta-row limite"><span class="ic">⏳</span>Fecha límite de reclamación: ${formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00'))}</div>`);
+    }
+    document.getElementById('siniestroModalMeta').innerHTML = filas.join('');
 
     const grid = document.getElementById('siniestroFotosGrid');
     const puedeQuitarFotos = s.estado === 'PENDIENTE';
@@ -308,8 +318,19 @@
     grid.querySelectorAll('[data-quitar-foto]').forEach(btn => {
       btn.addEventListener('click', () => quitarFotoSiniestro(Number(btn.dataset.quitarFoto)));
     });
+    const numFotos = (s.fotos || []).length;
+    document.getElementById('siniestroFotosNum').textContent = numFotos;
+    const dz = document.getElementById('siniestroFotosDropzone');
+    if (dz) {
+      dz.classList.toggle('compacta', numFotos > 0);
+      document.getElementById('siniestroDropzoneSub').innerHTML = numFotos > 0
+        ? '➕ Añadir más fotos · arrastra o haz clic'
+        : 'o <b>haz clic para seleccionar</b>';
+    }
 
-    document.getElementById('siniestroModalEstado').textContent =
+    const estadoEl = document.getElementById('siniestroModalEstado');
+    estadoEl.className = 'siniestro-estado' + (s.estado === 'ENVIADO' ? ' enviado' : s.estado === 'ANULADO' ? ' anulado' : '');
+    document.getElementById('siniestroModalEstadoTxt').textContent =
       s.estado === 'ENVIADO'
         ? (() => {
             if (!s.enviado_en) return 'Enviado';
@@ -324,8 +345,8 @@
     const sinFotos = !(s.fotos || []).length;
     document.getElementById('btnEnviarSiniestro').disabled = s.estado === 'PENDIENTE' && sinFotos;
     document.getElementById('btnEnviarSiniestro').title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
-    const labelFotos = document.getElementById('siniestroFotosLabel');
-    if (labelFotos) labelFotos.style.display = s.estado === 'PENDIENTE' ? '' : 'none';
+    const dropzone = document.getElementById('siniestroFotosDropzone');
+    if (dropzone) dropzone.style.display = s.estado === 'PENDIENTE' ? '' : 'none';
   }
 
   document.getElementById('btnCerrarSiniestroModal').addEventListener('click', cerrarModalSiniestro);
@@ -333,17 +354,25 @@
     if (e.target.id === 'siniestroModalOverlay') cerrarModalSiniestro();
   });
 
-  document.getElementById('siniestroFotosInput').addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files || []);
+  async function subirFotosASiniestro(files) {
     if (!files.length) return;
     const s = siniestroPorId(siniestroActivoId);
+    if (!s || s.estado !== 'PENDIENTE') return;
     const errEl = document.getElementById('siniestroFotosError');
     errEl.style.display = 'none';
 
-    try {
-      document.getElementById('cargandoEnvioTexto').textContent = files.length > 1 ? 'Subiendo fotos…' : 'Subiendo foto…';
-      document.getElementById('cargandoEnvioOverlay').classList.add('show');
+    // Placeholders "subiendo…" en la rejilla mientras se comprimen y suben las fotos,
+    // para que el usuario vea al instante que algo está pasando (spinner + barra).
+    const grid = document.getElementById('siniestroFotosGrid');
+    const placeholders = files.map(() => {
+      const div = document.createElement('div');
+      div.className = 'foto-item subiendo';
+      div.innerHTML = '<div class="foto-spin"></div><div class="foto-bar-wrap"><div class="foto-bar"></div></div>';
+      grid.appendChild(div);
+      return div;
+    });
 
+    try {
       const urls = [];
       for (const file of files) {
         const comprimido = await comprimirImagenParaSubida(file);
@@ -364,11 +393,44 @@
       console.error('Error subiendo fotos:', err);
       errEl.textContent = 'No se pudieron subir las fotos.';
       errEl.style.display = 'block';
-    } finally {
-      document.getElementById('cargandoEnvioOverlay').classList.remove('show');
-      e.target.value = '';
+      placeholders.forEach(p => p.remove());
     }
+  }
+
+  document.getElementById('siniestroFotosInput').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    await subirFotosASiniestro(files);
+    e.target.value = '';
   });
+
+  // ---- Arrastrar y soltar fotos sobre la zona de "Añadir fotos" ----
+  (() => {
+    const dropzone = document.getElementById('siniestroFotosDropzone');
+    if (!dropzone) return;
+    let dragCounter = 0;
+
+    dropzone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    dropzone.addEventListener('dragleave', () => {
+      dragCounter = Math.max(0, dragCounter - 1);
+      if (dragCounter === 0) dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      dropzone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      await subirFotosASiniestro(files);
+    });
+  })();
 
   async function quitarFotoSiniestro(idx) {
     const s = siniestroPorId(siniestroActivoId);
