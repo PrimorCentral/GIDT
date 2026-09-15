@@ -1385,22 +1385,28 @@
 <!-- Modal de detalle de siniestro (fotos + envío) -->
 <div class="modal-overlay" id="siniestroModalOverlay">
   <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
-    <button class="filtros-modal-close" id="btnCerrarSiniestroModal" style="position:absolute; right:16px; top:16px;">✕</button>
-    <span class="pill" id="siniestroModalTipo" style="margin-bottom:8px;"></span>
-    <h3 class="modal-title" id="siniestroModalTitulo"></h3>
-    <p class="modal-message" id="siniestroModalInfo"></p>
+    <div class="siniestro-cabecera">
+      <button class="filtros-modal-close" id="btnCerrarSiniestroModal" style="position:absolute; right:16px; top:16px;">✕</button>
+      <span class="pill" id="siniestroModalTipo"></span>
+      <h3 class="modal-title" id="siniestroModalTitulo"></h3>
+      <div class="siniestro-meta" id="siniestroModalMeta"></div>
+    </div>
 
-    <div class="siniestro-fotos-grid" id="siniestroFotosGrid"></div>
+    <div class="siniestro-cuerpo">
+      <p class="siniestro-seccion-titulo">Fotos del siniestro <span class="siniestro-fotos-num" id="siniestroFotosNum">0</span></p>
 
-    <label class="btn" id="siniestroFotosLabel" style="width:100%; justify-content:center; margin-top:4px; cursor:pointer;">
-      📷 Añadir fotos
-      <input type="file" id="siniestroFotosInput" accept="image/*" multiple style="display:none;">
-    </label>
-    <p class="err" id="siniestroFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin:8px 0 0;"></p>
+      <div class="siniestro-fotos-grid" id="siniestroFotosGrid"></div>
 
-    <div class="modal-footer" style="justify-content:space-between; margin-top:18px;">
-      <span id="siniestroModalEstado" style="font-size:12.5px; color:var(--ink-soft);"></span>
-      <div style="display:flex; gap:10px;">
+      <label class="siniestro-dropzone" id="siniestroFotosDropzone" for="siniestroFotosInput">
+        <span class="dz-icon" id="siniestroDropzoneIcon">📷</span>
+        <span class="dz-titulo" id="siniestroDropzoneTitulo">Arrastra las fotos aquí</span>
+        <span class="dz-sub" id="siniestroDropzoneSub">o <b>haz clic para seleccionar</b></span>
+        <input type="file" id="siniestroFotosInput" accept="image/*" multiple style="display:none;">
+      </label>
+      <p class="err" id="siniestroFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin:8px 0 0;"></p>
+
+      <div class="modal-footer siniestro-pie">
+        <span class="siniestro-estado" id="siniestroModalEstado"><span class="siniestro-estado-dot" id="siniestroModalEstadoDot"></span><span id="siniestroModalEstadoTxt"></span></span>
         <button class="btn primary" id="btnEnviarSiniestro">✉️ Enviar siniestro</button>
       </div>
     </div>
