@@ -1656,10 +1656,13 @@
 </div>
 
 <div class="modal-overlay" id="psDetalleModalOverlay">
-  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+  <div class="modal-box ps-detalle-modal-box" role="dialog" aria-modal="true" style="max-width:440px; position:relative;">
     <button class="filtros-modal-close" id="btnCerrarPsDetalle" style="position:absolute; right:16px; top:16px;">✕</button>
-    <h3 class="modal-title">📠 Pendiente de cobro por agencia</h3>
-    <div id="psDetalleLista" style="margin-top:6px;"></div>
+    <div class="ps-detalle-header">
+      <div class="ps-detalle-icon" id="psDetalleIcono">💰</div>
+      <h3 class="modal-title" id="psDetalleTitulo">Pendiente de cobro por agencia</h3>
+    </div>
+    <div id="psDetalleLista" class="ps-detalle-lista"></div>
   </div>
 </div>
 
