@@ -331,8 +331,11 @@ function abrirModalDetalle(filtroFn, titulo, mostrarValor) {
 
     cont.innerHTML = filasHtml + `
       <div class="ps-detalle-fila total">
-        <div class="agencia">Total</div>
-        <div class="valor">${mostrarValor ? totalCount + ' · ' + psFormatearValor(totalValor) : totalCount}</div>
+        <div>
+          <div class="agencia">Total</div>
+          <div class="count">${totalCount} siniestro${totalCount === 1 ? '' : 's'}</div>
+        </div>
+        <div class="valor">${mostrarValor ? psFormatearValor(totalValor) : totalCount}</div>
       </div>`;
   }
 
