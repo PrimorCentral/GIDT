@@ -270,6 +270,9 @@ function renderPanelKpis() {
   const pend = panelCache.filter(s => s.estado === 'PDTE COBRO');
   const totalPend = pend.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
 
+  const cobrado = panelCache.filter(s => s.estado === 'COBRADO');
+  const totalCobrado = cobrado.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
+
   const recogidaPendiente = panelCache.filter(psRecogidaPendiente);
   const recogidaDentro = recogidaPendiente.filter(s => new Date(s.recogida_limite + 'T00:00:00') >= hoy);
   const recogidaFuera = recogidaPendiente.filter(s => new Date(s.recogida_limite + 'T00:00:00') < hoy);
@@ -278,10 +281,12 @@ function renderPanelKpis() {
   const elValor = document.getElementById('psKpiPendientesValor');
   const elRecDentro = document.getElementById('psKpiRecogidaDentro');
   const elRecFuera = document.getElementById('psKpiRecogidaFuera');
+  const elCobrado = document.getElementById('psKpiCobrado');
   if (elCount) elCount.textContent = pend.length;
   if (elValor) elValor.textContent = psFormatearValor(totalPend);
   if (elRecDentro) elRecDentro.textContent = recogidaDentro.length;
   if (elRecFuera) elRecFuera.textContent = recogidaFuera.length;
+  if (elCobrado) elCobrado.textContent = psFormatearValor(totalCobrado);
 }
 
 // Modal genérico de detalle por agencia. filtroFn decide qué filas entran;
@@ -348,6 +353,9 @@ document.getElementById('btnDetalleRecogidaFuera')?.addEventListener('click', ()
     s => psRecogidaPendiente(s) && new Date(s.recogida_limite + 'T00:00:00') < hoy,
     '📦 Recogidas pdte. cumplidas por agencia', false
   );
+});
+document.getElementById('btnDetalleCobrado')?.addEventListener('click', () => {
+  abrirModalDetalle(s => s.estado === 'COBRADO', '💰 Cobrado por agencia', true);
 });
 document.getElementById('btnCerrarPsDetalle')?.addEventListener('click', () => {
   document.getElementById('psDetalleModalOverlay').classList.remove('show');
