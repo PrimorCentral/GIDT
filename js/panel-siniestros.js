@@ -169,7 +169,7 @@ function siniestrosPanelFiltrados() {
     if (f.sinAlbaran && s.albaran_url) return false;
     if (f.sinCorreo && s.correo_enviado) return false;
     if (texto) {
-      const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura]
+      const campo = [s.id, s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura]
         .filter(Boolean).join(' ').toUpperCase();
       if (!campo.includes(texto)) return false;
     }
@@ -236,7 +236,7 @@ function renderPanelSiniestros() {
       : 'NO APLICA';
     return `
       <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
-        <td><b>${s.id}</b></td>
+        <td class="ps-col-num"><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
