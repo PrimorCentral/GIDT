@@ -839,10 +839,28 @@
 
   // ---------------------------------------------------------------
   // Correo a Facturación cuando el pallet se arregló en vuestro almacén
-  // de Málaga (origen = 'AGENCIA'), no en la tienda. Mismo asunto que
-  // plantillaFacturacionAlbaran (psAsuntoFacturacion); solo cambia el
-  // cuerpo.
+  // de Málaga (origen = 'AGENCIA'), no en la tienda. Asunto propio (ver
+  // psAsuntoFacturacionAgencia), formato acordado:
+  // "INCIDENCIA POR ROTURA EN ALMACÉN TXT - MORALEJA - 21/07/2026 - TRANSXTAR S.L. (TXT)"
   // ---------------------------------------------------------------
+
+  // Motivo en singular ("ROTURA", "FALTA", "ROTURA Y FALTA"), a diferencia
+  // del asunto de tienda (psAsuntoFacturacion) que usa plural.
+  const PS_MOTIVO_FACTURACION_AGENCIA = {
+    ROTURA: 'ROTURA',
+    FALTAS: 'FALTA',
+    'FALTAS Y ROTURAS': 'ROTURA Y FALTA'
+  };
+
+  function psAsuntoFacturacionAgencia(tipo, tienda, fecha, agenciaNombre, nombreComercial) {
+    const ag = (agenciaNombre || '').toUpperCase();
+    const t = tienda.toUpperCase();
+    const partes = [ag, t, fecha];
+    if (nombreComercial) partes.push(`${nombreComercial.toUpperCase()}${ag ? ` (${ag})` : ''}`);
+    const base = partes.join(' - ');
+    const motivo = PS_MOTIVO_FACTURACION_AGENCIA[tipo] || 'ROTURA Y FALTA';
+    return `INCIDENCIA POR ${motivo} EN ALMACÉN ${base}`;
+  }
 
   const PS_TIPO_CUERPO_FACTURACION_AGENCIA = {
     ROTURA: (tienda) => `todas las fotos del pallet arreglado en vuestro almacén de Málaga de la tienda de ${tienda}`,
@@ -853,7 +871,7 @@
   function plantillaFacturacionAlbaranAgencia(s, nombreComercialAgencia) {
     const fecha = fechaEs(s.fecha);
     const tienda = s.tienda_nombre || '';
-    const subject = psAsuntoFacturacion(s.tipo, tienda, fecha, s.agencia_nombre, nombreComercialAgencia);
+    const subject = psAsuntoFacturacionAgencia(s.tipo, tienda, fecha, s.agencia_nombre, nombreComercialAgencia);
 
     const linea = (PS_TIPO_CUERPO_FACTURACION_AGENCIA[s.tipo] || ((t) => `toda la documentación del pallet arreglado en vuestro almacén de Málaga de la tienda de ${t}`))(tienda);
 
