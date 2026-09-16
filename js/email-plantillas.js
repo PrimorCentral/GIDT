@@ -841,7 +841,12 @@
   // Correo a Facturación cuando el pallet se arregló en vuestro almacén
   // de Málaga (origen = 'AGENCIA'), no en la tienda. Asunto propio (ver
   // psAsuntoFacturacionAgencia), formato acordado:
-  // "INCIDENCIA POR ROTURA EN ALMACÉN TXT - MORALEJA - 21/07/2026 - TRANSXTAR S.L. (TXT)"
+  // "INCIDENCIA POR ROTURA EN ALMACÉN TXT - MORALEJA - 21/07/2026 - TRANSXTAR S.L."
+  // El nombre comercial se muestra tal cual está guardado en la ficha de
+  // la agencia (Configuración → Emails), sin añadir nada más: si esa
+  // agencia quiere que su abreviatura salga entre paréntesis (p. ej.
+  // "JUAN Y RAFAEL NAVARRO. (PALLEX)"), se escribe así directamente en el
+  // campo "Nombre comercial" de la agencia, no aquí.
   // ---------------------------------------------------------------
 
   // Motivo en singular ("ROTURA", "FALTA", "ROTURA Y FALTA"), a diferencia
@@ -856,7 +861,7 @@
     const ag = (agenciaNombre || '').toUpperCase();
     const t = tienda.toUpperCase();
     const partes = [ag, t, fecha];
-    if (nombreComercial) partes.push(`${nombreComercial.toUpperCase()}${ag ? ` (${ag})` : ''}`);
+    if (nombreComercial) partes.push(nombreComercial.toUpperCase());
     const base = partes.join(' - ');
     const motivo = PS_MOTIVO_FACTURACION_AGENCIA[tipo] || 'ROTURA Y FALTA';
     return `INCIDENCIA POR ${motivo} EN ALMACÉN ${base}`;
