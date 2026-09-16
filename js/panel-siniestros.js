@@ -566,6 +566,7 @@ async function abrirModalPanelSiniestro(id) {
   if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error', 'guardando', 'visible'); }
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
+  document.getElementById('psNumeroSiniestro').textContent = `Siniestro Nº ${s.id}`;
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
 
