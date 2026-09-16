@@ -444,7 +444,7 @@ function rmeHexToRgb(hex) {
 // celdas para jsPDF-autotable en lugar de HTML. diaDesde/diaHasta (por
 // defecto todo el mes) recortan qué columnas de días se generan, para
 // poder exportar solo un rango de días dentro del mes.
-function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta) {
+function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex) {
   diaDesde = diaDesde || 1;
   diaHasta = diaHasta || totalDias;
   const celdas = [];
@@ -461,7 +461,10 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     const finPropio = Math.min(f.diaFin, diaHasta);
     if (iniPropio > diaDesde) celdas.push({ content: '', colSpan: iniPropio - diaDesde, styles: estiloNaPuntual });
     for (let dia = iniPropio; dia <= finPropio; dia++) {
-      if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
+      if (!diasEnviados.has(dia)) {
+        if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
+        celdas.push({ content: '', styles: {} }); continue;
+      }
       const c = celdasTienda[dia];
       if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
       totalIncidencias++;
@@ -483,7 +486,10 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
   for (let dia = Math.max(f.diaInicio, diaDesde); dia <= Math.min(f.diaFin, diaHasta); dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun) { celdas.push({ content: pun.agenciaNombre, styles: estiloCambio }); continue; }
-    if (!diasEnviados.has(dia)) { celdas.push({ content: '', styles: {} }); continue; }
+    if (!diasEnviados.has(dia)) {
+      if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
+      celdas.push({ content: '', styles: {} }); continue;
+    }
     const c = celdasTienda[dia];
     if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
     totalIncidencias++;
@@ -599,7 +605,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     const celdasTienda = celdas[f.tiendaId] || {};
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
-    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta);
+    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex);
     return [
       { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } },
       { content: f.tiendaNombre, styles: { halign: 'center' } },
@@ -626,7 +632,27 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
       ...columnStylesDias,
       [idxColTotal]: { cellWidth: anchoColTotal }
     },
-    body: cuerpo
+    body: cuerpo,
+    // Domingo sin entrega habitual: además del relleno gris (fillColor,
+    // puesto ya en rmeCeldasDeTramoPdf), se raya en diagonal la celda
+    // marcada con esDomingo (recortado al propio rectángulo de la celda),
+    // para que se distinga a simple vista de un informe realmente
+    // pendiente entre semana (celda blanca vacía).
+    didDrawCell(data) {
+      if (data.section !== 'body' || !data.cell.raw || !data.cell.raw.esDomingo) return;
+      const { x, y, width: w, height: h } = data.cell;
+      doc.saveGraphicsState();
+      doc.rect(x, y, w, h, null);
+      doc.clip();
+      doc.discardPath();
+      doc.setDrawColor(190, 190, 190);
+      doc.setLineWidth(Math.max(0.15, 0.35 * escala));
+      const paso = 4 * escala;
+      for (let off = -h; off < w; off += paso) {
+        doc.line(x + off, y + h, x + off + h, y);
+      }
+      doc.restoreGraphicsState();
+    }
   });
 
   return doc.lastAutoTable.finalY;

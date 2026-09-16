@@ -51,6 +51,15 @@ function rmDiasDelMes(anio, mesIndex) {
   return new Date(anio, mesIndex + 1, 0).getDate();
 }
 
+// Domingos: no suele haber entrega/informe ese día salvo que sea puntual
+// (esos casos sí llevan diasEnviados.has(dia) y se pintan con su código o
+// "OK" normalmente). Se usa tanto en la tabla en pantalla como en el PDF
+// para distinguir "domingo sin entrega habitual" de un informe realmente
+// pendiente entre semana.
+function rmEsDomingo(anio, mesIndex, dia) {
+  return new Date(anio, mesIndex, dia).getDay() === 0;
+}
+
 async function rmCargarDatosMes(anio, mesIndex) {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
@@ -438,7 +447,10 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
   if (f.esPuntual) {
     if (f.diaInicio > 1) partes.push(`<td colspan="${f.diaInicio - 1}" class="rm-td-napuntual">–</td>`);
     for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
-      if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
+      if (!diasEnviados.has(dia)) {
+        if (rmEsDomingo(rmAnio, rmMes, dia)) { partes.push(`<td class="rm-td-domingo" title="Domingo — sin entrega habitual"></td>`); continue; }
+        partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
+      }
       const c = celdasTienda[dia];
       if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
       totalIncidencias++;
@@ -461,7 +473,10 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">${escapeHtml(pun.agenciaNombre)}</td>`);
       continue;
     }
-    if (!diasEnviados.has(dia)) { partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue; }
+    if (!diasEnviados.has(dia)) {
+      if (rmEsDomingo(rmAnio, rmMes, dia)) { partes.push(`<td class="rm-td-domingo" title="Domingo — sin entrega habitual"></td>`); continue; }
+      partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
+    }
     const c = celdasTienda[dia];
     if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
     totalIncidencias++;
