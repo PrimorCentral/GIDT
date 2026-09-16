@@ -1908,6 +1908,12 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
   text-align:center; white-space:nowrap;
 }
 .tabla-reporte-mensual td.rm-td-napuntual{ color:var(--ink-soft); opacity:.25; }
+/* Domingo sin entrega habitual: rayado diagonal para distinguirlo de un
+   informe realmente pendiente entre semana (rm-td-pendiente). */
+.tabla-reporte-mensual td.rm-td-domingo{
+  background-image:repeating-linear-gradient(45deg, var(--border) 0, var(--border) 1.5px, transparent 1.5px, transparent 7px);
+  background-color:#F4F5F7;
+}
 .tabla-reporte-mensual tr.rm-fila-puntual{ background:#FBF6EE; }
 .rm-badge-puntual{
   display:inline-block; margin-left:4px; padding:1px 6px; border-radius:99px;
