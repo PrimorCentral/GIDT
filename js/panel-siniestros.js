@@ -223,7 +223,6 @@ function renderPanelSiniestros() {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
   tbody.innerHTML = filas.map(s => {
-    const numFotos = (s.fotos || []).length;
     const tieneFactura = !!s.factura_url;
     const aplicaRecogida = s.tipo !== 'FALTAS';
     const limite = (aplicaRecogida && s.recogida_limite) ? new Date(s.recogida_limite + 'T00:00:00') : null;
@@ -237,6 +236,7 @@ function renderPanelSiniestros() {
       : 'NO APLICA';
     return `
       <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
+        <td><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
@@ -244,7 +244,6 @@ function renderPanelSiniestros() {
         <td>${psPillTipo(s.tipo)}${s.correo_enviado ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
-        <td>${numFotos ? `📷 ${numFotos}` : '—'}</td>
         <td>${escapeHtml(s.num_factura || '—')}${tieneFactura ? ' 📄' : ''}</td>
         <td>${psFormatearValor(s.valor)}</td>
         <td>${psBadgeEstado(s.estado)}</td>
@@ -1181,6 +1180,11 @@ function imprimirResumenPanelSiniestro() {
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(2);
   doc.rect(margen, margen, anchoPag - margen * 2, altoPag - margen * 2);
+
+  // Nº de siniestro, en la esquina superior derecha, sin interferir con el resto de la etiqueta.
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(`Nº SINIESTRO ${s.id}`, anchoPag - margen - 14, margen + 20, { align: 'right' });
 
   const agencia = (s.agencia_nombre || 'SIN AGENCIA').toUpperCase();
   const tienda = (s.tienda_nombre || '—').toUpperCase();
