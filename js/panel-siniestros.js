@@ -792,8 +792,8 @@ function renderSeguimientoPanel(s) {
     }));
   } else if (s.estado === 'ANULADO') {
     pasos.push(psPasoSeguimientoHtml({
-      estado: 'warn', icono: '✕', titulo: 'Cobrado',
-      detalleHtml: psLineasDetalle('Cobro anulado')
+      estado: 'warn', icono: '✕', titulo: 'Cobro anulado',
+      detalleHtml: psLineasDetalle(s.anulado_por, psFormatearFechaHora(s.anulado_en))
     }));
   } else {
     const pasoAnteriorHecho = aplicaRecogida ? recogidaCompletada : !!s.factura_url;
@@ -985,6 +985,10 @@ async function guardarCamposPanelAhora() {
     // persiste lo que ya quedó anotado en la copia local (s).
     cobrado_en: s?.cobrado_en || null,
     cobrado_por: s?.cobrado_por || null,
+    // Mismo patrón para "ANULADO": quién y cuándo se anotan al vuelo desde
+    // el listener de "change" de Estado, aquí solo se persisten.
+    anulado_en: s?.anulado_en || null,
+    anulado_por: s?.anulado_por || null,
     actualizado_por: usuarioActual
   };
 
@@ -1038,16 +1042,26 @@ function flushAutoguardadoPanel() {
 document.getElementById('psEstado')?.addEventListener('change', (e) => {
   const s = psSiniestroPorId(panelActivoId);
 
-  // Anotamos quién y cuándo se marca "COBRADO" (para el paso final
-  // "Cobrado" del seguimiento); se guarda de verdad enseguida, con el
-  // resto de campos, en el autoguardado de abajo.
+  // Anotamos quién y cuándo se marca "COBRADO" o "ANULADO" (para el paso
+  // final del seguimiento); se guarda de verdad enseguida, con el resto de
+  // campos, en el autoguardado de abajo. Solo se rellena el par que
+  // corresponde al valor elegido; el otro se limpia.
   if (s) {
     if (e.target.value === 'COBRADO') {
       s.cobrado_en = new Date().toISOString();
       s.cobrado_por = sesionActual?.nombre || sesionActual?.usuario || null;
+      s.anulado_en = null;
+      s.anulado_por = null;
+    } else if (e.target.value === 'ANULADO') {
+      s.anulado_en = new Date().toISOString();
+      s.anulado_por = sesionActual?.nombre || sesionActual?.usuario || null;
+      s.cobrado_en = null;
+      s.cobrado_por = null;
     } else {
       s.cobrado_en = null;
       s.cobrado_por = null;
+      s.anulado_en = null;
+      s.anulado_por = null;
     }
     renderSeguimientoPanel(s);
   }
