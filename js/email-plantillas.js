@@ -860,9 +860,8 @@
   function psAsuntoFacturacionAgencia(tipo, tienda, fecha, agenciaNombre, nombreComercial) {
     const ag = (agenciaNombre || '').toUpperCase();
     const t = tienda.toUpperCase();
-    const partes = [ag, t, fecha];
-    if (nombreComercial) partes.push(nombreComercial.toUpperCase());
-    const base = partes.join(' - ');
+    let base = [ag, t, fecha].join(' - ');
+    if (nombreComercial) base += ` // ${nombreComercial.toUpperCase()}`;
     const motivo = PS_MOTIVO_FACTURACION_AGENCIA[tipo] || 'ROTURA Y FALTA';
     return `INCIDENCIA POR ${motivo} EN ALMACÉN ${base}`;
   }
