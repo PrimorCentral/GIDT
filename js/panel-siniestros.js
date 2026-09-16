@@ -777,14 +777,23 @@ function renderSeguimientoPanel(s) {
   }
 
   // 7) Cobrado — último paso del seguimiento: se cierra en cuanto el
-  // siniestro pasa a estado "COBRADO" en el desplegable de Estado. El
-  // número de icono se calcula a partir de los pasos ya añadidos, para que
-  // en una FALTA pura (sin pasos 5 y 6) este paso se numere correctamente
-  // como el 5º en vez de saltar al 7.
+  // siniestro pasa a estado "COBRADO" en el desplegable de Estado. Si en
+  // cambio se marca como "ANULADO", el paso se cierra igualmente pero en
+  // rojo con una X, dejando claro que el cobro ya no va a producirse (no
+  // se queda pendiente/numerado como si aún hubiera algo que gestionar).
+  // El número de icono (cuando ninguno de los dos aplica todavía) se
+  // calcula a partir de los pasos ya añadidos, para que en una FALTA pura
+  // (sin pasos 5 y 6) este paso se numere correctamente como el 5º en vez
+  // de saltar al 7.
   if (s.estado === 'COBRADO') {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Cobrado',
       detalleHtml: psLineasDetalle(s.cobrado_por, psFormatearFechaHora(s.cobrado_en))
+    }));
+  } else if (s.estado === 'ANULADO') {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'warn', icono: '✕', titulo: 'Cobrado',
+      detalleHtml: psLineasDetalle('Cobro anulado')
     }));
   } else {
     const pasoAnteriorHecho = aplicaRecogida ? recogidaCompletada : !!s.factura_url;
