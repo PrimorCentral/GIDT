@@ -703,13 +703,15 @@ function renderSeguimientoPanel(s) {
   }
 
   // Los pasos 5 y 6 solo aplican cuando hay mercancía física que recoger
-  // (una FALTA pura no tiene nada que recoger en tienda).
+  // (una FALTA pura no tiene nada que recoger en tienda). "recogidaCompletada"
+  // se calcula siempre (aunque no aplique recogida) porque el paso 7
+  // "Cobrado" también la usa para decidir si ya le toca estar "current".
+  const recogidaCompletada = s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
   if (aplicaRecogida) {
     // "En espera de tienda" NO es un estado terminado: solo indica que ya
     // hay alguien chateando con la tienda para conseguir la recogida. Solo
     // "Enviado a central" y "Recogido por agencia" cierran de verdad la
     // recogida.
-    const recogidaCompletada = s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
     const enEsperaTienda = s.recogida_estado === 'EN ESPERA DE TIENDA';
 
     // 5) En tiempo legal 15 días — mientras no se ha completado la
@@ -772,6 +774,25 @@ function renderSeguimientoPanel(s) {
         detalleHtml: psLineasDetalle('Todavía sin gestionar')
       }));
     }
+  }
+
+  // 7) Cobrado — último paso del seguimiento: se cierra en cuanto el
+  // siniestro pasa a estado "COBRADO" en el desplegable de Estado. El
+  // número de icono se calcula a partir de los pasos ya añadidos, para que
+  // en una FALTA pura (sin pasos 5 y 6) este paso se numere correctamente
+  // como el 5º en vez de saltar al 7.
+  if (s.estado === 'COBRADO') {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '✓', titulo: 'Cobrado',
+      detalleHtml: psLineasDetalle(s.cobrado_por, psFormatearFechaHora(s.cobrado_en))
+    }));
+  } else {
+    const pasoAnteriorHecho = aplicaRecogida ? recogidaCompletada : !!s.factura_url;
+    pasos.push(psPasoSeguimientoHtml({
+      estado: pasoAnteriorHecho ? 'current' : 'pending', icono: String(pasos.length + 1),
+      titulo: 'Cobrado',
+      detalleHtml: psLineasDetalle('Todavía sin marcar como cobrado')
+    }));
   }
 
   cont.innerHTML = pasos.join('');
@@ -949,6 +970,12 @@ async function guardarCamposPanelAhora() {
     // se persiste lo que ya quedó anotado en la copia local (s).
     recogida_estado_en: s?.recogida_estado_en || null,
     recogida_estado_por: s?.recogida_estado_por || null,
+    // Igual que con recogida_estado_en/_por: quién y cuándo se marcó
+    // "COBRADO" (para el paso final "Cobrado" del seguimiento) ya se anota
+    // al vuelo desde el listener de "change" de Estado — aquí solo se
+    // persiste lo que ya quedó anotado en la copia local (s).
+    cobrado_en: s?.cobrado_en || null,
+    cobrado_por: s?.cobrado_por || null,
     actualizado_por: usuarioActual
   };
 
@@ -981,7 +1008,7 @@ function flushAutoguardadoPanel() {
   }
 }
 
-['psOrigen', 'psEstado', 'psRecogida'].forEach(id => {
+['psOrigen', 'psRecogida'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', programarAutoguardadoPanel);
 });
 ['psInformacion', 'psAlbaran', 'psFacturaNum', 'psValor'].forEach(id => {
@@ -997,6 +1024,26 @@ function flushAutoguardadoPanel() {
     e.target.value = e.target.value.toUpperCase();
     e.target.setSelectionRange(cursor, cursor);
   });
+});
+
+document.getElementById('psEstado')?.addEventListener('change', (e) => {
+  const s = psSiniestroPorId(panelActivoId);
+
+  // Anotamos quién y cuándo se marca "COBRADO" (para el paso final
+  // "Cobrado" del seguimiento); se guarda de verdad enseguida, con el
+  // resto de campos, en el autoguardado de abajo.
+  if (s) {
+    if (e.target.value === 'COBRADO') {
+      s.cobrado_en = new Date().toISOString();
+      s.cobrado_por = sesionActual?.nombre || sesionActual?.usuario || null;
+    } else {
+      s.cobrado_en = null;
+      s.cobrado_por = null;
+    }
+    renderSeguimientoPanel(s);
+  }
+
+  programarAutoguardadoPanel();
 });
 
 document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
