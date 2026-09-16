@@ -294,8 +294,13 @@ function renderPanelKpis() {
 // recuento (recogidas).
 function abrirModalDetalle(filtroFn, titulo, mostrarValor) {
   const filas = panelCache.filter(filtroFn);
-  const tituloEl = document.querySelector('#psDetalleModalOverlay .modal-title');
-  if (tituloEl) tituloEl.textContent = titulo;
+  const m = titulo.match(/^(\S+)\s+(.*)$/);
+  const icono = m ? m[1] : '📋';
+  const texto = m ? m[2] : titulo;
+  const iconoEl = document.getElementById('psDetalleIcono');
+  const tituloEl = document.getElementById('psDetalleTitulo');
+  if (iconoEl) iconoEl.textContent = icono;
+  if (tituloEl) tituloEl.textContent = texto;
 
   const cont = document.getElementById('psDetalleLista');
 
@@ -318,14 +323,14 @@ function abrirModalDetalle(filtroFn, titulo, mostrarValor) {
             <div class="agencia">${escapeHtml(nombre)}</div>
             <div class="count">${d.count} siniestro${d.count === 1 ? '' : 's'}</div>
           </div>
-          ${mostrarValor ? `<div class="valor">${psFormatearValor(d.valor)}</div>` : ''}
+          <div class="valor">${mostrarValor ? psFormatearValor(d.valor) : d.count}</div>
         </div>`).join('');
 
     const totalCount = filas.length;
     const totalValor = filas.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
 
     cont.innerHTML = filasHtml + `
-      <div class="ps-detalle-fila" style="border-top:2px solid var(--border); margin-top:4px; padding-top:12px;">
+      <div class="ps-detalle-fila total">
         <div class="agencia">Total</div>
         <div class="valor">${mostrarValor ? totalCount + ' · ' + psFormatearValor(totalValor) : totalCount}</div>
       </div>`;
