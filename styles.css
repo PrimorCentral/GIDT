@@ -1333,11 +1333,14 @@ table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente:hover td{ background
 table.tabla-panel-siniestros tr.ps-fila.ps-correo-pendiente td:first-child{ box-shadow:inset 3px 0 0 var(--accent); }
 .ps-correo-pendiente-icono{ margin-left:5px; font-size:11.5px; cursor:help; }
 table.tabla-panel-siniestros td.ps-col-info{
-  max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 table.tabla-panel-siniestros td.ps-vencido{ color:var(--grave); font-weight:700; }
-table.tabla-panel-siniestros th:nth-child(n+7),
-table.tabla-panel-siniestros td:nth-child(n+7){ text-align:center; }
+table.tabla-panel-siniestros th:first-child,
+table.tabla-panel-siniestros td.ps-col-num{ width:1%; text-align:center; }
+table.tabla-panel-siniestros td.ps-col-num b{ font-size:12px; font-weight:600; }
+table.tabla-panel-siniestros th:nth-child(n+8),
+table.tabla-panel-siniestros td:nth-child(n+8){ text-align:center; }
 .ps-recogida-mini{ font-size:11px; color:var(--ink-soft); font-weight:600; }
 
 .pill.mixto{ background:#FDECD8; color:#A2530B; }
