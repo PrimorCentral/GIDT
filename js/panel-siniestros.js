@@ -1697,7 +1697,9 @@ async function ofrecerEnvioFacturacion(s) {
       nombreComercial = ag?.nombre_comercial || null;
     }
 
-    const { subject, html, text } = plantillaFacturacionAlbaran(s, nombreComercial);
+    const { subject, html, text } = s.origen === 'AGENCIA'
+      ? plantillaFacturacionAlbaranAgencia(s, nombreComercial)
+      : plantillaFacturacionAlbaran(s, nombreComercial);
     const adjuntos = [...(s.fotos || []), s.albaran_url].filter(Boolean);
 
     await enviarEmail({ to: destinatarios, subject, html, text, attachmentUrls: adjuntos });

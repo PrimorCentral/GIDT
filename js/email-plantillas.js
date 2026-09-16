@@ -836,3 +836,40 @@
 
     return { subject, html, text };
   }
+
+  // ---------------------------------------------------------------
+  // Correo a Facturación cuando el pallet se arregló en vuestro almacén
+  // de Málaga (origen = 'AGENCIA'), no en la tienda. Mismo asunto que
+  // plantillaFacturacionAlbaran (psAsuntoFacturacion); solo cambia el
+  // cuerpo.
+  // ---------------------------------------------------------------
+
+  const PS_TIPO_CUERPO_FACTURACION_AGENCIA = {
+    ROTURA: (tienda) => `todas las fotos del pallet arreglado en vuestro almacén de Málaga de la tienda de ${tienda}`,
+    FALTAS: (tienda) => `todas las fotos y los productos que han faltado del pallet arreglado en vuestro almacén de Málaga de la tienda de ${tienda}`,
+    'FALTAS Y ROTURAS': (tienda) => `todas las fotos y productos afectados (roturas y faltas) del pallet arreglado en vuestro almacén de Málaga de la tienda de ${tienda}`
+  };
+
+  function plantillaFacturacionAlbaranAgencia(s, nombreComercialAgencia) {
+    const fecha = fechaEs(s.fecha);
+    const tienda = s.tienda_nombre || '';
+    const subject = psAsuntoFacturacion(s.tipo, tienda, fecha, s.agencia_nombre, nombreComercialAgencia);
+
+    const linea = (PS_TIPO_CUERPO_FACTURACION_AGENCIA[s.tipo] || ((t) => `toda la documentación del pallet arreglado en vuestro almacén de Málaga de la tienda de ${t}`))(tienda);
+
+    const aclaracionFaltas = s.tipo === 'FALTAS Y ROTURAS'
+      ? 'Aclaramos que lo subrayado en amarillo son las FALTAS'
+      : '';
+
+    const html = `
+      <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
+        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
+        <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
+        ${aclaracionFaltas ? `<p style="margin:0 0 14px;">${aclaracionFaltas}</p>` : ''}
+        <p style="margin:0;">Gracias, un saludo.</p>
+      </div>`;
+
+    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
+
+    return { subject, html, text };
+  }
