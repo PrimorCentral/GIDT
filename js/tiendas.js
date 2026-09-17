@@ -87,10 +87,10 @@
     const totales = { HABITUAL: 0, SABADO: 0, PRUEBA: 0, ESPECIAL: 0 };
     activas.forEach(t => { if (totales[t.marca] != null) totales[t.marca]++; });
     cont.innerHTML = `
-      <span class="tiendas-contador"><b>${totales.HABITUAL}</b> tiendas</span>
-      <span class="tiendas-contador sabado"><b>${totales.SABADO}</b> sábados</span>
-      <span class="tiendas-contador prueba"><b>${totales.PRUEBA}</b> pruebas</span>
-      <span class="tiendas-contador especial"><b>${totales.ESPECIAL}</b> especiales</span>
+      <span class="tiendas-contador"><b>${totales.HABITUAL}</b><span>Tiendas</span></span>
+      <span class="tiendas-contador sabado"><b>${totales.SABADO}</b><span>Sábados</span></span>
+      <span class="tiendas-contador prueba"><b>${totales.PRUEBA}</b><span>Pruebas</span></span>
+      <span class="tiendas-contador especial"><b>${totales.ESPECIAL}</b><span>Especiales</span></span>
     `;
   }
 
