@@ -762,6 +762,19 @@
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <input type="text" id="buscadorTiendas" class="form-input" style="width:240px;" placeholder="🔎 Buscar tienda…">
+          <div class="export-tiendas-wrap" id="exportTiendasWrap">
+            <button class="btn" id="btnExportarTiendas">⬇️ Exportar</button>
+            <div class="export-tiendas-menu" id="exportTiendasMenu">
+              <button type="button" data-modo="resumido">
+                <b>Resumido</b>
+                <span>Por agencia, columnas básicas</span>
+              </button>
+              <button type="button" data-modo="detallado">
+                <b>Detallado</b>
+                <span>Una fila por tienda, todos los datos</span>
+              </button>
+            </div>
+          </div>
           <button class="btn primary" id="btnNuevaTienda">➕ Nueva tienda</button>
         </div>
       </div>
