@@ -276,9 +276,9 @@
 
   document.getElementById('modalEditarTiendaBtnCancelar')?.addEventListener('click', cerrarModalEditarTienda);
   document.getElementById('modalEditarTiendaBtnGuardar')?.addEventListener('click', guardarModalEditarTienda);
-  document.getElementById('modalEditarTiendaOverlay')?.addEventListener('click', (e) => {
-    if (e.target.id === 'modalEditarTiendaOverlay') cerrarModalEditarTienda();
-  });
+  // Nota (2026-09-17): a petición de Jose, este modal ya NO se cierra al
+  // clicar fuera — solo con Cancelar/Guardar, para no perder cambios por
+  // un clic accidental.
 
   async function moverTienda(id, direccion) {
     const t = tiendasCache.find(x => x.id === id);
@@ -308,7 +308,7 @@
     const destinoId = await modalSeleccionar(
       `Selecciona la agencia a la que quieres mover "${t.nombre}":`,
       opciones,
-      { titulo: 'Mover tienda de agencia', textoOk: 'Mover', valorInicial: t.agencia_id }
+      { titulo: 'Mover tienda de agencia', textoOk: 'Mover', valorInicial: t.agencia_id, bloquearClicFuera: true }
     );
     if (!destinoId || destinoId === t.agencia_id) return;
 
@@ -368,12 +368,10 @@
     }
   }
 
-  const formNuevaTienda = document.getElementById('formNuevaTienda');
-  document.getElementById('btnNuevaTienda').addEventListener('click', () => {
-    formNuevaTienda.style.display = formNuevaTienda.style.display === 'none' ? 'block' : 'none';
-  });
-  document.getElementById('btnCancelarTienda').addEventListener('click', () => {
-    formNuevaTienda.style.display = 'none';
+  // ---------------------------------------------------------------
+  // Modal "Nueva tienda" (mismo patrón que el modal "Nueva agencia").
+  // ---------------------------------------------------------------
+  function limpiarFormNuevaTienda() {
     document.getElementById('ntNumero').value = '';
     document.getElementById('ntNombre').value = '';
     document.getElementById('ntHora').value = '';
@@ -382,8 +380,21 @@
     document.getElementById('ntLimitePalets').value = '';
     document.getElementById('ntLimiteHora').value = '';
     document.getElementById('ntSupervisor').value = '';
-  });
-  document.getElementById('btnGuardarTienda').addEventListener('click', async () => {
+    document.getElementById('ntMarca').value = 'HABITUAL';
+    document.getElementById('ntError').style.display = 'none';
+  }
+
+  function abrirModalNuevaTienda() {
+    limpiarFormNuevaTienda();
+    document.getElementById('nuevaTiendaModalOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('ntNumero').focus(), 30);
+  }
+
+  function cerrarModalNuevaTienda() {
+    document.getElementById('nuevaTiendaModalOverlay').classList.remove('show');
+  }
+
+  async function guardarNuevaTienda() {
     const numeroTienda = document.getElementById('ntNumero').value.trim();
     const nombre = document.getElementById('ntNombre').value.trim();
     const agenciaId = Number(document.getElementById('ntAgencia').value);
@@ -405,6 +416,8 @@
 
     const maxOrden = Math.max(0, ...tiendasCache.filter(t => t.agencia_id === agenciaId).map(t => t.orden));
 
+    const btn = document.getElementById('btnGuardarTienda');
+    btn.disabled = true;
     try {
       const { error } = await sb.from('tiendas').insert({
         numero_tienda: numeroTienda || null,
@@ -421,22 +434,24 @@
       });
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Crear tienda', nombre);
-      formNuevaTienda.style.display = 'none';
-      document.getElementById('ntNumero').value = '';
-      document.getElementById('ntNombre').value = '';
-      document.getElementById('ntHora').value = '';
-      document.getElementById('ntDireccion').value = '';
-      document.getElementById('ntProvincia').value = '';
-      document.getElementById('ntLimitePalets').value = '';
-      document.getElementById('ntLimiteHora').value = '';
-      document.getElementById('ntSupervisor').value = '';
+      cerrarModalNuevaTienda();
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);
       errEl.textContent = 'No se pudo crear la tienda.';
       errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
     }
-  });
+  }
+
+  document.getElementById('btnNuevaTienda').addEventListener('click', abrirModalNuevaTienda);
+  document.getElementById('btnCerrarNuevaTienda')?.addEventListener('click', cerrarModalNuevaTienda);
+  document.getElementById('btnCancelarTienda').addEventListener('click', cerrarModalNuevaTienda);
+  document.getElementById('btnGuardarTienda').addEventListener('click', guardarNuevaTienda);
+  // Nota (2026-09-17): a petición de Jose, este modal ya NO se cierra al
+  // clicar fuera — solo con ✕/Cancelar/Crear, para no perder cambios por
+  // un clic accidental.
 
   let tiendasCargadasYa = false;
   document.querySelectorAll('[data-view="config-tiendas"]').forEach(el => {
@@ -514,8 +529,8 @@
   document.getElementById('modalHorarioBtnLimpiar')?.addEventListener('click', () => {
     document.querySelectorAll('#modalHorarioDias .mh-hora').forEach(input => { input.value = ''; });
   });
-  document.getElementById('modalHorarioOverlay')?.addEventListener('click', (e) => {
-    if (e.target.id === 'modalHorarioOverlay') cerrarModalHorarioSemana();
-  });
+  // Nota (2026-09-17): a petición de Jose, este modal ya NO se cierra al
+  // clicar fuera — solo con Cancelar/Guardar, para no perder cambios por
+  // un clic accidental.
 
   // ---------------------------------------------------------------
