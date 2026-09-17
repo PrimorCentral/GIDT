@@ -769,6 +769,10 @@
       <div class="card" id="formNuevaTienda" style="display:none; padding:18px 20px; margin-bottom:16px;">
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
           <div>
+            <label class="form-label">Nº tienda</label>
+            <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
+          </div>
+          <div>
             <label class="form-label">Nombre tienda</label>
             <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
           </div>
@@ -780,9 +784,25 @@
             <label class="form-label">Hora prevista</label>
             <input type="time" id="ntHora" class="form-input">
           </div>
+          <div style="grid-column: 1 / -1;">
+            <label class="form-label">Dirección completa</label>
+            <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+          </div>
           <div>
             <label class="form-label">Provincia</label>
             <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
+          </div>
+          <div>
+            <label class="form-label">Límite palets</label>
+            <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
+          </div>
+          <div>
+            <label class="form-label">Límite hora entrega</label>
+            <input type="time" id="ntLimiteHora" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">Supervisor/a</label>
+            <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
           </div>
           <div>
             <label class="form-label">Marca</label>
@@ -1253,9 +1273,13 @@
 
 <!-- Modal: editar datos de una tienda (Gestión de tiendas) -->
 <div class="modal-overlay" id="modalEditarTiendaOverlay">
-  <div class="modal-box" style="max-width:380px;" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
+  <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
     <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
     <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+      <div>
+        <label class="form-label">Nº tienda</label>
+        <input type="text" id="metNumero" class="form-input" placeholder="Ej. 002">
+      </div>
       <div>
         <label class="form-label">Nombre tienda</label>
         <input type="text" id="metNombre" class="form-input">
@@ -1265,8 +1289,24 @@
         <input type="time" id="metHora" class="form-input">
       </div>
       <div>
+        <label class="form-label">Dirección completa</label>
+        <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+      </div>
+      <div>
         <label class="form-label">Provincia</label>
         <input type="text" id="metProvincia" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Límite palets</label>
+        <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
+      </div>
+      <div>
+        <label class="form-label">Límite hora entrega</label>
+        <input type="time" id="metLimiteHora" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Supervisor/a</label>
+        <input type="text" id="metSupervisor" class="form-input">
       </div>
       <div>
         <label class="form-label">Marca</label>
