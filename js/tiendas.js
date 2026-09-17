@@ -89,9 +89,14 @@
       const filas = tds.length
         ? tds.map(t => `
             <tr data-tienda="${t.id}">
+              <td class="celda-numero">—</td>
               <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
+              <td class="celda-direccion">—</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
+              <td class="celda-limite-palets">—</td>
+              <td class="celda-limite-hora">—</td>
+              <td class="celda-supervisor">—</td>
               <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span></td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
@@ -106,7 +111,7 @@
                 <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
               </td>
             </tr>`).join('')
-        : `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
+        : `<tr><td colspan="10" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
 
       return `
         <div class="agencia-block">
@@ -120,9 +125,14 @@
               <table class="tabla-tiendas">
                 <thead>
                   <tr>
-                    <th class="th-nombre">Tienda</th>
-                    <th class="th-hora">Hora</th>
+                    <th class="th-numero">Nº Tienda</th>
+                    <th class="th-nombre">Nombre tienda</th>
+                    <th class="th-hora">Hora entrega</th>
+                    <th class="th-direccion">Dirección completa</th>
                     <th class="th-provincia">Provincia</th>
+                    <th class="th-limite-palets">Límite palets</th>
+                    <th class="th-limite-hora">Límite hora entrega</th>
+                    <th class="th-supervisor">Supervisor/a</th>
                     <th class="th-marca">Marca</th>
                     <th class="th-acciones"></th>
                   </tr>
