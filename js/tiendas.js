@@ -58,13 +58,16 @@
   function tiendaCoincideBusqueda(t, qNormalizada) {
     if (!qNormalizada) return true;
     return normalizarTextoBusqueda(t.nombre).includes(qNormalizada)
-      || normalizarTextoBusqueda(t.provincia).includes(qNormalizada);
+      || normalizarTextoBusqueda(t.provincia).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.numero_tienda).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.direccion).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.supervisor).includes(qNormalizada);
   }
 
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo').order('orden')
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor').order('orden')
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
@@ -89,14 +92,14 @@
       const filas = tds.length
         ? tds.map(t => `
             <tr data-tienda="${t.id}">
-              <td class="celda-numero">—</td>
+              <td class="celda-numero">${t.numero_tienda ? escapeHtml(t.numero_tienda) : '—'}</td>
               <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
-              <td class="celda-direccion">—</td>
+              <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
-              <td class="celda-limite-palets">—</td>
-              <td class="celda-limite-hora">—</td>
-              <td class="celda-supervisor">—</td>
+              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
+              <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
+              <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
               <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span></td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
@@ -206,9 +209,14 @@
     if (!t || !overlay) return;
     editarTiendaId = tiendaId;
 
+    document.getElementById('metNumero').value = t.numero_tienda || '';
     document.getElementById('metNombre').value = t.nombre || '';
     document.getElementById('metHora').value = t.hora_prevista ? t.hora_prevista.slice(0, 5) : '';
+    document.getElementById('metDireccion').value = t.direccion || '';
     document.getElementById('metProvincia').value = t.provincia || '';
+    document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
+    document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
+    document.getElementById('metSupervisor').value = t.supervisor || '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -225,9 +233,14 @@
 
   async function guardarModalEditarTienda() {
     if (editarTiendaId == null) return;
+    const numeroTienda = document.getElementById('metNumero').value.trim();
     const nombre = document.getElementById('metNombre').value.trim();
     const hora = document.getElementById('metHora').value;
+    const direccion = document.getElementById('metDireccion').value.trim();
     const provincia = document.getElementById('metProvincia').value.trim();
+    const limitePaletsRaw = document.getElementById('metLimitePalets').value;
+    const limiteHora = document.getElementById('metLimiteHora').value;
+    const supervisor = document.getElementById('metSupervisor').value.trim();
     const marca = document.getElementById('metMarca').value;
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -240,7 +253,15 @@
 
     try {
       const { error } = await sb.from('tiendas').update({
-        nombre, hora_prevista: hora || null, provincia: provincia || null, marca
+        numero_tienda: numeroTienda || null,
+        nombre,
+        hora_prevista: hora || null,
+        direccion: direccion || null,
+        provincia: provincia || null,
+        limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
+        limite_hora_entrega: limiteHora || null,
+        supervisor: supervisor || null,
+        marca
       }).eq('id', editarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
@@ -353,15 +374,25 @@
   });
   document.getElementById('btnCancelarTienda').addEventListener('click', () => {
     formNuevaTienda.style.display = 'none';
+    document.getElementById('ntNumero').value = '';
     document.getElementById('ntNombre').value = '';
     document.getElementById('ntHora').value = '';
+    document.getElementById('ntDireccion').value = '';
     document.getElementById('ntProvincia').value = '';
+    document.getElementById('ntLimitePalets').value = '';
+    document.getElementById('ntLimiteHora').value = '';
+    document.getElementById('ntSupervisor').value = '';
   });
   document.getElementById('btnGuardarTienda').addEventListener('click', async () => {
+    const numeroTienda = document.getElementById('ntNumero').value.trim();
     const nombre = document.getElementById('ntNombre').value.trim();
     const agenciaId = Number(document.getElementById('ntAgencia').value);
     const hora = document.getElementById('ntHora').value;
+    const direccion = document.getElementById('ntDireccion').value.trim();
     const provincia = document.getElementById('ntProvincia').value.trim();
+    const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
+    const limiteHora = document.getElementById('ntLimiteHora').value;
+    const supervisor = document.getElementById('ntSupervisor').value.trim();
     const marca = document.getElementById('ntMarca').value;
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
@@ -376,14 +407,29 @@
 
     try {
       const { error } = await sb.from('tiendas').insert({
-        nombre, agencia_id: agenciaId, hora_prevista: hora || null, provincia: provincia || null, marca, orden: maxOrden + 1
+        numero_tienda: numeroTienda || null,
+        nombre,
+        agencia_id: agenciaId,
+        hora_prevista: hora || null,
+        direccion: direccion || null,
+        provincia: provincia || null,
+        limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
+        limite_hora_entrega: limiteHora || null,
+        supervisor: supervisor || null,
+        marca,
+        orden: maxOrden + 1
       });
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Crear tienda', nombre);
       formNuevaTienda.style.display = 'none';
+      document.getElementById('ntNumero').value = '';
       document.getElementById('ntNombre').value = '';
       document.getElementById('ntHora').value = '';
+      document.getElementById('ntDireccion').value = '';
       document.getElementById('ntProvincia').value = '';
+      document.getElementById('ntLimitePalets').value = '';
+      document.getElementById('ntLimiteHora').value = '';
+      document.getElementById('ntSupervisor').value = '';
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);
