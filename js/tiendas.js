@@ -453,6 +453,120 @@
   // clicar fuera — solo con ✕/Cancelar/Crear, para no perder cambios por
   // un clic accidental.
 
+  // ---------------------------------------------------------------
+  // Exportar listado de tiendas a Excel (mismo estilo ExcelJS que el
+  // exportador de informes en js/informe-pdf.js). Dos modos:
+  //  - "resumido": una hoja con bandas por agencia (nombre + total) y
+  //    columnas básicas, como la pestaña GENERAL del Excel de Primor.
+  //  - "detallado": una fila por tienda con todos los datos, como la
+  //    pestaña DIRECCIONES del Excel de Primor.
+  // ---------------------------------------------------------------
+  function tiendasExcelDisponible() {
+    return typeof window.ExcelJS !== 'undefined' && typeof window.ExcelJS.Workbook === 'function';
+  }
+
+  function tiendasAgrupadasPorAgencia() {
+    const porAgencia = new Map();
+    tiendasCache.forEach(t => {
+      if (!porAgencia.has(t.agencia_id)) porAgencia.set(t.agencia_id, []);
+      porAgencia.get(t.agencia_id).push(t);
+    });
+    return agenciasCache
+      .map(a => ({ agencia: a, tiendas: (porAgencia.get(a.id) || []).slice().sort((x, y) => x.orden - y.orden) }))
+      .filter(g => g.tiendas.length);
+  }
+
+  function tiendasExcelCelda(fila, colIdx, valor, opts = {}) {
+    const c = fila.getCell(colIdx);
+    c.value = valor;
+    c.font = { bold: !!opts.bold, color: { argb: opts.color || 'FF000000' }, size: opts.size || 10.5 };
+    c.alignment = { horizontal: opts.halign || 'left', vertical: 'middle', wrapText: opts.wrap !== false };
+    c.border = { top: { style: 'thin', color: { argb: 'FFDDDDDD' } }, left: { style: 'thin', color: { argb: 'FFDDDDDD' } }, bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } }, right: { style: 'thin', color: { argb: 'FFDDDDDD' } } };
+    if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } };
+    return c;
+  }
+
+  async function exportarTiendasResumido() {
+    const workbook = new window.ExcelJS.Workbook();
+    const hoja = workbook.addWorksheet('Tiendas (resumido)', { views: [{ showGridLines: false }] });
+    const COLS = ['Nº', 'TIENDA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A'];
+    hoja.columns = [{ width: 8 }, { width: 24 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }];
+
+    tiendasAgrupadasPorAgencia().forEach(g => {
+      const filaAgencia = hoja.addRow([]);
+      hoja.mergeCells(filaAgencia.number, 1, filaAgencia.number, COLS.length);
+      tiendasExcelCelda(filaAgencia, 1, `${g.agencia.nombre.toUpperCase()} (${g.tiendas.length})`, { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' });
+
+      const filaCab = hoja.addRow(COLS);
+      COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', fill: 'FFD9D9D9' }));
+
+      g.tiendas.forEach(t => {
+        const fila = hoja.addRow([]);
+        tiendasExcelCelda(fila, 1, t.numero_tienda || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 2, t.nombre || '', { bold: true });
+        tiendasExcelCelda(fila, 3, t.provincia || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 4, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 5, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 6, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 7, t.supervisor || '', { halign: 'center' });
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    descargarBlob(blob, `tiendas-resumido-${fechaHoyISO || new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  async function exportarTiendasDetallado() {
+    const workbook = new window.ExcelJS.Workbook();
+    const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
+    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'MARCA'];
+    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 12 }];
+
+    const filaCab = hoja.addRow(COLS);
+    COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
+
+    tiendasAgrupadasPorAgencia().forEach(g => {
+      g.tiendas.forEach(t => {
+        const fila = hoja.addRow([]);
+        tiendasExcelCelda(fila, 1, g.agencia.nombre);
+        tiendasExcelCelda(fila, 2, t.numero_tienda || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 3, t.nombre || '', { bold: true });
+        tiendasExcelCelda(fila, 4, t.direccion || '');
+        tiendasExcelCelda(fila, 5, t.provincia || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 6, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 7, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 8, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 9, t.supervisor || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 10, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    descargarBlob(blob, `tiendas-detallado-${fechaHoyISO || new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  const exportTiendasWrap = document.getElementById('exportTiendasWrap');
+  document.getElementById('btnExportarTiendas')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportTiendasWrap?.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (exportTiendasWrap && !exportTiendasWrap.contains(e.target)) exportTiendasWrap.classList.remove('open');
+  });
+  document.getElementById('exportTiendasMenu')?.querySelectorAll('button[data-modo]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      exportTiendasWrap?.classList.remove('open');
+      if (!tiendasExcelDisponible()) {
+        await modalAlert('No se pudo cargar el generador de Excel. Revisa tu conexión e inténtalo de nuevo.', { titulo: 'Excel no disponible' });
+        return;
+      }
+      if (btn.dataset.modo === 'resumido') exportarTiendasResumido();
+      else exportarTiendasDetallado();
+    });
+  });
+
   let tiendasCargadasYa = false;
   document.querySelectorAll('[data-view="config-tiendas"]').forEach(el => {
     el.addEventListener('click', () => {
