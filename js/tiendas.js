@@ -80,7 +80,22 @@
     renderAcordeonTiendas();
   }
 
+  function renderTiendasContadores() {
+    const cont = document.getElementById('tiendasContadores');
+    if (!cont) return;
+    const activas = tiendasCache.filter(t => t.activo);
+    const totales = { HABITUAL: 0, SABADO: 0, PRUEBA: 0, ESPECIAL: 0 };
+    activas.forEach(t => { if (totales[t.marca] != null) totales[t.marca]++; });
+    cont.innerHTML = `
+      <span class="tiendas-contador"><b>${totales.HABITUAL}</b> tiendas</span>
+      <span class="tiendas-contador sabado"><b>${totales.SABADO}</b> sábados</span>
+      <span class="tiendas-contador prueba"><b>${totales.PRUEBA}</b> pruebas</span>
+      <span class="tiendas-contador especial"><b>${totales.ESPECIAL}</b> especiales</span>
+    `;
+  }
+
   function renderAcordeonTiendas() {
+    renderTiendasContadores();
     const cont = document.getElementById('acordeonAgencias');
     const qNormalizada = normalizarTextoBusqueda(filtroTiendasTexto);
     const buscando = !!qNormalizada;
