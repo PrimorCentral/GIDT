@@ -466,9 +466,9 @@
   /* Con agencias de muchas tiendas, se limita la altura y se desplaza por
      dentro (con la cabecera de columnas siempre visible) en vez de alargar
      toda la página de Gestión de tiendas. */
-  .tabla-tiendas-scroll{ max-height:min(560px, 60vh); overflow-y:auto; }
+  .tabla-tiendas-scroll{ max-height:min(560px, 60vh); overflow-y:auto; overflow-x:auto; }
 
-  table.tabla-tiendas{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.tabla-tiendas{ width:100%; min-width:1180px; border-collapse:collapse; font-size:13px; }
   table.tabla-tiendas thead th{
     position:sticky; top:0; z-index:1; text-align:left; padding:9px 16px;
     background:var(--panel-muted); color:var(--ink-soft); font-size:10.5px;
@@ -516,6 +516,19 @@
   table.tabla-tiendas .celda-marca,
   table.tabla-tiendas th.th-marca{ width:140px; }
   table.tabla-tiendas th.th-acciones{ white-space:nowrap; }
+  /* Columnas nuevas (2026-09-17): de momento solo visuales, sin dato
+     real detrás — muestran "—" hasta que se decida de dónde sale
+     cada campo (¿nueva columna en tiendas? ¿tabla aparte?). */
+  table.tabla-tiendas .celda-numero,
+  table.tabla-tiendas th.th-numero{ width:90px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-direccion,
+  table.tabla-tiendas th.th-direccion{ width:220px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-limite-palets,
+  table.tabla-tiendas th.th-limite-palets{ width:110px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-limite-hora,
+  table.tabla-tiendas th.th-limite-hora{ width:130px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-supervisor,
+  table.tabla-tiendas th.th-supervisor{ width:150px; color:var(--ink-soft); }
 
   /* ---------- Emails por agencia ---------- */
   .email-card{
