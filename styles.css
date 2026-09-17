@@ -187,14 +187,15 @@
   }
   #pageHeadTiendas > div:last-child{ justify-self:end; }
   .tiendas-contadores{
-    display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-self:center;
+    display:flex; align-items:stretch; gap:14px; flex-wrap:wrap; justify-self:center;
   }
   .tiendas-contador{
-    display:flex; align-items:center; gap:6px;
-    padding:6px 12px; border-radius:99px; font-size:12.5px; font-weight:700;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    min-width:96px; padding:12px 22px; border-radius:14px;
     background:#EEF0F3; color:var(--leve);
   }
-  .tiendas-contador b{ font-weight:800; }
+  .tiendas-contador b{ font-size:26px; font-weight:800; line-height:1.1; }
+  .tiendas-contador span{ font-size:12.5px; font-weight:700; letter-spacing:.2px; text-transform:uppercase; opacity:.85; }
   .tiendas-contador.sabado{ background:#FDECD8; color:#A2530B; }
   .tiendas-contador.prueba,
   .tiendas-contador.especial{ background:#EEE6FB; color:#6B3FA0; }
