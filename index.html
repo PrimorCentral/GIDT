@@ -766,61 +766,6 @@
         </div>
       </div>
 
-      <div class="card" id="formNuevaTienda" style="display:none; padding:18px 20px; margin-bottom:16px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end;">
-          <div>
-            <label class="form-label">Nº tienda</label>
-            <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
-          </div>
-          <div>
-            <label class="form-label">Nombre tienda</label>
-            <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
-          </div>
-          <div>
-            <label class="form-label">Agencia</label>
-            <select id="ntAgencia" class="form-input"></select>
-          </div>
-          <div>
-            <label class="form-label">Hora prevista</label>
-            <input type="time" id="ntHora" class="form-input">
-          </div>
-          <div style="grid-column: 1 / -1;">
-            <label class="form-label">Dirección completa</label>
-            <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
-          </div>
-          <div>
-            <label class="form-label">Provincia</label>
-            <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
-          </div>
-          <div>
-            <label class="form-label">Límite palets</label>
-            <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
-          </div>
-          <div>
-            <label class="form-label">Límite hora entrega</label>
-            <input type="time" id="ntLimiteHora" class="form-input">
-          </div>
-          <div>
-            <label class="form-label">Supervisor/a</label>
-            <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
-          </div>
-          <div>
-            <label class="form-label">Marca</label>
-            <select id="ntMarca" class="form-input">
-              <option value="HABITUAL">Habitual</option>
-              <option value="SABADO">Sábado</option>
-              <option value="PRUEBA">Prueba</option>
-              <option value="ESPECIAL">Especial</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn primary" id="btnGuardarTienda">Guardar tienda</button>
-          <button class="btn" id="btnCancelarTienda">Cancelar</button>
-        </div>
-        <p class="err" id="ntError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
-      </div>
-
       <div id="acordeonAgencias"></div>
     </section>
 
@@ -1986,6 +1931,69 @@
     <div class="modal-footer" style="margin-top:18px;">
       <button class="btn" id="btnCancelarNuevaAgencia">Cancelar</button>
       <button class="btn primary" id="btnGuardarNuevaAgencia">💾 Crear agencia</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nueva tienda -->
+<div class="modal-overlay" id="nuevaTiendaModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarNuevaTienda" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">➕ Nueva tienda</h3>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div>
+        <label class="form-label">Nº tienda</label>
+        <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
+      </div>
+      <div>
+        <label class="form-label">Nombre tienda</label>
+        <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
+      </div>
+      <div>
+        <label class="form-label">Agencia</label>
+        <select id="ntAgencia" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Hora prevista</label>
+        <input type="time" id="ntHora" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Dirección completa</label>
+        <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+      </div>
+      <div>
+        <label class="form-label">Provincia</label>
+        <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
+      </div>
+      <div>
+        <label class="form-label">Límite palets</label>
+        <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
+      </div>
+      <div>
+        <label class="form-label">Límite hora entrega</label>
+        <input type="time" id="ntLimiteHora" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Supervisor/a</label>
+        <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
+      </div>
+      <div>
+        <label class="form-label">Marca</label>
+        <select id="ntMarca" class="form-input">
+          <option value="HABITUAL">Habitual</option>
+          <option value="SABADO">Sábado</option>
+          <option value="PRUEBA">Prueba</option>
+          <option value="ESPECIAL">Especial</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="err" id="ntError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarTienda">Cancelar</button>
+      <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
     </div>
   </div>
 </div>
