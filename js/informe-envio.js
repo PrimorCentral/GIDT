@@ -57,7 +57,7 @@ function pillMotivoHtml(motivo) {
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:left; padding:4px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0;';
+  const th = 'text-align:left; padding:3px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0; line-height:1.3;';
   const td = 'padding:2px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; color:#475569; line-height:1.15;';
 
   const filasHtml = filas.map(({ tienda, inc }, idx) => {
@@ -90,9 +90,9 @@ function tablaHtmlIncidencias(filas) {
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, sans-serif; margin:20px 0;">
       <thead>
         <tr>
-          <th style="${th}">Hora</th>
-          <th style="${th}">Tienda</th>
-          <th style="${th}">Motivo</th>
+          <th width="55" style="${th}">Hora</th>
+          <th width="120" style="${th}">Tienda</th>
+          <th width="140" style="${th}">Motivo</th>
           <th style="${th}">Observaciones</th>
         </tr>
       </thead>
@@ -148,7 +148,7 @@ function plantillaInformeAgencia(agenciaNombre, fechaISO, tabla, numIncidencias)
                 </p>
                 ${resumenHtml(numIncidencias)}
                 ${tabla}
-                <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
+                <p style="margin:20px 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
                   Todas las horas de entrega mostradas en este correo corresponden al horario peninsular.
                 </p>
                 <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
