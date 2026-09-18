@@ -85,8 +85,8 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:center; padding:4px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:1.3;';
-  const td = 'text-align:center; padding:6px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1.2;';
+  const th = 'text-align:center; padding:3px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:1.2;';
+  const td = 'text-align:center; padding:1px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1.1;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
@@ -111,8 +111,8 @@ function tablaHtmlIncidencias(filas) {
     return `
       <tr style="background:${estilo.bg};">
         <td align="center" valign="middle" style="${td} white-space:nowrap; color:${estilo.texto};">${hora}</td>
-        <td align="center" valign="middle" style="${td} font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</td>
-        <td align="center" valign="middle" style="${td} font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</td>
         <td align="center" valign="middle" style="${td} color:${estilo.texto};">${obsTexto}${avisoRetraso}</td>
       </tr>`;
   }).join('');
@@ -122,8 +122,8 @@ function tablaHtmlIncidencias(filas) {
       <thead>
         <tr>
           <th width="55" align="center" valign="middle" style="${th}">Hora</th>
-          <th width="95" align="center" valign="middle" style="${th}">Tienda</th>
-          <th width="175" align="center" valign="middle" style="${th}">Motivo</th>
+          <th width="170" align="center" valign="middle" style="${th}">Tienda</th>
+          <th width="240" align="center" valign="middle" style="${th}">Motivo</th>
           <th align="center" valign="middle" style="${th}">Observaciones</th>
         </tr>
       </thead>
