@@ -87,7 +87,26 @@ document.addEventListener('change', async (e) => {
   const tr = cb.closest('tr');
   if (!tr) return;
 
-  if (!cb.checked) { quitarSubmotivosDe(tr, cb.value); return; }
+  if (!cb.checked) {
+    // Evita bucle infinito al redisparar el 'change' nosotros mismos justo debajo.
+    if (cb.dataset.limpiezaSubmotivoPendiente === '1') { delete cb.dataset.limpiezaSubmotivoPendiente; return; }
+
+    quitarSubmotivosDe(tr, cb.value);
+
+    // El guardado de cada vista (guardarIncidencia/actualizarBorradorIncidencia)
+    // está enganchado como listener 'change' directamente sobre este mismo
+    // checkbox, así que se dispara ANTES que este listener delegado en
+    // document (en la fase de burbuja el target va antes que document).
+    // Eso hacía que, al desmarcar el motivo principal, se guardara el
+    // estado justo ANTES de quitar el checkbox oculto del submotivo,
+    // dejando el submotivo huérfano grabado (p. ej. "NO ENTREGAN SIN
+    // MOTIVO" persistiendo tras desmarcar "NO ENTREGAN"). Redisparamos el
+    // 'change' para que el guardado de la vista se repita ya con el
+    // submotivo quitado del DOM.
+    cb.dataset.limpiezaSubmotivoPendiente = '1';
+    cb.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
 
   // Evita volver a preguntar cuando re-disparamos el 'change' nosotros
   // mismos más abajo, para que el guardado propio de la vista recoja ya
