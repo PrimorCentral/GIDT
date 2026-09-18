@@ -86,7 +86,7 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
   const th = 'text-align:center; padding:3px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:15px; mso-line-height-rule:exactly;';
-  const td = 'text-align:center; padding:0px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:24px; mso-line-height-rule:exactly;';
+  const td = 'text-align:center; padding:0px 12px; border:1px solid #cbd5e1; font-size:12px;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
@@ -110,10 +110,10 @@ function tablaHtmlIncidencias(filas) {
 
     return `
       <tr style="background:${estilo.bg};">
-        <td align="center" valign="middle" style="${td} white-space:nowrap; color:${estilo.texto};">${hora}</td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</td>
-        <td align="center" valign="middle" style="${td} color:${estilo.texto};">${obsTexto}${avisoRetraso}</td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:16px; color:${estilo.texto};">${hora}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:16px; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:16px; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</p></td>
+        <td align="center" valign="middle" style="${td}"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:16px; color:${estilo.texto};">${obsTexto}${avisoRetraso}</p></td>
       </tr>`;
   }).join('');
 
