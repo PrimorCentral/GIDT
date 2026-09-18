@@ -110,10 +110,10 @@ function tablaHtmlIncidencias(filas) {
 
     return `
       <tr style="background:${estilo.bg};">
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:22px; color:${estilo.texto};">${hora}</p></td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:22px; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</p></td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:22px; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</p></td>
-        <td align="center" valign="middle" style="${td}"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:22px; color:${estilo.texto};">${obsTexto}${avisoRetraso}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; color:${estilo.texto};">${hora}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</p></td>
+        <td align="center" valign="middle" style="${td}"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; color:${estilo.texto};">${obsTexto}${avisoRetraso}</p></td>
       </tr>`;
   }).join('');
 
