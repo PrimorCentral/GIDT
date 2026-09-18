@@ -85,8 +85,8 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:center; padding:3px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:1.2;';
-  const td = 'text-align:center; padding:0px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1;';
+  const th = 'text-align:center; padding:3px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:15px; mso-line-height-rule:exactly;';
+  const td = 'text-align:center; padding:0px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:14px; mso-line-height-rule:exactly;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
@@ -118,7 +118,7 @@ function tablaHtmlIncidencias(filas) {
   }).join('');
 
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, sans-serif; margin:20px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; font-family:Arial, sans-serif; margin:20px 0;">
       <thead>
         <tr>
           <th width="55" align="center" valign="middle" style="${th}">Hora</th>
