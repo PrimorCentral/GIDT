@@ -50,8 +50,15 @@ const PILL_MOTIVO_COLOR = {
 
 function pillMotivoHtml(motivo) {
   const nivel = (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(motivo) : null) || 'pendiente';
-  const { bg, color } = PILL_MOTIVO_COLOR[nivel] || PILL_MOTIVO_COLOR.pendiente;
-  return `<span style="display:inline-block; margin-bottom:3px; padding:3px 10px; border-radius:99px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
+  // Solo grave (rojo) y moderado (azul) llevan pill de color — son los
+  // que de verdad se distinguen a simple vista. "Leve" y "pendiente" se
+  // quedan en texto negro simple, más grande, sin sombreado (su pill
+  // casi no se notaba y parecía un fallo visual más que un aviso).
+  if (nivel === 'grave' || nivel === 'moderado') {
+    const { bg, color } = PILL_MOTIVO_COLOR[nivel];
+    return `<span style="display:inline-block; margin-bottom:3px; padding:3px 10px; border-radius:99px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
+  }
+  return `<span style="display:inline-block; margin-bottom:2px; font-size:13px; font-weight:700; color:#1e293b;">${escapeHtml(motivo)}</span>`;
 }
 
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
@@ -91,8 +98,8 @@ function tablaHtmlIncidencias(filas) {
       <thead>
         <tr>
           <th width="55" style="${th}">Hora</th>
-          <th width="120" style="${th}">Tienda</th>
-          <th width="140" style="${th}">Motivo</th>
+          <th width="95" style="${th}">Tienda</th>
+          <th width="130" style="${th}">Motivo</th>
           <th style="${th}">Observaciones</th>
         </tr>
       </thead>
@@ -139,7 +146,7 @@ function plantillaInformeAgencia(agenciaNombre, fechaISO, tabla, numIncidencias)
     <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f5" style="background:#eef1f5; font-family:Arial, sans-serif;">
       <tr>
         <td align="center" style="padding:24px 12px;">
-          <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff; border:1px solid #edf2f7; border-radius:16px;">
+          <table width="700" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff; border:1px solid #edf2f7; border-radius:16px;">
             <tr>
               <td style="padding:28px 32px;">
                 <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">Buenas,</p>
