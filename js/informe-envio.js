@@ -36,38 +36,59 @@ function construirGruposInformeHoy() {
   return lista;
 }
 
-// Colores del pill de Motivo en el correo, según el nivel de gravedad
-// configurado en Configuración → Gravedad de motivos (nivelDeMotivo(),
-// de js/config-gravedad-motivos.js) — mismos colores que usa la app
-// (var(--grave)/--moderado/--leve). Los motivos "pendientes de revisar"
-// (sin nivel asignado) usan el color naranja de "pendiente".
-const PILL_MOTIVO_COLOR = {
-  grave:     { bg: '#FDE7E2', color: '#D12B0D' },
-  moderado:  { bg: '#E6F0FE', color: '#1B6DE0' },
-  leve:      { bg: '#EEF0F3', color: '#6B7684' },
-  pendiente: { bg: '#FFEEDF', color: '#7A3400' }
+// Color de FILA COMPLETA según la gravedad dominante de los motivos de esa
+// incidencia (como en la tabla antigua): grave = fila roja sólida con texto
+// blanco, moderado = fila azul clara, leve = fila blanca normal, y
+// "pendiente" (RETRASO PDTE CONFIRMAR / REVISANDO POSIBLE INCIDENCIA, sin
+// nivel asignado en Configuración → Gravedad de motivos) = fila rosa/salmón,
+// para que también destaque en vez de quedar igual que una fila normal.
+const FILA_ESTILO = {
+  grave:     { bg: '#D12B0D', texto: '#ffffff', motivo: '#ffffff' },
+  moderado:  { bg: '#E6F0FE', texto: '#1e293b', motivo: '#1B6DE0' },
+  pendiente: { bg: '#FBE3E4', texto: '#1e293b', motivo: '#B23A28' },
+  leve:      { bg: '#ffffff', texto: '#1e293b', motivo: '#1e293b' }
 };
 
-function pillMotivoHtml(motivo) {
-  const nivel = (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(motivo) : null) || 'pendiente';
-  // Solo grave (rojo) y moderado (azul) llevan pill de color — son los
-  // que de verdad se distinguen a simple vista. "Leve" y "pendiente" se
-  // quedan en texto negro simple, más grande, sin sombreado (su pill
-  // casi no se notaba y parecía un fallo visual más que un aviso).
-  if (nivel === 'grave' || nivel === 'moderado') {
-    const { bg, color } = PILL_MOTIVO_COLOR[nivel];
-    return `<span style="display:inline-block; vertical-align:middle; padding:4px 11px; border-radius:99px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
-  }
-  return `<span style="display:inline-block; vertical-align:middle; font-size:13px; font-weight:700; color:#1e293b;">${escapeHtml(motivo)}</span>`;
+// De varios motivos en la misma incidencia, el nivel que manda para el
+// color de la fila es el más grave de todos los presentes (mismo criterio
+// que ya usa el resto de la app — ver severidad() en codigos-informe.js).
+function nivelDominanteFila(motivos) {
+  const niveles = motivos.map(m => (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(m) : null));
+  if (niveles.includes('grave')) return 'grave';
+  if (niveles.includes('moderado')) return 'moderado';
+  if (niveles.includes('leve')) return 'leve';
+  return 'pendiente'; // sin nivel asignado (motivos "pendientes de revisar")
+}
+
+// Si el texto de Observaciones lleva una hora (p. ej. "10:00", "10:00h",
+// "10:00H"), calcula los minutos de diferencia contra la hora prevista de
+// entrega de la tienda y devuelve el aviso "| ⏳ N MIN RETRASO" para
+// añadir detrás del texto. Si no hay hora en el texto, o la hora
+// encontrada es igual o anterior a la prevista (no hay retraso), no
+// añade nada. `colorTexto` es el color de la fila (para que en las filas
+// rojas el aviso se lea en blanco, en vez de rojo sobre rojo).
+function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
+  if (!observaciones || !horaPrevista) return '';
+  const match = observaciones.match(/(\d{1,2}):(\d{2})\s*h?\b/i);
+  if (!match) return '';
+
+  const minObs = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  const [hp, mp] = horaPrevista.split(':').map(Number);
+  const minPrevista = hp * 60 + mp;
+  const diff = minObs - minPrevista;
+  if (diff <= 0) return '';
+
+  const color = colorFila === '#ffffff' ? '#ffffff' : '#D12B0D';
+  return ` <span style="display:inline-block; white-space:nowrap; font-weight:800; color:${color};">| ⏳ ${diff} MIN RETRASO</span>`;
 }
 
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:left; padding:3px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0; line-height:1.3;';
-  const td = 'padding:2px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; color:#475569; line-height:1.15;';
+  const th = 'text-align:center; padding:5px 12px; background:#f1f5f9; color:#1e293b; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0; line-height:1.3;';
+  const td = 'text-align:center; padding:6px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; line-height:1.2;';
 
-  const filasHtml = filas.map(({ tienda, inc }, idx) => {
+  const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
     // Solo los motivos "principales" (p. ej. "FALTAS", o los pendientes
     // "REVISANDO POSIBLE INCIDENCIA" / "RETRASO PDTE CONFIRMAR"), nunca la
@@ -81,15 +102,18 @@ function tablaHtmlIncidencias(filas) {
     // motivos perdía el pendiente y solo mostraba el resto.)
     const submotivosInternos = CODIGOS_INFORME.filter(c => c.submotivo).map(c => c.submotivo);
     const motivosPrincipales = (inc.motivo || []).filter(m => !submotivosInternos.includes(m));
-    const motivos = motivosPrincipales.map(m => pillMotivoHtml(m)).join('<br>');
-    const fondoFila = idx % 2 === 1 ? 'background:#f4f6f8;' : '';
+    const nivelFila = nivelDominanteFila(motivosPrincipales);
+    const estilo = FILA_ESTILO[nivelFila];
+    const motivosTexto = motivosPrincipales.map(m => escapeHtml(m)).join('<br>');
+    const obsTexto = escapeHtml(inc.observaciones || '');
+    const avisoRetraso = avisoRetrasoObservaciones(inc.observaciones, tienda.hora_prevista, estilo.texto);
 
     return `
-      <tr style="${fondoFila}">
-        <td valign="middle" style="${td} white-space:nowrap; vertical-align:middle;">${hora}</td>
-        <td valign="middle" style="${td} color:#1e293b; font-weight:600; vertical-align:middle;">${escapeHtml(tienda.nombre)}</td>
-        <td valign="middle" style="${td} vertical-align:middle;">${motivos}</td>
-        <td valign="middle" style="${td} vertical-align:middle;">${escapeHtml(inc.observaciones || '')}</td>
+      <tr style="background:${estilo.bg};">
+        <td align="center" valign="middle" style="${td} white-space:nowrap; color:${estilo.texto};">${hora}</td>
+        <td align="center" valign="middle" style="${td} font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</td>
+        <td align="center" valign="middle" style="${td} font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</td>
+        <td align="center" valign="middle" style="${td} color:${estilo.texto};">${obsTexto}${avisoRetraso}</td>
       </tr>`;
   }).join('');
 
@@ -97,10 +121,10 @@ function tablaHtmlIncidencias(filas) {
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, sans-serif; margin:20px 0;">
       <thead>
         <tr>
-          <th width="55" valign="middle" style="${th}">Hora</th>
-          <th width="95" valign="middle" style="${th}">Tienda</th>
-          <th width="175" valign="middle" style="${th}">Motivo</th>
-          <th valign="middle" style="${th}">Observaciones</th>
+          <th width="55" align="center" valign="middle" style="${th}">Hora</th>
+          <th width="95" align="center" valign="middle" style="${th}">Tienda</th>
+          <th width="175" align="center" valign="middle" style="${th}">Motivo</th>
+          <th align="center" valign="middle" style="${th}">Observaciones</th>
         </tr>
       </thead>
       <tbody>${filasHtml}</tbody>
