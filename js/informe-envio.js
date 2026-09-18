@@ -85,8 +85,8 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:center; padding:5px 12px; background:#f1f5f9; color:#1e293b; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0; line-height:1.3;';
-  const td = 'text-align:center; padding:6px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; line-height:1.2;';
+  const th = 'text-align:center; padding:4px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:1.3;';
+  const td = 'text-align:center; padding:6px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1.2;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
@@ -189,13 +189,13 @@ function plantillaInformeAgencia(agenciaNombre, fechaISO, tabla, numIncidencias)
                   Atentamente,<br>
                   <b>Departamento de Transporte</b>
                 </p>
-                <p style="margin:24px 0 0; text-align:center;">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png" alt="PRIMOR" width="120" style="opacity:.85;">
-                </p>
               </td>
             </tr>
           </table>
-          <p style="margin:10px 0 0; text-align:center; font-size:10.5px; color:#94a3b8; font-style:italic;">
+          <p style="margin:20px 0 0; text-align:center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png" alt="PRIMOR" width="120" style="opacity:.85;">
+          </p>
+          <p style="margin:8px 0 0; text-align:center; font-size:10.5px; color:#94a3b8; font-style:italic;">
             Informe generado automáticamente por el sistema GIDT.
           </p>
         </td>
