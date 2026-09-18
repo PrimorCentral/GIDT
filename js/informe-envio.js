@@ -56,7 +56,7 @@ function pillMotivoHtml(motivo) {
   // casi no se notaba y parecía un fallo visual más que un aviso).
   if (nivel === 'grave' || nivel === 'moderado') {
     const { bg, color } = PILL_MOTIVO_COLOR[nivel];
-    return `<span style="display:inline-block; vertical-align:middle; padding:3px 10px; border-radius:99px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
+    return `<span style="display:inline-block; vertical-align:middle; padding:4px 11px; border-radius:99px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
   }
   return `<span style="display:inline-block; vertical-align:middle; font-size:13px; font-weight:700; color:#1e293b;">${escapeHtml(motivo)}</span>`;
 }
@@ -99,7 +99,7 @@ function tablaHtmlIncidencias(filas) {
         <tr>
           <th width="55" valign="middle" style="${th}">Hora</th>
           <th width="95" valign="middle" style="${th}">Tienda</th>
-          <th width="130" valign="middle" style="${th}">Motivo</th>
+          <th width="175" valign="middle" style="${th}">Motivo</th>
           <th valign="middle" style="${th}">Observaciones</th>
         </tr>
       </thead>
@@ -110,7 +110,7 @@ function tablaHtmlIncidencias(filas) {
 // Franja de resumen ("N incidencias registradas en el reparto de hoy")
 // que se muestra justo encima de la tabla.
 function resumenHtml(numIncidencias) {
-  const texto = `${numIncidencias} incidencia${numIncidencias === 1 ? '' : 's'} registrada${numIncidencias === 1 ? '' : 's'} en el reparto de hoy`;
+  const texto = `incidencia${numIncidencias === 1 ? '' : 's'} registrada${numIncidencias === 1 ? '' : 's'} en el reparto de hoy`;
   return `
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;">
       <tr>
