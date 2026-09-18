@@ -36,35 +36,10 @@ function construirGruposInformeHoy() {
   return lista;
 }
 
-// Colores del pill de Motivo en el correo, según el nivel de gravedad
-// configurado en Configuración → Gravedad de motivos (nivelDeMotivo(),
-// de js/config-gravedad-motivos.js) — mismos colores que usa la app
-// (var(--grave)/--moderado/--leve). Los motivos "pendientes de revisar"
-// (sin nivel asignado) usan el color naranja de "pendiente".
-const PILL_MOTIVO_COLOR = {
-  grave:     { bg: '#FDE7E2', color: '#D12B0D' },
-  moderado:  { bg: '#E6F0FE', color: '#1B6DE0' },
-  leve:      { bg: '#EEF0F3', color: '#6B7684' },
-  pendiente: { bg: '#FFEEDF', color: '#7A3400' }
-};
-
-function pillMotivoHtml(motivo) {
-  const nivel = (typeof nivelDeMotivo === 'function' ? nivelDeMotivo(motivo) : null) || 'pendiente';
-  // Solo grave (rojo) y moderado (azul) llevan pill de color — son los
-  // que de verdad se distinguen a simple vista. "Leve" y "pendiente" se
-  // quedan en texto negro simple, más grande, sin sombreado (su pill
-  // casi no se notaba y parecía un fallo visual más que un aviso).
-  if (nivel === 'grave' || nivel === 'moderado') {
-    const { bg, color } = PILL_MOTIVO_COLOR[nivel];
-    return `<span style="display:inline-block; margin-bottom:3px; padding:3px 10px; border-radius:99px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; background:${bg}; color:${color};">${escapeHtml(motivo)}</span>`;
-  }
-  return `<span style="display:inline-block; margin-bottom:2px; font-size:13px; font-weight:700; color:#1e293b;">${escapeHtml(motivo)}</span>`;
-}
-
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
-  const th = 'text-align:left; padding:3px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0; line-height:1.3;';
+  const th = 'text-align:left; padding:4px 12px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid #e2e8f0;';
   const td = 'padding:2px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; color:#475569; line-height:1.15;';
 
   const filasHtml = filas.map(({ tienda, inc }, idx) => {
@@ -81,7 +56,7 @@ function tablaHtmlIncidencias(filas) {
     // motivos perdía el pendiente y solo mostraba el resto.)
     const submotivosInternos = CODIGOS_INFORME.filter(c => c.submotivo).map(c => c.submotivo);
     const motivosPrincipales = (inc.motivo || []).filter(m => !submotivosInternos.includes(m));
-    const motivos = motivosPrincipales.map(m => pillMotivoHtml(m)).join('<br>');
+    const motivos = motivosPrincipales.map(m => escapeHtml(m)).join('<br>');
     const fondoFila = idx % 2 === 1 ? 'background:#f4f6f8;' : '';
 
     return `
@@ -97,9 +72,9 @@ function tablaHtmlIncidencias(filas) {
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, sans-serif; margin:20px 0;">
       <thead>
         <tr>
-          <th width="55" style="${th}">Hora</th>
-          <th width="95" style="${th}">Tienda</th>
-          <th width="130" style="${th}">Motivo</th>
+          <th style="${th}">Hora</th>
+          <th style="${th}">Tienda</th>
+          <th style="${th}">Motivo</th>
           <th style="${th}">Observaciones</th>
         </tr>
       </thead>
@@ -107,76 +82,32 @@ function tablaHtmlIncidencias(filas) {
     </table>`;
 }
 
-// Franja de resumen ("N incidencias registradas en el reparto de hoy")
-// que se muestra justo encima de la tabla.
-function resumenHtml(numIncidencias) {
-  const texto = `${numIncidencias} incidencia${numIncidencias === 1 ? '' : 's'} registrada${numIncidencias === 1 ? '' : 's'} en el reparto de hoy`;
-  return `
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;">
-      <tr>
-        <td style="background:#FDE7E2; border-radius:10px; padding:10px 14px;">
-          <table cellpadding="0" cellspacing="0" border="0"><tr>
-            <td style="width:26px; height:26px; border-radius:50%; background:#D12B0D; color:#ffffff; font-weight:800; font-size:13px; text-align:center; vertical-align:middle; font-family:Arial, sans-serif;">${numIncidencias}</td>
-            <td style="padding-left:10px; font-size:13.5px; color:#D12B0D; font-weight:600; font-family:Arial, sans-serif;">${texto}</td>
-          </tr></table>
-        </td>
-      </tr>
-    </table>`;
-}
-
-// Fecha con el día de la semana delante (p. ej. "Jueves 17/09/2026"), solo
-// para el texto del cuerpo del correo — fechaEs() (sin día) se sigue usando
-// tal cual para el asunto y el resto de sitios donde ya se usaba.
-function fechaEsConDia(fechaISO) {
-  if (!fechaISO) return '—';
-  const dia = new Date(fechaISO + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long' });
-  const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
-  return `${diaCapitalizado} ${fechaEs(fechaISO)}`;
-}
-
 // Genera { subject, html } para el correo de una agencia, usando la plantilla acordada.
-// fechaISO es la fecha del informe (informeHoyCache.fecha); numIncidencias, el total
-// de filas de esa agencia en `tabla` (para la franja de resumen).
-function plantillaInformeAgencia(agenciaNombre, fechaISO, tabla, numIncidencias) {
+function plantillaInformeAgencia(agenciaNombre, nombreHoja, tabla) {
   const nombreAgenciaUpper = escapeHtml(agenciaNombre.toUpperCase());
-  const nombreHoja = fechaEs(fechaISO);
-  const nombreHojaConDia = fechaEsConDia(fechaISO);
 
   const html = `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f5" style="background:#eef1f5; font-family:Arial, sans-serif;">
-      <tr>
-        <td align="center" style="padding:24px 12px;">
-          <table width="700" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff; border:1px solid #edf2f7; border-radius:16px;">
-            <tr>
-              <td style="padding:28px 32px;">
-                <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">Buenas,</p>
-                <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
-                  A continuación, les indicamos las incidencias producidas en el reparto del <b>${nombreHojaConDia}</b> por la agencia <b>${nombreAgenciaUpper}</b>:
-                </p>
-                ${resumenHtml(numIncidencias)}
-                ${tabla}
-                <p style="margin:20px 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
-                  Todas las horas de entrega mostradas en este correo corresponden al horario peninsular.
-                </p>
-                <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">
-                  Quedamos a su disposición para cualquier aclaración adicional que consideren necesaria.
-                </p>
-                <p style="margin:0; font-size:14px; color:#1e293b; line-height:1.55;">
-                  Atentamente,<br>
-                  <b>Departamento de Transporte</b>
-                </p>
-                <p style="margin:24px 0 0; text-align:center;">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png" alt="PRIMOR" width="120" style="opacity:.85;">
-                </p>
-              </td>
-            </tr>
-          </table>
-          <p style="margin:10px 0 0; text-align:center; font-size:10.5px; color:#94a3b8; font-style:italic;">
-            Informe generado automáticamente por el sistema GIDT.
-          </p>
-        </td>
-      </tr>
-    </table>`;
+    <p>Buenas,</p>
+    <p>
+      A continuación, les indicamos las incidencias producidas en el reparto del <b>${nombreHoja}</b> por la agencia <b>${nombreAgenciaUpper}</b>:
+    </p>
+    ${tabla}
+    <p>
+      Todas las horas de entrega mostradas en este correo corresponden al horario peninsular.
+    </p>
+    <p>
+      Quedamos a su disposición para cualquier aclaración adicional que consideren necesaria.
+    </p>
+    <p style="font-size: 11px; color: #9ca3af; font-style: italic; margin-bottom: 20px;">
+      Informe generado automáticamente por el sistema GIDT.
+    </p>
+    <p>
+      Atentamente,<br>
+      <b>Departamento de Transporte</b>
+    </p>
+    <p>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png" alt="PRIMOR" width="150">
+    </p>`;
 
   const subject = `INCIDENCIAS EN EL REPARTO DE ${agenciaNombre.toUpperCase()} – ${nombreHoja}`;
 
@@ -452,7 +383,7 @@ async function enviarInformeDelDia() {
       i++;
       actualizarCargandoEnvio(`Enviando a ${g.agenciaNombre}… (${i}/${conEmails.length})`);
       const tabla = tablaHtmlIncidencias(g.filas);
-      const { subject, html } = plantillaInformeAgencia(g.agenciaNombre, informeHoyCache.fecha, tabla, g.filas.length);
+      const { subject, html } = plantillaInformeAgencia(g.agenciaNombre, nombreHoja, tabla);
       try {
         await enviarEmail({ to: g.emails, subject, html, silenciarToast: true });
         resultados.push({ agencia: g.agenciaNombre, ok: true });
