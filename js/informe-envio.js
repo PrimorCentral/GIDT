@@ -86,7 +86,7 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
   const th = 'text-align:center; padding:3px 12px; background:#f1f5f9; color:#1e293b; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:1.2;';
-  const td = 'text-align:center; padding:1px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1.1;';
+  const td = 'text-align:center; padding:0px 12px; border:1px solid #cbd5e1; font-size:12px; line-height:1;';
 
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
@@ -170,7 +170,7 @@ function plantillaInformeAgencia(agenciaNombre, fechaISO, tabla, numIncidencias)
     <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f5" style="background:#eef1f5; font-family:Arial, sans-serif;">
       <tr>
         <td align="center" style="padding:24px 12px;">
-          <table width="900" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff; border:1px solid #edf2f7; border-radius:16px;">
+          <table width="1100" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff; border:1px solid #edf2f7; border-radius:16px;">
             <tr>
               <td style="padding:28px 32px;">
                 <p style="margin:0 0 14px; font-size:14px; color:#1e293b; line-height:1.55;">Buenas,</p>
