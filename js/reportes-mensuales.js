@@ -60,6 +60,16 @@ function rmEsDomingo(anio, mesIndex, dia) {
   return new Date(anio, mesIndex, dia).getDay() === 0;
 }
 
+// Primer día del mes en que cada tienda "existe" (según tiendas.creado_en,
+// en hora de Madrid): tiendaId → nº de día. 1 = existía ya todo el mes;
+// totalDias + 1 = todavía no existía en este mes. Lo rellena
+// rmCargarDatosMes() y lo leen la tabla en pantalla y el PDF, para no
+// pintar "OK" en los días anteriores a que se diera de alta la tienda.
+let rmPrimerDiaPorTienda = new Map();
+function rmPrimerDiaTienda(tiendaId) {
+  return rmPrimerDiaPorTienda.get(tiendaId) || 1;
+}
+
 async function rmCargarDatosMes(anio, mesIndex) {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
@@ -75,6 +85,19 @@ async function rmCargarDatosMes(anio, mesIndex) {
   if (e1) throw e1;
 
   const fechaPorInforme = new Map((informes || []).map(i => [i.id, i.fecha]));
+
+  // Fecha de alta de cada tienda → primer día del mes que le corresponde.
+  const { data: altasTiendas, error: eAlta } = await sb.from('tiendas').select('id, creado_en');
+  if (eAlta) throw eAlta;
+  rmPrimerDiaPorTienda = new Map();
+  (altasTiendas || []).forEach(t => {
+    if (!t.creado_en) return;
+    const alta = new Date(t.creado_en).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }); // AAAA-MM-DD
+    let primerDia = 1;
+    if (alta > hasta) primerDia = totalDias + 1;
+    else if (alta >= desde) primerDia = Number(alta.slice(8, 10));
+    rmPrimerDiaPorTienda.set(t.id, primerDia);
+  });
 
   // Cambios PUNTUALES de agencia (un solo día) registrados en
   // informes_diarios.ajustes_puntuales, agrupados por tienda: para cada
@@ -482,7 +505,11 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
     }
     const c = celdasTienda[dia];
-    if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
+    if (!c) {
+      // Día anterior al alta de la tienda: no hay nada que revisar → "–", no "OK".
+      if (dia < rmPrimerDiaTienda(f.tiendaId)) { partes.push(`<td class="rm-td-pendiente" title="La tienda aún no estaba dada de alta">–</td>`); continue; }
+      partes.push(`<td class="rm-td-ok">OK</td>`); continue;
+    }
     totalIncidencias++;
     partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
   }
