@@ -89,7 +89,7 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
 // varios motivos apilados); esta mini-tabla interna sí se centra bien
 // en todos los clientes, incluido ese.
 function celdaCentrada(contenidoHtml, colorTexto, estiloExtra = '') {
-  return `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" style="mso-line-height-rule:exactly; line-height:18px; font-size:13px; color:${colorTexto}; ${estiloExtra}">${contenidoHtml}</td></tr></table>`;
+  return `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" style="padding:8px 0; mso-line-height-rule:exactly; line-height:20px; font-size:13px; color:${colorTexto}; ${estiloExtra}">${contenidoHtml}</td></tr></table>`;
 }
 
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
