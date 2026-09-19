@@ -483,12 +483,26 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       celdas.push({ content: `Antes:\n${s.agenciaNombre}`, colSpan: fin - ini + 1, styles: estiloCambio });
     });
 
+  // Días consecutivos de baja (sin incidencia registrada) → una sola celda
+  // gris: "BAJA" si ocupa 2 o más cuadraditos, "BAJ" (3 letras) si es un
+  // único día, igual que en la pantalla.
+  const estiloBaja = { fillColor: [225, 228, 232], textColor: [90, 100, 115], fontStyle: 'bold', fontSize: 5.5 * escala };
+  let diasBajaSeguidos = 0;
+  const cerrarBloqueBaja = () => {
+    if (!diasBajaSeguidos) return;
+    celdas.push({ content: diasBajaSeguidos >= 2 ? 'BAJA' : 'BAJ', colSpan: diasBajaSeguidos, styles: estiloBaja });
+    diasBajaSeguidos = 0;
+  };
+
   for (let dia = Math.max(f.diaInicio, diaDesde); dia <= Math.min(f.diaFin, diaHasta); dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY), igual que en la
     // pantalla de Reportes mensuales; el nombre completo va en la fila
     // "puntual" de esa agencia.
-    if (pun) { celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase(), styles: estiloCambio }); continue; }
+    if (pun) { cerrarBloqueBaja(); celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase(), styles: estiloCambio }); continue; }
+    // Tienda de baja ese día: gris, sin OK y sin contar (salvo incidencia ya registrada).
+    if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
+    cerrarBloqueBaja();
     if (!diasEnviados.has(dia)) {
       if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
       celdas.push({ content: '', styles: {} }); continue;
@@ -502,6 +516,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     totalIncidencias++;
     celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
   }
+  cerrarBloqueBaja();
 
   segmentosTienda
     .filter(s => !s.esPuntual && s.diaInicio > f.diaFin)

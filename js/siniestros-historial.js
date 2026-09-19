@@ -197,6 +197,9 @@
 
     toolbar.style.display = '';
     await ensureAgenciasYTiendasCargadas();
+    // Las bajas/altas de tiendas pueden haberlas cambiado otros compañeros
+    // desde que se cargó la lista de tiendas: se refrescan al entrar.
+    if (typeof cargarBajasTiendas === 'function') await cargarBajasTiendas();
     await cargarIncidenciasHoy();
     document.getElementById('informeTituloFecha').textContent =
       `${dias[hoy.getDay()]}, ${formatearFechaCorta(hoy)}`;
@@ -281,8 +284,11 @@
     // Tiendas "efectivas" para hoy: si una tienda tiene un cambio puntual
     // de hora y/o agencia (desde "Utilidades"), se agrupa bajo la agencia
     // nueva y se muestra la hora nueva — solo para el informe de hoy.
+    // Las tiendas de baja hoy no salen en el informe (salvo que ya tengan
+    // una incidencia marcada hoy, para no esconder algo ya registrado).
     const tiendasEfectivas = tiendasCache
       .filter(t => t.activo)
+      .filter(t => typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, fechaHoyISO) || !!incidenciaDeTienda(t.id)?.marcada)
       .map(t => (typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(t.id) : t));
 
     cont.innerHTML = agenciasAMostrar.map(ag => {

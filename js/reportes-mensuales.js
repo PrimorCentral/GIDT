@@ -27,6 +27,14 @@
 // incidencia en la fila de la agencia habitual. El resto del mes de esa
 // tienda sigue con su agencia de siempre.
 //
+// BAJAS de tiendas (tabla tienda_bajas, ver tiendas.js): los días en que
+// una tienda estuvo de baja (no recibía mercancía) se pintan como celda
+// gris "BAJA" — sin OK y sin contar en el Total. Si ese día había una
+// incidencia registrada, se muestra la incidencia igualmente. Una tienda
+// ELIMINADA se pinta igual desde su fecha de eliminación hasta fin de ese
+// mes, y ya no aparece en los meses siguientes; los meses anteriores a
+// la eliminación quedan exactamente como estaban.
+//
 // Filtros: mismo diseño y comportamiento que el panel de "Filtrar
 // incidencias" del Informe del día (misma estructura HTML/CSS, ver
 // filtros-motivos.js) — Agencia, Tienda y "solo con incidencias este mes".
@@ -70,6 +78,17 @@ function rmPrimerDiaTienda(tiendaId) {
   return rmPrimerDiaPorTienda.get(tiendaId) || 1;
 }
 
+// Días del mes (nº de día) en los que cada tienda está de baja:
+// tiendaId → Set<dia>. Lo rellena rmCargarDatosMes() y lo leen la tabla en
+// pantalla y el PDF (igual que rmPrimerDiaPorTienda).
+let rmDiasBajaPorTienda = new Map();
+function rmDiaEnBaja(tiendaId, dia) {
+  const dias = rmDiasBajaPorTienda.get(tiendaId);
+  return !!dias && dias.has(dia);
+}
+// Tiendas eliminadas ANTES de este mes: no se dibujan.
+let rmTiendasOcultasMes = new Set();
+
 async function rmCargarDatosMes(anio, mesIndex) {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
@@ -98,6 +117,38 @@ async function rmCargarDatosMes(anio, mesIndex) {
     else if (alta >= desde) primerDia = Number(alta.slice(8, 10));
     rmPrimerDiaPorTienda.set(t.id, primerDia);
   });
+
+  // Bajas de tiendas (tienda_bajas). Si la consulta falla (p. ej. la tabla
+  // aún no existe) el reporte sigue funcionando como antes, sin bajas.
+  rmDiasBajaPorTienda = new Map();
+  rmTiendasOcultasMes = new Set();
+  const { data: bajas, error: eBajas } = await sb
+    .from('tienda_bajas')
+    .select('tienda_id, tipo, fecha_desde, fecha_reactivacion');
+  if (eBajas) console.error('No se pudieron cargar las bajas de tiendas:', eBajas);
+
+  const marcarDiasBaja = (tiendaId, ini, fin) => {
+    if (!rmDiasBajaPorTienda.has(tiendaId)) rmDiasBajaPorTienda.set(tiendaId, new Set());
+    const set = rmDiasBajaPorTienda.get(tiendaId);
+    for (let d = ini; d <= fin; d++) set.add(d);
+  };
+
+  (bajas || []).forEach(b => {
+    // Eliminada antes de que empiece este mes: la fila ya no se dibuja.
+    if (b.tipo === 'ELIMINADA' && b.fecha_desde < desde) { rmTiendasOcultasMes.add(b.tienda_id); return; }
+    if (b.fecha_desde > hasta) return; // empieza después de este mes
+    if (b.fecha_reactivacion && b.fecha_reactivacion <= desde) return; // ya había vuelto antes de este mes
+    const ini = b.fecha_desde > desde ? Number(b.fecha_desde.slice(8, 10)) : 1;
+    const fin = (b.fecha_reactivacion && b.fecha_reactivacion <= hasta)
+      ? Number(b.fecha_reactivacion.slice(8, 10)) - 1 // el día de alta ya cuenta como activa
+      : totalDias;
+    marcarDiasBaja(b.tienda_id, ini, fin);
+  });
+
+  // Tiendas eliminadas antes de existir tienda_bajas (sin fecha de
+  // eliminación conocida): todo el mes en gris, sin OK.
+  const conFilaEliminada = new Set((bajas || []).filter(b => b.tipo === 'ELIMINADA').map(b => b.tienda_id));
+  tiendasCache.filter(t => !t.activo && !conFilaEliminada.has(t.id)).forEach(t => marcarDiasBaja(t.id, 1, totalDias));
 
   // Cambios PUNTUALES de agencia (un solo día) registrados en
   // informes_diarios.ajustes_puntuales, agrupados por tienda: para cada
@@ -274,6 +325,7 @@ function rmSegmentosPorTienda(todasLasFilas) {
 function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias) {
   const todas = [];
   tiendasCache.forEach(t => {
+    if (rmTiendasOcultasMes.has(t.id)) return; // eliminada antes de este mes
     const cambios = cambiosPorTienda.get(t.id);
     const puntualPorDia = puntualAgenciaPorTienda.get(t.id);
     const segmentosPermanentes = rmSegmentosDeTienda(t, cambios, totalDias);
@@ -312,7 +364,11 @@ function rmPintarLeyendaCompacta() {
     <span class="rm-leyenda-item">
       <span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};">${escapeHtml(c.codigo)}</span>
       <span>${escapeHtml(c.label)}</span>
-    </span>`).join('');
+    </span>`).join('') + `
+    <span class="rm-leyenda-item">
+      <span class="rm-celda-codigo" style="background:#E1E4E8; color:#5A6473;">BAJA</span>
+      <span>Tienda de baja (sin recepción de mercancía)</span>
+    </span>`;
   rmLeyendaPintada = true;
 }
 
@@ -490,9 +546,21 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td colspan="${dias}" class="rm-td-cambio">Antes: ${escapeHtml(s.agenciaNombre)}</td>`);
     });
 
+  // Días consecutivos de baja (sin incidencia registrada) se agrupan en una
+  // sola celda gris: "BAJA" si ocupa 2 o más cuadraditos, y solo "BAJ" (las
+  // 3 primeras letras, como con las agencias en los cambios puntuales) si
+  // es un único día, para que no ensanche la columna.
+  let diasBajaSeguidos = 0;
+  const cerrarBloqueBaja = () => {
+    if (!diasBajaSeguidos) return;
+    partes.push(`<td colspan="${diasBajaSeguidos}" class="rm-td-baja" title="Tienda de baja (sin recepción de mercancía)">${diasBajaSeguidos >= 2 ? 'BAJA' : 'BAJ'}</td>`);
+    diasBajaSeguidos = 0;
+  };
+
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun) {
+      cerrarBloqueBaja();
       // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY): el nombre
       // completo ensanchaba la columna de ese día. El nombre entero sigue
       // saliendo en el tooltip (title) y en la fila "puntual" de esa agencia.
@@ -500,6 +568,10 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">${escapeHtml(abreviaturaPun)}</td>`);
       continue;
     }
+    // Tienda de baja ese día: gris, sin OK y sin contar (salvo que ya
+    // hubiera una incidencia registrada, que se muestra como siempre).
+    if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
+    cerrarBloqueBaja();
     if (!diasEnviados.has(dia)) {
       if (rmEsDomingo(rmAnio, rmMes, dia)) { partes.push(`<td class="rm-td-domingo" title="Domingo — sin entrega habitual"></td>`); continue; }
       partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
@@ -513,6 +585,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     totalIncidencias++;
     partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
   }
+  cerrarBloqueBaja();
 
   segmentosTienda
     .filter(s => !s.esPuntual && s.diaInicio > f.diaFin)

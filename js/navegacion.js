@@ -155,8 +155,31 @@ function bordeDerechoVisible() {
       ]);
       if (e1 || e2) throw (e1 || e2);
 
+      // Las tiendas HABITUALES que están de baja hoy no cuentan como activas
+      // (si esta consulta falla, se muestra el total sin descontar).
+      let numTiendasActivas = numTiendas;
+      try {
+        const hoyKpiISO = fechaLocalISO(new Date());
+        const { data: bajasHoy, error: eBajasKpi } = await sb.from('tienda_bajas')
+          .select('tienda_id')
+          .eq('tipo', 'BAJA')
+          .lte('fecha_desde', hoyKpiISO)
+          .or(`fecha_reactivacion.is.null,fecha_reactivacion.gt.${hoyKpiISO}`);
+        if (eBajasKpi) throw eBajasKpi;
+        const idsBaja = [...new Set((bajasHoy || []).map(b => b.tienda_id))];
+        if (idsBaja.length) {
+          const { count: numBajasHabituales, error: eBajasHab } = await sb.from('tiendas')
+            .select('*', { count: 'exact', head: true })
+            .in('id', idsBaja).eq('activo', true).eq('marca', 'HABITUAL');
+          if (eBajasHab) throw eBajasHab;
+          numTiendasActivas = (numTiendas ?? 0) - (numBajasHabituales ?? 0);
+        }
+      } catch (eKpiBajas) {
+        console.error('No se pudieron descontar las tiendas de baja del KPI:', eKpiBajas);
+      }
+
       document.getElementById('kpiAgencias').textContent = numAgencias ?? '—';
-      document.getElementById('kpiTiendas').textContent = numTiendas ?? '—';
+      document.getElementById('kpiTiendas').textContent = numTiendasActivas ?? '—';
       document.getElementById('kpiIncidenciasHoy').textContent = '0';
       document.getElementById('kpiSiniestrosPend').textContent = '0';
 

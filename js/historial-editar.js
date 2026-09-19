@@ -288,7 +288,9 @@ function renderAcordeonHistorialEditable() {
   const bloques = agenciasAMostrar.map(ag => {
     // Solo tiendas que ya existían ese día (salvo que ya tengan algo registrado en ese informe).
     let tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo
-      && (tiendaExistiaEnFecha(t, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
+      && (tiendaExistiaEnFecha(t, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id))
+      // Tiendas que estaban de baja ese día: no salen (salvo que ya tengan algo registrado).
+      && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
     if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
     if (typeof filtrosHistorial !== 'undefined') {

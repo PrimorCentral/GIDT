@@ -237,6 +237,7 @@
         .eq('marcada', true);
       if (eInc) throw eInc;
 
+      if (typeof cargarBajasTiendas === 'function') await cargarBajasTiendas();
       historialInformeActual = informe;
       historialIncidenciasActual = incs || [];
       if (wrapExportar) wrapExportar.style.display = '';

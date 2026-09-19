@@ -217,7 +217,9 @@ function construirPanelUtilidadesInforme() {
 
 function construirListaTiendasUtilidades() {
   const lista = document.getElementById('utilTiendaLista');
-  const tds = tiendasCache.filter(t => t.activo).slice().sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const tds = tiendasCache
+    .filter(t => t.activo && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, fechaHoyISO)))
+    .slice().sort((a, b) => a.nombre.localeCompare(b.nombre));
   lista.innerHTML = tds.map(t => {
     const ag = agenciasCache.find(a => a.id === t.agencia_id);
     return `
