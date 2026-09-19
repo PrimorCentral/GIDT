@@ -29,6 +29,16 @@ let historialTodasIncidencias = []; // TODAS las incidencias ya guardadas en BD 
 let historialBorrador = new Map();        // tiendaId -> { motivos: [...], observaciones: '' }
 let historialSiniestrosDraft = new Map(); // tiendaId -> { tipoSiniestro, fotos: [...], fotosPaths: [...], tienda, agencia }
 
+// ¿La tienda ya estaba dada de alta el día de este informe? Se compara
+// tiendas.creado_en (en hora de Madrid) con la fecha del informe, para no
+// listar en días pasados una tienda creada después (p. ej. CAMPERA).
+// Si por lo que sea no se conoce su fecha de alta, se considera que existía.
+function tiendaExistiaEnFecha(tienda, fechaISO) {
+  if (!tienda.creado_en) return true;
+  const alta = new Date(tienda.creado_en).toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }); // AAAA-MM-DD
+  return alta <= fechaISO;
+}
+
 function incidenciaDeTiendaHistorial(tiendaId) {
   return historialTodasIncidencias.find(i => i.tienda_id === tiendaId) || null;
 }
@@ -276,7 +286,9 @@ function renderAcordeonHistorialEditable() {
   }
 
   const bloques = agenciasAMostrar.map(ag => {
-    let tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo);
+    // Solo tiendas que ya existían ese día (salvo que ya tengan algo registrado en ese informe).
+    let tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo
+      && (tiendaExistiaEnFecha(t, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
     if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
     if (typeof filtrosHistorial !== 'undefined') {
