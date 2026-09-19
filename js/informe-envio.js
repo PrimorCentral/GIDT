@@ -82,12 +82,21 @@ function avisoRetrasoObservaciones(observaciones, horaPrevista, colorFila) {
   return ` <span style="display:inline-block; white-space:nowrap; font-weight:800; color:${color};">| ⏳ ${diff} MIN RETRASO</span>`;
 }
 
+// Envuelve el contenido de una celda en una mini-tabla de una sola celda
+// con altura 100% y valign="middle" — Outlook de escritorio (motor Word)
+// no siempre respeta el vertical-align/valign de la celda "de fuera"
+// cuando la fila es más alta de lo normal (p. ej. una incidencia con
+// varios motivos apilados); esta mini-tabla interna sí se centra bien
+// en todos los clientes, incluido ese.
+function celdaCentrada(contenidoHtml, colorTexto, estiloExtra = '') {
+  return `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" style="mso-line-height-rule:exactly; line-height:18px; font-size:13px; color:${colorTexto}; ${estiloExtra}">${contenidoHtml}</td></tr></table>`;
+}
+
 // Construye la tabla HTML (con estilos inline, para que se vea bien en clientes de correo)
 // a partir de las filas {tienda, inc} de una agencia.
 function tablaHtmlIncidencias(filas) {
   const th = 'text-align:center; padding:5px 12px; background:#f1f5f9; color:#1e293b; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; border:1px solid #cbd5e1; line-height:17px; mso-line-height-rule:exactly;';
   const td = 'text-align:center; vertical-align:middle; padding:0px 12px; border:1px solid #cbd5e1; font-size:13px;';
-
   const filasHtml = filas.map(({ tienda, inc }) => {
     const hora = tienda.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '—';
     // Solo los motivos "principales" (p. ej. "FALTAS", o los pendientes
@@ -110,10 +119,10 @@ function tablaHtmlIncidencias(filas) {
 
     return `
       <tr style="background:${estilo.bg};">
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; color:${estilo.texto};">${hora}</p></td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; font-weight:700; color:${estilo.texto};">${escapeHtml(tienda.nombre)}</p></td>
-        <td align="center" valign="middle" style="${td} white-space:nowrap;"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; font-weight:800; text-transform:uppercase; color:${estilo.motivo};">${motivosTexto}</p></td>
-        <td align="center" valign="middle" style="${td}"><p style="margin:0; mso-margin-top-alt:0; mso-margin-bottom-alt:0; mso-line-height-rule:exactly; line-height:30px; color:${estilo.texto};">${obsTexto}${avisoRetraso}</p></td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;">${celdaCentrada(hora, estilo.texto)}</td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;">${celdaCentrada(escapeHtml(tienda.nombre), estilo.texto, 'font-weight:700;')}</td>
+        <td align="center" valign="middle" style="${td} white-space:nowrap;">${celdaCentrada(motivosTexto, estilo.motivo, 'font-weight:800; text-transform:uppercase;')}</td>
+        <td align="center" valign="middle" style="${td}">${celdaCentrada(obsTexto + avisoRetraso, estilo.texto)}</td>
       </tr>`;
   }).join('');
 
@@ -136,13 +145,19 @@ function tablaHtmlIncidencias(filas) {
 function resumenHtml(numIncidencias) {
   const texto = `incidencia${numIncidencias === 1 ? '' : 's'} registrada${numIncidencias === 1 ? '' : 's'} en el reparto de hoy`;
   return `
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
-        <td style="background:#FDE7E2; border-radius:10px; padding:10px 14px;">
-          <table cellpadding="0" cellspacing="0" border="0"><tr>
-            <td valign="middle" style="width:26px; height:26px; border-radius:50%; background:#D12B0D; color:#ffffff; font-weight:800; font-size:13px; text-align:center; vertical-align:middle; font-family:Arial, sans-serif;">${numIncidencias}</td>
-            <td style="padding-left:10px; font-size:13.5px; color:#D12B0D; font-weight:600; font-family:Arial, sans-serif;">${texto}</td>
-          </tr></table>
+        <td style="padding-bottom:18px;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="background:#FDE7E2; border-radius:10px; padding:10px 14px;">
+                <table cellpadding="0" cellspacing="0" border="0"><tr>
+                  <td valign="middle" style="width:26px; height:26px; border-radius:50%; background:#D12B0D; color:#ffffff; font-weight:800; font-size:13px; text-align:center; vertical-align:middle; font-family:Arial, sans-serif;">${numIncidencias}</td>
+                  <td style="padding-left:10px; font-size:13.5px; color:#D12B0D; font-weight:600; font-family:Arial, sans-serif;">${texto}</td>
+                </tr></table>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>`;
