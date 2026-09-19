@@ -199,6 +199,7 @@
   .tiendas-contador.sabado{ background:#FDECD8; color:#A2530B; }
   .tiendas-contador.prueba,
   .tiendas-contador.especial{ background:#EEE6FB; color:#6B3FA0; }
+  .tiendas-contador.baja{ background:#E6E9ED; color:#5A6473; }
   @media (max-width: 900px){
     #pageHeadTiendas{ grid-template-columns:1fr; }
     #pageHeadTiendas > div:last-child{ justify-self:start; }
@@ -512,6 +513,11 @@
   table.tabla-tiendas td.acciones{ text-align:right; white-space:nowrap; }
   .pill.sabado{ background:#FDECD8; color:#A2530B; }
   .pill.prueba,.pill.especial{ background:#EEE6FB; color:#6B3FA0; }
+  /* Tienda de baja (Gestión de tiendas): etiqueta + fila atenuada */
+  .pill.baja{ background:#E6E9ED; color:#5A6473; margin-left:6px; white-space:nowrap; }
+  table.tabla-tiendas tr.fila-en-baja td:not(.acciones){ opacity:.55; }
+  table.tabla-tiendas tr.fila-en-baja td.celda-marca{ opacity:1; }
+  table.tabla-tiendas tr.fila-en-baja td.celda-nombre{ text-decoration:line-through; text-decoration-color:rgba(90,100,115,.5); }
   .mini-btn{
     border:0; background:transparent; cursor:pointer; font-size:13px;
     padding:5px 6px; color:var(--ink-soft); border-radius:6px;
@@ -1994,6 +2000,11 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
   text-align:center; white-space:nowrap;
 }
 .tabla-reporte-mensual td.rm-td-napuntual{ color:var(--ink-soft); opacity:.25; }
+/* Tienda de baja ese día (sin recibir mercancía): gris, sin OK y sin contar. */
+.tabla-reporte-mensual td.rm-td-baja{
+  background:#E1E4E8; color:#5A6473; font-weight:700; font-size:11px;
+  text-align:center; white-space:nowrap; letter-spacing:.3px;
+}
 /* Domingo sin entrega habitual: rayado diagonal para distinguirlo de un
    informe realmente pendiente entre semana (rm-td-pendiente). */
 .tabla-reporte-mensual td.rm-td-domingo{

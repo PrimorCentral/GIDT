@@ -1302,6 +1302,33 @@
   </div>
 </div>
 
+<!-- Modal: dar de baja / dar de alta una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalBajaTiendaOverlay">
+  <div class="modal-box" style="max-width:440px;" role="dialog" aria-modal="true" aria-labelledby="mbtTitulo">
+    <h3 class="modal-title" id="mbtTitulo">Dar de baja tienda</h3>
+    <p class="modal-message" id="mbtMensaje"></p>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+      <div>
+        <label class="form-label" id="mbtFechaLabel" for="mbtFecha">Fecha</label>
+        <input type="date" id="mbtFecha" class="form-input">
+      </div>
+      <div id="mbtMotivoWrap">
+        <label class="form-label" for="mbtMotivo">Motivo (opcional)</label>
+        <input type="text" id="mbtMotivo" class="form-input" maxlength="200" placeholder="Ej. Obras, cierre temporal, problema con el acceso…">
+      </div>
+    </div>
+    <p id="mbtNota" style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft); line-height:1.45;"></p>
+    <p id="mbtError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px; justify-content:space-between;">
+      <button type="button" class="btn" id="mbtBtnAnular" style="display:none; color:var(--grave);">Anular baja</button>
+      <div style="display:flex; gap:10px; margin-left:auto;">
+        <button type="button" class="btn" id="mbtBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="mbtBtnGuardar">Dar de baja</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de envío del informe del día -->
 <div class="modal-overlay" id="envioInformeModalOverlay">
   <div class="modal-box envio-modal-box" role="dialog" aria-modal="true" aria-labelledby="envioModalTitulo">
