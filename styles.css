@@ -2008,6 +2008,10 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
 }
 .rm-col-total{ background:var(--panel-muted); font-weight:700; }
 .rm-celda-codigo{ display:inline-block; min-width:20px; padding:2px 5px; border-radius:5px; font-weight:700; }
+/* En la tabla del reporte mensual, el badge con código NO debe hacer más alta
+   su fila: el margen negativo compensa el padding vertical (2px+2px) para que
+   todas las filas midan lo mismo, tengan o no incidencia. */
+.tabla-reporte-mensual .rm-celda-codigo{ margin:-2px 0; }
 
 /* Leyenda: en la barra lateral (estrecha), los chips quedan en 2 columnas. */
 .rm-leyenda-compacta{
