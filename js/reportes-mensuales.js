@@ -470,7 +470,11 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun) {
-      partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">${escapeHtml(pun.agenciaNombre)}</td>`);
+      // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY): el nombre
+      // completo ensanchaba la columna de ese día. El nombre entero sigue
+      // saliendo en el tooltip (title) y en la fila "puntual" de esa agencia.
+      const abreviaturaPun = String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase();
+      partes.push(`<td class="rm-td-cambio" title="Ese día se entregó por ${escapeHtml(pun.agenciaNombre)} (cambio puntual)">${escapeHtml(abreviaturaPun)}</td>`);
       continue;
     }
     if (!diasEnviados.has(dia)) {
