@@ -485,7 +485,10 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
 
   for (let dia = Math.max(f.diaInicio, diaDesde); dia <= Math.min(f.diaFin, diaHasta); dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
-    if (pun) { celdas.push({ content: pun.agenciaNombre, styles: estiloCambio }); continue; }
+    // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY), igual que en la
+    // pantalla de Reportes mensuales; el nombre completo va en la fila
+    // "puntual" de esa agencia.
+    if (pun) { celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase(), styles: estiloCambio }); continue; }
     if (!diasEnviados.has(dia)) {
       if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
       celdas.push({ content: '', styles: {} }); continue;
