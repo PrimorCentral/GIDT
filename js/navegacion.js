@@ -180,8 +180,15 @@ function bordeDerechoVisible() {
 
       document.getElementById('kpiAgencias').textContent = numAgencias ?? '—';
       document.getElementById('kpiTiendas').textContent = numTiendasActivas ?? '—';
-      document.getElementById('kpiIncidenciasHoy').textContent = '0';
-      document.getElementById('kpiSiniestrosPend').textContent = '0';
+      // Estos dos KPIs los pintan actualizarKpiIncidencias() y
+      // actualizarKpiSiniestrosDesdeDB() (las llama cargarInformeHoy, que se
+      // ejecuta a la vez que esta función). Aquí solo se pone un "0" si
+      // todavía no hay ningún valor: si esta función acaba DESPUÉS de
+      // cargarInformeHoy, no debe pisar el número real con un 0.
+      ['kpiIncidenciasHoy', 'kpiSiniestrosPend'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.textContent.trim() === '—') el.textContent = '0';
+      });
 
       statusEl.textContent = 'Conectado a Supabase';
       document.getElementById('statusWrap').title = 'Conectado a Supabase';
