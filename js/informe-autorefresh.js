@@ -37,6 +37,10 @@
     // que no debemos interrumpir con un re-render: unas observaciones a
     // medio escribir, o el desplegable de motivos de una fila abierto.
     function haySomethingEnEdicionIncidencias() {
+      // Eligiendo el submotivo en el modal, o con un guardado a medias: no
+      // repintar las filas (perdería el submotivo recién elegido).
+      if ((window.submotivoModalAbiertos || 0) > 0) return true;
+      if ((window.guardandoIncidencias || 0) > 0) return true;
       const cont = document.getElementById('contenidoIncidencias');
       if (!cont) return false;
       const activo = document.activeElement;

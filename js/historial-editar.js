@@ -127,6 +127,22 @@ async function finalizarEdicionHistorial() {
   }
 
   try {
+    // 0) Comprobación final: ninguna incidencia con NO ENTREGAN / FALTAS se
+    // vuelca a BD sin su submotivo. Si alguna llega así, no se guarda nada.
+    if (typeof motivosSinSubmotivo === 'function') {
+      for (const [tiendaId, borrador] of historialBorrador) {
+        const faltan = motivosSinSubmotivo(borrador.motivos);
+        if (faltan.length) {
+          const t = tiendasCache.find(x => x.id === tiendaId);
+          await modalAlert(
+            `Falta precisar el motivo exacto (${faltan.join(', ')}) en ${t?.nombre || 'una tienda'}. Desmárcalo y vuelve a marcarlo para elegir el submotivo, y después pulsa "Terminar de editar".`,
+            { titulo: 'Falta el submotivo' }
+          );
+          return;
+        }
+      }
+    }
+
     // 1) Guardar en BD cada incidencia tocada en el borrador.
     for (const [tiendaId, borrador] of historialBorrador) {
       const motivos = borrador.motivos;
@@ -542,8 +558,16 @@ function actualizarFilaHistorial(tiendaId, tr) {
 // ---------------- Guardar en el borrador (no en BD) al tocar una fila ----------------
 
 async function actualizarBorradorIncidencia(tiendaId, tr) {
-  const motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
+  let motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
   const observaciones = tr.querySelector('.i-obs').value.trim().toUpperCase();
+
+  // Nunca se deja en el borrador NO ENTREGAN / FALTAS sin su submotivo (ver
+  // completarSubmotivos en submotivos-informe.js).
+  if (typeof completarSubmotivos === 'function') {
+    const completos = await completarSubmotivos(tr, motivos, estadoEfectivoHistorial(tiendaId)?.motivos);
+    if (completos === null) return;
+    motivos = completos;
+  }
   const tipoSiniestroNuevo = tipoSiniestroDeMotivos(motivos);
   const existente = incidenciaDeTiendaHistorial(tiendaId);
 

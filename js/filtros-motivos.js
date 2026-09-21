@@ -222,9 +222,31 @@
     renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
   });
 
+  // Envoltorio: cuenta los guardados en curso para que la auto-actualización
+  // del Informe del día (informe-autorefresh.js) no repinte la tabla mientras
+  // hay uno a medias.
   async function guardarIncidencia(tiendaId, tr) {
-    const motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
+    window.guardandoIncidencias = (window.guardandoIncidencias || 0) + 1;
+    try {
+      return await guardarIncidenciaInterno(tiendaId, tr);
+    } finally {
+      window.guardandoIncidencias -= 1;
+    }
+  }
+
+  async function guardarIncidenciaInterno(tiendaId, tr) {
+    let motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
     const observaciones = tr.querySelector('.i-obs').value.trim().toUpperCase();
+
+    // Nunca se guarda NO ENTREGAN / FALTAS sin su submotivo (ver
+    // completarSubmotivos en submotivos-informe.js). Si el usuario cancela,
+    // ya se ha desmarcado el motivo y se ha relanzado el guardado limpio.
+    if (typeof completarSubmotivos === 'function') {
+      const completos = await completarSubmotivos(tr, motivos, incidenciaDeTienda(tiendaId)?.motivo);
+      if (completos === null) return;
+      motivos = completos;
+    }
+
     const marcada = motivos.length > 0;
     const tipo = calcularTipo(motivos);
 

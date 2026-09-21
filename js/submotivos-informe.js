@@ -8,11 +8,14 @@
 //
 // Cómo funciona:
 //  1. Al marcar FALTAS o NO ENTREGAN, se pregunta el submotivo con el
-//     modal ya existente (modalSeleccionar) y se guarda como un checkbox
+//     modal ya existente (modalSeleccionar) ANTES de que la vista guarde
+//     nada (listener en fase de captura), y se guarda como un checkbox
 //     OCULTO más dentro de la misma fila <tr>, con class="i-motivo-check"
 //     — por eso guardarIncidencia() / actualizarBorradorIncidencia() lo
 //     incluyen solas al hacer
 //     Array.from(tr.querySelectorAll('.i-motivo-check:checked'))...
+//     Además, esas dos funciones llaman a completarSubmotivos() como red de
+//     seguridad: nunca se guarda un NO ENTREGAN / FALTAS sin submotivo.
 //  2. Al desmarcar FALTAS/NO ENTREGAN, o al pulsar "Quitar todos los
 //     motivos" (.btn-borrar-motivos / .btn-borrar-motivos-hist), se limpia
 //     el submotivo oculto correspondiente.
@@ -64,55 +67,132 @@ function restaurarSubmotivosDesdeAtributos(tr) {
   });
 }
 
+// Nº de modales "Precisar motivo" abiertos ahora mismo. Lo consulta la
+// auto-actualización del Informe del día (informe-autorefresh.js) para no
+// repintar las filas mientras el operario está eligiendo el submotivo.
+window.submotivoModalAbiertos = 0;
+
+function esCheckboxMotivoPrincipal(cb) {
+  return cb instanceof HTMLInputElement && cb.type === 'checkbox' &&
+    cb.classList.contains('i-motivo-check') &&
+    !cb.classList.contains('i-motivo-check-submotivo');
+}
+
+// Devuelve los motivos principales (FALTAS / NO ENTREGAN) que aparecen en
+// `motivos` SIN ninguno de sus submotivos. Si devuelve algo, esa lista de
+// motivos NO se puede guardar todavía.
+function motivosSinSubmotivo(motivos) {
+  const mapa = window.SUBMOTIVOS_POR_MOTIVO || {};
+  const arr = motivos || [];
+  return Object.keys(mapa).filter(p => arr.includes(p) && !mapa[p].some(o => arr.includes(o)));
+}
+
 async function preguntarSubmotivo(motivoPrincipal, opciones) {
-  const idx = await modalSeleccionar(
-    `¿Cuál es el motivo exacto de "${motivoPrincipal.charAt(0)}${motivoPrincipal.slice(1).toLowerCase()}"?`,
-    opciones.map((o, i) => ({ id: i, nombre: o.charAt(0) + o.slice(1).toLowerCase() })),
-    { titulo: 'Precisar motivo', textoOk: 'Confirmar', bloquearClicFuera: true }
-  );
-  if (idx === null || Number.isNaN(idx) || !opciones[idx]) return null;
-  return opciones[idx];
+  window.submotivoModalAbiertos += 1;
+  try {
+    const idx = await modalSeleccionar(
+      `¿Cuál es el motivo exacto de "${motivoPrincipal.charAt(0)}${motivoPrincipal.slice(1).toLowerCase()}"?`,
+      opciones.map((o, i) => ({ id: i, nombre: o.charAt(0) + o.slice(1).toLowerCase() })),
+      { titulo: 'Precisar motivo', textoOk: 'Confirmar', bloquearClicFuera: true }
+    );
+    if (idx === null || Number.isNaN(idx) || !opciones[idx]) return null;
+    return opciones[idx];
+  } finally {
+    window.submotivoModalAbiertos -= 1;
+  }
+}
+
+// ---------------------------------------------------------------
+// RED DE SEGURIDAD que llaman guardarIncidencia() (Informe del día) y
+// actualizarBorradorIncidencia() (edición del Historial) justo antes de
+// guardar: garantiza que NUNCA se guarda NO ENTREGAN / FALTAS sin su
+// submotivo.
+//
+// Devuelve el array de motivos ya completo, o null si el usuario canceló
+// (en ese caso el motivo principal queda desmarcado y ya se ha vuelto a
+// disparar el guardado de la vista con el estado limpio: quien llama
+// simplemente debe salir).
+//
+//   1. Si a la fila le falta el submotivo pero la incidencia ya lo tenía
+//      guardado (p. ej. la fila se repintó y perdió el checkbox oculto), se
+//      recupera el que había, sin preguntar.
+//   2. Si no había ninguno, se pregunta con el modal (obligatorio).
+// ---------------------------------------------------------------
+async function completarSubmotivos(tr, motivos, motivosPrevios) {
+  const mapa = window.SUBMOTIVOS_POR_MOTIVO || {};
+  const resultado = (motivos || []).slice();
+
+  for (const principal of motivosSinSubmotivo(resultado)) {
+    const opciones = mapa[principal];
+
+    const previo = (motivosPrevios || []).find(o => opciones.includes(o));
+    if (previo) {
+      resultado.push(previo);
+      if (tr) crearCheckboxOcultoSubmotivo(tr, previo, principal);
+      continue;
+    }
+
+    const elegido = await preguntarSubmotivo(principal, opciones);
+    if (!elegido) {
+      const cb = tr && Array.from(tr.querySelectorAll('.i-motivo-check'))
+        .find(c => esCheckboxMotivoPrincipal(c) && c.value === principal);
+      if (cb) {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return null;
+    }
+    resultado.push(elegido);
+    if (tr) crearCheckboxOcultoSubmotivo(tr, elegido, principal);
+  }
+  return resultado;
 }
 
 // ---- 1 y 2: preguntar/limpiar submotivo al (des)marcar el motivo principal ----
-document.addEventListener('change', async (e) => {
+//
+// Este listener va en FASE DE CAPTURA sobre `document`, es decir, se ejecuta
+// ANTES que el listener 'change' que cada vista tiene puesto directamente en
+// el checkbox (y que es el que guarda en Supabase).
+//
+//  · Al MARCAR NO ENTREGAN / FALTAS: se corta el evento (stopPropagation), así
+//    la vista NO llega a guardar todavía; se pregunta el submotivo y, solo
+//    cuando ya está elegido, se vuelve a lanzar el 'change' para que la vista
+//    guarde UNA sola vez, con el motivo y el submotivo juntos. Antes la vista
+//    guardaba primero solo "NO ENTREGAN" y el submotivo llegaba en un segundo
+//    guardado: si ese segundo guardado se perdía o se pisaba, la incidencia
+//    se quedaba sin submotivo.
+//  · Al DESMARCAR: se quita el submotivo oculto ANTES de que la vista guarde,
+//    así ya no hace falta el doble disparo que había antes.
+document.addEventListener('change', (e) => {
   const cb = e.target;
-  if (!(cb instanceof HTMLInputElement) || cb.type !== 'checkbox') return;
-  if (!cb.classList.contains('i-motivo-check') || cb.classList.contains('i-motivo-check-submotivo')) return;
+  if (!esCheckboxMotivoPrincipal(cb)) return;
 
-  const SUBMOTIVOS_POR_MOTIVO = window.SUBMOTIVOS_POR_MOTIVO || {};
-  const opciones = SUBMOTIVOS_POR_MOTIVO[cb.value];
+  const opciones = (window.SUBMOTIVOS_POR_MOTIVO || {})[cb.value];
   if (!opciones) return; // este motivo no tiene submotivos
 
   const tr = cb.closest('tr');
   if (!tr) return;
 
+  // Re-disparo propio (ya con el submotivo elegido): dejamos pasar el evento.
+  if (cb.dataset.submotivoListo === '1') { delete cb.dataset.submotivoListo; return; }
+
   if (!cb.checked) {
-    // Evita bucle infinito al redisparar el 'change' nosotros mismos justo debajo.
-    if (cb.dataset.limpiezaSubmotivoPendiente === '1') { delete cb.dataset.limpiezaSubmotivoPendiente; return; }
-
     quitarSubmotivosDe(tr, cb.value);
-
-    // El guardado de cada vista (guardarIncidencia/actualizarBorradorIncidencia)
-    // está enganchado como listener 'change' directamente sobre este mismo
-    // checkbox, así que se dispara ANTES que este listener delegado en
-    // document (en la fase de burbuja el target va antes que document).
-    // Eso hacía que, al desmarcar el motivo principal, se guardara el
-    // estado justo ANTES de quitar el checkbox oculto del submotivo,
-    // dejando el submotivo huérfano grabado (p. ej. "NO ENTREGAN SIN
-    // MOTIVO" persistiendo tras desmarcar "NO ENTREGAN"). Redisparamos el
-    // 'change' para que el guardado de la vista se repita ya con el
-    // submotivo quitado del DOM.
-    cb.dataset.limpiezaSubmotivoPendiente = '1';
-    cb.dispatchEvent(new Event('change', { bubbles: true }));
-    return;
+    return; // sigue hacia la vista, que guarda ya sin el submotivo
   }
 
-  // Evita volver a preguntar cuando re-disparamos el 'change' nosotros
-  // mismos más abajo, para que el guardado propio de la vista recoja ya
-  // el submotivo elegido.
-  if (cb.dataset.submotivoPendiente === '1') { delete cb.dataset.submotivoPendiente; return; }
+  // Marcado, pero la fila ya lleva un submotivo de este motivo (p. ej. se ha
+  // restaurado desde lo guardado): no hay nada que preguntar.
+  const yaTiene = Array.from(tr.querySelectorAll('.i-motivo-check-submotivo'))
+    .some(el => el.checked && opciones.includes(el.value));
+  if (yaTiene) return;
 
+  // Marcado y sin submotivo: paramos el evento y preguntamos.
+  e.stopPropagation();
+  preguntarYContinuar(cb, tr, opciones);
+}, true);
+
+async function preguntarYContinuar(cb, tr, opciones) {
   const elegido = await preguntarSubmotivo(cb.value, opciones);
 
   if (!elegido) {
@@ -123,9 +203,9 @@ document.addEventListener('change', async (e) => {
   }
 
   crearCheckboxOcultoSubmotivo(tr, elegido, cb.value);
-  cb.dataset.submotivoPendiente = '1';
+  cb.dataset.submotivoListo = '1';
   cb.dispatchEvent(new Event('change', { bubbles: true }));
-});
+}
 
 // ---- "Quitar todos los motivos": limpia también los submotivos, en fase
 // de captura (antes de que se procese el propio clic del botón). ----
