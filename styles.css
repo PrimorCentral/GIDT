@@ -587,6 +587,8 @@
   table.tabla-tiendas th.th-recogida-dia{ width:120px; color:var(--ink-soft); }
   table.tabla-tiendas .celda-agencia-recogida,
   table.tabla-tiendas th.th-agencia-recogida{ width:150px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-transito,
+  table.tabla-tiendas th.th-transito{ width:90px; color:var(--ink-soft); }
 
   /* ---------- Emails por agencia ---------- */
   .email-card{

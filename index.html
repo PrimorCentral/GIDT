@@ -767,11 +767,11 @@
             <button class="btn" id="btnExportarTiendas">⬇️ Exportar</button>
             <div class="export-tiendas-menu" id="exportTiendasMenu">
               <button type="button" data-modo="resumido">
-                <b>Resumido</b>
-                <span>Por agencia, columnas básicas</span>
+                <b>Resumido (PDF)</b>
+                <span>Todas las tiendas en una sola hoja, por agencia</span>
               </button>
               <button type="button" data-modo="detallado">
-                <b>Detallado</b>
+                <b>Detallado (Excel)</b>
                 <span>Una fila por tienda, todos los datos</span>
               </button>
             </div>
@@ -1283,6 +1283,10 @@
       <div>
         <label class="form-label">Agencia recogida</label>
         <input type="text" id="metAgenciaRecogida" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Tránsito (horas)</label>
+        <input type="number" id="metTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
       </div>
       <div>
         <label class="form-label">Marca</label>
@@ -2052,6 +2056,10 @@
       <div>
         <label class="form-label">Agencia recogida</label>
         <input type="text" id="ntAgenciaRecogida" class="form-input" placeholder="Ej. SEUR">
+      </div>
+      <div>
+        <label class="form-label">Tránsito (horas)</label>
+        <input type="number" id="ntTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
       </div>
       <div>
         <label class="form-label">Marca</label>
