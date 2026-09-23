@@ -1485,15 +1485,13 @@ document.getElementById('psFacturaInput')?.addEventListener('change', async (e) 
     s.factura_nombre = comprimido.name;
     s.factura_adjuntada_en = facturaAdjuntadaEn;
     s.factura_adjuntada_por = facturaAdjuntadaPor;
-    if (totalDetectado !== null) {
-      s.valor = totalDetectado;
-      campoValor.value = totalDetectado;
-      aplicarEstadoCampoValor(s);
-    }
-    if (numeroFacturaDetectado) {
-      s.num_factura = numeroFacturaDetectado;
-      aplicarEstadoCampoFactura(s);
-    }
+    if (totalDetectado !== null) s.valor = totalDetectado;
+    if (numeroFacturaDetectado) s.num_factura = numeroFacturaDetectado;
+    // Siempre (se haya detectado algo o no): así, si la lectura automática
+    // falla, el campo se desbloquea para escribirlo a mano en vez de
+    // quedarse gris y bloqueado como si todavía no hubiera factura.
+    aplicarEstadoCampoValor(s);
+    aplicarEstadoCampoFactura(s);
     pintarFacturaModal(s);
     renderSeguimientoPanel(s);
     renderPanelSiniestros();
@@ -1547,6 +1545,7 @@ function aplicarEstadoCampoAlbaran(s) {
   const detectado = !!(s.albaran_url && s.num_albaran);
   input.disabled = detectado || !s.albaran_url;
   wrap.classList.toggle('detectado', detectado);
+  input.placeholder = s.albaran_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir el albarán';
 }
 
 // Igual que con el Nº Albarán: el campo Valor empieza BLOQUEADO hasta que
@@ -1561,6 +1560,7 @@ function aplicarEstadoCampoValor(s) {
   const detectado = !!(s.factura_url && tieneValor);
   input.disabled = detectado || !s.factura_url;
   wrap.classList.toggle('detectado', detectado);
+  input.placeholder = s.factura_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir la factura';
 }
 
 // Igual que el Nº Albarán: el campo Nº Factura empieza BLOQUEADO hasta que
@@ -1574,6 +1574,7 @@ function aplicarEstadoCampoFactura(s) {
   const detectado = !!(s.factura_url && s.num_factura);
   input.disabled = detectado || !s.factura_url;
   wrap.classList.toggle('detectado', detectado);
+  input.placeholder = s.factura_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir la factura';
 }
 
 // Los tres botones-lápiz son fijos en el HTML (ya no se recrean cada vez
