@@ -583,6 +583,10 @@
   table.tabla-tiendas th.th-limite-hora{ width:130px; color:var(--ink-soft); }
   table.tabla-tiendas .celda-supervisor,
   table.tabla-tiendas th.th-supervisor{ width:150px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-recogida-dia,
+  table.tabla-tiendas th.th-recogida-dia{ width:120px; color:var(--ink-soft); }
+  table.tabla-tiendas .celda-agencia-recogida,
+  table.tabla-tiendas th.th-agencia-recogida{ width:150px; color:var(--ink-soft); }
 
   /* ---------- Emails por agencia ---------- */
   .email-card{
