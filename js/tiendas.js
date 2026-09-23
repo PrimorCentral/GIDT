@@ -110,6 +110,12 @@
     { iso: 7, label: 'Domingo' }
   ];
 
+  // Día de recogida semanal (tiendas.recogida_semanal_dia, 1=lunes…7=domingo)
+  function nombreDiaRecogida(iso) {
+    const d = DIAS_SEMANA_ISO.find(x => x.iso === Number(iso));
+    return d ? d.label : '';
+  }
+
   // Pequeño badge "🗓️N" junto a la hora, con el detalle en el title, si la
   // tienda tiene algún día de la semana con horario distinto configurado.
   function badgeHorarioSemanaHtml(t) {
@@ -140,13 +146,15 @@
       || normalizarTextoBusqueda(t.provincia).includes(qNormalizada)
       || normalizarTextoBusqueda(t.numero_tienda).includes(qNormalizada)
       || normalizarTextoBusqueda(t.direccion).includes(qNormalizada)
-      || normalizarTextoBusqueda(t.supervisor).includes(qNormalizada);
+      || normalizarTextoBusqueda(t.supervisor).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.agencia_recogida).includes(qNormalizada)
+      || normalizarTextoBusqueda(nombreDiaRecogida(t.recogida_semanal_dia)).includes(qNormalizada);
   }
 
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, creado_en').order('orden'),
       cargarBajasTiendas()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
@@ -201,6 +209,8 @@
               <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
+              <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
+              <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
               <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span>${badgeBajaHtml(pBaja)}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
@@ -219,7 +229,7 @@
               </td>
             </tr>`;
           }).join('')
-        : `<tr><td colspan="10" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
+        : `<tr><td colspan="12" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
 
       return `
         <div class="agencia-block">
@@ -241,6 +251,8 @@
                     <th class="th-limite-palets">Límite palets</th>
                     <th class="th-limite-hora">Límite hora entrega</th>
                     <th class="th-supervisor">Supervisor/a</th>
+                    <th class="th-recogida-dia">Recogida semanal</th>
+                    <th class="th-agencia-recogida">Agencia recogida</th>
                     <th class="th-marca">Marca</th>
                     <th class="th-acciones"></th>
                   </tr>
@@ -336,6 +348,8 @@
     document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
     document.getElementById('metSupervisor').value = t.supervisor || '';
+    document.getElementById('metRecogidaDia').value = t.recogida_semanal_dia ? String(t.recogida_semanal_dia) : '';
+    document.getElementById('metAgenciaRecogida').value = t.agencia_recogida || '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -360,6 +374,8 @@
     const limitePaletsRaw = document.getElementById('metLimitePalets').value;
     const limiteHora = document.getElementById('metLimiteHora').value;
     const supervisor = document.getElementById('metSupervisor').value.trim();
+    const recogidaDia = document.getElementById('metRecogidaDia').value;
+    const agenciaRecogida = document.getElementById('metAgenciaRecogida').value.trim();
     const marca = document.getElementById('metMarca').value;
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -380,6 +396,8 @@
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
         limite_hora_entrega: limiteHora || null,
         supervisor: supervisor || null,
+        recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
+        agencia_recogida: agenciaRecogida || null,
         marca
       }).eq('id', editarTiendaId);
       if (error) throw error;
@@ -674,6 +692,8 @@
     document.getElementById('ntLimitePalets').value = '';
     document.getElementById('ntLimiteHora').value = '';
     document.getElementById('ntSupervisor').value = '';
+    document.getElementById('ntRecogidaDia').value = '';
+    document.getElementById('ntAgenciaRecogida').value = '';
     document.getElementById('ntMarca').value = 'HABITUAL';
     document.getElementById('ntError').style.display = 'none';
   }
@@ -698,6 +718,8 @@
     const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
     const limiteHora = document.getElementById('ntLimiteHora').value;
     const supervisor = document.getElementById('ntSupervisor').value.trim();
+    const recogidaDia = document.getElementById('ntRecogidaDia').value;
+    const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim();
     const marca = document.getElementById('ntMarca').value;
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
@@ -723,6 +745,8 @@
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
         limite_hora_entrega: limiteHora || null,
         supervisor: supervisor || null,
+        recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
+        agencia_recogida: agenciaRecogida || null,
         marca,
         orden: maxOrden + 1
       });
@@ -784,8 +808,8 @@
   async function exportarTiendasResumido() {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (resumido)', { views: [{ showGridLines: false }] });
-    const COLS = ['Nº', 'TIENDA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A'];
-    hoja.columns = [{ width: 8 }, { width: 24 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }];
+    const COLS = ['Nº', 'TIENDA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA'];
+    hoja.columns = [{ width: 8 }, { width: 24 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }];
 
     tiendasAgrupadasPorAgencia().forEach(g => {
       const filaAgencia = hoja.addRow([]);
@@ -804,6 +828,8 @@
         tiendasExcelCelda(fila, 5, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
         tiendasExcelCelda(fila, 6, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
         tiendasExcelCelda(fila, 7, t.supervisor || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 8, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
+        tiendasExcelCelda(fila, 9, t.agencia_recogida || '', { halign: 'center' });
       });
     });
 
@@ -815,8 +841,8 @@
   async function exportarTiendasDetallado() {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
-    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'MARCA'];
-    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 12 }];
+    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'MARCA'];
+    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }];
 
     const filaCab = hoja.addRow(COLS);
     COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
@@ -833,7 +859,9 @@
         tiendasExcelCelda(fila, 7, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
         tiendasExcelCelda(fila, 8, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
         tiendasExcelCelda(fila, 9, t.supervisor || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 10, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 10, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
+        tiendasExcelCelda(fila, 11, t.agencia_recogida || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 12, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
       });
     });
 
