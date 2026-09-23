@@ -154,7 +154,10 @@ async function extraerNumFacturaDePdf(fuente) {
     // fecha ("9.09.26") o del código de cliente ("430/00/0036") — el
     // orden entre estos dos últimos varía según la factura, así que
     // aceptamos cualquiera de los dos justo después del número.
-    const trio = texto.match(/\b(\d{1,4}[A-Z]{1,3})\s+(\d{2,7})\s+(?:\d{1,2}\.\d{2}\.\d{2,4}|\d{1,4}\/\d{1,3}\/\d{2,6})\b/);
+    // La serie puede empezar por cifra ("9H") o por letra ("P9"), así que
+    // aceptamos 2-5 caracteres alfanuméricos con al menos una letra y
+    // al menos una cifra.
+    const trio = texto.match(/\b((?=[A-Z0-9]*[A-Z])(?=[A-Z0-9]*\d)[A-Z0-9]{2,5})\s+(\d{2,7})\s+(?:\d{1,2}\.\d{2}\.\d{2,4}|\d{1,4}\/\d{1,3}\/\d{2,6})\b/);
     if (trio) return `${trio[1]} ${trio[2]}`;
 
     // Fallback best-effort: primer código con forma de nº de factura que
@@ -163,7 +166,7 @@ async function extraerNumFacturaDePdf(fuente) {
     const ancla = texto.match(/n[uú]mero/i);
     if (!ancla) return null;
     const desdeAncla = texto.slice(ancla.index + ancla[0].length, ancla.index + ancla[0].length + 200);
-    const numero = desdeAncla.match(/\b\d{1,4}[A-Z]{1,3}\s?\d{2,8}\b/);
+    const numero = desdeAncla.match(/\b(?:\d{1,4}[A-Z]{1,3}\s?|[A-Z]{1,3}\d{1,4}\s+)\d{2,8}\b/);
     return numero ? numero[0].replace(/\s+/g, ' ').trim() : null;
   } catch (err) {
     console.error('Error leyendo el nº de factura:', err);
