@@ -154,7 +154,7 @@
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, creado_en').order('orden'),
       cargarBajasTiendas()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
@@ -211,6 +211,7 @@
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
               <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
+              <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
               <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span>${badgeBajaHtml(pBaja)}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
@@ -229,7 +230,7 @@
               </td>
             </tr>`;
           }).join('')
-        : `<tr><td colspan="12" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
+        : `<tr><td colspan="13" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
 
       return `
         <div class="agencia-block">
@@ -253,6 +254,7 @@
                     <th class="th-supervisor">Supervisor/a</th>
                     <th class="th-recogida-dia">Recogida semanal</th>
                     <th class="th-agencia-recogida">Agencia recogida</th>
+                    <th class="th-transito">Tránsito</th>
                     <th class="th-marca">Marca</th>
                     <th class="th-acciones"></th>
                   </tr>
@@ -350,6 +352,7 @@
     document.getElementById('metSupervisor').value = t.supervisor || '';
     document.getElementById('metRecogidaDia').value = t.recogida_semanal_dia ? String(t.recogida_semanal_dia) : '';
     document.getElementById('metAgenciaRecogida').value = t.agencia_recogida || '';
+    document.getElementById('metTransito').value = t.transito_horas != null ? t.transito_horas : '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -376,6 +379,7 @@
     const supervisor = document.getElementById('metSupervisor').value.trim();
     const recogidaDia = document.getElementById('metRecogidaDia').value;
     const agenciaRecogida = document.getElementById('metAgenciaRecogida').value.trim();
+    const transitoRaw = document.getElementById('metTransito').value;
     const marca = document.getElementById('metMarca').value;
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -398,6 +402,7 @@
         supervisor: supervisor || null,
         recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
         agencia_recogida: agenciaRecogida || null,
+        transito_horas: transitoRaw !== '' ? Number(transitoRaw) : null,
         marca
       }).eq('id', editarTiendaId);
       if (error) throw error;
@@ -694,6 +699,7 @@
     document.getElementById('ntSupervisor').value = '';
     document.getElementById('ntRecogidaDia').value = '';
     document.getElementById('ntAgenciaRecogida').value = '';
+    document.getElementById('ntTransito').value = '';
     document.getElementById('ntMarca').value = 'HABITUAL';
     document.getElementById('ntError').style.display = 'none';
   }
@@ -720,6 +726,7 @@
     const supervisor = document.getElementById('ntSupervisor').value.trim();
     const recogidaDia = document.getElementById('ntRecogidaDia').value;
     const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim();
+    const transitoRaw = document.getElementById('ntTransito').value;
     const marca = document.getElementById('ntMarca').value;
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
@@ -747,6 +754,7 @@
         supervisor: supervisor || null,
         recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
         agencia_recogida: agenciaRecogida || null,
+        transito_horas: transitoRaw !== '' ? Number(transitoRaw) : null,
         marca,
         orden: maxOrden + 1
       });
@@ -805,33 +813,139 @@
     return c;
   }
 
+  // ---------------------------------------------------------------
+  // Excel resumido: TODAS las tiendas en una sola hoja, al estilo de la
+  // hoja "TIENDAS PRIMOR" — un bloque por agencia (nombre + nº tiendas)
+  // repartido en 5 columnas de bloques una al lado de otra, y ajustado
+  // para imprimirse en una única página A4 apaisada.
+  // Columnas: Nº · TIENDA · PROVINCIA · HORA · LÍMITE · R.S · L.P · TR · SUPER
+  // (R.S = día de recogida semanal en una letra, L.P = límite palets,
+  //  TR = tránsito en horas).
+  // ---------------------------------------------------------------
+  const LETRA_DIA_RECOGIDA = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' };
+
   async function exportarTiendasResumido() {
     const workbook = new window.ExcelJS.Workbook();
-    const hoja = workbook.addWorksheet('Tiendas (resumido)', { views: [{ showGridLines: false }] });
-    const COLS = ['Nº', 'TIENDA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA'];
-    hoja.columns = [{ width: 8 }, { width: 24 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }];
+    const hoja = workbook.addWorksheet('Tiendas (resumido)', {
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1,
+        horizontalCentered: true,
+        margins: { left: 0.2, right: 0.2, top: 0.2, bottom: 0.2, header: 0, footer: 0 }
+      }
+    });
 
-    tiendasAgrupadasPorAgencia().forEach(g => {
-      const filaAgencia = hoja.addRow([]);
-      hoja.mergeCells(filaAgencia.number, 1, filaAgencia.number, COLS.length);
-      tiendasExcelCelda(filaAgencia, 1, `${g.agencia.nombre.toUpperCase()} (${g.tiendas.length})`, { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' });
+    const COLS = [
+      { t: 'Nº', w: 4.5, al: 'center' },
+      { t: 'TIENDA', w: 17, al: 'left' },
+      { t: 'PROVINCIA', w: 12, al: 'left' },
+      { t: 'HORA', w: 5.5, al: 'center' },
+      { t: 'LÍMITE', w: 6, al: 'center' },
+      { t: 'R.S', w: 3.6, al: 'center' },
+      { t: 'L.P', w: 3.6, al: 'center' },
+      { t: 'TR', w: 3.6, al: 'center' },
+      { t: 'SUPER', w: 10, al: 'left' }
+    ];
+    const NUM_BLOQUES = 5;             // columnas de bloques en la hoja
+    const ANCHO_BLOQUE = COLS.length + 1; // + 1 columna estrecha de separación
+    const FUENTE = 8;
 
-      const filaCab = hoja.addRow(COLS);
-      COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', fill: 'FFD9D9D9' }));
+    const valores = (t) => [
+      t.numero_tienda || '',
+      t.nombre || '',
+      t.provincia || '',
+      t.hora_prevista ? t.hora_prevista.slice(0, 5) : '',
+      t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '-',
+      LETRA_DIA_RECOGIDA[t.recogida_semanal_dia] || '-',
+      t.limite_palets != null ? t.limite_palets : '-',
+      t.transito_horas != null ? t.transito_horas : '-',
+      t.supervisor || ''
+    ];
 
-      g.tiendas.forEach(t => {
-        const fila = hoja.addRow([]);
-        tiendasExcelCelda(fila, 1, t.numero_tienda || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 2, t.nombre || '', { bold: true });
-        tiendasExcelCelda(fila, 3, t.provincia || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 4, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 5, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 6, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 7, t.supervisor || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 8, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
-        tiendasExcelCelda(fila, 9, t.agencia_recogida || '', { halign: 'center' });
+    const grupos = tiendasAgrupadasPorAgencia();
+    const total = grupos.reduce((n, g) => n + g.tiendas.length, 0);
+
+    // Secuencia de filas: cabecera agencia, cabecera columnas, tiendas.
+    const filas = [];
+    grupos.forEach(g => {
+      filas.push({ tipo: 'agencia', g });
+      filas.push({ tipo: 'cab' });
+      g.tiendas.forEach(t => filas.push({ tipo: 'tienda', v: valores(t) }));
+    });
+
+    // Reparte las filas en columnas de bloques de alto máximo maxFilas.
+    // No deja una agencia huérfana al pie de una columna y, si un bloque
+    // sigue en la columna siguiente, repite las cabeceras con "(cont.)".
+    function repartir(maxFilas) {
+      const columnas = [[]];
+      let actual = columnas[0];
+      let grupoActual = null;
+      filas.forEach(f => {
+        if (f.tipo === 'agencia') grupoActual = f.g;
+        const necesita = f.tipo === 'agencia' ? 4 : 1;
+        if (actual.length + necesita > maxFilas) {
+          actual = [];
+          columnas.push(actual);
+          if (f.tipo === 'tienda') {
+            actual.push({ tipo: 'agencia', g: grupoActual, cont: true });
+            actual.push({ tipo: 'cab' });
+          }
+        }
+        actual.push(f);
+      });
+      return columnas;
+    }
+    let maxFilas = Math.max(6, Math.ceil(filas.length / NUM_BLOQUES));
+    let columnas = repartir(maxFilas);
+    while (columnas.length > NUM_BLOQUES) { maxFilas++; columnas = repartir(maxFilas); }
+
+    // Anchos de columna (se repiten por cada bloque)
+    const anchos = [];
+    for (let b = 0; b < NUM_BLOQUES; b++) {
+      COLS.forEach(c => anchos.push({ width: c.w }));
+      if (b < NUM_BLOQUES - 1) anchos.push({ width: 1.2 });
+    }
+    hoja.columns = anchos;
+    const ultimaCol = NUM_BLOQUES * ANCHO_BLOQUE - 1;
+
+    const borde = { style: 'thin', color: { argb: 'FF999999' } };
+    const celda = (fila, col, valor, opts = {}) => {
+      const c = hoja.getRow(fila).getCell(col);
+      c.value = valor;
+      c.font = { bold: !!opts.bold, italic: !!opts.italic, size: opts.size || FUENTE, color: { argb: opts.color || 'FF000000' } };
+      c.alignment = { horizontal: opts.al || 'left', vertical: 'middle', shrinkToFit: true };
+      if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } };
+      if (opts.borde !== false) c.border = { top: borde, left: borde, bottom: borde, right: borde };
+      return c;
+    };
+
+    // Título (fila 1) y subtítulo (fila 2)
+    hoja.mergeCells(1, 1, 1, ultimaCol - 3);
+    celda(1, 1, `TIENDAS PRIMOR ${new Date().getFullYear()}`, { bold: true, size: 14, al: 'center', borde: false });
+    hoja.mergeCells(1, ultimaCol - 2, 1, ultimaCol);
+    celda(1, ultimaCol - 2, `TOTAL: ${total}`, { bold: true, size: 12, al: 'right', borde: false });
+    hoja.getRow(1).height = 20;
+    hoja.mergeCells(2, 1, 2, ultimaCol);
+    celda(2, 1, 'TODAS LAS TIENDAS EN HORARIO LOCAL', { size: 6, al: 'center', borde: false, color: 'FF555555' });
+
+    const FILA_INICIO = 4;
+    columnas.forEach((col, bi) => {
+      const c0 = bi * ANCHO_BLOQUE + 1;
+      col.forEach((f, ri) => {
+        const r = FILA_INICIO + ri;
+        if (f.tipo === 'agencia') {
+          hoja.mergeCells(r, c0, r, c0 + COLS.length - 2);
+          celda(r, c0, f.g.agencia.nombre.toUpperCase() + (f.cont ? ' (cont.)' : ''), { bold: true, italic: true, size: FUENTE + 2, al: 'center', color: 'FFFFFFFF', fill: 'FF595959' });
+          celda(r, c0 + COLS.length - 1, f.g.tiendas.length, { bold: true, italic: true, size: FUENTE + 2, al: 'right', color: 'FFFFFFFF', fill: 'FF595959' });
+        } else if (f.tipo === 'cab') {
+          COLS.forEach((c, i) => celda(r, c0 + i, c.t, { bold: true, al: 'center', fill: 'FFD9D9D9', size: FUENTE - 0.5 }));
+        } else {
+          COLS.forEach((c, i) => celda(r, c0 + i, f.v[i], { al: c.al, bold: i === 1 }));
+        }
       });
     });
+    for (let r = FILA_INICIO; r < FILA_INICIO + maxFilas; r++) hoja.getRow(r).height = 17;
+    hoja.pageSetup.printArea = `A1:${hoja.getColumn(ultimaCol).letter}${FILA_INICIO + maxFilas - 1}`;
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -841,8 +955,8 @@
   async function exportarTiendasDetallado() {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
-    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'MARCA'];
-    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }];
+    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'MARCA'];
+    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 12 }];
 
     const filaCab = hoja.addRow(COLS);
     COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
@@ -861,7 +975,8 @@
         tiendasExcelCelda(fila, 9, t.supervisor || '', { halign: 'center' });
         tiendasExcelCelda(fila, 10, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
         tiendasExcelCelda(fila, 11, t.agencia_recogida || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 12, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 12, t.transito_horas != null ? t.transito_horas : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 13, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
       });
     });
 
