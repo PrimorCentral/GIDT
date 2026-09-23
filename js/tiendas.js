@@ -862,7 +862,11 @@
       t.supervisor || ''
     ];
 
-    const grupos = tiendasAgrupadasPorAgencia();
+    // Solo tiendas con marca HABITUAL (sin Sábado, Prueba ni Especial);
+    // las agencias que se quedan sin ninguna no salen.
+    const grupos = tiendasAgrupadasPorAgencia()
+      .map(g => ({ ...g, tiendas: g.tiendas.filter(t => t.marca === 'HABITUAL') }))
+      .filter(g => g.tiendas.length);
     const total = grupos.reduce((n, g) => n + g.tiendas.length, 0);
 
     // Secuencia de filas: cabecera agencia, cabecera columnas, tiendas.
