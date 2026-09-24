@@ -161,6 +161,10 @@
       sb.from('usuarios').update({ ultima_conexion: new Date().toISOString() }).eq('id', data.id).then(() => {});
 
       mostrarApp(sesion);
+      // Gravedad de motivos (Configuración): al cargar la página solo se
+      // pide si ya había sesión; tras un login nuevo hay que pedirla aquí,
+      // si no se usaría la clasificación de respaldo hardcodeada.
+      if (typeof cargarGravedadMotivos === 'function') cargarGravedadMotivos();
       cargarKPIs();
       cargarInformeHoy();
     } catch (e) {

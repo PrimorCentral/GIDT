@@ -92,6 +92,14 @@ let rmTiendasOcultasMes = new Set();
 async function rmCargarDatosMes(anio, mesIndex) {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
+  // El código de cada celda depende de la gravedad/orden configurados en
+  // Configuración → Gravedad de motivos (codigoDeMotivos → severidad).
+  // Se recarga siempre antes de calcular, para no depender de si la caché
+  // llegó a cargarse en esta sesión (tras un login nuevo no se cargaba y
+  // se usaba el respaldo hardcodeado → distinto código según el PC) ni
+  // quedarse con una versión antigua si alguien la cambió después.
+  if (typeof cargarGravedadMotivos === 'function') await cargarGravedadMotivos();
+
   const totalDias = rmDiasDelMes(anio, mesIndex);
   const desde = `${anio}-${String(mesIndex + 1).padStart(2, '0')}-01`;
   const hasta = `${anio}-${String(mesIndex + 1).padStart(2, '0')}-${String(totalDias).padStart(2, '0')}`;
