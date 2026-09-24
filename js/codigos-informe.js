@@ -19,7 +19,7 @@
   // motivo "principal" (uno de los MOTIVOS de filtros-motivos.js) y,
   // cuando ese motivo tiene varios códigos posibles, el submotivo exacto.
   const CODIGOS_INFORME = [
-    { codigo: '0',  label: 'RETRASO LEVE',                   color: '#FFFFFF', texto: '#12181F', motivo: 'RETRASO LEVE' },
+    { codigo: '0',  label: 'RETRASO LEVE',                   color: '#E6E1D8', texto: '#12181F', motivo: 'RETRASO LEVE' },
     { codigo: '1',  label: 'RETRASO GRAVE / TIENDA ABIERTA', color: '#FFF200', texto: '#12181F', motivo: 'RETRASO IMPORTANTE' },
     { codigo: '2',  label: 'NO ENTREGAN',                    color: '#FF0000', texto: '#FFFFFF', motivo: 'NO ENTREGAN', submotivo: 'NO ENTREGAN SIN MOTIVO' },
     { codigo: '3',  label: 'ROTURA SIN INCIDENCIA',          color: '#00B050', texto: '#FFFFFF', motivo: 'ROTURA SIN INCIDENCIA' },
