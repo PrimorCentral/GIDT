@@ -541,7 +541,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       const c = celdasTienda[dia];
       if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
       totalIncidencias++;
-      partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+      partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
     }
     if (f.diaFin < totalDias) partes.push(`<td colspan="${totalDias - f.diaFin}" class="rm-td-napuntual">–</td>`);
     return { html: partes.join(''), totalIncidencias };
@@ -591,7 +591,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td class="rm-td-ok">OK</td>`); continue;
     }
     totalIncidencias++;
-    partes.push(`<td><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+    partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
   }
   cerrarBloqueBaja();
 
