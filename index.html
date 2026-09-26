@@ -1433,6 +1433,44 @@
   </div>
 </div>
 
+<!-- Ventana "Acerca de" (al pulsar el logo del login o de la cabecera) — js/acerca-de.js -->
+<div class="modal-overlay acerca-de-overlay" id="acercaDeModalOverlay">
+  <div class="modal-box acerca-de-box" role="dialog" aria-modal="true" aria-labelledby="acercaDeNombre">
+    <button type="button" class="acerca-cerrar-x" id="btnAcercaDeCerrar" aria-label="Cerrar">✕</button>
+    <div class="acerca-cabecera">
+      <div class="acerca-logo"><img src="icon-192.png" alt="GIDT"></div>
+      <div class="acerca-nombre" id="acercaDeNombre">GESTIÓN <span>INCIDENCIAS</span></div>
+      <div class="acerca-version" id="acercaDeVersion"></div>
+    </div>
+    <div class="acerca-cuerpo">
+      <div class="acerca-campo">
+        <span class="lbl">Desarrollado por</span>
+        <span class="val" id="acercaDeAutor"></span>
+      </div>
+      <div class="acerca-campo">
+        <span class="lbl">Licencia de uso concedida a</span>
+        <span class="val" id="acercaDeLicenciatario"></span>
+      </div>
+      <div class="acerca-campo">
+        <span class="lbl">Nº de activación</span>
+        <span class="acerca-clave" id="acercaDeActivacion"></span>
+        <span class="acerca-activado">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          Producto activado
+        </span>
+      </div>
+    </div>
+    <div class="acerca-legal">
+      <p class="acerca-copy" id="acercaDeCopy"></p>
+      <p>Este software está protegido por la legislación sobre propiedad intelectual. La licencia de uso concedida es no exclusiva e intransferible y se limita a la actividad interna del licenciatario.</p>
+      <p>Queda prohibida su copia, cesión, distribución, modificación o ingeniería inversa, total o parcial, sin autorización previa y por escrito del autor. Cualquier uso no autorizado podrá dar lugar a las acciones legales correspondientes.</p>
+    </div>
+    <div class="acerca-acciones">
+      <button type="button" class="btn acerca-aceptar" id="btnAcercaDeAceptar">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de detalle de siniestro (fotos + envío) -->
 <div class="modal-overlay" id="siniestroModalOverlay">
   <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
@@ -2120,6 +2158,7 @@
 <script src="js/carga-global.js"></script>
 <script src="js/permisos-aviso.js"></script>
 <script src="js/actualizaciones.js"></script>
+<script src="js/acerca-de.js"></script>
 <script src="js/navegacion.js"></script>
 <script src="js/usuarios.js"></script>
 <script src="js/auditoria.js"></script>
