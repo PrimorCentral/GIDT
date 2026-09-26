@@ -56,6 +56,7 @@ function hayCambiosSinGuardarHistorial() {
 }
 
 window.addEventListener('beforeunload', (e) => {
+  if (window.RECARGA_POR_ACTUALIZACION_) return; // recarga al actualizar (actualizaciones.js)
   if (historialEditando && hayCambiosSinGuardarHistorial()) {
     e.preventDefault();
     e.returnValue = '';

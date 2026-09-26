@@ -52,6 +52,7 @@
   // recargando o cerrando la pestaña.
   window.addEventListener('beforeunload', (evento) => {
     if (!getSesion()) return;
+    if (window.RECARGA_POR_ACTUALIZACION_) return; // recarga al actualizar (actualizaciones.js)
     evento.preventDefault();
     evento.returnValue = '';
   });
