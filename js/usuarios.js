@@ -304,5 +304,7 @@
   document.querySelectorAll('[data-view="config-usuarios"]').forEach(el => {
     el.addEventListener('click', () => { cargarUsuarios(); });
   });
+  document.getElementById('btnRecargarUsuarios')?.addEventListener('click', (e) =>
+    recargarConGiro(e.currentTarget, cargarUsuarios));
 
   // ---------------------------------------------------------------

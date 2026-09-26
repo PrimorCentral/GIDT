@@ -1027,6 +1027,8 @@
   document.querySelectorAll('[data-view="config-tiendas"]').forEach(el => {
     el.addEventListener('click', () => { cargarAgenciasYTiendas(); });
   });
+  document.getElementById('btnRecargarTiendas')?.addEventListener('click', (e) =>
+    recargarConGiro(e.currentTarget, cargarAgenciasYTiendas));
 
   const buscadorTiendas = document.getElementById('buscadorTiendas');
   if (buscadorTiendas) {

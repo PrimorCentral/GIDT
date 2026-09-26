@@ -17,6 +17,24 @@ function bordeDerechoVisible() {
   return rect.left + main.clientWidth;
 }
 
+// Botón 🔄 "Recargar" de las páginas de Configuración: gira el icono
+// mientras carga (mínimo una vuelta visible) y bloquea el doble clic.
+async function recargarConGiro(btn, ...cargas) {
+  if (!btn || btn.disabled) return;
+  const icono = btn.querySelector('.ps-refresh-icon');
+  const inicio = Date.now();
+  btn.disabled = true;
+  icono?.classList.add('ps-girando');
+  try {
+    await Promise.all(cargas.map(fn => typeof fn === 'function' ? fn() : null));
+  } finally {
+    const restante = 800 - (Date.now() - inicio);
+    if (restante > 0) await new Promise(r => setTimeout(r, restante));
+    btn.disabled = false;
+    icono?.classList.remove('ps-girando');
+  }
+}
+
   function activarVista(nombreVista) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));

@@ -215,5 +215,10 @@
   document.querySelectorAll('[data-view="config-emails"]').forEach(el => {
     el.addEventListener('click', () => { cargarEmailsAgencias(); });
   });
+  // Recarga las 3 listas de la página: agencias, Facturación y CC Transporte
+  document.getElementById('btnRecargarAgencias')?.addEventListener('click', (e) =>
+    recargarConGiro(e.currentTarget, cargarEmailsAgencias,
+      typeof cargarEmailsFacturacion === 'function' ? cargarEmailsFacturacion : null,
+      typeof cargarEmailsCC === 'function' ? cargarEmailsCC : null));
 
   // ---------------------------------------------------------------

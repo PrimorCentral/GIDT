@@ -64,12 +64,7 @@ async function quitarEmailFacturacion(id) {
   }
 }
 
-let facturacionConfigCargada = false;
+// Se recarga SIEMPRE al entrar, para ver cambios de otros compañeros.
 document.querySelectorAll('[data-view="config-emails"]').forEach(el => {
-  el.addEventListener('click', () => {
-    if (!facturacionConfigCargada) {
-      facturacionConfigCargada = true;
-      cargarEmailsFacturacion();
-    }
-  });
+  el.addEventListener('click', () => { cargarEmailsFacturacion(); });
 });

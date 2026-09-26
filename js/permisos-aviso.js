@@ -62,7 +62,7 @@ const BOTONES_CON_PERMISO = [
 // Modo LECTURA: mismo selector de botones de acción que ya usa
 // styles.css para atenuarlos (ver regla "body.rol-lectura button...").
 const SELECTOR_BOTONES_LECTURA =
-  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]), .btn, .link-accion, .mini-btn';
+  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]), .btn, .link-accion, .mini-btn';
 
 // Páginas del menú que antes se ocultaban del todo para operadores sin
 // el permiso (Gestión de usuarios, Registro de auditoría): ahora se ven
