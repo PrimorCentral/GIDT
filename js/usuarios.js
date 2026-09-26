@@ -299,12 +299,10 @@
     }
   }
 
-  // Cargar la tabla la primera vez que se entra en la pestaña Usuarios
-  let usuariosCargadosYa = false;
+  // Recargar la tabla SIEMPRE al entrar en la pestaña Usuarios, para ver
+  // los cambios hechos por otros compañeros sin reiniciar la app.
   document.querySelectorAll('[data-view="config-usuarios"]').forEach(el => {
-    el.addEventListener('click', () => {
-      if (!usuariosCargadosYa) { usuariosCargadosYa = true; cargarUsuarios(); }
-    });
+    el.addEventListener('click', () => { cargarUsuarios(); });
   });
 
   // ---------------------------------------------------------------

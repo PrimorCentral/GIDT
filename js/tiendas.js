@@ -1022,11 +1022,10 @@
     });
   });
 
-  let tiendasCargadasYa = false;
+  // Se recarga SIEMPRE al entrar, para ver tiendas creadas/editadas por
+  // otros compañeros sin tener que cerrar y volver a abrir la app.
   document.querySelectorAll('[data-view="config-tiendas"]').forEach(el => {
-    el.addEventListener('click', () => {
-      if (!tiendasCargadasYa) { tiendasCargadasYa = true; cargarAgenciasYTiendas(); }
-    });
+    el.addEventListener('click', () => { cargarAgenciasYTiendas(); });
   });
 
   const buscadorTiendas = document.getElementById('buscadorTiendas');

@@ -211,11 +211,9 @@
     if (e.target.id === 'nuevaAgenciaModalOverlay') cerrarModalNuevaAgencia();
   });
 
-  let emailsCargadosYa = false;
+  // Se recarga SIEMPRE al entrar, para ver cambios de otros compañeros.
   document.querySelectorAll('[data-view="config-emails"]').forEach(el => {
-    el.addEventListener('click', () => {
-      if (!emailsCargadosYa) { emailsCargadosYa = true; cargarEmailsAgencias(); }
-    });
+    el.addEventListener('click', () => { cargarEmailsAgencias(); });
   });
 
   // ---------------------------------------------------------------
