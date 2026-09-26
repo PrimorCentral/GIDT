@@ -2227,3 +2227,7 @@ header.top .app-name.abre-acerca-de:hover{ opacity:.85; }
   .modal-overlay#nuevaTiendaModalOverlay, .modal-overlay#modalEditarTiendaOverlay{ padding:10px; }
   .tienda-modal-box{ max-height:calc(100dvh - 20px); }
 }
+/* Campos de texto de los modales de tienda: siempre en mayúsculas
+   (el valor real se convierte en js/tiendas.js; el placeholder se deja normal). */
+.tienda-modal-box input[type="text"]{ text-transform:uppercase; }
+.tienda-modal-box input[type="text"]::placeholder{ text-transform:none; }
