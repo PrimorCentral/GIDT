@@ -762,6 +762,7 @@
         </div>
         <div class="tiendas-contadores" id="tiendasContadores"></div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarTiendas" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
           <input type="text" id="buscadorTiendas" class="form-input" style="width:240px;" placeholder="🔎 Buscar tienda…">
           <div class="export-tiendas-wrap" id="exportTiendasWrap">
             <button class="btn" id="btnExportarTiendas">⬇️ Exportar</button>
@@ -790,7 +791,10 @@
           <h1>✉️ Gestión de agencias</h1>
           <p>Destinatarios de los informes e incidencias.</p>
         </div>
-        <button class="btn primary" id="btnNuevaAgencia">➕ Nueva agencia</button>
+        <div style="display:flex; gap:10px;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarAgencias" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn primary" id="btnNuevaAgencia">➕ Nueva agencia</button>
+        </div>
       </div>
 
       <div id="listaEmailsAgencias"></div>
@@ -837,7 +841,10 @@
           <h1>👤 Usuarios</h1>
           <p>Alta y gestión de accesos al sistema.</p>
         </div>
-        <button class="btn primary" id="btnNuevoUsuario">➕ Nuevo usuario</button>
+        <div style="display:flex; gap:10px;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarUsuarios" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn primary" id="btnNuevoUsuario">➕ Nuevo usuario</button>
+        </div>
       </div>
 
       <div class="card" style="overflow:hidden;">

@@ -1852,7 +1852,7 @@ body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row input{
    quedan pulsables (permisos-aviso.js avisa al pulsar); los campos de
    formulario siguen bloqueados sin más (un aviso por cada campo sería
    spam navegando/leyendo). */
-body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not([data-view]),
+body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]),
 body.rol-lectura .btn,
 body.rol-lectura .link-accion,
 body.rol-lectura .mini-btn{
