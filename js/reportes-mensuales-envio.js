@@ -453,14 +453,13 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
   const estiloNaPuntual = { fillColor: [255, 255, 255], textColor: [255, 255, 255] };
 
   if (f.esPuntual) {
-    if (f.diaFin < diaDesde || f.diaInicio > diaHasta) {
-      celdas.push({ content: '', colSpan: diaHasta - diaDesde + 1, styles: estiloNaPuntual });
-      return { celdas, totalIncidencias: 0 };
-    }
-    const iniPropio = Math.max(f.diaInicio, diaDesde);
-    const finPropio = Math.min(f.diaFin, diaHasta);
-    if (iniPropio > diaDesde) celdas.push({ content: '', colSpan: iniPropio - diaDesde, styles: estiloNaPuntual });
-    for (let dia = iniPropio; dia <= finPropio; dia++) {
+    // Días propios de la fila puntual rellenos; cada hueco de días ajenos
+    // se agrupa en una sola celda en blanco.
+    let hueco = 0;
+    const cerrarHueco = () => { if (hueco) { celdas.push({ content: '', colSpan: hueco, styles: estiloNaPuntual }); hueco = 0; } };
+    for (let dia = diaDesde; dia <= diaHasta; dia++) {
+      if (!f.diasPuntuales || !f.diasPuntuales.has(dia)) { hueco++; continue; }
+      cerrarHueco();
       if (!diasEnviados.has(dia)) {
         if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
         celdas.push({ content: '', styles: {} }); continue;
@@ -470,7 +469,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       totalIncidencias++;
       celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
     }
-    if (finPropio < diaHasta) celdas.push({ content: '', colSpan: diaHasta - finPropio, styles: estiloNaPuntual });
+    cerrarHueco();
     return { celdas, totalIncidencias };
   }
 

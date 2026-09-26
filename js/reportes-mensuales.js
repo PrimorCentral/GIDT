@@ -282,26 +282,27 @@ function rmSegmentosDeTienda(tienda, cambiosPermanentes, totalDias) {
   return segmentos;
 }
 
-// Filas EXTRA, una por cada cambio puntual de agencia (agrupando en un
-// mismo bloque los días consecutivos con la misma agencia puntual, aunque
-// lo habitual sea un único día suelto). Cada una es una fila aparte, bajo
-// la agencia puntual, con esPuntual:true — no forma parte del tramo
-// habitual de la tienda.
+// Filas EXTRA de cambios puntuales de agencia: UNA sola fila por cada
+// agencia puntual distinta de la tienda en el mes, con TODOS sus días
+// (consecutivos o no — p. ej. HOZ con SEYLOTRANS el 19 y el 26 sale en
+// una única fila "SEYLOTRANS puntual"). esPuntual:true — no forma parte
+// del tramo habitual de la tienda. diasPuntuales guarda los días propios;
+// diaInicio/diaFin son el primero y el último (para ordenar/filtrar).
 function rmFilasPuntualesDeTienda(puntualPorDia) {
   if (!puntualPorDia) return [];
   const dias = Object.keys(puntualPorDia).map(Number).sort((a, b) => a - b);
-  const bloques = [];
-  let actual = null;
+  const porAgencia = new Map();
   dias.forEach(dia => {
     const pun = puntualPorDia[dia];
-    if (actual && actual.agenciaId === pun.agenciaId && dia === actual.diaFin + 1) {
-      actual.diaFin = dia;
-    } else {
-      actual = { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre, diaInicio: dia, diaFin: dia, esPuntual: true };
-      bloques.push(actual);
+    let fila = porAgencia.get(pun.agenciaId);
+    if (!fila) {
+      fila = { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre, diaInicio: dia, diaFin: dia, diasPuntuales: [], esPuntual: true };
+      porAgencia.set(pun.agenciaId, fila);
     }
+    fila.diasPuntuales.push(dia);
+    fila.diaFin = dia;
   });
-  return bloques;
+  return [...porAgencia.values()];
 }
 
 // Agrupa TODAS las filas/tramos (sin filtrar) por tienda. Se usa para
@@ -348,7 +349,8 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
         tiendaProvincia: t.provincia || null,
         diaInicio: seg.diaInicio,
         diaFin: seg.diaFin,
-        esPuntual: !!seg.esPuntual
+        esPuntual: !!seg.esPuntual,
+        diasPuntuales: seg.diasPuntuales ? new Set(seg.diasPuntuales) : null
       });
     });
   });
@@ -532,8 +534,13 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
   let totalIncidencias = 0;
 
   if (f.esPuntual) {
-    if (f.diaInicio > 1) partes.push(`<td colspan="${f.diaInicio - 1}" class="rm-td-napuntual">–</td>`);
-    for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
+    // Recorre el mes: los días propios de esta fila puntual se rellenan;
+    // cada hueco de días ajenos se agrupa en una sola celda "–".
+    let hueco = 0;
+    const cerrarHueco = () => { if (hueco) { partes.push(`<td colspan="${hueco}" class="rm-td-napuntual">–</td>`); hueco = 0; } };
+    for (let dia = 1; dia <= totalDias; dia++) {
+      if (!f.diasPuntuales || !f.diasPuntuales.has(dia)) { hueco++; continue; }
+      cerrarHueco();
       if (!diasEnviados.has(dia)) {
         if (rmEsDomingo(rmAnio, rmMes, dia)) { partes.push(`<td class="rm-td-domingo" title="Domingo — sin entrega habitual"></td>`); continue; }
         partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
@@ -543,7 +550,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       totalIncidencias++;
       partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
     }
-    if (f.diaFin < totalDias) partes.push(`<td colspan="${totalDias - f.diaFin}" class="rm-td-napuntual">–</td>`);
+    cerrarHueco();
     return { html: partes.join(''), totalIncidencias };
   }
 
@@ -646,7 +653,7 @@ async function rmRender() {
 
   const filasHtml = filasVisibles.map(({ f, html, totalIncidencias }) => `
     <tr class="${f.esPuntual ? 'rm-fila-puntual' : ''}">
-      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de un cambio puntual de agencia de un solo día">puntual</span>' : ''}</td>
+      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}

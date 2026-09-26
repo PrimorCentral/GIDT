@@ -249,7 +249,9 @@ async function rmxDescargar() {
 
     // Solo las filas que tengan algún día dentro del rango elegido.
     filasGrupo = filasGrupo
-      .filter(f => f.diaFin >= diaDesde && f.diaInicio <= diaHasta)
+      .filter(f => f.esPuntual && f.diasPuntuales
+        ? [...f.diasPuntuales].some(d => d >= diaDesde && d <= diaHasta)
+        : (f.diaFin >= diaDesde && f.diaInicio <= diaHasta))
       .sort((a, b) => a.agenciaNombre.localeCompare(b.agenciaNombre) || a.tiendaNombre.localeCompare(b.tiendaNombre) || a.diaInicio - b.diaInicio);
 
     if (!filasGrupo.length) {
