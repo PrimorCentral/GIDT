@@ -1232,76 +1232,105 @@
 
 <!-- Modal: editar datos de una tienda (Gestión de tiendas) -->
 <div class="modal-overlay" id="modalEditarTiendaOverlay">
-  <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
-    <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
-    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
+    <div class="tienda-modal-head">
       <div>
-        <label class="form-label">Nº tienda</label>
-        <input type="text" id="metNumero" class="form-input" placeholder="Ej. 002">
-      </div>
-      <div>
-        <label class="form-label">Nombre tienda</label>
-        <input type="text" id="metNombre" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Hora prevista</label>
-        <input type="time" id="metHora" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Dirección completa</label>
-        <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
-      </div>
-      <div>
-        <label class="form-label">Provincia</label>
-        <input type="text" id="metProvincia" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Límite palets</label>
-        <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
-      </div>
-      <div>
-        <label class="form-label">Límite hora entrega</label>
-        <input type="time" id="metLimiteHora" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Supervisor/a</label>
-        <input type="text" id="metSupervisor" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Recogida semanal</label>
-        <select id="metRecogidaDia" class="form-input">
-          <option value="">— Sin recogida —</option>
-          <option value="1">Lunes</option>
-          <option value="2">Martes</option>
-          <option value="3">Miércoles</option>
-          <option value="4">Jueves</option>
-          <option value="5">Viernes</option>
-          <option value="6">Sábado</option>
-          <option value="7">Domingo</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">Agencia recogida</label>
-        <input type="text" id="metAgenciaRecogida" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Tránsito (horas)</label>
-        <input type="number" id="metTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
-      </div>
-      <div>
-        <label class="form-label">Marca</label>
-        <select id="metMarca" class="form-input">
-          <option value="HABITUAL">Habitual</option>
-          <option value="SABADO">Sábado</option>
-          <option value="PRUEBA">Prueba</option>
-          <option value="ESPECIAL">Especial</option>
-        </select>
+        <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
+        <p class="tienda-modal-sub">Modifica los datos y pulsa Guardar.</p>
       </div>
     </div>
-    <p id="metError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
-    <div class="modal-footer" style="margin-top:18px;">
-      <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
-      <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
+
+    <div class="tienda-modal-body">
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Nº tienda</label>
+              <input type="text" id="metNumero" class="form-input" placeholder="Ej. 002">
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Nombre tienda</label>
+              <input type="text" id="metNombre" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Marca</label>
+              <select id="metMarca" class="form-input">
+                <option value="HABITUAL">Habitual</option>
+                <option value="SABADO">Sábado</option>
+                <option value="PRUEBA">Prueba</option>
+                <option value="ESPECIAL">Especial</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Supervisor/a</label>
+              <input type="text" id="metSupervisor" class="form-input">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-3">
+              <label class="form-label">Dirección completa</label>
+              <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Provincia</label>
+              <input type="text" id="metProvincia" class="form-input">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora prevista</label>
+              <input type="time" id="metHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite hora entrega</label>
+              <input type="time" id="metLimiteHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite palets</label>
+              <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Tránsito (horas)</label>
+              <input type="number" id="metTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Día de recogida</label>
+              <select id="metRecogidaDia" class="form-input">
+                <option value="">— Sin recogida —</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia recogida</label>
+              <input type="text" id="metAgenciaRecogida" class="form-input">
+            </div>
+          </div>
+        </section>
+    </div>
+
+    <div class="tienda-modal-foot">
+      <p id="metError" class="err" style="display:none;"></p>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2037,84 +2066,110 @@
 
 <!-- Modal: nueva tienda -->
 <div class="modal-overlay" id="nuevaTiendaModalOverlay">
-  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
-    <button class="filtros-modal-close" id="btnCerrarNuevaTienda" style="position:absolute; right:16px; top:16px;">✕</button>
-    <h3 class="modal-title">➕ Nueva tienda</h3>
-
-    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="nuevaTiendaTitulo">
+    <div class="tienda-modal-head">
       <div>
-        <label class="form-label">Nº tienda</label>
-        <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
+        <h3 class="modal-title" id="nuevaTiendaTitulo">Nueva tienda</h3>
+        <p class="tienda-modal-sub">Los campos marcados con <span class="tf-req">*</span> son obligatorios.</p>
       </div>
-      <div>
-        <label class="form-label">Nombre tienda</label>
-        <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
-      </div>
-      <div>
-        <label class="form-label">Agencia</label>
-        <select id="ntAgencia" class="form-input"></select>
-      </div>
-      <div>
-        <label class="form-label">Hora prevista</label>
-        <input type="time" id="ntHora" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Dirección completa</label>
-        <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
-      </div>
-      <div>
-        <label class="form-label">Provincia</label>
-        <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
-      </div>
-      <div>
-        <label class="form-label">Límite palets</label>
-        <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
-      </div>
-      <div>
-        <label class="form-label">Límite hora entrega</label>
-        <input type="time" id="ntLimiteHora" class="form-input">
-      </div>
-      <div>
-        <label class="form-label">Supervisor/a</label>
-        <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
-      </div>
-      <div>
-        <label class="form-label">Recogida semanal</label>
-        <select id="ntRecogidaDia" class="form-input">
-          <option value="">— Sin recogida —</option>
-          <option value="1">Lunes</option>
-          <option value="2">Martes</option>
-          <option value="3">Miércoles</option>
-          <option value="4">Jueves</option>
-          <option value="5">Viernes</option>
-          <option value="6">Sábado</option>
-          <option value="7">Domingo</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label">Agencia recogida</label>
-        <input type="text" id="ntAgenciaRecogida" class="form-input" placeholder="Ej. SEUR">
-      </div>
-      <div>
-        <label class="form-label">Tránsito (horas)</label>
-        <input type="number" id="ntTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
-      </div>
-      <div>
-        <label class="form-label">Marca</label>
-        <select id="ntMarca" class="form-input">
-          <option value="HABITUAL">Habitual</option>
-          <option value="SABADO">Sábado</option>
-          <option value="PRUEBA">Prueba</option>
-          <option value="ESPECIAL">Especial</option>
-        </select>
-      </div>
+      <button class="filtros-modal-close" id="btnCerrarNuevaTienda" aria-label="Cerrar">✕</button>
     </div>
 
-    <p class="err" id="ntError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+    <div class="tienda-modal-body">
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Nº tienda</label>
+              <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Nombre tienda <span class="tf-req">*</span></label>
+              <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Marca</label>
+              <select id="ntMarca" class="form-input">
+                <option value="HABITUAL">Habitual</option>
+                <option value="SABADO">Sábado</option>
+                <option value="PRUEBA">Prueba</option>
+                <option value="ESPECIAL">Especial</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia <span class="tf-req">*</span></label>
+              <select id="ntAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Supervisor/a</label>
+              <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-3">
+              <label class="form-label">Dirección completa</label>
+              <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Provincia</label>
+              <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora prevista</label>
+              <input type="time" id="ntHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite hora entrega</label>
+              <input type="time" id="ntLimiteHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite palets</label>
+              <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Tránsito (horas)</label>
+              <input type="number" id="ntTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Día de recogida</label>
+              <select id="ntRecogidaDia" class="form-input">
+                <option value="">— Sin recogida —</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia recogida</label>
+              <input type="text" id="ntAgenciaRecogida" class="form-input" placeholder="Ej. SEUR">
+            </div>
+          </div>
+        </section>
+    </div>
 
-    <div class="modal-footer" style="margin-top:18px;">
-      <button class="btn" id="btnCancelarTienda">Cancelar</button>
-      <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
+    <div class="tienda-modal-foot">
+      <p class="err" id="ntError" style="display:none;"></p>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelarTienda">Cancelar</button>
+        <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
+      </div>
     </div>
   </div>
 </div>

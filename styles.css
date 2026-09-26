@@ -2160,3 +2160,70 @@ header.top .app-name.abre-acerca-de:hover{ opacity:.85; }
 .acerca-acciones{ display:flex; justify-content:flex-end; padding:0 26px 22px; margin-top:10px; }
 .acerca-aceptar{ background:var(--bg); border-color:var(--bg); color:#fff; font-weight:700; padding:9px 18px; }
 .acerca-aceptar:hover{ filter:brightness(1.25); }
+
+/* ---------- Modales "Nueva tienda" / "Editar tienda" (Gestión de tiendas) ----------
+   Modal ancho con cabecera y pie fijos y cuerpo con scroll propio, para que
+   nunca se corte por abajo aunque la pantalla sea baja. Los campos van
+   agrupados por secciones en una rejilla de 4 columnas (2 en tablet, 1 en móvil). */
+.tienda-modal-box{
+  max-width:760px; padding:0;
+  display:flex; flex-direction:column;
+  max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px);
+  overflow:hidden;
+}
+.tienda-modal-head{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  padding:20px 24px 16px; border-bottom:1px solid var(--border);
+  flex:0 0 auto;
+}
+.tienda-modal-head .modal-title{ margin:0; font-size:18px; }
+.tienda-modal-head .filtros-modal-close{ flex:0 0 auto; }
+.tienda-modal-sub{ margin:3px 0 0; font-size:12.5px; color:var(--ink-soft); }
+.tienda-modal-body{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  padding:6px 24px 18px;
+  background:var(--panel);
+}
+.tienda-modal-foot{
+  flex:0 0 auto;
+  padding:14px 24px; border-top:1px solid var(--border);
+  background:var(--panel-muted);
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+}
+.tienda-modal-foot .err{ margin:0 0 10px; color:var(--grave); font-size:12.5px; }
+.tienda-modal-foot .modal-footer .btn{ min-width:110px; justify-content:center; }
+
+.tf-seccion{ padding-top:16px; }
+.tf-seccion + .tf-seccion{ margin-top:16px; border-top:1px dashed var(--border); }
+.tf-seccion-titulo{
+  display:flex; align-items:center; gap:8px;
+  margin:0 0 12px; font-size:13px; font-weight:700; color:var(--ink);
+  letter-spacing:.1px;
+}
+.tf-seccion-icono{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; border-radius:7px;
+  background:#FFF1E6; font-size:13.5px;
+}
+.tf-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px 14px; }
+.tf-campo{ min-width:0; }
+.tf-campo .form-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tf-campo .form-input{ height:40px; }
+.tf-span-1{ grid-column:span 1; }
+.tf-span-2{ grid-column:span 2; }
+.tf-span-3{ grid-column:span 3; }
+.tf-span-4{ grid-column:span 4; }
+.tf-req{ color:var(--accent); font-weight:800; }
+
+@media (max-width:680px){
+  .tf-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .tf-span-1, .tf-span-2{ grid-column:span 1; }
+  .tf-span-3, .tf-span-4{ grid-column:span 2; }
+  .tienda-modal-head, .tienda-modal-body, .tienda-modal-foot{ padding-left:18px; padding-right:18px; }
+}
+@media (max-width:440px){
+  .tf-grid{ grid-template-columns:1fr; }
+  .tf-span-1, .tf-span-2, .tf-span-3, .tf-span-4{ grid-column:span 1; }
+  .modal-overlay#nuevaTiendaModalOverlay, .modal-overlay#modalEditarTiendaOverlay{ padding:10px; }
+  .tienda-modal-box{ max-height:calc(100dvh - 20px); }
+}
