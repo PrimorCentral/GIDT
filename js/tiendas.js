@@ -369,16 +369,16 @@
 
   async function guardarModalEditarTienda() {
     if (editarTiendaId == null) return;
-    const numeroTienda = document.getElementById('metNumero').value.trim();
-    const nombre = document.getElementById('metNombre').value.trim();
+    const numeroTienda = document.getElementById('metNumero').value.trim().toUpperCase();
+    const nombre = document.getElementById('metNombre').value.trim().toUpperCase();
     const hora = document.getElementById('metHora').value;
-    const direccion = document.getElementById('metDireccion').value.trim();
-    const provincia = document.getElementById('metProvincia').value.trim();
+    const direccion = document.getElementById('metDireccion').value.trim().toUpperCase();
+    const provincia = document.getElementById('metProvincia').value.trim().toUpperCase();
     const limitePaletsRaw = document.getElementById('metLimitePalets').value;
     const limiteHora = document.getElementById('metLimiteHora').value;
-    const supervisor = document.getElementById('metSupervisor').value.trim();
+    const supervisor = document.getElementById('metSupervisor').value.trim().toUpperCase();
     const recogidaDia = document.getElementById('metRecogidaDia').value;
-    const agenciaRecogida = document.getElementById('metAgenciaRecogida').value.trim();
+    const agenciaRecogida = document.getElementById('metAgenciaRecogida').value.trim().toUpperCase();
     const transitoRaw = document.getElementById('metTransito').value;
     const marca = document.getElementById('metMarca').value;
     const errEl = document.getElementById('metError');
@@ -715,17 +715,17 @@
   }
 
   async function guardarNuevaTienda() {
-    const numeroTienda = document.getElementById('ntNumero').value.trim();
-    const nombre = document.getElementById('ntNombre').value.trim();
+    const numeroTienda = document.getElementById('ntNumero').value.trim().toUpperCase();
+    const nombre = document.getElementById('ntNombre').value.trim().toUpperCase();
     const agenciaId = Number(document.getElementById('ntAgencia').value);
     const hora = document.getElementById('ntHora').value;
-    const direccion = document.getElementById('ntDireccion').value.trim();
-    const provincia = document.getElementById('ntProvincia').value.trim();
+    const direccion = document.getElementById('ntDireccion').value.trim().toUpperCase();
+    const provincia = document.getElementById('ntProvincia').value.trim().toUpperCase();
     const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
     const limiteHora = document.getElementById('ntLimiteHora').value;
-    const supervisor = document.getElementById('ntSupervisor').value.trim();
+    const supervisor = document.getElementById('ntSupervisor').value.trim().toUpperCase();
     const recogidaDia = document.getElementById('ntRecogidaDia').value;
-    const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim();
+    const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim().toUpperCase();
     const transitoRaw = document.getElementById('ntTransito').value;
     const marca = document.getElementById('ntMarca').value;
     const errEl = document.getElementById('ntError');
@@ -770,6 +770,19 @@
       btn.disabled = false;
     }
   }
+
+  // Modales Nueva/Editar tienda: todos los campos de texto van SIEMPRE en
+  // mayúsculas. Se convierte mientras se escribe (conservando la posición
+  // del cursor) y, por si acaso, también al guardar (ver .toUpperCase()).
+  document.querySelectorAll('#nuevaTiendaModalOverlay input[type="text"], #modalEditarTiendaOverlay input[type="text"]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const may = inp.value.toUpperCase();
+      if (inp.value === may) return;
+      const ini = inp.selectionStart, fin = inp.selectionEnd;
+      inp.value = may;
+      try { inp.setSelectionRange(ini, fin); } catch (_) {}
+    });
+  });
 
   document.getElementById('btnNuevaTienda').addEventListener('click', abrirModalNuevaTienda);
   document.getElementById('btnCerrarNuevaTienda')?.addEventListener('click', cerrarModalNuevaTienda);
