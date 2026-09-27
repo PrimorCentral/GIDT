@@ -234,9 +234,11 @@ async function recargarConGiro(btn, ...cargas) {
     // incidencias pendientes de enviar a la agencia. Consulta directa (no
     // depende de que informeHoyCache/incidenciasHoyCache ya estén cargadas).
     try {
+      // Se calcula aquí la fecha de hoy: al abrir la app esta función puede
+      // ejecutarse antes de que informe-hoy.js haya definido fechaHoyISO.
       const { data: informe } = await sb.from('informes_diarios')
         .select('id, informe_enviado')
-        .eq('fecha', fechaHoyISO)
+        .eq('fecha', fechaLocalISO(new Date()))
         .maybeSingle();
 
       if (informe) {

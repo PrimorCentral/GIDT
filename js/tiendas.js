@@ -713,6 +713,38 @@
     return { prueba_agencia_id: agId, prueba_hora: hora, prueba_fechas: fechas };
   }
 
+  // Botón "Guardar"/"Crear tienda" mientras se guarda: se desactiva al
+  // momento y, si tarda más de un instante, muestra un spinner "Guardando…".
+  function botonGuardando(btn, activo) {
+    if (!btn) return;
+    if (activo) {
+      if (btn.dataset.textoOriginal == null) btn.dataset.textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      clearTimeout(btn._spinnerTimer);
+      btn._spinnerTimer = setTimeout(() => {
+        btn.classList.add('btn-guardando');
+        btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>Guardando…';
+      }, 250);
+    } else {
+      clearTimeout(btn._spinnerTimer);
+      btn.classList.remove('btn-guardando');
+      if (btn.dataset.textoOriginal != null) { btn.innerHTML = btn.dataset.textoOriginal; delete btn.dataset.textoOriginal; }
+      btn.disabled = false;
+    }
+  }
+
+  // La base de datos tampoco deja dos tiendas activas con el mismo Nº
+  // (índice único tiendas_numero_unico_activas): si otra persona la acaba de
+  // crear justo a la vez, se avisa y se refresca la lista para que aparezca.
+  function esNumeroDuplicadoBD(err) {
+    return err && (err.code === '23505' || /tiendas_numero_unico_activas/.test(err.message || ''));
+  }
+  function avisarNumeroDuplicado(errEl, numeroTienda) {
+    errEl.textContent = `Ya existe una tienda con el Nº ${numeroTienda} (puede que otra persona la acabe de dar de alta). La lista se ha actualizado.`;
+    errEl.style.display = 'block';
+    cargarAgenciasYTiendas();
+  }
+
   async function tiendaConMismoNumero(numeroTienda, excluirId) {
     const buscado = normalizarNumeroTienda(numeroTienda);
     if (!buscado) return null;
@@ -772,14 +804,16 @@
       return;
     }
 
-    const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId);
-    if (repetidaEditar) {
-      errEl.textContent = `Ya existe una tienda con el Nº ${numeroTienda}: "${repetidaEditar.nombre}". Si los sábados la entrega otra agencia, indícalo en "Entrega de sábado" de esa tienda.`;
-      errEl.style.display = 'block';
-      return;
-    }
-
+    const btnGuardar = document.getElementById('modalEditarTiendaBtnGuardar');
+    botonGuardando(btnGuardar, true);
     try {
+      const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId);
+      if (repetidaEditar) {
+        errEl.textContent = `Ya existe una tienda con el Nº ${numeroTienda}: "${repetidaEditar.nombre}". Si los sábados la entrega otra agencia, indícalo en "Entrega de sábado" de esa tienda.`;
+        errEl.style.display = 'block';
+        return;
+      }
+
       const { error } = await sb.from('tiendas').update({
         numero_tienda: numeroTienda || null,
         nombre,
@@ -805,8 +839,11 @@
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error editando tienda:', err);
+      if (esNumeroDuplicadoBD(err)) { avisarNumeroDuplicado(errEl, numeroTienda); return; }
       errEl.textContent = 'No se pudo guardar el cambio.';
       errEl.style.display = 'block';
+    } finally {
+      botonGuardando(btnGuardar, false);
     }
   }
 
@@ -1152,7 +1189,7 @@
     const maxOrden = Math.max(0, ...tiendasCache.filter(t => t.agencia_id === agenciaId).map(t => t.orden));
 
     const btn = document.getElementById('btnGuardarTienda');
-    btn.disabled = true;
+    botonGuardando(btn, true);
     try {
       const repetida = await tiendaConMismoNumero(numeroTienda, null);
       if (repetida) {
@@ -1189,10 +1226,11 @@
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);
+      if (esNumeroDuplicadoBD(err)) { avisarNumeroDuplicado(errEl, numeroTienda); return; }
       errEl.textContent = 'No se pudo crear la tienda.';
       errEl.style.display = 'block';
     } finally {
-      btn.disabled = false;
+      botonGuardando(btn, false);
     }
   }
 
