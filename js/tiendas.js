@@ -749,8 +749,16 @@
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
 
-    if (!nombre) {
-      errEl.textContent = 'Ponle un nombre a la tienda.';
+    // Mismos campos obligatorios que al crear una tienda.
+    const faltan = [];
+    if (!numeroTienda) faltan.push('Nº tienda');
+    if (!nombre) faltan.push('Nombre tienda');
+    if (!supervisor) faltan.push('Supervisor/a');
+    if (!provincia) faltan.push('Provincia');
+    if (!hora) faltan.push('Hora prevista');
+    if (limitePaletsRaw === '') faltan.push('Límite palets');
+    if (faltan.length) {
+      errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
       errEl.style.display = 'block';
       return;
     }
