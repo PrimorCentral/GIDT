@@ -189,11 +189,89 @@
     const enPrueba = activas.filter(t => fechasPruebaPendientes(t).length > 0).length;
     cont.innerHTML = `
       <span class="tiendas-contador"><b>${activas.length}</b><span>Tiendas</span></span>
-      <span class="tiendas-contador sabado" title="Tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></span>
-      <span class="tiendas-contador prueba" title="Tiendas con fechas de prueba pendientes con otra agencia"><b>${enPrueba}</b><span>En prueba</span></span>
-      ${numBajas ? `<span class="tiendas-contador baja" title="Tiendas de baja ahora mismo (sin recibir mercancía)"><b>${numBajas}</b><span>De baja</span></span>` : ''}
+      <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></button>
+      <button type="button" class="tiendas-contador prueba pulsable" data-lista="prueba" title="Ver las tiendas con fechas de prueba pendientes"><b>${enPrueba}</b><span>En prueba</span></button>
+      ${numBajas ? `<button type="button" class="tiendas-contador baja pulsable" data-lista="baja" title="Ver las tiendas de baja ahora mismo"><b>${numBajas}</b><span>De baja</span></button>` : ''}
     `;
+    cont.querySelectorAll('[data-lista]').forEach(btn => btn.addEventListener('click', () => abrirListaContador(btn.dataset.lista)));
   }
+
+  // ---------------------------------------------------------------
+  // Ventana con la lista de tiendas de un contador (Con sábado / En prueba
+  // / De baja). Pulsar una tienda abre su ficha (Editar tienda).
+  // ---------------------------------------------------------------
+  function abrirListaContador(tipo) {
+    const overlay = document.getElementById('modalListaContadorOverlay');
+    if (!overlay) return;
+    const nomAg = (id) => agenciasCache.find(a => a.id === id)?.nombre || '—';
+    const hora = (h) => h ? h.slice(0, 5) : '';
+    const fechaCorta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    const orden = (a, b) => nomAg(a.agencia_id).localeCompare(nomAg(b.agencia_id)) || a.nombre.localeCompare(b.nombre);
+    let titulo = '', sub = '', cabecera = [], filas = [];
+
+    if (tipo === 'sabado') {
+      const tds = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id) && (t.marca === 'SABADO' || tiendaTieneEntregaSabado(t))).sort(orden);
+      titulo = `🟡 Con sábado (${tds.length})`;
+      sub = 'Tiendas que los sábados reciben por otra agencia.';
+      cabecera = ['Nº', 'Tienda', 'Agencia habitual', 'Agencia sábado', 'Hora sábado'];
+      filas = tds.map(t => ({ id: t.id, celdas: [
+        [t.numero_tienda || '—', 'suave'], [t.nombre, 'nombre'], [nomAg(t.agencia_id)],
+        [t.marca === 'SABADO' ? `${nomAg(t.agencia_id)} (solo sábados)` : nomAg(t.sabado_agencia_id)],
+        [hora(t.sabado_hora) || `${hora(t.hora_prevista) || '—'} (habitual)`, 'suave']
+      ] }));
+    } else if (tipo === 'prueba') {
+      const tds = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id) && fechasPruebaPendientes(t).length > 0).sort(orden);
+      titulo = `🟢 En prueba (${tds.length})`;
+      sub = 'Tiendas con fechas de prueba pendientes: esos días reciben además por la agencia de prueba.';
+      cabecera = ['Nº', 'Tienda', 'Agencia habitual', 'Agencia prueba', 'Hora', 'Próximas fechas'];
+      filas = tds.map(t => ({ id: t.id, celdas: [
+        [t.numero_tienda || '—', 'suave'], [t.nombre, 'nombre'], [nomAg(t.agencia_id)], [nomAg(t.prueba_agencia_id)],
+        [hora(t.prueba_hora) || `${hora(t.hora_prevista) || '—'} (habitual)`, 'suave'],
+        [fechasPruebaPendientes(t).map(fechaCorta).join(', '), 'suave']
+      ] }));
+    } else if (tipo === 'baja') {
+      const tds = tiendasCache.filter(t => t.activo && tiendaEnBajaHoy(t.id)).sort(orden);
+      titulo = `⏸️ De baja (${tds.length})`;
+      sub = 'Tiendas que ahora mismo no reciben mercancía.';
+      cabecera = ['Nº', 'Tienda', 'Agencia', 'Desde', 'Vuelve', 'Motivo'];
+      filas = tds.map(t => {
+        const p = periodoBajaActualDeTienda(t.id);
+        return { id: t.id, celdas: [
+          [t.numero_tienda || '—', 'suave'], [t.nombre, 'nombre'], [nomAg(t.agencia_id)],
+          [p?.fecha_desde ? fechaISOaCorta(p.fecha_desde) : '—'],
+          [p?.fecha_reactivacion ? fechaISOaCorta(p.fecha_reactivacion) : 'Sin fecha', 'suave'],
+          [p?.motivo || '—', 'suave']
+        ] };
+      });
+    } else return;
+
+    document.getElementById('listaContadorTitulo').textContent = titulo;
+    document.getElementById('listaContadorSub').textContent = sub;
+    const cuerpo = document.getElementById('listaContadorCuerpo');
+    cuerpo.innerHTML = filas.length
+      ? `<table class="tabla-lista-contador">
+          <thead><tr>${cabecera.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
+          <tbody>${filas.map(f => `<tr data-tienda="${f.id}" title="Abrir la ficha de la tienda">${f.celdas.map(([v, cls]) => `<td class="${cls || ''}">${escapeHtml(String(v))}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>`
+      : '<div class="lista-contador-vacia">No hay ninguna tienda.</div>';
+    cuerpo.querySelectorAll('tr[data-tienda]').forEach(tr => tr.addEventListener('click', () => {
+      cerrarListaContador();
+      abrirModalEditarTienda(Number(tr.dataset.tienda));
+    }));
+    overlay.classList.add('show');
+  }
+  function cerrarListaContador() {
+    document.getElementById('modalListaContadorOverlay')?.classList.remove('show');
+  }
+  document.getElementById('btnCerrarListaContador')?.addEventListener('click', cerrarListaContador);
+  // Es solo de consulta: se puede cerrar también pulsando fuera o con Escape.
+  document.getElementById('modalListaContadorOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modalListaContadorOverlay') cerrarListaContador();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('modalListaContadorOverlay')?.classList.contains('show')) cerrarListaContador();
+  });
+
 
 
   function renderAcordeonTiendas() {
