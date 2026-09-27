@@ -1317,6 +1317,23 @@
           </div>
         </section>
         <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
+          <label class="tf-check"><input type="checkbox" id="metSabadoOtra"> Los sábados entrega otra agencia</label>
+          <div class="tf-grid" id="metSabadoCampos" style="display:none;">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
+              <select id="metSabadoAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora sábado</label>
+              <input type="time" id="metSabadoHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1 tf-campo-ayuda">
+              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-2">
@@ -2161,6 +2178,23 @@
                 <option value="120">120 h (5 días)</option>
                 <option value="144">144 h (6 días)</option>
               </select>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
+          <label class="tf-check"><input type="checkbox" id="ntSabadoOtra"> Los sábados entrega otra agencia</label>
+          <div class="tf-grid" id="ntSabadoCampos" style="display:none;">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
+              <select id="ntSabadoAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora sábado</label>
+              <input type="time" id="ntSabadoHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1 tf-campo-ayuda">
+              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
             </div>
           </div>
         </section>

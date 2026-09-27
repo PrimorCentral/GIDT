@@ -2244,6 +2244,18 @@ header.top .app-name.abre-acerca-de:hover{ opacity:.85; }
   font-size:12.5px; font-weight:400; color:var(--ink-soft); line-height:1.4; letter-spacing:0;
 }
 .tf-seccion-nota b{ color:var(--ink); font-weight:600; }
+/* Casilla "Los sábados entrega otra agencia" (modales de tienda) */
+.tf-check{
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  font-size:13px; font-weight:600; color:var(--ink); margin:0 0 10px;
+}
+.tf-check input{ width:16px; height:16px; accent-color:var(--accent, #f97316); cursor:pointer; }
+.tf-campo-ayuda{ display:flex; align-items:flex-end; }
+.tf-campo-ayuda span{ font-size:11.5px; color:var(--ink-soft); line-height:1.35; padding-bottom:6px; }
+/* Nota "Sáb: AGENCIA hh:mm" bajo el nombre en Gestión de tiendas */
+.tienda-nota-sabado{
+  display:block; margin-top:2px; font-size:11px; font-weight:500; color:#7A5B00; white-space:nowrap;
+}
 .tf-seccion-icono{
   display:inline-flex; align-items:center; justify-content:center;
   width:26px; height:26px; border-radius:7px;
