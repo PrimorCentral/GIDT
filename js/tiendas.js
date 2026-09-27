@@ -154,7 +154,7 @@
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, creado_en').order('orden'),
       cargarBajasTiendas()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
@@ -168,6 +168,14 @@
     sel.innerHTML = `<option value="">— Elige agencia —</option>`
       + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
     sel.value = valorPrevioAgencia;
+    ['ntSabadoAgencia', 'metSabadoAgencia'].forEach(id => {
+      const s = document.getElementById(id);
+      if (!s) return;
+      const previo = s.value;
+      s.innerHTML = `<option value="">— Elige agencia —</option>`
+        + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+      s.value = previo;
+    });
 
     renderAcordeonTiendas();
   }
@@ -206,7 +214,7 @@
           return `
             <tr data-tienda="${t.id}" class="${enBajaHoy ? 'fila-en-baja' : ''}">
               <td class="celda-numero">${t.numero_tienda ? escapeHtml(t.numero_tienda) : '—'}</td>
-              <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
+              <td class="celda-nombre">${escapeHtml(t.nombre)}${notaSabadoHtml(t)}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
@@ -395,6 +403,11 @@
     }
     selTransito.value = t.transito_horas != null ? String(t.transito_horas) : '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
+    const tieneSabado = tiendaTieneEntregaSabado(t);
+    document.getElementById('metSabadoOtra').checked = tieneSabado;
+    document.getElementById('metSabadoAgencia').value = tieneSabado ? String(t.sabado_agencia_id) : '';
+    document.getElementById('metSabadoHora').value = tieneSabado && t.sabado_hora ? t.sabado_hora.slice(0, 5) : '';
+    sincronizarCamposSabado('met');
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
     errEl.textContent = '';
@@ -412,28 +425,61 @@
   // número (las eliminadas —activo=false— no cuentan, para poder reutilizar
   // el número de una tienda cerrada). Se compara sin espacios, en
   // mayúsculas y sin ceros a la izquierda ("021" = "21").
-  // Excepción: una misma tienda puede tener DOS fichas con el mismo número,
-  // una de marca SÁBADO (agencia que entrega los sábados) y otra de otra
-  // marca (agencia habitual el resto de días). Lo que no se permite es
-  // repetir número dentro del mismo grupo (dos SÁBADO, o dos no-SÁBADO).
+  // (Si una tienda entrega los sábados con otra agencia, NO se crea otra
+  // ficha: se indica en la sección "Entrega de sábado" de la misma tienda.)
   function normalizarNumeroTienda(n) {
     return String(n ?? '').trim().toUpperCase().replace(/^0+(?=.)/, '');
   }
 
-  // Ficha SÁBADO "gemela" de una tienda habitual: otra tienda ACTIVA con el
-  // mismo Nº de tienda y marca SABADO (la agencia que entrega los sábados).
-  // Si existe, ese día sale solo la ficha de sábado (Informe del día,
-  // Historial y Reporte mensual). Devuelve la gemela o null.
-  function tiendaGemelaSabado(t) {
-    if (!t || t.marca === 'SABADO') return null;
-    const num = normalizarNumeroTienda(t.numero_tienda);
-    if (!num) return null;
-    return tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
-      && normalizarNumeroTienda(x.numero_tienda) === num) || null;
+  // ---------------------------------------------------------------
+  // Entrega de sábado por otra agencia (tiendas.sabado_agencia_id /
+  // tiendas.sabado_hora). Una sola ficha de tienda: de lunes a viernes
+  // entrega su agencia habitual y los sábados la agencia de sábado, a la
+  // hora de sábado si la tiene (si no, a la habitual). Lo aplica
+  // tiendaConHorarioDia() en utilidades-informe.js (Informe del día,
+  // Historial, snapshot de incidencias) y el Reporte mensual.
+  // ---------------------------------------------------------------
+  function tiendaTieneEntregaSabado(t) {
+    return !!t && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id;
   }
 
-  async function tiendaConMismoNumero(numeroTienda, excluirId, marca) {
-    const esSabado = marca === 'SABADO';
+  // Muestra/oculta los campos de la sección según la casilla.
+  function sincronizarCamposSabado(prefijo) {
+    const chk = document.getElementById(prefijo + 'SabadoOtra');
+    const campos = document.getElementById(prefijo + 'SabadoCampos');
+    if (chk && campos) campos.style.display = chk.checked ? '' : 'none';
+  }
+  ['nt', 'met'].forEach(prefijo => {
+    document.getElementById(prefijo + 'SabadoOtra')?.addEventListener('change', () => {
+      sincronizarCamposSabado(prefijo);
+      if (document.getElementById(prefijo + 'SabadoOtra').checked) {
+        setTimeout(() => document.getElementById(prefijo + 'SabadoAgencia')?.focus(), 30);
+      }
+    });
+  });
+
+  // Lee y valida la sección. Devuelve { error } o { sabado_agencia_id, sabado_hora }.
+  function leerCamposSabado(prefijo, agenciaHabitualId, marca) {
+    const activo = document.getElementById(prefijo + 'SabadoOtra').checked;
+    if (!activo) return { sabado_agencia_id: null, sabado_hora: null };
+    const agId = Number(document.getElementById(prefijo + 'SabadoAgencia').value) || null;
+    const hora = document.getElementById(prefijo + 'SabadoHora').value || null;
+    if (marca === 'SABADO') return { error: 'Una tienda de marca Sábado ya entrega solo los sábados: desmarca "Los sábados entrega otra agencia".' };
+    if (!agId) return { error: 'Elige la agencia que entrega los sábados.' };
+    if (agenciaHabitualId && agId === agenciaHabitualId) return { error: 'La agencia de sábado es la misma que la habitual: desmarca la casilla o elige otra agencia.' };
+    return { sabado_agencia_id: agId, sabado_hora: hora };
+  }
+
+  // Redondel "S" + "Sáb: AGENCIA hh:mm" bajo el nombre (Gestión de tiendas).
+  function notaSabadoHtml(t) {
+    if (!tiendaTieneEntregaSabado(t)) return '';
+    const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
+    const hora = t.sabado_hora ? t.sabado_hora.slice(0, 5) : (t.hora_prevista ? t.hora_prevista.slice(0, 5) + ' (habitual)' : '');
+    const texto = `Sáb: ${ag ? ag.nombre : '—'}${hora ? ' · ' + hora : ''}`;
+    return `<span class="tienda-nota-sabado" title="Los sábados entrega ${escapeHtml(ag ? ag.nombre : '—')}${hora ? ' a las ' + escapeHtml(hora) : ''}">${badgeMarcaHtml('SABADO')}${escapeHtml(texto)}</span>`;
+  }
+
+  async function tiendaConMismoNumero(numeroTienda, excluirId) {
     const buscado = normalizarNumeroTienda(numeroTienda);
     if (!buscado) return null;
     // Se consulta la BD (no solo la caché) por si otra persona creó una
@@ -441,7 +487,7 @@
     let lista = tiendasCache;
     try {
       const { data, error } = await sb.from('tiendas')
-        .select('id, nombre, numero_tienda, activo, marca')
+        .select('id, nombre, numero_tienda, activo')
         .eq('activo', true)
         .not('numero_tienda', 'is', null);
       if (!error && data) lista = data;
@@ -449,7 +495,6 @@
     return lista.find(t =>
       t.activo &&
       t.id !== excluirId &&
-      (t.marca === 'SABADO') === esSabado &&
       normalizarNumeroTienda(t.numero_tienda) === buscado
     ) || null;
   }
@@ -477,9 +522,17 @@
       return;
     }
 
-    const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId, marca);
+    const tEditada = tiendasCache.find(x => x.id === editarTiendaId);
+    const sabado = leerCamposSabado('met', tEditada?.agencia_id, marca);
+    if (sabado.error) {
+      errEl.textContent = sabado.error;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId);
     if (repetidaEditar) {
-      errEl.textContent = `Ya existe una tienda${marca === 'SABADO' ? ' de sábado' : ''} con el Nº ${numeroTienda}: "${repetidaEditar.nombre}".`;
+      errEl.textContent = `Ya existe una tienda con el Nº ${numeroTienda}: "${repetidaEditar.nombre}". Si los sábados la entrega otra agencia, indícalo en "Entrega de sábado" de esa tienda.`;
       errEl.style.display = 'block';
       return;
     }
@@ -497,7 +550,9 @@
         recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
         agencia_recogida: agenciaRecogida || null,
         transito_horas: transitoRaw !== '' ? Number(transitoRaw) : null,
-        marca
+        marca,
+        sabado_agencia_id: sabado.sabado_agencia_id,
+        sabado_hora: sabado.sabado_hora
       }).eq('id', editarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
@@ -797,6 +852,10 @@
     document.getElementById('ntTransito').value = '';
     document.getElementById('ntMarca').value = '';
     document.getElementById('ntAgencia').value = '';
+    document.getElementById('ntSabadoOtra').checked = false;
+    document.getElementById('ntSabadoAgencia').value = '';
+    document.getElementById('ntSabadoHora').value = '';
+    sincronizarCamposSabado('nt');
     document.getElementById('ntError').style.display = 'none';
   }
 
@@ -843,14 +902,21 @@
       return;
     }
 
+    const sabado = leerCamposSabado('nt', agenciaId, marca);
+    if (sabado.error) {
+      errEl.textContent = sabado.error;
+      errEl.style.display = 'block';
+      return;
+    }
+
     const maxOrden = Math.max(0, ...tiendasCache.filter(t => t.agencia_id === agenciaId).map(t => t.orden));
 
     const btn = document.getElementById('btnGuardarTienda');
     btn.disabled = true;
     try {
-      const repetida = await tiendaConMismoNumero(numeroTienda, null, marca);
+      const repetida = await tiendaConMismoNumero(numeroTienda, null);
       if (repetida) {
-        errEl.textContent = `Ya existe una tienda${marca === 'SABADO' ? ' de sábado' : ''} con el Nº ${numeroTienda}: "${repetida.nombre}".`;
+        errEl.textContent = `Ya existe una tienda con el Nº ${numeroTienda}: "${repetida.nombre}". Si los sábados la entrega otra agencia, indícalo en "Entrega de sábado" de esa tienda.`;
         errEl.style.display = 'block';
         return;
       }
@@ -869,6 +935,8 @@
         agencia_recogida: agenciaRecogida || null,
         transito_horas: transitoRaw !== '' ? Number(transitoRaw) : null,
         marca,
+        sabado_agencia_id: sabado.sabado_agencia_id,
+        sabado_hora: sabado.sabado_hora,
         orden: maxOrden + 1
       });
       if (error) throw error;

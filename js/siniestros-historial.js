@@ -299,11 +299,6 @@
       // más la selección manual del usuario (Habitual/Sábado/Prueba/Especial).
       tds = tds.filter(t => {
         if (!hoyEsSabado && t.marca === 'SABADO' && !filtrosIncidencias.marcas.has('SABADO')) return false;
-        // Sábado: si la tienda tiene una ficha de marca Sábado con el mismo
-        // Nº de tienda, ese día entrega la agencia de sábado → la ficha
-        // habitual no sale (salvo que ya tenga una incidencia marcada hoy).
-        if (hoyEsSabado && typeof tiendaGemelaSabado === 'function' && tiendaGemelaSabado(t)
-          && !incidenciaDeTienda(t.id)?.marcada) return false;
         if (filtrosIncidencias.marcas.size && !filtrosIncidencias.marcas.has(t.marca)) return false;
         return true;
       });
@@ -351,7 +346,7 @@
           <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
             <td class="col-estado">${marcada ? '🔴' : '—'}</td>
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
+            <td class="col-tienda">${t.entregaSabado ? `<span title="Entrega de sábado: los sábados la entrega esta agencia">${badgeMarcaHtml('SABADO')}</span>` : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
             <td class="col-tipo">${badgeTipo}</td>
                         <td class="col-motivo">
               <div class="motivo-select">

@@ -500,17 +500,12 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY), igual que en la
     // pantalla de Reportes mensuales; el nombre completo va en la fila
     // "puntual" de esa agencia.
+    // Sábado de "Entrega de sábado": una "S" (el sábado lo entrega la otra agencia).
+    if (pun && pun.esSabado) { cerrarBloqueBaja(); celdas.push({ content: 'S', styles: estiloCambio }); continue; }
     if (pun) { cerrarBloqueBaja(); celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase(), styles: estiloCambio }); continue; }
     // Tienda de baja ese día: gris, sin OK y sin contar (salvo incidencia ya registrada).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
     cerrarBloqueBaja();
-    // Fila habitual en sábado con ficha gemela de SÁBADO: "S" como en los
-    // cambios puntuales de agencia (salvo incidencia ya registrada).
-    if (typeof rmAgenciaSabadoGemela === 'function'
-      && rmAgenciaSabadoGemela(f.tiendaId, anio, mesIndex, dia)
-      && !(diasEnviados.has(dia) && celdasTienda[dia])) {
-      celdas.push({ content: 'S', styles: estiloCambio }); continue;
-    }
     // Tienda de sábado fuera del sábado: gris rayado como un domingo
     // (salvo incidencia ya registrada).
     if (typeof rmMotivoSinEntregaTienda === 'function'
@@ -646,9 +641,8 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     // Tiendas de sábado: redondel amarillo con "S" a la izquierda del
     // nombre de la agencia (se dibuja en didDrawCell; aquí solo se deja
     // hueco a la izquierda para que no se monte sobre el texto).
-    const tiendaFila = tiendasCache.find(x => x.id === f.tiendaId);
-    const esSabado = !!tiendaFila && tiendaFila.marca === 'SABADO';
-    const celdaAgencia = { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } };
+    const esSabado = typeof rmFilaEsDeSabado === 'function' && rmFilaEsDeSabado(f);
+    const celdaAgencia = { content: f.agenciaNombre + (f.esPuntual && !f.esSabado ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } };
     if (esSabado) {
       celdaAgencia.esSabado = true;
       celdaAgencia.styles.cellPadding = { top: 2 * escala, bottom: 2 * escala, right: 1.5 * escala, left: 8.5 * escala };

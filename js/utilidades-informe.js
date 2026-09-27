@@ -44,12 +44,25 @@ function horaSemanalDeTienda(t, fecha) {
 
 // Tienda "base" para una fecha dada: la de tiendasCache, con hora_prevista
 // sustituida por la del horario semanal especial si ese día lo tiene.
+// Si es SÁBADO y la tienda tiene "Entrega de sábado" (sabado_agencia_id),
+// ese día pasa a la agencia de sábado y, si tiene sabado_hora, a esa hora
+// (que manda sobre el horario semanal). Marca entregaSabado: true.
 // No aplica ningún ajuste puntual (eso es solo para "hoy", ver abajo).
 function tiendaConHorarioDia(tiendaId, fecha) {
   const t = tiendasCache.find(x => x.id === tiendaId);
   if (!t) return null;
   const horaSemanal = horaSemanalDeTienda(t, fecha);
-  return horaSemanal ? { ...t, hora_prevista: horaSemanal } : t;
+  const base = horaSemanal ? { ...t, hora_prevista: horaSemanal } : t;
+  const esSabado = diaIsoDeFecha(fecha) === 6;
+  if (esSabado && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id) {
+    return {
+      ...base,
+      agencia_id: t.sabado_agencia_id,
+      hora_prevista: t.sabado_hora || base.hora_prevista,
+      entregaSabado: true
+    };
+  }
+  return base;
 }
 
 function tiendaEfectivaHoy(tiendaId) {

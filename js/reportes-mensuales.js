@@ -68,63 +68,43 @@ function rmEsDomingo(anio, mesIndex, dia) {
   return new Date(anio, mesIndex, dia).getDay() === 0;
 }
 
-// Tiendas de SÁBADO y su "gemela" habitual (misma tienda física, mismo
-// Nº de tienda, pero una ficha con marca SABADO para la agencia que
-// entrega los sábados y otra con la marca habitual para el resto de días):
-//  - la ficha SABADO solo tiene entrega los sábados;
-//  - la ficha habitual NO tiene entrega los sábados si existe su gemela
-//    SABADO activa (ese día entrega la otra agencia).
-// Devuelve el motivo (texto para el tooltip) si ese día la fila no tiene
-// entrega, o null si sí la tiene. Esos días se pintan en gris como los
-// domingos: sin OK y sin contar en el Total.
-function rmNormalizarNumeroTienda(n) {
-  return String(n ?? '').trim().toUpperCase().replace(/^0+(?=.)/, '');
-}
+// Tiendas de marca SÁBADO (solo reciben los sábados): el resto de días la
+// fila se pinta en gris como un domingo, sin OK y sin contar en el Total.
+// Devuelve el motivo (texto para el tooltip) o null si ese día sí entrega.
 function rmMotivoSinEntregaTienda(tiendaId, anio, mesIndex, dia) {
   const t = tiendasCache.find(x => x.id === tiendaId);
-  if (!t) return null;
-  const esSabado = new Date(anio, mesIndex, dia).getDay() === 6;
-  if (t.marca === 'SABADO') return esSabado ? null : 'Tienda de sábado — solo entrega los sábados';
-  if (!esSabado) return null;
-  const num = rmNormalizarNumeroTienda(t.numero_tienda);
-  if (!num) return null;
-  const gemela = tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
-    && rmNormalizarNumeroTienda(x.numero_tienda) === num);
-  if (!gemela) return null;
-  const ag = agenciasCache.find(a => a.id === gemela.agencia_id);
-  return `Los sábados entrega ${ag ? ag.nombre : 'otra agencia'} (tienda de sábado)`;
+  if (!t || t.marca !== 'SABADO') return null;
+  return new Date(anio, mesIndex, dia).getDay() === 6 ? null : 'Tienda de sábado — solo entrega los sábados';
+}
+
+// "Entrega de sábado" (tiendas.sabado_agencia_id / sabado_hora): una sola
+// ficha de tienda que los sábados entrega otra agencia. En el reporte se
+// trata como un cambio puntual de agencia que se repite cada sábado: sus
+// sábados van a una fila propia bajo la agencia de sábado (con el
+// redondel "S", f.esSabado) y en la fila habitual esos días llevan una "S".
+function rmTieneEntregaSabado(t) {
+  return !!t && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id;
 }
 
 // Solo las tiendas de marca HABITUAL y SÁBADO entran en el Reporte mensual
 // (pantalla, PDF y envío a agencias). Las de marca PRUEBA y ESPECIAL no
 // salen: ni fila, ni OK, ni incidencias. Las tiendas sin marca se tratan
 // como habituales.
-// Redondel "S" (el mismo de marca Sábado del Informe del día) delante del
-// nombre de la agencia en las filas de tiendas de sábado.
-function rmBadgeSabadoHtml(tiendaId) {
-  const t = tiendasCache.find(x => x.id === tiendaId);
-  if (!t || t.marca !== 'SABADO' || typeof badgeMarcaHtml !== 'function') return '';
-  return badgeMarcaHtml('SABADO');
-}
 function rmMarcaEntraEnReporte(t) {
   return !t.marca || t.marca === 'HABITUAL' || t.marca === 'SABADO';
 }
 
-// Si ese día es sábado y la tienda (habitual) tiene ficha gemela de
-// SÁBADO, devuelve el nombre de la agencia que entrega ese sábado; si no,
-// null. En la fila habitual ese día se pinta una "S" como en los cambios
-// puntuales de agencia (en vez de gris), sin OK y sin contar.
-function rmAgenciaSabadoGemela(tiendaId, anio, mesIndex, dia) {
-  if (new Date(anio, mesIndex, dia).getDay() !== 6) return null;
-  const t = tiendasCache.find(x => x.id === tiendaId);
-  if (!t || t.marca === 'SABADO') return null;
-  const num = rmNormalizarNumeroTienda(t.numero_tienda);
-  if (!num) return null;
-  const gemela = tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
-    && rmNormalizarNumeroTienda(x.numero_tienda) === num);
-  if (!gemela) return null;
-  const ag = agenciasCache.find(a => a.id === gemela.agencia_id);
-  return ag ? ag.nombre : 'otra agencia';
+// ¿La fila lleva el redondel "S" delante de la agencia? Sí en las tiendas
+// de marca Sábado y en las filas de "Entrega de sábado".
+function rmFilaEsDeSabado(f) {
+  if (f.esSabado) return true;
+  const t = tiendasCache.find(x => x.id === f.tiendaId);
+  return !!t && t.marca === 'SABADO';
+}
+// Redondel "S" (el mismo de marca Sábado del Informe del día).
+function rmBadgeSabadoHtml(f) {
+  if (!rmFilaEsDeSabado(f) || typeof badgeMarcaHtml !== 'function') return '';
+  return badgeMarcaHtml('SABADO');
 }
 
 // Primer día del mes en que cada tienda "existe" (según tiendas.creado_en,
@@ -231,6 +211,23 @@ async function rmCargarDatosMes(anio, mesIndex) {
       if (!puntualAgenciaPorTienda.has(tiendaId)) puntualAgenciaPorTienda.set(tiendaId, {});
       puntualAgenciaPorTienda.get(tiendaId)[dia] = { agenciaId: aj.agencia_id, agenciaNombre: aj.agencia_nombre || '—' };
     });
+  });
+
+  // "Entrega de sábado": cada sábado del mes cuenta como un cambio puntual
+  // a la agencia de sábado (marcado esSabado). No se añade si ese sábado ya
+  // tiene un cambio puntual real, si la tienda estaba de baja o si aún no
+  // estaba dada de alta (esos días se pintan como siempre en su fila).
+  tiendasCache.forEach(t => {
+    if (!rmTieneEntregaSabado(t)) return;
+    const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
+    for (let dia = 1; dia <= totalDias; dia++) {
+      if (new Date(anio, mesIndex, dia).getDay() !== 6) continue;
+      if (rmDiaEnBaja(t.id, dia) || dia < rmPrimerDiaTienda(t.id)) continue;
+      if (!puntualAgenciaPorTienda.has(t.id)) puntualAgenciaPorTienda.set(t.id, {});
+      const mapa = puntualAgenciaPorTienda.get(t.id);
+      if (mapa[dia]) continue;
+      mapa[dia] = { agenciaId: t.sabado_agencia_id, agenciaNombre: ag ? ag.nombre : '—', esSabado: true };
+    }
   });
 
   // Solo cuentan como "día resuelto" (con derecho a OK) los informes que
@@ -353,10 +350,13 @@ function rmFilasPuntualesDeTienda(puntualPorDia) {
   const porAgencia = new Map();
   dias.forEach(dia => {
     const pun = puntualPorDia[dia];
-    let fila = porAgencia.get(pun.agenciaId);
+    // Los sábados de "Entrega de sábado" van en su propia fila (esSabado),
+    // separada de los cambios puntuales reales a esa misma agencia.
+    const clave = `${pun.agenciaId}|${pun.esSabado ? 'S' : 'P'}`;
+    let fila = porAgencia.get(clave);
     if (!fila) {
-      fila = { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre, diaInicio: dia, diaFin: dia, diasPuntuales: [], esPuntual: true };
-      porAgencia.set(pun.agenciaId, fila);
+      fila = { agenciaId: pun.agenciaId, agenciaNombre: pun.agenciaNombre, diaInicio: dia, diaFin: dia, diasPuntuales: [], esPuntual: true, esSabado: !!pun.esSabado };
+      porAgencia.set(clave, fila);
     }
     fila.diasPuntuales.push(dia);
     fila.diaFin = dia;
@@ -410,6 +410,7 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
         diaInicio: seg.diaInicio,
         diaFin: seg.diaFin,
         esPuntual: !!seg.esPuntual,
+        esSabado: !!seg.esSabado,
         diasPuntuales: seg.diasPuntuales ? new Set(seg.diasPuntuales) : null
       });
     });
@@ -637,6 +638,11 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
 
   for (let dia = f.diaInicio; dia <= f.diaFin; dia++) {
     const pun = puntualPorDia && puntualPorDia[dia];
+    if (pun && pun.esSabado) {
+      cerrarBloqueBaja();
+      partes.push(`<td class="rm-td-cambio" title="Los sábados entrega ${escapeHtml(pun.agenciaNombre)} (entrega de sábado)">S</td>`);
+      continue;
+    }
     if (pun) {
       cerrarBloqueBaja();
       // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY): el nombre
@@ -650,10 +656,8 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     // hubiera una incidencia registrada, que se muestra como siempre).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
     cerrarBloqueBaja();
-    // Tienda de sábado fuera del sábado, o su gemela habitual en sábado:
-    // gris como un domingo (salvo que ya hubiera una incidencia registrada).
-    const agSabado = rmAgenciaSabadoGemela(f.tiendaId, rmAnio, rmMes, dia);
-    if (agSabado && !(diasEnviados.has(dia) && celdasTienda[dia])) { partes.push(`<td class="rm-td-cambio" title="Los sábados entrega ${escapeHtml(agSabado)} (tienda de sábado)">S</td>`); continue; }
+    // Tienda de marca Sábado fuera del sábado: gris como un domingo (salvo
+    // que ya hubiera una incidencia registrada).
     const sinEntrega = rmMotivoSinEntregaTienda(f.tiendaId, rmAnio, rmMes, dia);
     if (sinEntrega && !(diasEnviados.has(dia) && celdasTienda[dia])) { partes.push(`<td class="rm-td-domingo" title="${escapeHtml(sinEntrega)}"></td>`); continue; }
     if (!diasEnviados.has(dia)) {
@@ -721,8 +725,8 @@ async function rmRender() {
     : filasConDatos;
 
   const filasHtml = filasVisibles.map(({ f, html, totalIncidencias }) => `
-    <tr class="${f.esPuntual ? 'rm-fila-puntual' : ''}">
-      <td class="rm-col-fija">${rmBadgeSabadoHtml(f.tiendaId)}${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
+    <tr class="${f.esPuntual && !f.esSabado ? 'rm-fila-puntual' : ''}">
+      <td class="rm-col-fija">${rmBadgeSabadoHtml(f)}${escapeHtml(f.agenciaNombre)}${f.esPuntual && !f.esSabado ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}

@@ -302,23 +302,26 @@ function renderAcordeonHistorialEditable() {
     agenciasAMostrar = agenciasCache.filter(ag => filtrosHistorial.agencias.has(ag.id));
   }
 
+  // Agencia de cada tienda ESE día: los sábados, si la tienda tiene
+  // "Entrega de sábado", sale bajo la agencia de sábado (tiendaConHorarioDia).
+  const agenciaDelDia = (t) => (typeof tiendaConHorarioDia === 'function'
+    ? (tiendaConHorarioDia(t.id, informe.fecha)?.agencia_id ?? t.agencia_id)
+    : t.agencia_id);
+
   const bloques = agenciasAMostrar.map(ag => {
     // Solo tiendas que ya existían ese día (salvo que ya tengan algo registrado en ese informe).
-    let tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo
+    let tds = tiendasCache.filter(t => agenciaDelDia(t) === ag.id && t.activo
       && (tiendaExistiaEnFecha(t, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id))
       // Tiendas que estaban de baja ese día: no salen (salvo que ya tengan algo registrado).
       && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
     if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
     // Igual que en el Informe del día: las tiendas de marca Sábado solo
-    // salen si el informe es de un sábado, y ese día la ficha habitual con
-    // el mismo Nº de tienda no sale (entrega la agencia de sábado). En ambos
-    // casos se muestran igualmente si ya tienen algo registrado.
+    // salen si el informe es de un sábado (o si ya tienen algo registrado).
     const informeEsSabado = new Date(informe.fecha + 'T00:00:00').getDay() === 6;
     tds = tds.filter(t => {
       if (incidenciaDeTiendaHistorial(t.id)?.marcada || historialBorrador.has(t.id)) return true;
       if (t.marca === 'SABADO') return informeEsSabado || (typeof filtrosHistorial !== 'undefined' && filtrosHistorial.marcas.has('SABADO'));
-      if (informeEsSabado && typeof tiendaGemelaSabado === 'function' && tiendaGemelaSabado(t)) return false;
       return true;
     });
 
@@ -367,7 +370,7 @@ function renderAcordeonHistorialEditable() {
         <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
           <td class="col-estado">${marcada ? '🔴' : '—'}</td>
           <td class="col-hora">${horaDelDia ? horaDelDia.slice(0,5) : '—'}</td>
-          <td class="col-tienda">${badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}</td>
+          <td class="col-tienda">${(typeof tiendaConHorarioDia === 'function' && tiendaConHorarioDia(t.id, informe.fecha)?.entregaSabado) ? `<span title="Entrega de sábado: los sábados la entrega esta agencia">${badgeMarcaHtml('SABADO')}</span>` : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}</td>
           <td class="col-tipo">${badgeTipo}</td>
           <td class="col-motivo">
             <div class="motivo-select">
