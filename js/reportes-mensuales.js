@@ -245,7 +245,9 @@ async function rmCargarDatosMes(anio, mesIndex) {
       .from('incidencias')
       .select('informe_id, tienda_id, motivo')
       .in('informe_id', idsInformesEnviados)
-      .eq('marcada', true);
+      .eq('marcada', true)
+      // Las entregas de prueba y especiales no cuentan en el reporte mensual.
+      .eq('entrega', 'HABITUAL');
     if (e2) throw e2;
     incidencias = data || [];
   }

@@ -10,7 +10,7 @@
     try {
       const { data, error } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, creado_por, creado_en, ajustes_puntuales')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, creado_por, creado_en, ajustes_puntuales, entregas_especiales')
         .eq('fecha', fechaHoyISO)
         .maybeSingle();
       if (error) throw error;
@@ -115,7 +115,7 @@
     try {
       const { data, error } = await sb
         .from('incidencias')
-        .select('id, tienda_id, marcada, tipo, motivo, observaciones')
+        .select('id, tienda_id, entrega, marcada, tipo, motivo, observaciones, agencia_id, tienda_hora_prevista')
         .eq('informe_id', informeHoyCache.id);
       if (error) throw error;
       incidenciasHoyCache = data || [];
@@ -208,7 +208,7 @@
       mostrarCargandoGlobal();
       const { data: informe, error: eInf } = await sb
         .from('informes_diarios')
-        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en')
+        .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, entregas_especiales')
         .eq('fecha', fecha)
         .maybeSingle();
       if (eInf) throw eInf;
@@ -332,7 +332,7 @@
         return `
           <tr class="con-incidencia ${claseFila}">
             <td class="col-hora">${inc.tienda_hora_prevista ? inc.tienda_hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${escapeHtml(inc.tienda_nombre || '—')}</td>
+            <td class="col-tienda">${inc.tienda_marca && inc.tienda_marca !== 'HABITUAL' && typeof badgeMarcaHtml === 'function' ? badgeMarcaHtml(inc.tienda_marca) : ''}${escapeHtml(inc.tienda_nombre || '—')}</td>
             <td class="col-tipo">${badgeTipo}</td>
             <td class="col-motivo">${escapeHtml((inc.motivo || []).join(', '))}</td>
             <td class="col-obs">${escapeHtml(inc.observaciones || '')}</td>

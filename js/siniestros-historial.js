@@ -256,8 +256,10 @@
     }
   });
 
-  function incidenciaDeTienda(tiendaId) {
-    return incidenciasHoyCache.find(i => i.tienda_id === tiendaId) || null;
+  // Incidencia de hoy de una tienda para una entrega concreta (HABITUAL por
+  // defecto; PRUEBA / ESPECIAL son entregas adicionales con su propia fila).
+  function incidenciaDeTienda(tiendaId, entrega = 'HABITUAL') {
+    return incidenciasHoyCache.find(i => i.tienda_id === tiendaId && (i.entrega || 'HABITUAL') === entrega) || null;
   }
 
   let agenciasAbiertasIncidencias = new Set(); // ids de agencia desplegados en "Incidencias del día"
@@ -286,10 +288,34 @@
     // nueva y se muestra la hora nueva — solo para el informe de hoy.
     // Las tiendas de baja hoy no salen en el informe (salvo que ya tengan
     // una incidencia marcada hoy, para no esconder algo ya registrado).
-    const tiendasEfectivas = tiendasCache
+    const enBajaHoy = (id) => typeof tiendaEnBajaEnFecha === 'function' && tiendaEnBajaEnFecha(id, fechaHoyISO);
+    const tiendasHabituales = tiendasCache
       .filter(t => t.activo)
-      .filter(t => typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, fechaHoyISO) || !!incidenciaDeTienda(t.id)?.marcada)
-      .map(t => (typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(t.id) : t));
+      .filter(t => !enBajaHoy(t.id) || !!incidenciaDeTienda(t.id)?.marcada)
+      .map(t => ({ ...(typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(t.id) : t), entrega: 'HABITUAL' }));
+
+    // Entregas ADICIONALES de hoy (prueba / especial): una fila más de la
+    // misma tienda bajo la otra agencia, con su propia incidencia.
+    const extras = [];
+    if (typeof entregasAdicionalesEnFecha === 'function') {
+      entregasAdicionalesEnFecha(fechaHoyISO, informeHoyCache).forEach(({ tiendaId, entrega }) => {
+        const te = tiendaEfectivaHoyEntrega(tiendaId, entrega);
+        if (!te) return;
+        if (enBajaHoy(tiendaId) && !incidenciaDeTienda(tiendaId, entrega)?.marcada) return;
+        extras.push(te);
+      });
+    }
+    // Si ya hay una incidencia de prueba/especial pero esa entrega se ha
+    // quitado después, la fila sigue saliendo (con la agencia guardada)
+    // para no esconder algo registrado.
+    incidenciasHoyCache
+      .filter(i => i.marcada && (i.entrega || 'HABITUAL') !== 'HABITUAL'
+        && !extras.some(x => x.id === i.tienda_id && x.entrega === i.entrega))
+      .forEach(i => {
+        const t = tiendasCache.find(x => x.id === i.tienda_id);
+        if (t) extras.push({ ...t, agencia_id: i.agencia_id ?? t.agencia_id, hora_prevista: i.tienda_hora_prevista || t.hora_prevista, entrega: i.entrega });
+      });
+    const tiendasEfectivas = [...tiendasHabituales, ...extras];
 
     cont.innerHTML = agenciasAMostrar.map(ag => {
       let tds = tiendasEfectivas.filter(t => t.agencia_id === ag.id);
@@ -299,13 +325,13 @@
       // más la selección manual del usuario (Habitual/Sábado/Prueba/Especial).
       tds = tds.filter(t => {
         if (!hoyEsSabado && t.marca === 'SABADO' && !filtrosIncidencias.marcas.has('SABADO')) return false;
-        if (filtrosIncidencias.marcas.size && !filtrosIncidencias.marcas.has(t.marca)) return false;
+        if (filtrosIncidencias.marcas.size && !filtrosIncidencias.marcas.has(marcaDeFilaInforme(t))) return false;
         return true;
       });
 
       if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias || filtrosIncidencias.soloPendientes) {
         tds = tds.filter(t => {
-          const inc = incidenciaDeTienda(t.id);
+          const inc = incidenciaDeTienda(t.id, t.entrega);
           const motivosActuales = inc?.motivo || [];
           const marcada = motivosActuales.length > 0;
           const tipoCalc = calcularTipo(motivosActuales);
@@ -321,10 +347,10 @@
 
       if (!tds.length) return '';
 
-      const numInc = tds.filter(t => incidenciaDeTienda(t.id)?.marcada).length;
+      const numInc = tds.filter(t => incidenciaDeTienda(t.id, t.entrega)?.marcada).length;
 
       const filas = tds.map(t => {
-        const inc = incidenciaDeTienda(t.id);
+        const inc = incidenciaDeTienda(t.id, t.entrega);
         const motivosActuales = inc?.motivo || [];
         const marcada = motivosActuales.length > 0;
         const tipoCalc = calcularTipo(motivosActuales);
@@ -337,16 +363,16 @@
             ? '<span class="pill pendiente">Pendiente</span>'
             : `<span class="pill ${tipoCalc.toLowerCase()}">${tipoCalc.charAt(0)+tipoCalc.slice(1).toLowerCase()}</span>`;
 
-        const ajustePuntual = typeof ajustePuntualDeTienda === 'function' ? ajustePuntualDeTienda(t.id) : null;
+        const ajustePuntual = (t.entrega === 'HABITUAL' && typeof ajustePuntualDeTienda === 'function') ? ajustePuntualDeTienda(t.id) : null;
         const iconoAjuste = ajustePuntual
           ? `<span class="ajuste-puntual-badge" title="Cambio puntual solo hoy${ajustePuntual.hora_prevista ? ' · Hora: ' + escapeHtml(ajustePuntual.hora_prevista.slice(0,5)) : ''}${ajustePuntual.agencia_id != null ? ' · Agencia: ' + escapeHtml(ajustePuntual.agencia_nombre || '') : ''}">🛠️</span>`
           : '';
 
         return `
-          <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
+          <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
             <td class="col-estado">${marcada ? '🔴' : '—'}</td>
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${t.entregaSabado ? `<span title="Entrega de sábado: los sábados la entrega esta agencia">${badgeMarcaHtml('SABADO')}</span>` : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
+            <td class="col-tienda">${badgeFilaInformeHtml(t)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
             <td class="col-tipo">${badgeTipo}</td>
                         <td class="col-motivo">
               <div class="motivo-select">
@@ -401,6 +427,7 @@
 
     cont.querySelectorAll('tr[data-tienda]').forEach(tr => {
       const tiendaId = Number(tr.dataset.tienda);
+      const entrega = tr.dataset.entrega || 'HABITUAL';
       const inputObs = tr.querySelector('.i-obs');
 
             const guardar = () => guardarIncidencia(tiendaId, tr);
@@ -416,7 +443,7 @@
                   if (btnBorrarMotivos) {
         btnBorrarMotivos.addEventListener('click', async (e) => {
           e.stopPropagation();
-          const inc = incidenciaDeTienda(tiendaId);
+          const inc = incidenciaDeTienda(tiendaId, entrega);
           if (!inc) return; // no había fila en Supabase, nada que borrar
 
           // Si el siniestro asociado ya se ha enviado a la agencia, no se
@@ -466,7 +493,7 @@
             // constancia en el log de cambios (igual que hace guardarIncidencia()
             // al guardar desde el desplegable de motivos).
             if (typeof registrarCambioInformeSiEnviado === 'function') {
-              const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(tiendaId) : tiendasCache.find(t => t.id === tiendaId);
+              const tienda = (typeof tiendaEfectivaHoyEntrega === 'function' ? tiendaEfectivaHoyEntrega(tiendaId, entrega) : null) || tiendasCache.find(t => t.id === tiendaId);
               const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
               registrarCambioInformeSiEnviado(informeHoyCache, {
                 tiendaId,

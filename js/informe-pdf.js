@@ -249,7 +249,9 @@
     return incidenciasHoyCache
       .filter(i => i.marcada)
       .map(i => {
-        const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(i.tienda_id) : tiendasCache.find(t => t.id === i.tienda_id);
+        const tienda = (typeof tiendaEfectivaHoyEntrega === 'function' ? tiendaEfectivaHoyEntrega(i.tienda_id, i.entrega || 'HABITUAL') : null)
+          || (i.agencia_id != null ? { ...(tiendasCache.find(t => t.id === i.tienda_id) || {}), agencia_id: i.agencia_id, hora_prevista: i.tienda_hora_prevista } : null)
+          || tiendasCache.find(t => t.id === i.tienda_id);
         const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
         return {
           hora: tienda?.hora_prevista ? tienda.hora_prevista.slice(0, 5) : '',

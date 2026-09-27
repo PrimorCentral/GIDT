@@ -61,7 +61,7 @@
       try {
         const { data: informe, error } = await sb
           .from('informes_diarios')
-          .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, ajustes_puntuales')
+          .select('id, fecha, total_palets, estado, informe_enviado, informe_enviado_en, informe_enviado_por, ajustes_puntuales, entregas_especiales')
           .eq('id', informeHoyCache.id)
           .maybeSingle();
         if (!error && informe) informeHoyCache = informe;

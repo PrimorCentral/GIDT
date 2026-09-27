@@ -154,7 +154,7 @@
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
       cargarBajasTiendas()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
@@ -168,7 +168,7 @@
     sel.innerHTML = `<option value="">— Elige agencia —</option>`
       + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
     sel.value = valorPrevioAgencia;
-    ['ntSabadoAgencia', 'metSabadoAgencia'].forEach(id => {
+    ['ntSabadoAgencia', 'metSabadoAgencia', 'ntPruebaAgencia', 'metPruebaAgencia'].forEach(id => {
       const s = document.getElementById(id);
       if (!s) return;
       const previo = s.value;
@@ -185,19 +185,16 @@
     if (!cont) return;
     const activas = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id));
     const numBajas = tiendasCache.filter(t => t.activo && tiendaEnBajaHoy(t.id)).length;
-    const totales = { HABITUAL: 0, SABADO: 0, PRUEBA: 0, ESPECIAL: 0 };
-    activas.forEach(t => { if (totales[t.marca] != null) totales[t.marca]++; });
-    // "Sábados" = tiendas de marca Sábado + tiendas con "Entrega de sábado"
-    // por otra agencia (estas también siguen contando en su marca habitual).
-    totales.SABADO += activas.filter(t => t.marca !== 'SABADO' && tiendaTieneEntregaSabado(t)).length;
+    const conSabado = activas.filter(t => t.marca === 'SABADO' || tiendaTieneEntregaSabado(t)).length;
+    const enPrueba = activas.filter(t => fechasPruebaPendientes(t).length > 0).length;
     cont.innerHTML = `
-      <span class="tiendas-contador"><b>${totales.HABITUAL}</b><span>Tiendas</span></span>
-      <span class="tiendas-contador sabado"><b>${totales.SABADO}</b><span>Sábados</span></span>
-      <span class="tiendas-contador prueba"><b>${totales.PRUEBA}</b><span>Pruebas</span></span>
-      <span class="tiendas-contador especial"><b>${totales.ESPECIAL}</b><span>Especiales</span></span>
+      <span class="tiendas-contador"><b>${activas.length}</b><span>Tiendas</span></span>
+      <span class="tiendas-contador sabado" title="Tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></span>
+      <span class="tiendas-contador prueba" title="Tiendas con fechas de prueba pendientes con otra agencia"><b>${enPrueba}</b><span>En prueba</span></span>
       ${numBajas ? `<span class="tiendas-contador baja" title="Tiendas de baja ahora mismo (sin recibir mercancía)"><b>${numBajas}</b><span>De baja</span></span>` : ''}
     `;
   }
+
 
   function renderAcordeonTiendas() {
     renderTiendasContadores();
@@ -217,7 +214,7 @@
           return `
             <tr data-tienda="${t.id}" class="${enBajaHoy ? 'fila-en-baja' : ''}">
               <td class="celda-numero">${t.numero_tienda ? escapeHtml(t.numero_tienda) : '—'}</td>
-              <td class="celda-nombre">${escapeHtml(t.nombre)}${notaSabadoHtml(t)}</td>
+              <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
@@ -227,7 +224,7 @@
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
               <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
-              <td class="celda-marca"><span class="pill ${MARCA_CLASE[t.marca] || 'leve'}">${MARCA_LABEL[t.marca] || t.marca}</span>${badgeBajaHtml(pBaja)}</td>
+              <td class="celda-extra">${chipsEntregasHtml(t) || (pBaja ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                 <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
@@ -270,7 +267,7 @@
                     <th class="th-recogida-dia">Recogida semanal</th>
                     <th class="th-agencia-recogida">Agencia recogida</th>
                     <th class="th-transito">Tránsito</th>
-                    <th class="th-marca">Marca</th>
+                    <th class="th-extra">Entregas de otra agencia</th>
                     <th class="th-acciones"></th>
                   </tr>
                 </thead>
@@ -405,17 +402,9 @@
       selTransito.appendChild(o);
     }
     selTransito.value = t.transito_horas != null ? String(t.transito_horas) : '';
-    document.getElementById('metMarca').value = t.marca || 'HABITUAL';
     // (con ?. por si el index.html publicado aún no tiene la sección: así
     // el modal se abre igualmente)
-    const tieneSabado = tiendaTieneEntregaSabado(t);
-    const chkSab = document.getElementById('metSabadoOtra');
-    if (chkSab) chkSab.checked = tieneSabado;
-    const selSab = document.getElementById('metSabadoAgencia');
-    if (selSab) selSab.value = tieneSabado ? String(t.sabado_agencia_id) : '';
-    const horaSab = document.getElementById('metSabadoHora');
-    if (horaSab) horaSab.value = tieneSabado && t.sabado_hora ? t.sabado_hora.slice(0, 5) : '';
-    sincronizarCamposSabado('met');
+    rellenarTarjetasEntregas('met', t);
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
     errEl.textContent = '';
@@ -451,23 +440,161 @@
     return !!t && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id;
   }
 
-  // Muestra/oculta los campos de la sección según la casilla.
+  // ---------------------------------------------------------------
+  // Prueba con otra agencia (tiendas.prueba_agencia_id / prueba_hora /
+  // prueba_fechas): en las fechas marcadas la tienda recibe ADEMÁS por la
+  // agencia de prueba (una fila más en el Informe del día). Cuando pasa la
+  // última fecha deja de salir sola: no hay nada que borrar.
+  // ---------------------------------------------------------------
+  function fechasPruebaPendientes(t) {
+    if (!t || t.prueba_agencia_id == null) return [];
+    const hoyISO = fechaLocalISO(new Date());
+    return (t.prueba_fechas || []).filter(f => f >= hoyISO).sort();
+  }
+
+  // Etiquetas de la columna "Entregas de otra agencia" (Gestión de tiendas).
+  function chipsEntregasHtml(t) {
+    const partes = [];
+    if (tiendaTieneEntregaSabado(t)) {
+      const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
+      const hora = t.sabado_hora ? t.sabado_hora.slice(0, 5) : '';
+      partes.push(`<span class="xchip s" title="Los sábados entrega ${escapeHtml(ag?.nombre || '—')}${hora ? ' a las ' + hora : ' a la hora habitual'}">${badgeMarcaHtml('SABADO')}${escapeHtml(ag?.nombre || '—')}${hora ? ' ' + hora : ''}</span>`);
+    }
+    const pendientes = fechasPruebaPendientes(t);
+    if (pendientes.length) {
+      const ag = agenciasCache.find(a => a.id === t.prueba_agencia_id);
+      const lista = pendientes.map(f => f.slice(8, 10) + '/' + f.slice(5, 7)).join(', ');
+      partes.push(`<span class="xchip p" title="Prueba con ${escapeHtml(ag?.nombre || '—')}: ${lista}">${badgeMarcaHtml('PRUEBA')}${escapeHtml(ag?.nombre || '—')} · ${pendientes.length} fecha${pendientes.length === 1 ? '' : 's'}</span>`);
+    }
+    return partes.join('');
+  }
+
+  // Estado del calendario de cada modal: fechas elegidas y mes visible.
+  const calPrueba = {
+    nt: { fechas: new Set(), mes: null },
+    met: { fechas: new Set(), mes: null }
+  };
+  const MESES_CAL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function renderCalendarioPrueba(prefijo) {
+    const cont = document.getElementById(prefijo + 'PruebaCal');
+    const chips = document.getElementById(prefijo + 'PruebaChips');
+    if (!cont) return;
+    const est = calPrueba[prefijo];
+    if (!est.mes) { const d = new Date(); est.mes = new Date(d.getFullYear(), d.getMonth(), 1); }
+    const anio = est.mes.getFullYear(), mes = est.mes.getMonth();
+    const hoyISO = fechaLocalISO(new Date());
+    const primerDiaSemana = (new Date(anio, mes, 1).getDay() + 6) % 7; // 0 = lunes
+    const diasMes = new Date(anio, mes + 1, 0).getDate();
+    let celdas = 'LMXJVSD'.split('').map(d => `<span class="ea-cal-dw">${d}</span>`).join('');
+    for (let i = 0; i < primerDiaSemana; i++) celdas += '<span></span>';
+    for (let d = 1; d <= diasMes; d++) {
+      const iso = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const clases = ['ea-cal-d'];
+      if (est.fechas.has(iso)) clases.push('on');
+      if (iso < hoyISO) clases.push('pasada');
+      if (iso === hoyISO) clases.push('hoy');
+      if (new Date(anio, mes, d).getDay() === 0) clases.push('domingo');
+      celdas += `<button type="button" class="${clases.join(' ')}" data-fecha="${iso}">${d}</button>`;
+    }
+    cont.innerHTML = `
+      <div class="ea-cal-head">
+        <button type="button" class="ea-cal-nav" data-mover="-1" title="Mes anterior">◀</button>
+        <span>${MESES_CAL[mes]} ${anio}</span>
+        <button type="button" class="ea-cal-nav" data-mover="1" title="Mes siguiente">▶</button>
+      </div>
+      <div class="ea-cal-grid">${celdas}</div>`;
+    cont.querySelectorAll('.ea-cal-nav').forEach(btn => btn.addEventListener('click', () => {
+      est.mes = new Date(anio, mes + Number(btn.dataset.mover), 1);
+      renderCalendarioPrueba(prefijo);
+    }));
+    cont.querySelectorAll('.ea-cal-d').forEach(btn => btn.addEventListener('click', () => {
+      const f = btn.dataset.fecha;
+      if (est.fechas.has(f)) est.fechas.delete(f); else est.fechas.add(f);
+      renderCalendarioPrueba(prefijo);
+      actualizarResumenesTarjetas(prefijo);
+    }));
+    if (chips) {
+      const ordenadas = [...est.fechas].sort();
+      const pendientes = ordenadas.filter(f => f >= hoyISO);
+      const pasadas = ordenadas.length - pendientes.length;
+      chips.innerHTML = pendientes.map(f => `<span class="ea-fchip">${f.slice(8, 10)}/${f.slice(5, 7)}</span>`).join('')
+        + (pasadas ? `<span class="ea-fchip pasada" title="Fechas de prueba ya pasadas">${pasadas} ya pasada${pasadas === 1 ? '' : 's'}</span>` : '')
+        + (!ordenadas.length ? '<span class="ea-hint" style="margin:0;">Pulsa los días del calendario para marcarlos.</span>' : '');
+    }
+  }
+
+  // Resumen de la cabecera de cada tarjeta + borde de color si está activa.
+  function actualizarResumenesTarjetas(prefijo) {
+    const nombreAg = (id) => agenciasCache.find(a => a.id === Number(id))?.nombre || '';
+    const chkS = document.getElementById(prefijo + 'SabadoOtra');
+    const cardS = document.getElementById(prefijo + 'CardSabado');
+    const resS = document.getElementById(prefijo + 'SabadoResumen');
+    if (chkS && cardS && resS) {
+      cardS.classList.toggle('on', chkS.checked);
+      const ag = nombreAg(document.getElementById(prefijo + 'SabadoAgencia').value);
+      const hora = document.getElementById(prefijo + 'SabadoHora').value;
+      resS.textContent = chkS.checked ? ([ag || 'Elige agencia', hora].filter(Boolean).join(' · ')) : 'Desactivado';
+    }
+    const chkP = document.getElementById(prefijo + 'PruebaOtra');
+    const cardP = document.getElementById(prefijo + 'CardPrueba');
+    const resP = document.getElementById(prefijo + 'PruebaResumen');
+    if (chkP && cardP && resP) {
+      cardP.classList.toggle('on', chkP.checked);
+      const ag = nombreAg(document.getElementById(prefijo + 'PruebaAgencia').value);
+      const hoyISO = fechaLocalISO(new Date());
+      const pend = [...calPrueba[prefijo].fechas].filter(f => f >= hoyISO).length;
+      resP.textContent = chkP.checked ? `${ag || 'Elige agencia'} · ${pend} fecha${pend === 1 ? '' : 's'}` : 'Desactivado';
+    }
+  }
+
+  // Muestra/oculta el cuerpo de cada tarjeta según su interruptor.
   function sincronizarCamposSabado(prefijo) {
-    const chk = document.getElementById(prefijo + 'SabadoOtra');
-    const campos = document.getElementById(prefijo + 'SabadoCampos');
-    if (chk && campos) campos.style.display = chk.checked ? '' : 'none';
+    [['Sabado'], ['Prueba']].forEach(([tipo]) => {
+      const chk = document.getElementById(prefijo + tipo + 'Otra');
+      const campos = document.getElementById(prefijo + tipo + 'Campos');
+      if (chk && campos) campos.style.display = chk.checked ? '' : 'none';
+    });
+    renderCalendarioPrueba(prefijo);
+    actualizarResumenesTarjetas(prefijo);
   }
   ['nt', 'met'].forEach(prefijo => {
-    document.getElementById(prefijo + 'SabadoOtra')?.addEventListener('change', () => {
-      sincronizarCamposSabado(prefijo);
-      if (document.getElementById(prefijo + 'SabadoOtra').checked) {
-        setTimeout(() => document.getElementById(prefijo + 'SabadoAgencia')?.focus(), 30);
-      }
+    ['Sabado', 'Prueba'].forEach(tipo => {
+      document.getElementById(prefijo + tipo + 'Otra')?.addEventListener('change', () => {
+        sincronizarCamposSabado(prefijo);
+        if (document.getElementById(prefijo + tipo + 'Otra').checked) {
+          setTimeout(() => document.getElementById(prefijo + tipo + 'Agencia')?.focus(), 30);
+        }
+      });
+      ['Agencia', 'Hora'].forEach(campo => {
+        const el = document.getElementById(prefijo + tipo + campo);
+        el?.addEventListener('change', () => actualizarResumenesTarjetas(prefijo));
+        el?.addEventListener('input', () => actualizarResumenesTarjetas(prefijo));
+      });
     });
   });
 
-  // Lee y valida la sección. Devuelve { error } o { sabado_agencia_id, sabado_hora }.
-  function leerCamposSabado(prefijo, agenciaHabitualId, marca) {
+  // Rellena las tarjetas de un modal con los datos de la tienda (o vacías).
+  function rellenarTarjetasEntregas(prefijo, t) {
+    const set = (id, v) => { const el = document.getElementById(prefijo + id); if (el) { if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? ''; } };
+    const tieneSabado = tiendaTieneEntregaSabado(t);
+    set('SabadoOtra', tieneSabado);
+    set('SabadoAgencia', tieneSabado ? String(t.sabado_agencia_id) : '');
+    set('SabadoHora', tieneSabado && t.sabado_hora ? t.sabado_hora.slice(0, 5) : '');
+    const tienePrueba = !!t && t.prueba_agencia_id != null;
+    set('PruebaOtra', tienePrueba && fechasPruebaPendientes(t).length > 0);
+    set('PruebaAgencia', tienePrueba ? String(t.prueba_agencia_id) : '');
+    set('PruebaHora', tienePrueba && t.prueba_hora ? t.prueba_hora.slice(0, 5) : '');
+    calPrueba[prefijo].fechas = new Set(tienePrueba ? (t.prueba_fechas || []) : []);
+    // El calendario se abre en el mes de la próxima fecha pendiente (o en el actual).
+    const prox = tienePrueba ? fechasPruebaPendientes(t)[0] : null;
+    const base = prox ? new Date(prox + 'T00:00:00') : new Date();
+    calPrueba[prefijo].mes = new Date(base.getFullYear(), base.getMonth(), 1);
+    sincronizarCamposSabado(prefijo);
+  }
+
+  // Lee y valida la tarjeta de sábado. Devuelve { error } o { sabado_agencia_id, sabado_hora }.
+  function leerCamposSabado(prefijo, agenciaHabitualId) {
     const chk = document.getElementById(prefijo + 'SabadoOtra');
     // Sin la sección en pantalla (index.html antiguo): no se toca lo guardado.
     if (!chk) {
@@ -477,19 +604,35 @@
     if (!chk.checked) return { sabado_agencia_id: null, sabado_hora: null };
     const agId = Number(document.getElementById(prefijo + 'SabadoAgencia').value) || null;
     const hora = document.getElementById(prefijo + 'SabadoHora').value || null;
-    if (marca === 'SABADO') return { error: 'Una tienda de marca Sábado ya entrega solo los sábados: desmarca "Los sábados entrega otra agencia".' };
-    if (!agId) return { error: 'Elige la agencia que entrega los sábados.' };
-    if (agenciaHabitualId && agId === agenciaHabitualId) return { error: 'La agencia de sábado es la misma que la habitual: desmarca la casilla o elige otra agencia.' };
+    if (!agId) return { error: 'Sábados: elige la agencia que entrega los sábados.' };
+    if (agenciaHabitualId && agId === agenciaHabitualId) return { error: 'Sábados: la agencia es la misma que la habitual. Desactívalo o elige otra agencia.' };
     return { sabado_agencia_id: agId, sabado_hora: hora };
   }
 
-  // Redondel "S" + "Sáb: AGENCIA hh:mm" bajo el nombre (Gestión de tiendas).
-  function notaSabadoHtml(t) {
-    if (!tiendaTieneEntregaSabado(t)) return '';
-    const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
-    const hora = t.sabado_hora ? t.sabado_hora.slice(0, 5) : (t.hora_prevista ? t.hora_prevista.slice(0, 5) + ' (habitual)' : '');
-    const texto = `Sáb: ${ag ? ag.nombre : '—'}${hora ? ' · ' + hora : ''}`;
-    return `<span class="tienda-nota-sabado" title="Los sábados entrega ${escapeHtml(ag ? ag.nombre : '—')}${hora ? ' a las ' + escapeHtml(hora) : ''}">${badgeMarcaHtml('SABADO')}${escapeHtml(texto)}</span>`;
+  // Lee y valida la tarjeta de prueba. Devuelve { error } o { prueba_agencia_id, prueba_hora, prueba_fechas }.
+  function leerCamposPrueba(prefijo, agenciaHabitualId) {
+    const chk = document.getElementById(prefijo + 'PruebaOtra');
+    if (!chk) {
+      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      return { prueba_agencia_id: actual?.prueba_agencia_id ?? null, prueba_hora: actual?.prueba_hora ?? null, prueba_fechas: actual?.prueba_fechas ?? null };
+    }
+    const fechas = [...calPrueba[prefijo].fechas].sort();
+    if (!chk.checked) {
+      // Apagada: se quitan las fechas pendientes, pero se conservan las ya
+      // pasadas (y su agencia) para que el Historial de esos días no cambie.
+      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      const hoyISO = fechaLocalISO(new Date());
+      const pasadas = (actual?.prueba_fechas || []).filter(f => f < hoyISO).sort();
+      return pasadas.length && actual?.prueba_agencia_id != null
+        ? { prueba_agencia_id: actual.prueba_agencia_id, prueba_hora: actual.prueba_hora ?? null, prueba_fechas: pasadas }
+        : { prueba_agencia_id: null, prueba_hora: null, prueba_fechas: null };
+    }
+    const agId = Number(document.getElementById(prefijo + 'PruebaAgencia').value) || null;
+    const hora = document.getElementById(prefijo + 'PruebaHora').value || null;
+    if (!agId) return { error: 'Prueba: elige la agencia de prueba.' };
+    if (agenciaHabitualId && agId === agenciaHabitualId) return { error: 'Prueba: la agencia de prueba es la misma que la habitual. Elige otra.' };
+    if (!fechas.length) return { error: 'Prueba: marca en el calendario al menos una fecha de entrega.' };
+    return { prueba_agencia_id: agId, prueba_hora: hora, prueba_fechas: fechas };
   }
 
   async function tiendaConMismoNumero(numeroTienda, excluirId) {
@@ -525,7 +668,6 @@
     const recogidaDia = document.getElementById('metRecogidaDia').value;
     const agenciaRecogida = document.getElementById('metAgenciaRecogida').value.trim().toUpperCase();
     const transitoRaw = document.getElementById('metTransito').value;
-    const marca = document.getElementById('metMarca').value;
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
 
@@ -536,9 +678,10 @@
     }
 
     const tEditada = tiendasCache.find(x => x.id === editarTiendaId);
-    const sabado = leerCamposSabado('met', tEditada?.agencia_id, marca);
-    if (sabado.error) {
-      errEl.textContent = sabado.error;
+    const sabado = leerCamposSabado('met', tEditada?.agencia_id);
+    const prueba = sabado.error ? {} : leerCamposPrueba('met', tEditada?.agencia_id);
+    if (sabado.error || prueba.error) {
+      errEl.textContent = sabado.error || prueba.error;
       errEl.style.display = 'block';
       return;
     }
@@ -563,9 +706,11 @@
         recogida_semanal_dia: recogidaDia ? Number(recogidaDia) : null,
         agencia_recogida: agenciaRecogida || null,
         transito_horas: transitoRaw !== '' ? Number(transitoRaw) : null,
-        marca,
         sabado_agencia_id: sabado.sabado_agencia_id,
-        sabado_hora: sabado.sabado_hora
+        sabado_hora: sabado.sabado_hora,
+        prueba_agencia_id: prueba.prueba_agencia_id,
+        prueba_hora: prueba.prueba_hora,
+        prueba_fechas: prueba.prueba_fechas
       }).eq('id', editarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
@@ -863,15 +1008,8 @@
     document.getElementById('ntRecogidaDia').value = '';
     document.getElementById('ntAgenciaRecogida').value = '';
     document.getElementById('ntTransito').value = '';
-    document.getElementById('ntMarca').value = '';
     document.getElementById('ntAgencia').value = '';
-    const ntChkSab = document.getElementById('ntSabadoOtra');
-    if (ntChkSab) ntChkSab.checked = false;
-    const ntSelSab = document.getElementById('ntSabadoAgencia');
-    if (ntSelSab) ntSelSab.value = '';
-    const ntHoraSab = document.getElementById('ntSabadoHora');
-    if (ntHoraSab) ntHoraSab.value = '';
-    sincronizarCamposSabado('nt');
+    rellenarTarjetasEntregas('nt', null);
     document.getElementById('ntError').style.display = 'none';
   }
 
@@ -898,7 +1036,7 @@
     const recogidaDia = document.getElementById('ntRecogidaDia').value;
     const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim().toUpperCase();
     const transitoRaw = document.getElementById('ntTransito').value;
-    const marca = document.getElementById('ntMarca').value;
+    const marca = 'HABITUAL'; // la marca ya no se elige: las entregas de otra agencia van en las tarjetas
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
 
@@ -906,7 +1044,6 @@
     const faltan = [];
     if (!numeroTienda) faltan.push('Nº tienda');
     if (!nombre) faltan.push('Nombre tienda');
-    if (!marca) faltan.push('Marca');
     if (!agenciaId) faltan.push('Agencia');
     if (!supervisor) faltan.push('Supervisor/a');
     if (!provincia) faltan.push('Provincia');
@@ -918,9 +1055,10 @@
       return;
     }
 
-    const sabado = leerCamposSabado('nt', agenciaId, marca);
-    if (sabado.error) {
-      errEl.textContent = sabado.error;
+    const sabado = leerCamposSabado('nt', agenciaId);
+    const prueba = sabado.error ? {} : leerCamposPrueba('nt', agenciaId);
+    if (sabado.error || prueba.error) {
+      errEl.textContent = sabado.error || prueba.error;
       errEl.style.display = 'block';
       return;
     }
@@ -953,6 +1091,9 @@
         marca,
         sabado_agencia_id: sabado.sabado_agencia_id,
         sabado_hora: sabado.sabado_hora,
+        prueba_agencia_id: prueba.prueba_agencia_id,
+        prueba_hora: prueba.prueba_hora,
+        prueba_fechas: prueba.prueba_fechas,
         orden: maxOrden + 1
       });
       if (error) throw error;
@@ -1167,11 +1308,26 @@
     descargarBlob(blob, `tiendas-resumido-${fechaHoyISO || new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  // "SÁB: SEYLOTRANS 08:30 · PRUEBA: CBL (3 fechas)" para el Excel detallado.
+  function textoEntregasExcel(t) {
+    const partes = [];
+    if (tiendaTieneEntregaSabado(t)) {
+      const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
+      partes.push(`SÁB: ${ag?.nombre || '—'}${t.sabado_hora ? ' ' + t.sabado_hora.slice(0, 5) : ''}`);
+    }
+    const pend = fechasPruebaPendientes(t);
+    if (pend.length) {
+      const ag = agenciasCache.find(a => a.id === t.prueba_agencia_id);
+      partes.push(`PRUEBA: ${ag?.nombre || '—'} (${pend.length} fecha${pend.length === 1 ? '' : 's'})`);
+    }
+    return partes.join(' · ');
+  }
+
   async function exportarTiendasDetallado() {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
-    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'MARCA'];
-    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 12 }];
+    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'ENTREGAS OTRA AGENCIA'];
+    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 34 }];
 
     const filaCab = hoja.addRow(COLS);
     COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
@@ -1191,7 +1347,7 @@
         tiendasExcelCelda(fila, 10, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
         tiendasExcelCelda(fila, 11, t.agencia_recogida || '', { halign: 'center' });
         tiendasExcelCelda(fila, 12, t.transito_horas != null ? t.transito_horas : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 13, MARCA_LABEL[t.marca] || t.marca || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 13, textoEntregasExcel(t), { halign: 'center' });
       });
     });
 

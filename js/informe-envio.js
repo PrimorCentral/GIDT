@@ -20,7 +20,10 @@ function construirGruposInformeHoy() {
       // Se usa la tienda "efectiva" de hoy: si tiene un cambio puntual de
       // hora y/o agencia (desde "Utilidades"), el envío respeta ese cambio
       // solo para el informe de hoy.
-      const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(inc.tienda_id) : tiendasCache.find(t => t.id === inc.tienda_id);
+      // Entregas de prueba/especial van a SU agencia (tiendaEfectivaHoyEntrega).
+      const tienda = (typeof tiendaEfectivaHoyEntrega === 'function' ? tiendaEfectivaHoyEntrega(inc.tienda_id, inc.entrega || 'HABITUAL') : null)
+        || (inc.agencia_id != null ? { ...(tiendasCache.find(t => t.id === inc.tienda_id) || {}), agencia_id: inc.agencia_id, hora_prevista: inc.tienda_hora_prevista } : null)
+        || tiendasCache.find(t => t.id === inc.tienda_id);
       if (!tienda) return;
 
       const agId = tienda.agencia_id;

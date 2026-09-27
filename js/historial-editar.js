@@ -26,8 +26,30 @@ let historialTodasIncidencias = []; // TODAS las incidencias ya guardadas en BD 
 // Borrador en memoria mientras se edita: cambios que aún no se han
 // guardado en la base de datos. Se confirman al pulsar "Terminar de
 // editar" y se descartan al pulsar "Salir".
-let historialBorrador = new Map();        // tiendaId -> { motivos: [...], observaciones: '' }
-let historialSiniestrosDraft = new Map(); // tiendaId -> { tipoSiniestro, fotos: [...], fotosPaths: [...], tienda, agencia }
+// Las claves son "tiendaId|entrega" (entrega = HABITUAL / PRUEBA / ESPECIAL):
+// una misma tienda puede tener varias filas el mismo día (ver claveHist).
+let historialBorrador = new Map();        // clave -> { motivos: [...], observaciones: '' }
+let historialSiniestrosDraft = new Map(); // clave -> { tipoSiniestro, fotos: [...], fotosPaths: [...], tienda, agencia }
+
+function claveHist(tiendaId, entrega) { return `${tiendaId}|${entrega || 'HABITUAL'}`; }
+function partesClaveHist(clave) {
+  const [id, entrega] = String(clave).split('|');
+  return { tiendaId: Number(id), entrega: entrega || 'HABITUAL' };
+}
+// Tienda "efectiva" de una entrega en la fecha del informe que se edita
+// (si la entrega ya no existe, se usa lo guardado en la incidencia).
+function tiendaEntregaHistorial(tiendaId, entrega) {
+  const inf = historialInformeActual;
+  let t = typeof tiendaEntregaEnFecha === 'function'
+    ? tiendaEntregaEnFecha(tiendaId, entrega, inf.fecha, inf)
+    : (typeof tiendaConHorarioDia === 'function' ? tiendaConHorarioDia(tiendaId, inf.fecha) : tiendasCache.find(x => x.id === tiendaId));
+  if (!t) {
+    const base = tiendasCache.find(x => x.id === tiendaId);
+    const inc = incidenciaDeTiendaHistorial(tiendaId, entrega);
+    if (base) t = { ...base, agencia_id: inc?.agencia_id ?? base.agencia_id, hora_prevista: inc?.tienda_hora_prevista || base.hora_prevista, entrega };
+  }
+  return t ? { ...t, entrega: entrega || 'HABITUAL' } : null;
+}
 
 // ¿La tienda ya estaba dada de alta el día de este informe? Se compara
 // tiendas.creado_en (en hora de Madrid) con la fecha del informe, para no
@@ -39,15 +61,16 @@ function tiendaExistiaEnFecha(tienda, fechaISO) {
   return alta <= fechaISO;
 }
 
-function incidenciaDeTiendaHistorial(tiendaId) {
-  return historialTodasIncidencias.find(i => i.tienda_id === tiendaId) || null;
+function incidenciaDeTiendaHistorial(tiendaId, entrega = 'HABITUAL') {
+  return historialTodasIncidencias.find(i => i.tienda_id === tiendaId && (i.entrega || 'HABITUAL') === entrega) || null;
 }
 
-// Estado "efectivo" de una tienda mientras se edita: lo que hay en el
+// Estado "efectivo" de una fila mientras se edita: lo que hay en el
 // borrador si se ha tocado, o si no lo que hay guardado en BD.
-function estadoEfectivoHistorial(tiendaId) {
-  if (historialBorrador.has(tiendaId)) return historialBorrador.get(tiendaId);
-  const inc = incidenciaDeTiendaHistorial(tiendaId);
+function estadoEfectivoHistorial(tiendaId, entrega = 'HABITUAL') {
+  const clave = claveHist(tiendaId, entrega);
+  if (historialBorrador.has(clave)) return historialBorrador.get(clave);
+  const inc = incidenciaDeTiendaHistorial(tiendaId, entrega);
   return { motivos: inc?.motivo || [], observaciones: inc?.observaciones || '' };
 }
 
@@ -68,7 +91,7 @@ async function activarEdicionHistorial() {
   if (!agenciasCache.length) await cargarAgenciasYTiendas();
 
   const { data, error } = await sb.from('incidencias')
-    .select('id, tienda_id, marcada, tipo, motivo, observaciones, tienda_nombre, tienda_hora_prevista, tienda_marca, agencia_id, agencia_nombre')
+    .select('id, tienda_id, entrega, marcada, tipo, motivo, observaciones, tienda_nombre, tienda_hora_prevista, tienda_marca, agencia_id, agencia_nombre')
     .eq('informe_id', historialInformeActual.id);
   if (error) {
     console.error('Error cargando incidencias para editar:', error);
@@ -131,7 +154,8 @@ async function finalizarEdicionHistorial() {
     // 0) Comprobación final: ninguna incidencia con NO ENTREGAN / FALTAS se
     // vuelca a BD sin su submotivo. Si alguna llega así, no se guarda nada.
     if (typeof motivosSinSubmotivo === 'function') {
-      for (const [tiendaId, borrador] of historialBorrador) {
+      for (const [clave, borrador] of historialBorrador) {
+        const { tiendaId } = partesClaveHist(clave);
         const faltan = motivosSinSubmotivo(borrador.motivos);
         if (faltan.length) {
           const t = tiendasCache.find(x => x.id === tiendaId);
@@ -145,12 +169,13 @@ async function finalizarEdicionHistorial() {
     }
 
     // 1) Guardar en BD cada incidencia tocada en el borrador.
-    for (const [tiendaId, borrador] of historialBorrador) {
+    for (const [clave, borrador] of historialBorrador) {
+      const { tiendaId, entrega } = partesClaveHist(clave);
       const motivos = borrador.motivos;
       const observaciones = borrador.observaciones;
       const marcada = motivos.length > 0;
       const tipo = calcularTipo(motivos);
-      const existente = incidenciaDeTiendaHistorial(tiendaId);
+      const existente = incidenciaDeTiendaHistorial(tiendaId, entrega);
 
       if (!marcada) {
         if (existente) {
@@ -172,23 +197,22 @@ async function finalizarEdicionHistorial() {
         continue;
       }
 
-      const tienda = typeof tiendaConHorarioDia === 'function'
-        ? tiendaConHorarioDia(tiendaId, historialInformeActual.fecha)
-        : tiendasCache.find(t => t.id === tiendaId);
+      const tienda = tiendaEntregaHistorial(tiendaId, entrega);
       const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
 
       const { data: guardada, error } = await sb.from('incidencias').upsert({
         informe_id: historialInformeActual.id,
         tienda_id: tiendaId,
+        entrega,
         marcada, tipo, motivo: motivos, observaciones,
         usuario: sesionActual?.nombre || sesionActual?.usuario || null,
         actualizado_en: new Date().toISOString(),
         tienda_nombre: tienda?.nombre || null,
         tienda_hora_prevista: tienda?.hora_prevista || null,
-        tienda_marca: tienda?.marca || null,
+        tienda_marca: tienda ? (typeof marcaDeFilaInforme === 'function' ? marcaDeFilaInforme(tienda) : tienda.marca) : null,
         agencia_id: tienda?.agencia_id || null,
         agencia_nombre: agencia?.nombre || null
-      }, { onConflict: 'informe_id,tienda_id' }).select().single();
+      }, { onConflict: 'informe_id,tienda_id,entrega' }).select().single();
       if (error) throw error;
 
       if (typeof registrarCambioInformeSiEnviado === 'function') {
@@ -208,8 +232,9 @@ async function finalizarEdicionHistorial() {
     }
 
     // 2) Dar de alta en el Panel siniestros los siniestros nuevos del borrador.
-    for (const [tiendaId, draftSin] of historialSiniestrosDraft) {
-      const inc = incidenciaDeTiendaHistorial(tiendaId);
+    for (const [clave, draftSin] of historialSiniestrosDraft) {
+      const { tiendaId, entrega } = partesClaveHist(clave);
+      const inc = incidenciaDeTiendaHistorial(tiendaId, entrega);
       if (!inc) continue; // se debió quitar el motivo justo antes de terminar
       const panelExistenteId = await panelSiniestroDeIncidencia(inc.id);
       if (panelExistenteId) continue; // ya está de alta (por si acaso)
@@ -308,28 +333,48 @@ function renderAcordeonHistorialEditable() {
     ? (tiendaConHorarioDia(t.id, informe.fecha)?.agencia_id ?? t.agencia_id)
     : t.agencia_id);
 
-  const bloques = agenciasAMostrar.map(ag => {
-    // Solo tiendas que ya existían ese día (salvo que ya tengan algo registrado en ese informe).
-    let tds = tiendasCache.filter(t => agenciaDelDia(t) === ag.id && t.activo
-      && (tiendaExistiaEnFecha(t, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id))
+  // Filas del día: la entrega habitual de cada tienda + las entregas
+  // adicionales (prueba en esa fecha / especial de ese informe) + las que
+  // ya tengan incidencia guardada aunque esa entrega se haya quitado.
+  const tieneAlgo = (id, entrega) => !!incidenciaDeTiendaHistorial(id, entrega) || historialBorrador.has(claveHist(id, entrega));
+  const filasDia = tiendasCache
+    .filter(t => t.activo
+      // Solo tiendas que ya existían ese día (salvo que ya tengan algo registrado en ese informe).
+      && (tiendaExistiaEnFecha(t, informe.fecha) || tieneAlgo(t.id, 'HABITUAL'))
       // Tiendas que estaban de baja ese día: no salen (salvo que ya tengan algo registrado).
-      && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
+      && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, informe.fecha) || tieneAlgo(t.id, 'HABITUAL')))
+    .map(t => ({ ...t, agencia_id: agenciaDelDia(t), entrega: 'HABITUAL',
+      entregaSabado: typeof tiendaConHorarioDia === 'function' && !!tiendaConHorarioDia(t.id, informe.fecha)?.entregaSabado }));
+  const extrasDia = [];
+  if (typeof entregasAdicionalesEnFecha === 'function') {
+    entregasAdicionalesEnFecha(informe.fecha, informe).forEach(({ tiendaId, entrega }) => {
+      const te = tiendaEntregaHistorial(tiendaId, entrega);
+      if (te) extrasDia.push(te);
+    });
+  }
+  historialTodasIncidencias
+    .filter(i => (i.entrega || 'HABITUAL') !== 'HABITUAL' && !extrasDia.some(x => x.id === i.tienda_id && x.entrega === i.entrega))
+    .forEach(i => { const te = tiendaEntregaHistorial(i.tienda_id, i.entrega); if (te) extrasDia.push(te); });
+  filasDia.push(...extrasDia);
+
+  const bloques = agenciasAMostrar.map(ag => {
+    let tds = filasDia.filter(t => t.agencia_id === ag.id);
     if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
     // Igual que en el Informe del día: las tiendas de marca Sábado solo
     // salen si el informe es de un sábado (o si ya tienen algo registrado).
     const informeEsSabado = new Date(informe.fecha + 'T00:00:00').getDay() === 6;
     tds = tds.filter(t => {
-      if (incidenciaDeTiendaHistorial(t.id)?.marcada || historialBorrador.has(t.id)) return true;
+      if (incidenciaDeTiendaHistorial(t.id, t.entrega)?.marcada || historialBorrador.has(claveHist(t.id, t.entrega))) return true;
       if (t.marca === 'SABADO') return informeEsSabado || (typeof filtrosHistorial !== 'undefined' && filtrosHistorial.marcas.has('SABADO'));
       return true;
     });
 
     if (typeof filtrosHistorial !== 'undefined') {
-      if (filtrosHistorial.marcas.size) tds = tds.filter(t => filtrosHistorial.marcas.has(t.marca));
+      if (filtrosHistorial.marcas.size) tds = tds.filter(t => filtrosHistorial.marcas.has(typeof marcaDeFilaInforme === 'function' ? marcaDeFilaInforme(t) : t.marca));
       if (filtrosHistorial.tipos.size || filtrosHistorial.motivos.size || filtrosHistorial.soloConIncidencias || filtrosHistorial.soloPendientes) {
         tds = tds.filter(t => {
-          const estado = estadoEfectivoHistorial(t.id);
+          const estado = estadoEfectivoHistorial(t.id, t.entrega);
           const motivosActuales = estado.motivos;
           const marcada = motivosActuales.length > 0;
           const tipoCalc = calcularTipo(motivosActuales);
@@ -344,10 +389,10 @@ function renderAcordeonHistorialEditable() {
     }
 
     if (!tds.length) return '';
-    const numInc = tds.filter(t => estadoEfectivoHistorial(t.id).motivos.length > 0).length;
+    const numInc = tds.filter(t => estadoEfectivoHistorial(t.id, t.entrega).motivos.length > 0).length;
 
     const filas = tds.map(t => {
-      const estado = estadoEfectivoHistorial(t.id);
+      const estado = estadoEfectivoHistorial(t.id, t.entrega);
       const motivosActuales = estado.motivos;
       const marcada = motivosActuales.length > 0;
       const tipoCalc = calcularTipo(motivosActuales);
@@ -361,16 +406,17 @@ function renderAcordeonHistorialEditable() {
       // Hora de ESE día: si la tienda tenía un horario semanal especial
       // para el día de la semana de esta fecha (p. ej. era Martes), se
       // usa esa hora en vez de la hora general actual de la tienda.
-      const horaDelDia = typeof tiendaConHorarioDia === 'function'
-        ? (tiendaConHorarioDia(t.id, informe.fecha)?.hora_prevista || t.hora_prevista)
+      const horaDelDia = t.entrega === 'HABITUAL'
+        ? (typeof tiendaConHorarioDia === 'function' ? (tiendaConHorarioDia(t.id, informe.fecha)?.hora_prevista || t.hora_prevista) : t.hora_prevista)
         : t.hora_prevista;
-      const tieneCambioSinGuardar = historialBorrador.has(t.id) || historialSiniestrosDraft.has(t.id);
+      const clave = claveHist(t.id, t.entrega);
+      const tieneCambioSinGuardar = historialBorrador.has(clave) || historialSiniestrosDraft.has(clave);
 
       return `
-        <tr data-tienda="${t.id}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
+        <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
           <td class="col-estado">${marcada ? '🔴' : '—'}</td>
           <td class="col-hora">${horaDelDia ? horaDelDia.slice(0,5) : '—'}</td>
-          <td class="col-tienda">${(typeof tiendaConHorarioDia === 'function' && tiendaConHorarioDia(t.id, informe.fecha)?.entregaSabado) ? `<span title="Entrega de sábado: los sábados la entrega esta agencia">${badgeMarcaHtml('SABADO')}</span>` : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}</td>
+          <td class="col-tienda">${typeof badgeFilaInformeHtml === 'function' ? badgeFilaInformeHtml(t) : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}</td>
           <td class="col-tipo">${badgeTipo}</td>
           <td class="col-motivo">
             <div class="motivo-select">
@@ -445,6 +491,8 @@ function renderAcordeonHistorialEditable() {
 
   cont.querySelectorAll('tr[data-tienda]').forEach(tr => {
     const tiendaId = Number(tr.dataset.tienda);
+    const entrega = tr.dataset.entrega || 'HABITUAL';
+    const clave = claveHist(tiendaId, entrega);
     const inputObs = tr.querySelector('.i-obs');
     const guardar = () => actualizarBorradorIncidencia(tiendaId, tr);
     const btnBorrarMotivos = tr.querySelector('.btn-borrar-motivos-hist');
@@ -459,10 +507,10 @@ function renderAcordeonHistorialEditable() {
     if (btnBorrarMotivos) {
       btnBorrarMotivos.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const estado = estadoEfectivoHistorial(tiendaId);
+        const estado = estadoEfectivoHistorial(tiendaId, entrega);
         if (!estado.motivos.length) return;
 
-        const existente = incidenciaDeTiendaHistorial(tiendaId);
+        const existente = incidenciaDeTiendaHistorial(tiendaId, entrega);
         if (existente) {
           const panelId = await panelSiniestroDeIncidencia(existente.id);
           if (panelId) {
@@ -474,12 +522,12 @@ function renderAcordeonHistorialEditable() {
         const ok = await modalConfirm('¿Quitar todos los motivos de esta incidencia?', { titulo: 'Quitar incidencia', danger: true, textoOk: 'Quitar' });
         if (!ok) return;
 
-        if (historialSiniestrosDraft.has(tiendaId)) {
-          await borrarFotosStorage(historialSiniestrosDraft.get(tiendaId).fotosPaths);
-          historialSiniestrosDraft.delete(tiendaId);
+        if (historialSiniestrosDraft.has(clave)) {
+          await borrarFotosStorage(historialSiniestrosDraft.get(clave).fotosPaths);
+          historialSiniestrosDraft.delete(clave);
         }
 
-        historialBorrador.set(tiendaId, { motivos: [], observaciones: '' });
+        historialBorrador.set(clave, { motivos: [], observaciones: '' });
         renderAcordeonHistorialEditable();
       });
     }
@@ -528,7 +576,7 @@ function actualizarFilaHistorial(tiendaId, tr) {
     return;
   }
 
-  const estado = estadoEfectivoHistorial(tiendaId);
+  const estado = estadoEfectivoHistorial(tiendaId, tr?.dataset?.entrega || 'HABITUAL');
   const motivosActuales = estado.motivos;
   const marcada = motivosActuales.length > 0;
   const tipoCalc = calcularTipo(motivosActuales);
@@ -574,18 +622,20 @@ function actualizarFilaHistorial(tiendaId, tr) {
 // ---------------- Guardar en el borrador (no en BD) al tocar una fila ----------------
 
 async function actualizarBorradorIncidencia(tiendaId, tr) {
+  const entrega = tr?.dataset?.entrega || 'HABITUAL';
+  const clave = claveHist(tiendaId, entrega);
   let motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
   const observaciones = tr.querySelector('.i-obs').value.trim().toUpperCase();
 
   // Nunca se deja en el borrador NO ENTREGAN / FALTAS sin su submotivo (ver
   // completarSubmotivos en submotivos-informe.js).
   if (typeof completarSubmotivos === 'function') {
-    const completos = await completarSubmotivos(tr, motivos, estadoEfectivoHistorial(tiendaId)?.motivos);
+    const completos = await completarSubmotivos(tr, motivos, estadoEfectivoHistorial(tiendaId, entrega)?.motivos);
     if (completos === null) return;
     motivos = completos;
   }
   const tipoSiniestroNuevo = tipoSiniestroDeMotivos(motivos);
-  const existente = incidenciaDeTiendaHistorial(tiendaId);
+  const existente = incidenciaDeTiendaHistorial(tiendaId, entrega);
 
   // Si esta incidencia ya tiene un siniestro dado de alta en el Panel (de
   // una edición/día anterior) y el cambio la dejaría sin motivo de
@@ -594,7 +644,7 @@ async function actualizarBorradorIncidencia(tiendaId, tr) {
     const panelId = await panelSiniestroDeIncidencia(existente.id);
     if (panelId) {
       await modalAlert('Este siniestro ya se ha enviado, para eliminarlo, contacta con su responsable.', { titulo: 'No se puede modificar' });
-      const estadoPrevio = estadoEfectivoHistorial(tiendaId);
+      const estadoPrevio = estadoEfectivoHistorial(tiendaId, entrega);
       tr.querySelectorAll('.i-motivo-check').forEach(cb => { cb.checked = estadoPrevio.motivos.includes(cb.value); });
       const hayMotivo = estadoPrevio.motivos.length > 0;
       tr.querySelector('.i-obs').disabled = !hayMotivo;
@@ -609,24 +659,22 @@ async function actualizarBorradorIncidencia(tiendaId, tr) {
     }
   }
 
-  historialBorrador.set(tiendaId, { motivos, observaciones });
+  historialBorrador.set(clave, { motivos, observaciones });
 
   if (tipoSiniestroNuevo) {
     const panelExistenteId = existente ? await panelSiniestroDeIncidencia(existente.id) : null;
     if (!panelExistenteId) {
-      if (historialSiniestrosDraft.has(tiendaId)) {
-        historialSiniestrosDraft.get(tiendaId).tipoSiniestro = tipoSiniestroNuevo;
+      if (historialSiniestrosDraft.has(clave)) {
+        historialSiniestrosDraft.get(clave).tipoSiniestro = tipoSiniestroNuevo;
       } else {
-        const tienda = typeof tiendaConHorarioDia === 'function'
-          ? tiendaConHorarioDia(tiendaId, historialInformeActual.fecha)
-          : tiendasCache.find(t => t.id === tiendaId);
+        const tienda = tiendaEntregaHistorial(tiendaId, entrega);
         const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
-        await abrirModalFotosBorrador(tiendaId, tienda, agencia, tipoSiniestroNuevo);
+        await abrirModalFotosBorrador(tiendaId, tienda, agencia, tipoSiniestroNuevo, clave);
       }
     }
-  } else if (historialSiniestrosDraft.has(tiendaId)) {
-    await borrarFotosStorage(historialSiniestrosDraft.get(tiendaId).fotosPaths);
-    historialSiniestrosDraft.delete(tiendaId);
+  } else if (historialSiniestrosDraft.has(clave)) {
+    await borrarFotosStorage(historialSiniestrosDraft.get(clave).fotosPaths);
+    historialSiniestrosDraft.delete(clave);
   }
 
   actualizarFilaHistorial(tiendaId, tr);
@@ -634,10 +682,10 @@ async function actualizarBorradorIncidencia(tiendaId, tr) {
 
 // ---------------- Fotos del siniestro en borrador (se suben al momento; el alta en el Panel se difiere) ----------------
 
-let historialFotosPendiente = null; // { tiendaId, tienda, agencia, tipoSiniestro, fotos: [], fotosPaths: [] }
+let historialFotosPendiente = null; // { tiendaId, clave, tienda, agencia, tipoSiniestro, fotos: [], fotosPaths: [] }
 
-async function abrirModalFotosBorrador(tiendaId, tienda, agencia, tipoSiniestro) {
-  historialFotosPendiente = { tiendaId, tienda, agencia, tipoSiniestro, fotos: [], fotosPaths: [] };
+async function abrirModalFotosBorrador(tiendaId, tienda, agencia, tipoSiniestro, clave) {
+  historialFotosPendiente = { tiendaId, clave: clave || claveHist(tiendaId, 'HABITUAL'), tienda, agencia, tipoSiniestro, fotos: [], fotosPaths: [] };
 
   document.getElementById('historialFotosTitulo').textContent = '📷 Añadir fotos al siniestro';
   document.getElementById('historialFotosSub').textContent =
@@ -694,7 +742,7 @@ document.getElementById('historialFotosInput')?.addEventListener('change', async
 function guardarBorradorSiniestroDesdeModal() {
   const p = historialFotosPendiente;
   if (!p) return;
-  historialSiniestrosDraft.set(p.tiendaId, {
+  historialSiniestrosDraft.set(p.clave, {
     tipoSiniestro: p.tipoSiniestro,
     fotos: p.fotos,
     fotosPaths: p.fotosPaths,

@@ -235,6 +235,7 @@
   }
 
   async function guardarIncidenciaInterno(tiendaId, tr) {
+    const entrega = tr?.dataset?.entrega || 'HABITUAL';
     let motivos = Array.from(tr.querySelectorAll('.i-motivo-check:checked')).map(cb => cb.value);
     const observaciones = tr.querySelector('.i-obs').value.trim().toUpperCase();
 
@@ -242,7 +243,7 @@
     // completarSubmotivos en submotivos-informe.js). Si el usuario cancela,
     // ya se ha desmarcado el motivo y se ha relanzado el guardado limpio.
     if (typeof completarSubmotivos === 'function') {
-      const completos = await completarSubmotivos(tr, motivos, incidenciaDeTienda(tiendaId)?.motivo);
+      const completos = await completarSubmotivos(tr, motivos, incidenciaDeTienda(tiendaId, entrega)?.motivo);
       if (completos === null) return;
       motivos = completos;
     }
@@ -255,7 +256,7 @@
     // confirmada" a mano, sin pasar por la papelera), no se permite: hay
     // que gestionarlo desde el Panel siniestros.
     const tipoSiniestroNuevo = typeof tipoSiniestroDeMotivos === 'function' ? tipoSiniestroDeMotivos(motivos) : null;
-    const existente = incidenciaDeTienda(tiendaId);
+    const existente = incidenciaDeTienda(tiendaId, entrega);
     if (existente && !tipoSiniestroNuevo) {
       try {
         const { data: sinExistente } = await sb.from('siniestros').select('id, estado').eq('incidencia_id', existente.id).maybeSingle();
@@ -340,21 +341,30 @@
       // Se usa la versión "efectiva" de la tienda (aplicando el cambio
       // puntual de hora/agencia de "Utilidades" si hoy tiene uno), para que
       // el informe de hoy y su histórico queden con el dato correcto.
-      const tienda = typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(tiendaId) : tiendasCache.find(t => t.id === tiendaId);
+      // Entregas de prueba/especial: snapshot con SU agencia y hora; si esa
+      // entrega ya no existe (se quitó), se conserva lo que había guardado.
+      let tienda = typeof tiendaEfectivaHoyEntrega === 'function'
+        ? tiendaEfectivaHoyEntrega(tiendaId, entrega)
+        : (typeof tiendaEfectivaHoy === 'function' ? tiendaEfectivaHoy(tiendaId) : tiendasCache.find(t => t.id === tiendaId));
+      if (!tienda && existente) {
+        const base = tiendasCache.find(t => t.id === tiendaId);
+        tienda = base ? { ...base, agencia_id: existente.agencia_id, hora_prevista: existente.tienda_hora_prevista, entrega } : null;
+      }
       const agencia = tienda ? agenciasCache.find(a => a.id === tienda.agencia_id) : null;
 
       const { error } = await sb.from('incidencias').upsert({
         informe_id: informeHoyCache.id,
         tienda_id: tiendaId,
+        entrega,
         marcada, tipo, motivo: motivos, observaciones,
         usuario: sesionActual?.nombre || sesionActual?.usuario || null,
         actualizado_en: new Date().toISOString(),
         tienda_nombre: tienda?.nombre || null,
         tienda_hora_prevista: tienda?.hora_prevista || null,
-        tienda_marca: tienda?.marca || null,
+        tienda_marca: tienda ? (typeof marcaDeFilaInforme === 'function' ? marcaDeFilaInforme(tienda) : tienda.marca) : null,
         agencia_id: tienda?.agencia_id || null,
         agencia_nombre: agencia?.nombre || null
-      }, { onConflict: 'informe_id,tienda_id' });
+      }, { onConflict: 'informe_id,tienda_id,entrega' });
       if (error) throw error;
 
       if (typeof registrarCambioInformeSiEnviado === 'function') {
@@ -373,7 +383,7 @@
 
       // Crea/actualiza/borra el siniestro asociado (ROTURA/FALTA/MIXTO) al instante,
       // sin esperar a que se entre en la pestaña Siniestros.
-      const incGuardada = incidenciaDeTienda(tiendaId);
+      const incGuardada = incidenciaDeTienda(tiendaId, entrega);
       if (incGuardada && typeof sincronizarSiniestroIncidencia === 'function') {
         sincronizarSiniestroIncidencia(incGuardada.id, motivos);
       }
@@ -395,7 +405,7 @@
   // Actualiza solo la fila afectada (y el contador de su agencia) sin
   // reconstruir el acordeón entero, para no perder el desplegado/scroll.
   function actualizarFilaIncidencia(tiendaId, tr) {
-    const inc = incidenciaDeTienda(tiendaId);
+    const inc = incidenciaDeTienda(tiendaId, tr?.dataset?.entrega || 'HABITUAL');
     const motivosActuales = inc?.motivo || [];
     const marcada = motivosActuales.length > 0;
     const tipoCalc = calcularTipo(motivosActuales);
