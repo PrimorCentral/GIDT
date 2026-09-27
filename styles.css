@@ -1390,6 +1390,30 @@ main:has(#view-panel-siniestros.active){ padding-bottom:14px; }
   display:flex; flex-direction:column; height:100%; min-height:0;
 }
 .ps-tabla-flex{ flex:1 1 auto; min-height:0; overflow:auto; }
+/* Mostrar/ocultar completados y anulados (ocultos por defecto) */
+.ps-ver-sep{ flex:0 0 1px; align-self:stretch; background:var(--border); margin:0 4px; }
+.ps-ver-chip{
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600;
+  padding:6px 11px; border-radius:999px; border:1px dashed var(--border); background:transparent; color:var(--ink-soft);
+}
+.ps-ver-chip b{ font-size:11px; background:var(--panel-muted); color:var(--ink); border-radius:999px; padding:1px 7px; }
+.ps-ver-chip:hover{ border-color:var(--ink-soft); color:var(--ink); }
+.ps-ver-chip[aria-pressed="true"]{ border-style:solid; border-color:var(--accent); background:#FFF3E4; color:var(--ink); }
+.ps-ver-chip[aria-pressed="true"] b{ background:var(--accent); color:#fff; }
+/* Completados: fila en verde muy suave. Anulados: texto apagado. */
+table.tabla-panel-siniestros tr.ps-fila.ps-fila-completa td{ background:#F3FBF5; }
+table.tabla-panel-siniestros tr.ps-fila.ps-fila-completa:hover td{ background:#E7F6EC; }
+table.tabla-panel-siniestros tr.ps-fila.ps-fila-anulada td{ color:var(--ink-soft); background:#FAFBFC; }
+table.tabla-panel-siniestros tr.ps-fila.ps-fila-anulada:hover td{ background:var(--panel-muted); }
+/* Paginación (30 por página) */
+.ps-paginacion{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:10px 4px 0; font-size:12.5px; color:var(--ink-soft); }
+.ps-paginacion:empty{ display:none; }
+.ps-pag-botones{ display:flex; gap:4px; flex-wrap:wrap; }
+.ps-pag-btn{ min-width:32px; height:32px; padding:0 9px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--ink); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+.ps-pag-btn:hover:not(:disabled){ border-color:var(--ink-soft); }
+.ps-pag-btn.activa{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.ps-pag-btn:disabled{ opacity:.4; cursor:default; }
+.ps-pag-puntos{ align-self:center; padding:0 2px; }
 table.tabla-panel-siniestros th{
   position:sticky; top:0; z-index:2;
   background:var(--panel);

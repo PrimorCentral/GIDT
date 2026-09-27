@@ -759,6 +759,9 @@
             <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinFactura"> Sin factura</label>
             <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinAlbaran"> Sin albarán</label>
             <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinCorreo"> Sin enviar a agencia</label>
+            <span class="ps-ver-sep"></span>
+            <button type="button" class="ps-ver-chip" id="psVerCompletados" aria-pressed="false" title="Siniestros con todo el seguimiento hecho (enviado, facturado, recogido y cobrado)">✅ Completados <b id="psNumCompletados">0</b></button>
+            <button type="button" class="ps-ver-chip" id="psVerAnulados" aria-pressed="false" title="Siniestros anulados">🚫 Anulados <b id="psNumAnulados">0</b></button>
           </div>
         </div>
       </div>
@@ -776,6 +779,7 @@
           </tbody>
         </table>
       </div>
+      <div class="ps-paginacion" id="psPaginacion"></div>
     </section>
 
     <!-- ============ CONFIGURACIÓN: TIENDAS ============ -->
