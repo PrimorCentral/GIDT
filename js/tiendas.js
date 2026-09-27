@@ -745,9 +745,13 @@
   // cambiar el número.
   async function avisarNumeroRepetido(numeroTienda, nombreExistente, { desdeNueva }) {
     if (desdeNueva) cargarAgenciasYTiendas(); // por si la acaba de crear otra persona
-    const quien = nombreExistente ? `: "${nombreExistente}"` : ' (puede que otra persona la acabe de dar de alta)';
+    // Con nombre: la encontró la comprobación de la app. Sin nombre: la
+    // rechazó la base de datos porque otra persona la acaba de crear a la vez.
+    const primeraLinea = nombreExistente
+      ? `Ya existe una tienda con el Nº ${numeroTienda}: "${nombreExistente}".`
+      : `Otra persona acaba de dar de alta el Nº ${numeroTienda}.`;
     await modalAlert(
-      `Ya existe una tienda con el Nº ${numeroTienda}${quien}.\n` +
+      primeraLinea + '\n' +
       (desdeNueva ? 'No se ha creado la tienda.' : 'Cambia el número para poder guardar.'),
       { titulo: 'Nº de tienda repetido', icono: '⚠️', danger: true, textoOk: desdeNueva ? 'Cancelar' : 'Aceptar' }
     );
