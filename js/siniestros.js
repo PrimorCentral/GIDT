@@ -26,15 +26,26 @@
     // 1. Incidencias de hoy cuyo motivo incluye FALTAS o ROTURA CONFIRMADA
     const { data: incs, error: e1 } = await sb
       .from('incidencias')
+      // tiendas tiene varios enlaces a agencias (habitual, sábado...), así que
+      // hay que decir cuál (!tiendas_agencia_id_fkey). Además se trae la
+      // agencia que ENTREGÓ ese día (snapshot de la incidencia, puede ser la
+      // de sábado, un cambio puntual, prueba o especial): es la que se pinta
+      // y a la que se envía la reclamación.
       .select(`
-        id, motivo, observaciones,
+        id, motivo, observaciones, tienda_hora_prevista,
         tiendas ( id, nombre, hora_prevista,
-          agencias ( id, nombre, emails )
-        )
+          agencias!tiendas_agencia_id_fkey ( id, nombre, emails )
+        ),
+        agencia_dia:agencias!incidencias_agencia_id_fkey ( id, nombre, emails )
       `)
       .eq('informe_id', informeHoyCache.id)
       .overlaps('motivo', Object.keys(MOTIVOS_SINIESTRO));
     if (e1) throw e1;
+    (incs || []).forEach(i => {
+      if (!i.tiendas) return;
+      if (i.agencia_dia) i.tiendas.agencias = i.agencia_dia;
+      if (i.tienda_hora_prevista) i.tiendas.hora_prevista = i.tienda_hora_prevista;
+    });
 
     if (!incs.length) return { incs: [], existentesPorIncidencia: new Map() };
 
