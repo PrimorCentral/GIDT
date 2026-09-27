@@ -1,0 +1,2309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#12181F">
+<title>Primor</title>
+<link rel="manifest" href="manifest.json">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Modal obligatorio: exige tener la app instalada (PWA) antes de poder
+     usarla. No se cierra al hacer click fuera ni con Escape. Se muestra
+     por defecto (class "show") para que tape la app desde el primer
+     instante; js/instalar-app.js lo oculta solo si detecta que se está
+     ejecutando ya instalada (modo standalone). -->
+<div class="modal-overlay instalar-overlay show" id="instalarAppModalOverlay">
+  <div class="modal-box instalar-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="instalarModalTitulo">
+    <div class="instalar-modal-icono">📲</div>
+    <h3 class="modal-title" id="instalarModalTitulo">Instala la app para continuar</h3>
+    <p class="modal-message">Esta aplicación debe usarse instalada en el dispositivo (no desde el navegador) para que todo funcione correctamente.</p>
+    <div class="instalar-modal-pasos">
+      <b>Cómo instalarla:</b>
+      <ol>
+        <li>Toca el botón <b>"Instalar App"</b> de abajo.</li>
+        <li>Confirma pulsando <b>"Instalar"</b> en el aviso que aparecerá.</li>
+        <li>Abre la app desde el icono nuevo en tu pantalla de inicio.</li>
+      </ol>
+    </div>
+    <p class="instalar-modal-ayuda" id="instalarAppAyuda">
+      Tu navegador no permite instalar la app automáticamente desde aquí. En Chrome o Edge, abre el menú (⋮ arriba a la derecha) y elige <b>"Instalar aplicación"</b> (o el icono ⊕ en la barra de direcciones). En Safari, usa el icono de compartir y "Añadir al Dock" / "Añadir a pantalla de inicio".
+    </p>
+    <div class="modal-footer">
+      <button class="btn primary" id="btnInstalarApp"><span id="btnInstalarAppTexto">⬇️ Instalar App</span></button>
+      <button class="btn" id="btnYaInstalada">Ya la tengo instalada · Recargar</button>
+    </div>
+  </div>
+</div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <img class="mark" src="icon-192.png" alt="GIDT">
+    <h2>GIDT</h2>
+    <p class="sub">Gestión de Incidencias de Transporte</p>
+    <p class="login-version" id="loginVersionTag"></p>
+
+    <label for="loginUsuario">Usuario</label>
+    <div class="input-wrap">
+      <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <input id="loginUsuario" type="text" inputmode="numeric" autocomplete="username" placeholder="Usuario" autofocus>
+    </div>
+
+    <label for="loginPin">PIN</label>
+    <div class="input-wrap input-wrap--pin">
+      <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" maxlength="10">
+      <button type="button" class="toggle-pin" id="btnTogglePin" aria-label="Mostrar PIN">
+        <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.86 21.86 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.86 21.86 0 0 1-2.94 3.94M1 1l22 22"/><path d="M9.9 9.9a3 3 0 1 0 4.2 4.2"/></svg>
+      </button>
+    </div>
+
+    <button id="btnLogin" type="button">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="btn-label">Entrar</span>
+    </button>
+    <p class="err" id="loginErr" role="alert"><span class="err-icon" aria-hidden="true">⚠️</span><span class="err-text">Usuario incorrecto.</span></p>
+  </div>
+  <p class="login-footer">GIDT · Primor</p>
+</div>
+
+<div id="app" class="hidden">
+
+  <header class="top">
+    <img class="mark" src="icon-192.png" alt="GIDT">
+    <span class="app-name">GIDT</span>
+    <span class="app-version" id="appVersionTag"></span>
+
+    <nav class="tabs">
+      <div class="tabs-scroll">
+        <button class="tab-btn active" data-view="inicio">🏠 Inicio</button>
+        <button class="tab-btn" id="btnInformesDropdown">📋 Informes diarios<span class="dot" id="dotIncidencias"></span><span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnSiniestrosDropdown">📦 Siniestros<span class="dot" id="dotSiniestros"></span><span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnAnalisisDropdown">📈 Análisis<span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnConfigDropdown">⚙️ Configuración<span class="caret">▾</span></button>
+      </div>
+      <div class="dropdown" id="informesDropdown">
+        <button data-view="incidencias">📅 Informe del día</button>
+        <button data-view="historial-informes">🕓 Historial de informes</button>
+      </div>
+      <div class="dropdown" id="siniestrosDropdown">
+        <button data-view="siniestros">📦 Siniestros del día</button>
+        <button data-view="historial-siniestros">🕓 Historial de siniestros</button>
+        <button data-view="panel-siniestros">🗂️ Panel siniestros</button>
+      </div>
+      <div class="dropdown" id="configDropdown">
+        <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
+        <button data-view="config-emails">✉️ Gestión de agencias</button>
+        <button data-view="config-gravedad-motivos">⚖️ Gravedad de motivos</button>
+        <button data-view="config-usuarios">👤 Usuarios</button>
+        <button data-view="config-auditoria">🕵️ Registro de auditoría</button>
+      </div>
+      <div class="dropdown" id="analisisDropdown">
+        <button data-view="analisis-ranking">🏆 Ranking de incidencias</button>
+        <button data-view="analisis-reportes-mensuales">🗓️ Reportes mensuales</button>
+      </div>
+    </nav>
+
+    <div class="status" id="statusWrap" title="Conectando…">
+      <span class="auto-refresh-indicator" id="autoRefreshIndicator" title="Actualización automática del informe del día">
+        <span class="hourglass" id="autoRefreshHourglass">⏳</span><span id="autoRefreshCountdown">20</span>s
+      </span>
+      <i></i><span id="statusText" style="display:none;">Conectando…</span>
+    </div>
+    <div class="user-chip" id="userChip" title="Cerrar sesión">👤 <span id="userChipName">—</span> · Salir</div>
+  </header>
+
+  <main>
+
+    <!-- ============ INICIO ============ -->
+    <section class="view active" id="view-inicio">
+      <div class="page-head">
+        <div>
+          <h1 id="inicioSaludo">Inicio</h1>
+          <p id="fechaHoyTexto">—</p>
+        </div>
+      </div>
+
+      <div class="grid-kpi">
+        <div class="kpi"><b id="kpiAgencias">—</b><span>Agencias activas</span></div>
+        <div class="kpi"><b id="kpiTiendas">—</b><span>Tiendas activas</span></div>
+        <div class="kpi warn"><b id="kpiIncidenciasHoy">—</b><span>Incidencias de hoy</span></div>
+        <div class="kpi"><b id="kpiSiniestrosPend">—</b><span>Siniestros pendientes de envio</span></div>
+      </div>
+
+      <div class="inicio-2col">
+        <div class="card" id="cardEstadoInforme">
+          <div class="empty">
+            <div class="glyph">📋</div>
+            <h3>Cargando estado del informe…</h3>
+          </div>
+        </div>
+
+        <div class="card" style="padding:18px 20px;">
+          <h3 style="margin:0 0 4px; font-size:15px;">📌 Tareas pendientes</h3>
+          <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">Accede a ellas pulsando en cada una.</p>
+          <div id="cardPendienteAtencion">
+            <div class="empty" style="padding:20px;"><p>Comprobando…</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INCIDENCIAS ============ -->
+    <section class="view" id="view-incidencias">
+      <div class="cabecera-fija">
+      <div class="page-head">
+        <div class="informe-titulo-row">
+          <h1 class="informe-titulo">Informe del día<span class="informe-titulo-fecha" id="informeTituloFecha"></span></h1>
+          <span class="badge-palets" id="badgePaletsPrevistos" style="display:none;">
+            <span id="badgePaletsTexto">—</span>
+            <button class="badge-palets-editar" id="btnEditarPalets" title="Editar palets previstos" aria-label="Editar palets previstos">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </span>
+        </div>
+        <div class="incidencias-toolbar" id="incidenciasToolbar" style="display:none;">
+          <div class="filtros-wrap" id="exportarWrapHoy">
+            <button class="btn" id="btnExportarInforme" title="Exportar el informe de hoy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+            <div class="filtros-modal-overlay" id="exportarPanelHoy">
+              <div class="filtros-modal-header">
+                <b>Exportar informe</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarExportarHoy">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarExportarHoy" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <button type="button" class="btn primary" id="btnExportarCompletoHoy" style="width:100%; justify-content:center; margin-bottom:18px;">📋 Exportar informe completo</button>
+                <div class="filtros-grid">
+                  <div class="filtro-campo filtros-span2">
+                    <label>Formato</label>
+                    <div class="export-formato-toggle" id="exportarFormatoHoy">
+                      <button type="button" class="export-formato-btn activo" data-formato="pdf">📄 PDF</button>
+                      <button type="button" class="export-formato-btn" data-formato="excel">📊 Excel</button>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tipo de incidencia</label>
+                    <div class="export-tipos-grid" id="exportarTiposHoy"></div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Agencias</label>
+                    <div class="exportar-select" id="exportarAgenciaSelectHoy">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="exportarAgenciasListaHoy"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:20px;">
+                  <button type="button" class="btn primary" id="btnExportarSeleccionHoy">Exportar seleccionado</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filtros-wrap">
+            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales de hoy (hora / agencia de entrega)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2-2 2.5-2.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Utilidades
+              <span class="filtros-count" id="utilidadesCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="utilidadesPanel">
+              <div class="filtros-modal-header">
+                <b>Cambios puntuales de hoy</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="filtros-modal-close" id="btnCerrarUtilidades" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                  Cambia la hora y/o la agencia de entrega de una tienda solo para el informe de hoy. No afecta a la ficha de la tienda ni al resto de informes.
+                </p>
+                <div class="filtro-campo filtros-span2">
+                  <label>Tienda</label>
+                  <div class="exportar-select" id="utilTiendaSelect">
+                    <button type="button" class="filtro-select-btn">
+                      <span class="filtro-select-valor">Selecciona una tienda…</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="filtro-select-dropdown">
+                      <div class="filtro-select-search">
+                        <input type="text" placeholder="🔎 Buscar tienda…" id="utilBuscarTienda">
+                      </div>
+                      <div class="filtro-select-lista" id="utilTiendaLista"></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="utilFormAjuste" style="display:none;">
+                  <div class="filtros-grid" style="margin-top:16px;">
+                    <div class="filtro-campo">
+                      <label>Hora de entrega (puntual)</label>
+                      <input type="time" class="form-input" id="utilNuevaHora">
+                      <p id="utilHoraOriginal" style="margin:2px 0 0; font-size:11.5px; color:var(--ink-soft);"></p>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Agencia de entrega (puntual)</label>
+                      <select class="form-input" id="utilNuevaAgencia"></select>
+                      <p id="utilAgenciaOriginal" style="margin:2px 0 0; font-size:11.5px; color:var(--ink-soft);"></p>
+                    </div>
+                  </div>
+                  <div class="modal-footer" style="margin-top:16px; justify-content:space-between;">
+                    <button type="button" class="btn" id="utilBtnQuitarAjuste" style="display:none;">Quitar cambio puntual</button>
+                    <button type="button" class="btn primary" id="utilBtnGuardarAjuste">Aplicar solo hoy</button>
+                  </div>
+                </div>
+                <div id="utilListaAjustes" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);"></div>
+              </div>
+            </div>
+          </div>
+          <div class="filtros-wrap">
+            <button class="btn" id="btnFiltrosIncidencias">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="filtrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="filtrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar incidencias</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                  <div class="filtros-grid">
+                    <div class="filtro-campo">
+                      <label>Agencia</label>
+                      <div class="filtro-select" data-grupo="agencia">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-search">
+                            <input type="text" placeholder="Buscar agencia…">
+                          </div>
+                          <div class="filtro-select-lista" id="filtrosAgenciasLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Motivo</label>
+                      <div class="filtro-select" data-grupo="motivo">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-search">
+                            <input type="text" placeholder="Buscar motivo…">
+                          </div>
+                          <div class="filtro-select-lista" id="filtrosMotivosLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Tipo</label>
+                      <div class="filtro-select" data-grupo="tipo">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-lista" id="filtrosTiposLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Marca</label>
+                      <div class="filtro-select" data-grupo="marca">
+                        <button type="button" class="filtro-select-btn">
+                          <span class="filtro-select-valor">Todos</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="filtro-select-dropdown">
+                          <div class="filtro-select-lista" id="filtrosMarcasLista"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filtro-campo filtros-span2" style="flex-direction:row; align-items:center; gap:22px; flex-wrap:wrap;">
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="filtroSoloConIncidencias">
+                        <span>Solo con incidencias</span>
+                      </label>
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="filtroSoloPendientes">
+                        <span>Solo pendientes</span>
+                      </label>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+          <input type="text" id="buscarTiendaIncidencias" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
+          <button class="btn perm-gated-log-cambios" id="btnLogCambiosHoy" style="display:none; white-space:nowrap; flex-shrink:0;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
+          <span id="informeEnviadoBadge" class="badge-envio enviado" style="display:none; white-space:nowrap; flex-shrink:0;"></span>
+          <button class="btn primary" id="btnEnviarInforme" style="white-space:nowrap; flex-shrink:0;">📧 Enviar informe</button>
+        </div>
+      </div>
+      </div>
+      <div id="contenidoIncidencias">
+        <div class="card">
+          <div class="empty"><p>Cargando…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORIAL DE INFORMES DIARIOS ============ -->
+    <section class="view" id="view-historial-informes">
+      <div class="cabecera-fija">
+      <div class="page-head" style="align-items:center; margin-bottom:14px;">
+        <div>
+          <h1 style="margin-bottom:2px;">🕓 Historial de informes diarios</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; row-gap:8px;">
+          <input type="date" id="historialFechaInput" class="form-input" style="width:150px;">
+          <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
+          <button class="btn" id="btnEditarHistorial" style="display:none;" title="Editar este informe">✏️ Editar informe</button>
+          <button class="btn perm-gated-log-cambios" id="btnLogCambiosHistorial" style="display:none;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
+          <div class="filtros-wrap" id="historialFiltrosWrap" style="display:none; align-items:center; gap:8px;">
+            <button class="btn" id="btnHistorialFiltros">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="historialFiltrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="historialFiltrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar incidencias</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnHistorialLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnHistorialCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <div class="filtros-grid">
+                  <div class="filtro-campo">
+                    <label>Agencia</label>
+                    <div class="filtro-select" data-grupo="agencia">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="historialFiltrosAgenciasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Motivo</label>
+                    <div class="filtro-select" data-grupo="motivo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar motivo…">
+                        </div>
+                        <div class="filtro-select-lista" id="historialFiltrosMotivosLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tipo</label>
+                    <div class="filtro-select" data-grupo="tipo">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="historialFiltrosTiposLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Marca</label>
+                    <div class="filtro-select" data-grupo="marca">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="historialFiltrosMarcasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2" style="flex-direction:row; align-items:center; gap:22px; flex-wrap:wrap;">
+                    <label class="filtro-check" id="historialFiltroSoloConIncidenciasWrap" style="padding:2px 0; display:none;">
+                      <input type="checkbox" id="historialFiltroSoloConIncidencias">
+                      <span>Solo con incidencias</span>
+                    </label>
+                    <label class="filtro-check" style="padding:2px 0;">
+                      <input type="checkbox" id="historialFiltroSoloPendientes">
+                      <span>Solo pendientes</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="text" id="buscarTiendaHistorial" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
+          </div>
+          <div class="filtros-wrap" id="exportarWrapHistorial" style="display:none;">
+            <button class="btn" id="btnExportarHistorial" title="Exportar este informe">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+            <div class="filtros-modal-overlay" id="exportarPanelHistorial">
+              <div class="filtros-modal-header">
+                <b>Exportar informe</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarExportarHistorial">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarExportarHistorial" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <button type="button" class="btn primary" id="btnExportarCompletoHistorial" style="width:100%; justify-content:center; margin-bottom:18px;">📋 Exportar informe completo</button>
+                <div class="filtros-grid">
+                  <div class="filtro-campo filtros-span2">
+                    <label>Formato</label>
+                    <div class="export-formato-toggle" id="exportarFormatoHistorial">
+                      <button type="button" class="export-formato-btn activo" data-formato="pdf">📄 PDF</button>
+                      <button type="button" class="export-formato-btn" data-formato="excel">📊 Excel</button>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tipo de incidencia</label>
+                    <div class="export-tipos-grid" id="exportarTiposHistorial"></div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Agencias</label>
+                    <div class="exportar-select" id="exportarAgenciaSelectHistorial">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search">
+                          <input type="text" placeholder="Buscar agencia…">
+                        </div>
+                        <div class="filtro-select-lista" id="exportarAgenciasListaHistorial"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:20px;">
+                  <button type="button" class="btn primary" id="btnExportarSeleccionHistorial">Exportar seleccionado</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div id="contenidoHistorial">
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">🕓</div>
+            <h3>Elige una fecha</h3>
+            <p>Selecciona un día en el calendario para consultar el informe y las incidencias registradas ese día.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SINIESTROS ============ -->
+    <section class="view" id="view-siniestros">
+      <div class="page-head">
+        <div>
+          <h1>📦 Siniestros del día</h1>
+          <p>Roturas confirmadas y faltas detectadas hoy, pendientes de reclamar a la agencia.</p>
+        </div>
+      </div>
+      <div id="contenidoSiniestros">
+        <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+      </div>
+    </section>
+
+    <!-- ============ HISTORIAL DE SINIESTROS ============ -->
+    <section class="view" id="view-historial-siniestros">
+      <div class="page-head" style="align-items:center; margin-bottom:14px;">
+        <div>
+          <h1 style="margin-bottom:2px;">🕓 Historial de siniestros</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="date" id="historialSiniestrosFechaInput" class="form-input" style="width:150px;">
+          <button class="btn primary" id="btnBuscarHistorialSiniestros">Consultar</button>
+        </div>
+      </div>
+      <div id="contenidoHistorialSiniestros">
+        <div class="card">
+          <div class="empty">
+            <div class="glyph">🕓</div>
+            <h3>Elige una fecha</h3>
+            <p>Selecciona un día en el calendario para consultar los siniestros registrados ese día.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PANEL DE SINIESTROS (se rellena solo) ============ -->
+    <section class="view" id="view-panel-siniestros">
+      <div class="ps-panel-fijo">
+        <div class="page-head">
+          <div>
+            <h1>🗂️ Panel siniestros</h1>
+            <p>Cada siniestro enviado a una agencia aparece aquí solo. Completa el nº de albarán, adjunta la factura y marca cuándo se cobra y se recoge.</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="ps-btn-icon" id="btnRefrescarPanelSiniestros" title="Refrescar"><span class="ps-refresh-icon">🔄</span></button>
+
+            <div class="filtros-wrap">
+              <button class="btn" id="btnPsExportar" title="Exportar el panel de siniestros a PDF">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Exportar
+              </button>
+              <div class="filtros-modal-overlay" id="psxPanel" style="overflow:hidden;">
+                <div class="filtros-modal-header">
+                  <b>Exportar a PDF</b>
+                  <div class="filtros-modal-header-actions">
+                    <button class="filtros-modal-close" id="btnPsxCerrar" aria-label="Cerrar">✕</button>
+                  </div>
+                </div>
+                <div class="filtros-modal-body" style="overflow-y:auto;">
+                  <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                    Descarga en PDF un listado de siniestros, con el mismo formato que el informe mensual.
+                  </p>
+
+                  <div class="filtros-grid">
+                    <div class="filtro-campo">
+                      <label>Desde</label>
+                      <input type="date" class="form-input" id="psxFechaDesde">
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Hasta</label>
+                      <input type="date" class="form-input" id="psxFechaHasta">
+                    </div>
+                  </div>
+
+                  <label class="ps-filtro-check" id="psxUsarFiltroWrap" style="display:none; white-space:normal; align-items:flex-start; margin-top:16px;">
+                    <input type="checkbox" id="psxUsarFiltroActivo" style="margin-top:2px;">
+                    <span>Exportar solo lo que cumple el filtro activo de la pantalla (<span id="psxFiltroResumen"></span>), en vez de elegir abajo.</span>
+                  </label>
+
+                  <div id="psxCamposManual" style="margin-top:16px;">
+                    <div class="filtros-grid">
+                      <div class="filtro-campo">
+                        <label>Agencia</label>
+                        <select id="psxAgencia" class="form-input"><option value="">Todas las agencias</option></select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Estado</label>
+                        <select id="psxEstado" class="form-input">
+                          <option value="">Todos los estados</option>
+                          <option value="COBRADO">COBRADO</option>
+                          <option value="PDTE COBRO">PDTE COBRO</option>
+                          <option value="ANULADO">ANULADO</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Tipo</label>
+                        <select id="psxTipo" class="form-input">
+                          <option value="">Todos los tipos</option>
+                          <option value="ROTURA">Rotura</option>
+                          <option value="FALTAS">Faltas</option>
+                          <option value="FALTAS Y ROTURAS">Rotura y falta</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Origen</label>
+                        <select id="psxOrigen" class="form-input">
+                          <option value="">Todo origen</option>
+                          <option value="ALMACEN">Almacén</option>
+                          <option value="WEB">Web</option>
+                          <option value="RETIRADAS">Retiradas</option>
+                          <option value="AGENCIA">Agencia</option>
+                          <option value="OTRO">Otro</option>
+                          <option value="SIN_ORIGEN">Sin origen</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo filtros-span2">
+                        <label>Recogida</label>
+                        <select id="psxRecogida" class="form-input">
+                          <option value="">Toda recogida</option>
+                          <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
+                          <option value="ENVIADO A CENTRAL">Enviado a central</option>
+                          <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+                          <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
+                          <option value="PDTE_FUERA">Pdte. fuera de límite</option>
+                        </select>
+                      </div>
+                      <div class="filtro-campo filtros-span2" style="flex-direction:row; flex-wrap:wrap; gap:16px;">
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinFactura"> Sin factura</label>
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinAlbaran"> Sin albarán</label>
+                        <label class="ps-filtro-check"><input type="checkbox" id="psxSinCorreo"> Sin enviar a agencia</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer" style="margin-top:18px;">
+                    <button type="button" class="btn primary" id="psxBtnDescargar" style="width:100%; justify-content:center;">📄 Descargar PDF</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn primary" id="btnNuevoPanelSiniestroManual">➕ Añadir siniestro</button>
+          </div>
+        </div>
+
+        <div class="grid-kpi" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px;">
+          <div class="kpi warn" style="position:relative;">
+            <b id="psKpiPendientesCount">—</b><span>Siniestros pdte. de cobro</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesCount" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi" style="position:relative;">
+            <b id="psKpiPendientesValor">—</b><span>€ pendiente de cobro</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetallePendientesValor" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi" style="position:relative;">
+            <b id="psKpiRecogidaDentro">—</b><span>Recogidas pdte. en límite</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaDentro" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi warn" style="position:relative;">
+            <b id="psKpiRecogidaFuera">—</b><span>Recogidas pdte. cumplidas</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleRecogidaFuera" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+          <div class="kpi" style="position:relative;">
+            <b id="psKpiCobrado">—</b><span>€ cobrados</span>
+            <button type="button" class="ps-kpi-detalle-btn" id="btnDetalleCobrado" title="Ver detalle por agencia"><i></i><i></i><i></i></button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:14px 16px; margin-bottom:14px;">
+          <div class="panel-siniestros-toolbar">
+            <input type="text" id="psFiltroTexto" class="form-input" placeholder="🔎 Buscar…" style="flex:1; min-width:90px;">
+            <label class="ps-filtro-fecha-label">Desde <input type="date" id="psFiltroFechaDesde" class="form-input"></label>
+            <label class="ps-filtro-fecha-label">Hasta <input type="date" id="psFiltroFechaHasta" class="form-input"></label>
+            <select id="psFiltroAgencia" class="form-input" style="max-width:160px;"><option value="">Todas las agencias</option></select>
+            <select id="psFiltroEstado" class="form-input" style="max-width:155px;">
+              <option value="">Todos los estados</option>
+              <option value="COBRADO">COBRADO</option>
+              <option value="PDTE COBRO">PDTE COBRO</option>
+              <option value="ANULADO">ANULADO</option>
+            </select>
+            <select id="psFiltroTipo" class="form-input" style="max-width:130px;">
+              <option value="">Todos los tipos</option>
+              <option value="ROTURA">Rotura</option>
+              <option value="FALTAS">Faltas</option>
+              <option value="FALTAS Y ROTURAS">Rotura y falta</option>
+            </select>
+            <select id="psFiltroOrigen" class="form-input" style="max-width:120px;">
+              <option value="">Todo origen</option>
+              <option value="ALMACEN">Almacén</option>
+              <option value="WEB">Web</option>
+              <option value="RETIRADAS">Retiradas</option>
+              <option value="AGENCIA">Agencia</option>
+              <option value="OTRO">Otro</option>
+              <option value="SIN_ORIGEN">Sin origen</option>
+            </select>
+            <select id="psFiltroRecogida" class="form-input" style="max-width:150px;">
+              <option value="">Toda recogida</option>
+              <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
+              <option value="ENVIADO A CENTRAL">Enviado a central</option>
+              <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+              <option value="PDTE_DENTRO">Pdte. dentro de límite</option>
+              <option value="PDTE_FUERA">Pdte. fuera de límite</option>
+            </select>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinFactura"> Sin factura</label>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinAlbaran"> Sin albarán</label>
+            <label class="ps-filtro-check"><input type="checkbox" id="psFiltroSinCorreo"> Sin enviar a agencia</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card ps-tabla-flex" style="padding:0;">
+        <table class="tabla-panel-siniestros">
+          <thead>
+            <tr>
+              <th>Nº</th><th>Fecha</th><th>Agencia</th><th>Tienda</th><th>Origen</th><th>Tipo</th><th>Información</th>
+              <th>Nº Alb.</th><th>Factura</th><th>Importe</th><th>Estado</th><th>Recogida límite</th>
+            </tr>
+          </thead>
+          <tbody id="panelSiniestrosBody">
+            <tr><td colspan="12" style="text-align:center; padding:30px;">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: TIENDAS ============ -->
+    <section class="view" id="view-config-tiendas">
+      <div class="page-head" id="pageHeadTiendas">
+        <div>
+          <h1>🏪 Gestión de tiendas</h1>
+          <p>Alta, baja y reordenación por agencia.</p>
+        </div>
+        <div class="tiendas-contadores" id="tiendasContadores"></div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarTiendas" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <input type="text" id="buscadorTiendas" class="form-input" style="width:240px;" placeholder="🔎 Buscar tienda…">
+          <div class="export-tiendas-wrap" id="exportTiendasWrap">
+            <button class="btn" id="btnExportarTiendas">⬇️ Exportar</button>
+            <div class="export-tiendas-menu" id="exportTiendasMenu">
+              <button type="button" data-modo="resumido">
+                <b>Resumido</b>
+                <span>Todas las tiendas en una sola hoja, por agencia</span>
+              </button>
+              <button type="button" data-modo="detallado">
+                <b>Detallado</b>
+                <span>Una fila por tienda, todos los datos</span>
+              </button>
+            </div>
+          </div>
+          <button class="btn primary" id="btnNuevaTienda">➕ Nueva tienda</button>
+        </div>
+      </div>
+
+      <div id="acordeonAgencias"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: EMAILS ============ -->
+    <section class="view" id="view-config-emails">
+      <div class="page-head">
+        <div>
+          <h1>✉️ Gestión de agencias</h1>
+          <p>Destinatarios de los informes e incidencias.</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarAgencias" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn primary" id="btnNuevaAgencia">➕ Nueva agencia</button>
+        </div>
+      </div>
+
+      <div id="listaEmailsAgencias"></div>
+
+      <div class="page-head" style="margin-top:32px;">
+        <div>
+          <h1 style="font-size:19px;">📠 Destinatarios de Facturación</h1>
+          <p>A quién se envía el correo al adjuntar un albarán en el Panel siniestros.</p>
+        </div>
+      </div>
+      <div id="listaEmailsFacturacion"></div>
+
+      <div class="page-head" style="margin-top:32px;">
+        <div>
+          <h1 style="font-size:19px;">📋 CC Transporte</h1>
+          <p>Direcciones que van siempre en copia (CC) en TODOS los correos que envía la app: roturas, facturación, informes a agencias, etc.</p>
+        </div>
+      </div>
+      <div id="listaEmailsCC"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: GRAVEDAD DE MOTIVOS ============ -->
+    <section class="view" id="view-config-gravedad-motivos">
+      <div class="page-head">
+        <div>
+          <h1>⚖️ Gravedad de motivos</h1>
+          <p>Clasificación y orden de los motivos de incidencia, usados en Análisis y en el Reporte mensual.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn primary" id="btnGuardarGravedadMotivos">💾 Guardar</button>
+          <span id="gravedadGuardadoOk" class="gravedad-guardado-ok" style="display:none;">Guardado ✓</span>
+        </div>
+      </div>
+      <div class="gravedad-explicacion">
+        ℹ️ El nivel manda por encima del orden: una incidencia <b>Grave</b> siempre gana a una <b>Moderada</b>, y una <b>Moderada</b> siempre gana a una <b>Leve</b>, sin importar la posición de las flechas. El orden (▲▼) solo decide el empate cuando dos motivos <b>del mismo nivel</b> se marcan el mismo día.
+      </div>
+      <div id="contenidoGravedadMotivos"></div>
+    </section>
+
+    <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
+    <section class="view" id="view-config-usuarios">
+      <div class="page-head">
+        <div>
+          <h1>👤 Usuarios</h1>
+          <p>Alta y gestión de accesos al sistema.</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarUsuarios" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn primary" id="btnNuevoUsuario">➕ Nuevo usuario</button>
+        </div>
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Última conexión</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tablaUsuariosBody">
+            <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando usuarios…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ REGISTRO DE AUDITORÍA ============ -->
+    <section class="view" id="view-config-auditoria">
+      <div class="page-head">
+        <div>
+          <h1>🕵️ Registro de auditoría</h1>
+          <p>Historial de acciones realizadas por los usuarios en la app.</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px 18px; margin-bottom:16px;">
+        <div class="analisis-filtros">
+          <div class="analisis-fechas" style="flex-wrap:wrap;">
+            <div>
+              <label class="form-label">Usuario</label>
+              <select id="audFiltroUsuario" class="form-input">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Categoría</label>
+              <select id="audFiltroCategoria" class="form-input">
+                <option value="">Todas</option>
+                <option value="tiendas">Tiendas y agencias</option>
+                <option value="usuarios">Usuarios</option>
+                <option value="informes">Informes</option>
+                <option value="reportes_mensuales">Reportes mensuales</option>
+                <option value="siniestros">Siniestros</option>
+                <option value="gravedad_motivos">Gravedad de motivos</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Desde</label>
+              <input type="date" id="audDesde" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Hasta</label>
+              <input type="date" id="audHasta" class="form-input">
+            </div>
+            <button class="btn primary" id="btnAudConsultar" style="align-self:flex-end;">Consultar</button>
+            <button class="btn" id="btnAudLimpiar" style="align-self:flex-end;">Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="overflow:hidden;">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Usuario</th>
+              <th>Categoría</th>
+              <th>Acción</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="tablaAuditoriaBody">
+            <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando registro…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ ANÁLISIS: RANKING DE TIENDAS Y AGENCIAS ============ -->
+    <section class="view" id="view-analisis-ranking">
+      <div class="cabecera-fija">
+      <div class="page-head" style="align-items:center; margin-bottom:14px; flex-wrap:nowrap;">
+        <div style="flex:none;">
+          <h1>🏆 Ranking de incidencias</h1>
+          <p>Incidencias y siniestros por tienda y por agencia en el periodo seleccionado.</p>
+        </div>
+        <div class="analisis-filtros" style="flex:1 1 auto; min-width:0; justify-content:flex-end;">
+          <div class="toggle-seg" id="analisisRangoRapido">
+              <button type="button" class="toggle-seg-btn" data-rango="mes">Mes en curso</button>
+              <button type="button" class="toggle-seg-btn" data-rango="30d">Últimos 30 días</button>
+              <button type="button" class="toggle-seg-btn" data-rango="todo">Todo el histórico</button>
+            </div>
+            <div class="analisis-fechas">
+              <div>
+                <label class="form-label">Desde</label>
+                <input type="date" id="analisisDesde" class="form-input">
+              </div>
+              <div>
+                <label class="form-label">Hasta</label>
+                <input type="date" id="analisisHasta" class="form-input">
+              </div>
+              <button class="btn primary" id="btnAnalisisConsultar">Consultar</button>
+            </div>
+
+            <div class="filtros-wrap">
+              <button class="btn" id="btnAnalisisFiltros">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                Filtros
+                <span class="filtros-count" id="analisisFiltrosCount" style="display:none;"></span>
+              </button>
+              <div class="filtros-modal-overlay" id="analisisFiltrosPanel">
+                <div class="filtros-modal-header">
+                  <b>Filtrar ranking</b>
+                  <div class="filtros-modal-header-actions">
+                    <button class="link-accion" id="btnAnalisisLimpiarFiltros">Limpiar</button>
+                    <button class="filtros-modal-close" id="btnAnalisisCerrarFiltros" aria-label="Cerrar">✕</button>
+                  </div>
+                </div>
+                <div class="filtros-modal-body">
+                  <div class="filtros-grid">
+                      <div class="filtro-campo">
+                        <label>Agencia</label>
+                        <div class="filtro-select" data-grupo="agencia">
+                          <button type="button" class="filtro-select-btn">
+                            <span class="filtro-select-valor">Todas</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </button>
+                          <div class="filtro-select-dropdown">
+                            <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar agencia…"></div>
+                            <div class="filtro-select-lista" id="analisisFiltrosAgenciasLista"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Tienda</label>
+                        <div class="filtro-select" data-grupo="tienda">
+                          <button type="button" class="filtro-select-btn">
+                            <span class="filtro-select-valor">Todas</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </button>
+                          <div class="filtro-select-dropdown">
+                            <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar tienda…"></div>
+                            <div class="filtro-select-lista" id="analisisFiltrosTiendasLista"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Tipo de incidencia</label>
+                        <div class="filtro-select" data-grupo="tipo">
+                          <button type="button" class="filtro-select-btn">
+                            <span class="filtro-select-valor">Todos</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </button>
+                          <div class="filtro-select-dropdown">
+                            <div class="filtro-select-lista" id="analisisFiltrosTiposLista"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Motivo</label>
+                        <div class="filtro-select" data-grupo="motivo">
+                          <button type="button" class="filtro-select-btn">
+                            <span class="filtro-select-valor">Todos</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </button>
+                          <div class="filtro-select-dropdown">
+                            <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar motivo…"></div>
+                            <div class="filtro-select-lista" id="analisisFiltrosMotivosLista"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="filtro-campo">
+                        <label>Tipo de siniestro</label>
+                        <div class="filtro-select" data-grupo="siniestro">
+                          <button type="button" class="filtro-select-btn">
+                            <span class="filtro-select-valor">Todos</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </button>
+                          <div class="filtro-select-dropdown">
+                            <div class="filtro-select-lista" id="analisisFiltrosSiniestroTiposLista"></div>
+                          </div>
+                        </div>
+                      </div>
+                    <div class="filtro-campo filtros-span2">
+                      <label class="filtro-check" style="padding:2px 0;">
+                        <input type="checkbox" id="analisisFiltroSoloConSiniestros">
+                        <span>Solo con siniestros</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-seg" id="analisisEntidadToggle">
+              <button type="button" class="toggle-seg-btn activo" data-entidad="tiendas">🏪 Tiendas</button>
+              <button type="button" class="toggle-seg-btn" data-entidad="agencias">🏢 Agencias</button>
+            </div>
+
+            <div class="toggle-seg" id="analisisOrdenToggle">
+              <button type="button" class="toggle-seg-btn activo" data-orden="incidencias">Ordenar por incidencias</button>
+              <button type="button" class="toggle-seg-btn" data-orden="siniestros">Ordenar por siniestros</button>
+            </div>
+
+            <button type="button" class="btn primary" id="btnAnalisisExportarPdf" title="Exportar este resumen a PDF">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+          </div>
+      </div>
+      </div>
+
+      <div class="grid-kpi">
+        <div class="kpi"><b id="akIncidencias">—</b><span>Incidencias en el periodo</span></div>
+        <div class="kpi warn"><b id="akGraves">—</b><span>Incidencias graves</span></div>
+        <div class="kpi"><b id="akSiniestros">—</b><span>Siniestros generados</span></div>
+        <div class="kpi"><b id="akSiniestrosPend">—</b><span>Siniestros pendientes</span></div>
+      </div>
+
+      <div id="contenidoAnalisisRanking">
+        <div class="card"><div class="empty"><p>Elige un periodo y pulsa "Consultar".</p></div></div>
+      </div>
+    </section>
+
+    <!-- ============ ANÁLISIS: REPORTES MENSUALES ============ -->
+    <section class="view" id="view-analisis-reportes-mensuales">
+      <div class="page-head" style="align-items:center;">
+        <div>
+          <h1>🗓️ Reportes mensuales</h1>
+          <p>Código de incidencia por tienda y día, calculado a partir de los informes diarios enviados.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button class="btn" id="rmBtnMesAnterior">◀</button>
+          <b id="rmMesTexto" style="min-width:150px; text-align:center;">—</b>
+          <button class="btn" id="rmBtnMesSiguiente">▶</button>
+          <button class="btn" id="rmBtnMesActual">Mes actual</button>
+
+          <div class="filtros-wrap">
+            <button class="btn primary" id="btnRmEnviarAgencias">📤 Enviar a agencias</button>
+            <div class="filtros-modal-overlay" id="rmEnviarPanel">
+              <div class="filtros-modal-header">
+                <b>Enviar resumen mensual</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="filtros-modal-close" id="btnRmCerrarEnviar" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);">
+                  Se envía el mismo cuadro de esta pantilla (<b id="rmEnviarMesTexto">—</b>) a cada agencia, en PDF adjunto.
+                  Las agencias con el mismo "grupo de envío" (Configuración → Gestión de agencias) se juntan en un único PDF y correo.
+                </p>
+                <div class="rme-toolbar">
+                  <span id="rmeResumenTexto" class="rme-sub">—</span>
+                  <button type="button" class="btn primary" id="btnRmeEnviarTodas" disabled>📤 Enviar a todas las pendientes</button>
+                </div>
+                <div id="rmEnviarLista"><div class="empty"><p>Cargando…</p></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filtros-wrap">
+            <button class="btn" id="btnRmExportar" title="Exportar a PDF el resumen de una agencia">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Exportar
+            </button>
+            <div class="filtros-modal-overlay" id="rmExportarPanel">
+              <div class="filtros-modal-header">
+                <b>Exportar a PDF</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="filtros-modal-close" id="btnRmCerrarExportar" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                  Descarga el mismo cuadro de esta pantalla en PDF, con el mismo formato que se envía por correo.
+                </p>
+                <label class="ps-filtro-check" id="rmxUsarFiltroWrap" style="display:none; white-space:normal; align-items:flex-start; margin-bottom:14px;">
+                  <input type="checkbox" id="rmxUsarFiltroActivo" style="margin-top:2px;">
+                  <span>Exportar solo lo que cumple el filtro activo de la pantalla (<span id="rmxFiltroResumen"></span>), en vez de elegir una agencia abajo.</span>
+                </label>
+                <div class="filtro-campo filtros-span2" id="rmxAgenciaCampo">
+                  <label>Agencia</label>
+                  <select class="form-input" id="rmxAgenciaSelect"><option value="">Cargando…</option></select>
+                </div>
+                <div class="filtros-grid" style="margin-top:14px;">
+                  <div class="filtro-campo">
+                    <label>Desde</label>
+                    <input type="date" class="form-input" id="rmxFechaDesde">
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Hasta</label>
+                    <input type="date" class="form-input" id="rmxFechaHasta">
+                  </div>
+                </div>
+                <div class="modal-footer" style="margin-top:18px;">
+                  <button type="button" class="btn primary" id="rmxBtnDescargar" style="width:100%; justify-content:center;" disabled>📄 Descargar PDF</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filtros-wrap">
+            <button class="btn" id="btnRmFiltros">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="rmFiltrosCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="rmFiltrosPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar reporte</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnRmLimpiarFiltros">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnRmCerrarFiltros" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <div class="filtros-grid">
+                  <div class="filtro-campo filtros-span2">
+                    <label>Agencia</label>
+                    <div class="filtro-select" data-grupo="agencia">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar agencia…"></div>
+                        <div class="filtro-select-lista" id="rmFiltrosAgenciasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tienda</label>
+                    <div class="filtro-select" data-grupo="tienda">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar tienda…"></div>
+                        <div class="filtro-select-lista" id="rmFiltrosTiendasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label class="filtro-check" style="padding:2px 0;">
+                      <input type="checkbox" id="rmFiltroSoloConIncidencias">
+                      <span>Solo tiendas con incidencias este mes</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rm-layout">
+        <div class="rm-tabla-col">
+          <div id="contenidoReportesMensuales">
+            <div class="card"><div class="empty"><p>Cargando…</p></div></div>
+          </div>
+        </div>
+
+        <aside class="rm-sidebar">
+          <div class="rm-sidebar-card rm-leyenda-compacta" id="rmLeyendaCompacta"></div>
+        </aside>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Modal genérico (reemplaza alert / confirm / prompt nativos) -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-icon" id="modalIcon" style="display:none;"></div>
+    <h3 class="modal-title" id="modalTitle"></h3>
+    <p class="modal-message" id="modalMessage"></p>
+    <input type="text" class="form-input modal-input" id="modalInput" style="display:none;">
+    <select class="form-input modal-input" id="modalSelect" style="display:none;"></select>
+    <div class="modal-footer">
+      <button class="btn" id="modalBtnCancel">Cancelar</button>
+      <button class="btn primary" id="modalBtnOk">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: editar datos de una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalEditarTiendaOverlay">
+  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
+    <div class="tienda-modal-head">
+      <div>
+        <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
+        <p class="tienda-modal-sub">Modifica los datos y pulsa Guardar.</p>
+      </div>
+    </div>
+
+    <div class="tienda-modal-body">
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Nº tienda</label>
+              <input type="text" id="metNumero" class="form-input" placeholder="Ej. 002">
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Nombre tienda</label>
+              <input type="text" id="metNombre" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Marca</label>
+              <select id="metMarca" class="form-input">
+                <option value="HABITUAL">Habitual</option>
+                <option value="SABADO">Sábado</option>
+                <option value="PRUEBA">Prueba</option>
+                <option value="ESPECIAL">Especial</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Supervisor/a</label>
+              <input type="text" id="metSupervisor" class="form-input">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-3">
+              <label class="form-label">Dirección completa</label>
+              <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Provincia</label>
+              <input type="text" id="metProvincia" class="form-input">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span></h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora prevista</label>
+              <input type="time" id="metHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite hora entrega</label>
+              <input type="time" id="metLimiteHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite palets</label>
+              <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Tránsito</label>
+              <select id="metTransito" class="form-input">
+                <option value="">— Sin indicar —</option>
+                <option value="24">24 h (1 día)</option>
+                <option value="48">48 h (2 días)</option>
+                <option value="72">72 h (3 días)</option>
+                <option value="96">96 h (4 días)</option>
+                <option value="120">120 h (5 días)</option>
+                <option value="144">144 h (6 días)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
+          <label class="tf-check"><input type="checkbox" id="metSabadoOtra"> Los sábados entrega otra agencia</label>
+          <div class="tf-grid" id="metSabadoCampos" style="display:none;">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
+              <select id="metSabadoAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora sábado</label>
+              <input type="time" id="metSabadoHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1 tf-campo-ayuda">
+              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Día de recogida</label>
+              <select id="metRecogidaDia" class="form-input">
+                <option value="">— Sin recogida —</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia recogida</label>
+              <input type="text" id="metAgenciaRecogida" class="form-input">
+            </div>
+          </div>
+        </section>
+    </div>
+
+    <div class="tienda-modal-foot">
+      <p id="metError" class="err" style="display:none;"></p>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: horario semanal especial de una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalHorarioOverlay">
+  <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="modalHorarioTitulo">
+    <h3 class="modal-title" id="modalHorarioTitulo">Horario semanal</h3>
+    <p class="modal-message">Pon una hora solo en los días que tengan un horario de entrega distinto al general. Los días en blanco usan la hora prevista de la tienda.</p>
+    <div id="modalHorarioDias" style="display:flex; flex-direction:column; gap:10px; margin-bottom:10px;"></div>
+    <p id="modalHorarioNota" style="margin:0 0 16px; font-size:11.5px; color:var(--ink-soft);"></p>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button type="button" class="btn" id="modalHorarioBtnLimpiar">Quitar todos</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn" id="modalHorarioBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="modalHorarioBtnGuardar">Guardar horario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: dar de baja / dar de alta una tienda (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalBajaTiendaOverlay">
+  <div class="modal-box" style="max-width:440px;" role="dialog" aria-modal="true" aria-labelledby="mbtTitulo">
+    <h3 class="modal-title" id="mbtTitulo">Dar de baja tienda</h3>
+    <p class="modal-message" id="mbtMensaje"></p>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+      <div>
+        <label class="form-label" id="mbtFechaLabel" for="mbtFecha">Fecha</label>
+        <input type="date" id="mbtFecha" class="form-input">
+      </div>
+      <div id="mbtMotivoWrap">
+        <label class="form-label" for="mbtMotivo">Motivo (opcional)</label>
+        <input type="text" id="mbtMotivo" class="form-input" maxlength="200" placeholder="Ej. Obras, cierre temporal, problema con el acceso…">
+      </div>
+    </div>
+    <p id="mbtNota" style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft); line-height:1.45;"></p>
+    <p id="mbtError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px; justify-content:space-between;">
+      <button type="button" class="btn" id="mbtBtnAnular" style="display:none; color:var(--grave);">Anular baja</button>
+      <div style="display:flex; gap:10px; margin-left:auto;">
+        <button type="button" class="btn" id="mbtBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="mbtBtnGuardar">Dar de baja</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de envío del informe del día -->
+<div class="modal-overlay" id="envioInformeModalOverlay">
+  <div class="modal-box envio-modal-box" role="dialog" aria-modal="true" aria-labelledby="envioModalTitulo">
+    <button class="filtros-modal-close" id="btnCerrarEnvioModal" style="position:absolute; right:16px; top:16px;">✕</button>
+    <div class="envio-modal-head">
+      <div class="envio-modal-icon">✉️</div>
+      <div>
+        <h3 class="modal-title" id="envioModalTitulo">Enviar informe del día</h3>
+        <p class="envio-modal-sub" id="envioModalSub"></p>
+      </div>
+    </div>
+
+    <div class="envio-modal-body">
+      <div class="envio-col envio-col-pendientes">
+        <div class="envio-col-titulo">Incidencias pendientes</div>
+        <div class="envio-alerta envio-alerta-pendientes" id="envioAlertaPendientes" style="display:none;">
+          <span class="envio-alerta-icon">⚠️</span>
+          <div>
+            <b id="envioAlertaPendientesTitulo"></b>
+            <p id="envioAlertaPendientesTexto"></p>
+            <ul id="envioAlertaPendientesLista"></ul>
+          </div>
+        </div>
+        <div class="envio-todo-revisado" id="envioTodoRevisado" style="display:none;">
+          <span class="envio-todo-revisado-icon">✅</span>
+          <p>Todas las incidencias están revisadas.</p>
+        </div>
+      </div>
+
+      <div class="envio-col envio-col-agencias">
+        <div class="envio-col-titulo">Agencias</div>
+        <div class="envio-lista" id="envioListaAgencias"></div>
+      </div>
+    </div>
+
+    <div class="envio-alerta envio-alerta-omitidas" id="envioAlertaOmitidas" style="display:none;">
+      <span class="envio-alerta-icon">🚫</span>
+      <div>
+        <b>No se enviará a estas agencias</b>
+        <p id="envioAlertaOmitidasTexto"></p>
+      </div>
+    </div>
+
+    <div class="envio-alerta envio-alerta-reenvio" id="envioAlertaReenvio" style="display:none;">
+      <span class="envio-alerta-icon">🔁</span>
+      <p>El informe de hoy ya se había enviado antes. Esto lo volverá a enviar.</p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" id="envioModalBtnCancel">Cancelar</button>
+      <button class="btn primary" id="envioModalBtnOk">✉️ Enviar informe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de carga (envío del informe en curso) -->
+<div class="modal-overlay" id="cargandoEnvioOverlay">
+  <div class="modal-box cargando-modal-box" role="alert" aria-live="assertive">
+    <div class="spinner"></div>
+    <p class="cargando-texto" id="cargandoEnvioTexto">Enviando informe…</p>
+  </div>
+</div>
+
+<!-- Spinner de carga global: aparece centrado en pantalla mientras se están
+     cargando datos (cambiar de pantalla, consultar el ranking, un historial,
+     etc.), independiente del modal de "enviando informe" de arriba. Lo
+     controlan mostrarCargandoGlobal()/ocultarCargandoGlobal() (js/carga-global.js). -->
+<div class="modal-overlay carga-global-overlay" id="cargaGlobalOverlay" aria-hidden="true">
+  <div class="spinner spinner-grande"></div>
+</div>
+
+<!-- Modal de actualización disponible (no se cierra clicando fuera: la actualización no es opcional) -->
+<div class="modal-overlay actualizacion-overlay" id="actualizacionModalOverlay">
+  <div class="modal-box actualizacion-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="actualizacionModalTitulo">
+    <div class="actualizacion-modal-icon">🔄</div>
+    <h3 class="modal-title" id="actualizacionModalTitulo">Actualización disponible</h3>
+    <p class="modal-message">Hay una nueva versión de GIDT disponible. La aplicación se va a actualizar ahora.</p>
+    <div class="modal-footer">
+      <button class="btn primary" id="btnActualizarAhora">🔄 Actualizar ahora</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ventana "Acerca de" (al pulsar el logo del login o de la cabecera) — js/acerca-de.js -->
+<div class="modal-overlay acerca-de-overlay" id="acercaDeModalOverlay">
+  <div class="modal-box acerca-de-box" role="dialog" aria-modal="true" aria-labelledby="acercaDeNombre">
+    <button type="button" class="acerca-cerrar-x" id="btnAcercaDeCerrar" aria-label="Cerrar">✕</button>
+    <div class="acerca-cabecera">
+      <div class="acerca-logo"><img src="icon-192.png" alt="GIDT"></div>
+      <div class="acerca-nombre" id="acercaDeNombre">GESTIÓN <span>INCIDENCIAS</span></div>
+      <div class="acerca-version" id="acercaDeVersion"></div>
+    </div>
+    <div class="acerca-cuerpo">
+      <div class="acerca-campo">
+        <span class="lbl">Desarrollado por</span>
+        <span class="val" id="acercaDeAutor"></span>
+      </div>
+      <div class="acerca-campo">
+        <span class="lbl">Licencia de uso concedida a</span>
+        <span class="val" id="acercaDeLicenciatario"></span>
+      </div>
+      <div class="acerca-campo">
+        <span class="lbl">Nº de activación</span>
+        <span class="acerca-clave" id="acercaDeActivacion"></span>
+        <span class="acerca-activado">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          Producto activado
+        </span>
+      </div>
+    </div>
+    <div class="acerca-legal">
+      <p class="acerca-copy" id="acercaDeCopy"></p>
+      <p>Este software está protegido por la legislación sobre propiedad intelectual. La licencia de uso concedida es no exclusiva e intransferible y se limita a la actividad interna del licenciatario.</p>
+      <p>Queda prohibida su copia, cesión, distribución, modificación o ingeniería inversa, total o parcial, sin autorización previa y por escrito del autor. Cualquier uso no autorizado podrá dar lugar a las acciones legales correspondientes.</p>
+    </div>
+    <div class="acerca-acciones">
+      <button type="button" class="btn acerca-aceptar" id="btnAcercaDeAceptar">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de detalle de siniestro (fotos + envío) -->
+<div class="modal-overlay" id="siniestroModalOverlay">
+  <div class="modal-box siniestro-modal-box" role="dialog" aria-modal="true">
+    <div class="siniestro-cabecera">
+      <button class="filtros-modal-close" id="btnCerrarSiniestroModal" style="position:absolute; right:16px; top:16px;">✕</button>
+      <span class="pill" id="siniestroModalTipo"></span>
+      <h3 class="modal-title" id="siniestroModalTitulo"></h3>
+      <div class="siniestro-meta" id="siniestroModalMeta"></div>
+    </div>
+
+    <div class="siniestro-cuerpo">
+      <p class="siniestro-seccion-titulo">Fotos del siniestro <span class="siniestro-fotos-num" id="siniestroFotosNum">0</span></p>
+
+      <div class="siniestro-fotos-grid" id="siniestroFotosGrid"></div>
+
+      <label class="siniestro-dropzone" id="siniestroFotosDropzone" for="siniestroFotosInput">
+        <span class="dz-icon" id="siniestroDropzoneIcon">📷</span>
+        <span class="dz-titulo" id="siniestroDropzoneTitulo">Arrastra las fotos aquí</span>
+        <span class="dz-sub" id="siniestroDropzoneSub">o <b>haz clic para seleccionar</b></span>
+        <input type="file" id="siniestroFotosInput" accept="image/*" multiple style="display:none;">
+      </label>
+      <p class="err" id="siniestroFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin:8px 0 0;"></p>
+
+      <div class="modal-footer siniestro-pie">
+        <span class="siniestro-estado" id="siniestroModalEstado"><span class="siniestro-estado-dot" id="siniestroModalEstadoDot"></span><span id="siniestroModalEstadoTxt"></span></span>
+        <button class="btn primary" id="btnEnviarSiniestro">✉️ Enviar siniestro</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: completar datos de un siniestro (Panel siniestros) -->
+<div class="modal-overlay" id="psModalOverlay">
+  <div class="ps-modal-conjunto">
+    <aside class="seguimiento-panel" id="psSeguimientoPanel">
+      <p class="seguimiento-titulo">📦 Seguimiento</p>
+      <div class="stepper" id="psStepper"></div>
+    </aside>
+
+    <div class="modal-box ps-modal-box" role="dialog" aria-modal="true">
+      <button class="filtros-modal-close ps-btn-borrar-fila" id="btnBorrarPanelSiniestro" style="position:absolute; right:96px; top:16px;" title="Eliminar siniestro">🗑️</button>
+      <button class="filtros-modal-close ps-btn-pdf-fila" id="btnImprimirPanelSiniestro" style="position:absolute; right:56px; top:16px;" title="Imprimir resumen (PDF)">
+        <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M5 2h9l5 5v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" fill="#fff" stroke="#B0B0B0" stroke-width="1"/>
+          <path d="M14 2v5h5" fill="none" stroke="#B0B0B0" stroke-width="1"/>
+          <rect x="3" y="13.5" width="16" height="7.5" rx="1.2" fill="#E02424"/>
+          <text x="11" y="19.3" font-family="Arial, Helvetica, sans-serif" font-size="6.4" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>
+        </svg>
+      </button>
+      <button class="ps-guardado-icono" id="psGuardadoEstado" type="button" title=""></button>
+      <button class="filtros-modal-close" id="btnCerrarPsModal" style="position:absolute; right:16px; top:16px;">✕</button>
+
+      <p class="ps-modal-titulo-principal">📋 Detalle del siniestro</p>
+
+      <div class="ps-modal-cabecera">
+        <div class="ps-modal-cabecera-info">
+          <h3 class="modal-title">
+            <span id="psAgenciaTienda">—</span>
+            <span class="pill" id="psTipoPill" style="vertical-align:middle; margin-left:6px;"></span>
+          </h3>
+          <p class="modal-message" id="psFechaTexto" style="margin:2px 0 10px;"></p>
+          <div class="ps-modal-meta">
+            <span id="psActualizadoTexto"></span>
+          </div>
+        </div>
+        <div class="ps-modal-cabecera-envio" id="psEnvioAgenciaBloque">
+          <div class="ps-modal-numero" id="psNumeroSiniestro"></div>
+          <button type="button" class="btn primary" id="btnPsEnviarAgencia" style="font-size:12px; padding:6px 12px; white-space:nowrap;">✉️ Enviar a agencia</button>
+        </div>
+      </div>
+
+      <div class="ps-form-grid">
+        <div>
+          <label class="form-label">Origen mercancía</label>
+          <select id="psOrigen" class="form-input"></select>
+        </div>
+        <div>
+          <label class="form-label">Nº Albarán</label>
+          <div class="campo-valor-detectado" id="psAlbaranWrap">
+            <span class="cvd-candado" id="psAlbaranCandado">🔒</span>
+            <input type="text" id="psAlbaran" class="form-input cvd-input" placeholder="Se rellena al subir el albarán">
+            <button type="button" class="cvd-editar" id="btnEditarNumAlbaran" title="Editar manualmente">✏️</button>
+          </div>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="form-label">Información</label>
+          <textarea id="psInformacion" class="form-input" rows="2" placeholder="Resumen de como se ha producido el siniestro…"></textarea>
+        </div>
+        <div style="grid-column:1/-1;" class="ps-fila-3-campos">
+          <div>
+            <label class="form-label">Importe (€)</label>
+            <div class="campo-valor-detectado" id="psValorWrap">
+              <span class="cvd-candado" id="psValorCandado">🔒</span>
+              <input type="number" step="0.01" id="psValor" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
+              <button type="button" class="cvd-editar" id="btnEditarValor" title="Editar manualmente">✏️</button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Nº Factura</label>
+            <div class="campo-valor-detectado" id="psFacturaNumWrap">
+              <span class="cvd-candado" id="psFacturaNumCandado">🔒</span>
+              <input type="text" id="psFacturaNum" class="form-input cvd-input" placeholder="Se rellena al subir la factura">
+              <button type="button" class="cvd-editar" id="btnEditarNumFactura" title="Editar manualmente">✏️</button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Estado</label>
+            <select id="psEstado" class="form-input">
+              <option value="PDTE COBRO">PDTE COBRO</option>
+              <option value="COBRADO">COBRADO</option>
+              <option value="ANULADO">ANULADO</option>
+            </select>
+          </div>
+        </div>
+        <div style="grid-column:1/-1;" id="psRecogidaBloque">
+          <div class="ps-recogida-fila">
+            <div>
+              <label class="form-label">Recogida límite</label>
+              <input type="date" id="psRecogida" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Estado de la recogida</label>
+              <select id="psRecogidaEstado" class="form-input">
+                <option value="">— Pendiente —</option>
+                <option value="EN ESPERA DE TIENDA">En espera de tienda</option>
+                <option value="ENVIADO A CENTRAL">Enviado a central</option>
+                <option value="RECOGIDO POR AGENCIA">Recogido por agencia</option>
+              </select>
+            </div>
+            <div style="display:none;" id="psJustificanteBloque">
+              <label class="form-label">Justificante de recogida</label>
+              <div id="psJustificanteZona"></div>
+              <input type="file" id="psJustificanteInput" accept=".pdf,image/*" style="display:none;">
+              <p class="err" id="psJustificanteError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="err" id="psError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+
+      <div class="ps-archivos-bloque">
+        <label class="form-label">Carpeta (fotos)</label>
+        <div class="ps-fotos-grid" id="psFotosGrid"></div>
+        <label class="btn" style="cursor:pointer;">
+          📷 Añadir fotos
+          <input type="file" id="psFotosInput" accept="image/*" multiple style="display:none;">
+        </label>
+        <p class="err" id="psFotosError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+      </div>
+
+      <div class="ps-archivos-fila">
+        <div class="ps-archivos-col">
+          <label class="form-label">Factura (PDF)</label>
+          <div id="psFacturaZona"></div>
+          <input type="file" id="psFacturaInput" accept=".pdf" style="display:none;">
+          <p class="err" id="psFacturaError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+        </div>
+
+        <div class="ps-archivos-col">
+          <label class="form-label">Albarán (PDF)</label>
+          <div id="psAlbaranZona"></div>
+          <input type="file" id="psAlbaranInput" accept=".pdf" style="display:none;">
+          <p class="err" id="psAlbaranError" style="display:none; color:var(--grave); font-size:12.5px;"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: visor de PDF dentro de la app (resumen / factura / albarán / justificante) -->
+<div class="modal-overlay" id="psVisorPdfOverlay">
+  <div class="modal-box ps-visor-pdf-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarPsVisorPdf" style="position:absolute; right:16px; top:16px;">✕</button>
+    <p class="ps-modal-titulo-principal" id="psVisorPdfTitulo" style="margin-bottom:12px;">📄 Documento</p>
+    <iframe id="psVisorPdfFrame" title="Documento" src="about:blank"></iframe>
+  </div>
+</div>
+
+<!-- Modal: Log de cambios de un informe tras su envío (Informe del día / Historial) -->
+<div class="modal-overlay" id="iclogOverlay">
+  <div class="modal-box iclog-modal-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarLogCambios" style="position:absolute; right:16px; top:16px;">✕</button>
+    <p class="ps-modal-titulo-principal" style="margin-bottom:2px;">🕘 Log de cambios</p>
+    <p style="text-align:center; margin:0 0 18px; font-size:12.5px; color:var(--ink-soft);" id="iclogFecha"></p>
+    <div id="iclogLista"></div>
+  </div>
+</div>
+
+<!-- Modal: nuevo siniestro manual (Panel siniestros) -->
+<div class="modal-overlay" id="psNuevoModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:520px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarPsNuevo" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">➕ Añadir siniestro</h3>
+    <p class="modal-message">Para casos que no vengan del envío automático de "Siniestros del día". Luego podrás completar el resto de datos.</p>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div style="background:#FFF8F0; border:1px solid #FFE1BF; border-radius:12px; padding:12px 14px;">
+        <label class="form-label" style="margin-bottom:2px;">¿Es una rotura producida en el almacén de una agencia?</label>
+        <p style="margin:2px 0 10px; font-size:11.5px; color:var(--ink-soft);">Por ejemplo, cuando la agencia llama para que un operario vaya a reparar un palet en sus instalaciones. La mayoría de altas manuales son de este tipo.</p>
+        <div class="toggle-seg" id="psnOrigenAgenciaToggle">
+          <button type="button" class="toggle-seg-btn" data-valor="si">Sí</button>
+          <button type="button" class="toggle-seg-btn activo" data-valor="no">No</button>
+        </div>
+        <input type="hidden" id="psnOrigenAgencia" value="no">
+      </div>
+      <div style="display:flex; gap:14px;">
+        <div style="flex:1;">
+          <label class="form-label">Fecha</label>
+          <input type="date" id="psnFecha" class="form-input">
+        </div>
+        <div style="flex:1;">
+          <label class="form-label">Tipo</label>
+          <select id="psnTipo" class="form-input">
+            <option value="ROTURA">ROTURA</option>
+            <option value="FALTAS">FALTAS</option>
+            <option value="FALTAS Y ROTURAS">FALTAS Y ROTURAS</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Agencia</label>
+        <select id="psnAgencia" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Tienda</label>
+        <select id="psnTienda" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">Información</label>
+        <textarea id="psnInformacion" class="form-input" rows="2" placeholder="Resumen de como se ha producido el siniestro…"></textarea>
+      </div>
+    </div>
+
+    <p class="err" id="psnError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarPsNuevo">Cancelar</button>
+      <button class="btn primary" id="btnGuardarPsNuevo">➕ Crear y continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: detalle de pendientes de cobro por agencia -->
+<!-- Visor de foto en grande (Panel siniestros) -->
+<div class="modal-overlay" id="psLightboxOverlay">
+  <div class="ps-lightbox-caja">
+    <button class="filtros-modal-close" id="btnCerrarPsLightbox">✕</button>
+    <img id="psLightboxImg" src="" alt="Foto del siniestro">
+  </div>
+</div>
+
+<!-- Modal: añadir fotos al convertir una incidencia de un día pasado en siniestro -->
+<div class="modal-overlay" id="historialFotosModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:440px; position:relative;">
+    <h3 class="modal-title" id="historialFotosTitulo">📷 Añadir fotos al siniestro</h3>
+    <p class="modal-message" id="historialFotosSub"></p>
+    <div class="ps-fotos-grid" id="historialFotosGrid" style="margin-top:10px;"></div>
+    <label class="btn" style="cursor:pointer; width:100%; justify-content:center; margin-top:6px;">
+      📷 Añadir fotos
+      <input type="file" id="historialFotosInput" accept="image/*" multiple style="display:none;">
+    </label>
+    <p class="err" id="historialFotosError" style="display:none; color:var(--grave); font-size:12.5px; margin-top:8px;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnHistorialFotosOmitir">Sin fotos por ahora</button>
+      <button class="btn primary" id="btnHistorialFotosListo">Listo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="psDetalleModalOverlay">
+  <div class="modal-box ps-detalle-modal-box" role="dialog" aria-modal="true" style="max-width:440px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarPsDetalle" style="position:absolute; right:16px; top:16px;">✕</button>
+    <div class="ps-detalle-header">
+      <div class="ps-detalle-icon" id="psDetalleIcono">💰</div>
+      <h3 class="modal-title" id="psDetalleTitulo">Pendiente de cobro por agencia</h3>
+    </div>
+    <div id="psDetalleLista" class="ps-detalle-lista"></div>
+  </div>
+</div>
+
+<!-- Modal: editar usuario -->
+<div class="modal-overlay" id="editarUsuarioModalOverlay">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
+    <button class="filtros-modal-close" id="btnCerrarEditarUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" style="margin-bottom:18px;">✏️ Editar usuario</h3>
+
+    <div class="usuario-modal-grid">
+      <div class="usuario-modal-campos">
+        <div>
+          <label class="form-label">Nombre completo</label>
+          <input type="text" id="euNombre" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Usuario</label>
+          <input type="text" id="euUsuario" class="form-input" inputmode="numeric">
+        </div>
+        <div>
+          <label class="form-label">Nuevo PIN</label>
+          <input type="password" id="euPin" class="form-input" placeholder="Dejar en blanco para no cambiarlo" maxlength="10">
+        </div>
+        <div>
+          <label class="form-label">Rol</label>
+          <div class="toggle-seg" id="euRolToggle">
+            <button type="button" class="toggle-seg-btn" data-rol="admin">Admin</button>
+            <button type="button" class="toggle-seg-btn" data-rol="operador">Operador</button>
+            <button type="button" class="toggle-seg-btn" data-rol="lectura">Lectura</button>
+          </div>
+          <input type="hidden" id="euRol" value="operador">
+        </div>
+        <label class="ps-filtro-check" style="margin-top:4px;">
+          <input type="checkbox" id="euActivo"> Activo
+        </label>
+      </div>
+
+      <div class="permisos-panel" id="euPermisosPanel">
+        <div class="permisos-cabecera">
+          <b>Permisos</b>
+          <span>Marca lo que este operario puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
+        </div>
+        <div class="permisos-columnas">
+          <div class="permisos-col">
+            <h4>Gestión general</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_informe_dia">
+              <span><b>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_enviar_informe">
+              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a las agencias.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_editar_informes_pasados">
+              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_panel_siniestros">
+              <span><b>Panel siniestros</b><small>Crear y modificar siniestros y enviar el correo del siniestro a a la agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_siniestros_dia">
+              <span><b>Enviar siniestros</b><small>Enviar siniestros a las agencias desde siniestros del dia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_enviar_facturacion">
+              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Configuración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_tiendas">
+              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_emails">
+              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_facturacion">
+              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_cc_transporte">
+              <span><b>Destinatarios para CC</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_gravedad_motivos">
+              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Administración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_gestion_usuarios">
+              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_borrar">
+              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_enviar_reporte_mensual">
+              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_ver_auditoria">
+              <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_ver_log_cambios_informes">
+              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="err" id="euError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarEditarUsuario">Cancelar</button>
+      <button class="btn primary" id="btnGuardarEditarUsuario">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo usuario -->
+<div class="modal-overlay" id="nuevoUsuarioModalOverlay">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
+    <button class="filtros-modal-close" id="btnCerrarNuevoUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" style="margin-bottom:18px;">➕ Nuevo usuario</h3>
+
+    <div class="usuario-modal-grid">
+      <div class="usuario-modal-campos">
+        <div>
+          <label class="form-label">Nombre completo</label>
+          <input type="text" id="nuNombre" class="form-input" placeholder="Nombre y apellidos">
+        </div>
+        <div>
+          <label class="form-label">Usuario (para entrar en la app)</label>
+          <input type="text" id="nuUsuario" class="form-input" placeholder="Usuario" inputmode="numeric">
+        </div>
+        <div>
+          <label class="form-label">PIN</label>
+          <input type="password" id="nuPin" class="form-input" placeholder="••••" maxlength="10">
+        </div>
+        <div>
+          <label class="form-label">Rol</label>
+          <div class="toggle-seg" id="nuRolToggle">
+            <button type="button" class="toggle-seg-btn" data-rol="admin">Admin</button>
+            <button type="button" class="toggle-seg-btn" data-rol="operador">Operador</button>
+            <button type="button" class="toggle-seg-btn" data-rol="lectura">Lectura</button>
+          </div>
+          <input type="hidden" id="nuRol" value="operador">
+        </div>
+      </div>
+
+      <div class="permisos-panel" id="nuPermisosPanel">
+        <div class="permisos-cabecera">
+          <b>Permisos</b>
+          <span>Marca lo que este operador puede hacer. Lo que no esté marcado no lo verá ni podrá usarlo.</span>
+        </div>
+        <div class="permisos-columnas">
+          <div class="permisos-col">
+            <h4>Gestión general</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_informe_dia">
+              <span><b>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_enviar_informe">
+              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_editar_informes_pasados">
+              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial, sin enviar nada a agencias.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_panel_siniestros">
+              <span><b>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_siniestros_dia">
+              <span><b>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_enviar_facturacion">
+              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Configuración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_tiendas">
+              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_emails">
+              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_facturacion">
+              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_cc_transporte">
+              <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_gravedad_motivos">
+              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+            </label>
+          </div>
+          <div class="permisos-col">
+            <h4>Administración</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_gestion_usuarios">
+              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_borrar">
+              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_enviar_reporte_mensual">
+              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_ver_auditoria">
+              <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_ver_log_cambios_informes">
+              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="err" id="nuError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarUsuario">Cancelar</button>
+      <button class="btn primary" id="btnGuardarUsuario">Guardar usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nueva agencia -->
+<div class="modal-overlay" id="nuevaAgenciaModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" style="max-width:480px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarNuevaAgencia" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title">➕ Nueva agencia</h3>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div>
+        <label class="form-label">Nombre de la agencia</label>
+        <input type="text" id="naNombre" class="form-input" placeholder="Ej: DHL">
+      </div>
+      <div>
+        <label class="form-label">Nombre comercial</label>
+        <input type="text" id="naNombreComercial" class="form-input" placeholder="Ej: DHL PARCEL IBERIA, S.L.U (opcional)">
+      </div>
+      <div>
+        <label class="form-label">Grupo de envío (resumen mensual)</label>
+        <input type="text" id="naGrupoEnvio" class="form-input" placeholder="Ej: CBL (opcional, para agrupar con otra agencia)">
+      </div>
+      <div>
+        <label class="form-label">Emails de destinatario</label>
+        <textarea id="naEmails" class="form-input" rows="3" placeholder="uno@email.com, otro@email.com&#10;(uno por línea o separados por comas)"></textarea>
+      </div>
+    </div>
+
+    <p class="err" id="naError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarNuevaAgencia">Cancelar</button>
+      <button class="btn primary" id="btnGuardarNuevaAgencia">💾 Crear agencia</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nueva tienda -->
+<div class="modal-overlay" id="nuevaTiendaModalOverlay">
+  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="nuevaTiendaTitulo">
+    <div class="tienda-modal-head">
+      <div>
+        <h3 class="modal-title" id="nuevaTiendaTitulo">Nueva tienda</h3>
+        <p class="tienda-modal-sub">Los campos marcados con <span class="tf-req">*</span> son obligatorios.</p>
+      </div>
+      <button class="filtros-modal-close" id="btnCerrarNuevaTienda" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="tienda-modal-body">
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Nº tienda <span class="tf-req">*</span></label>
+              <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Nombre tienda <span class="tf-req">*</span></label>
+              <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Marca <span class="tf-req">*</span></label>
+              <select id="ntMarca" class="form-input">
+                <option value="">— Elige marca —</option>
+                <option value="HABITUAL">Habitual</option>
+                <option value="SABADO">Sábado</option>
+                <option value="PRUEBA">Prueba</option>
+                <option value="ESPECIAL">Especial</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia <span class="tf-req">*</span></label>
+              <select id="ntAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Supervisor/a <span class="tf-req">*</span></label>
+              <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-3">
+              <label class="form-label">Dirección completa</label>
+              <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Provincia <span class="tf-req">*</span></label>
+              <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span></h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora prevista <span class="tf-req">*</span></label>
+              <input type="time" id="ntHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite hora entrega</label>
+              <input type="time" id="ntLimiteHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Límite palets <span class="tf-req">*</span></label>
+              <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Tránsito</label>
+              <select id="ntTransito" class="form-input">
+                <option value="">— Sin indicar —</option>
+                <option value="24">24 h (1 día)</option>
+                <option value="48">48 h (2 días)</option>
+                <option value="72">72 h (3 días)</option>
+                <option value="96">96 h (4 días)</option>
+                <option value="120">120 h (5 días)</option>
+                <option value="144">144 h (6 días)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
+          <label class="tf-check"><input type="checkbox" id="ntSabadoOtra"> Los sábados entrega otra agencia</label>
+          <div class="tf-grid" id="ntSabadoCampos" style="display:none;">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
+              <select id="ntSabadoAgencia" class="form-input"></select>
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Hora sábado</label>
+              <input type="time" id="ntSabadoHora" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-1 tf-campo-ayuda">
+              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
+            </div>
+          </div>
+        </section>
+        <section class="tf-seccion">
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
+          <div class="tf-grid">
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Día de recogida</label>
+              <select id="ntRecogidaDia" class="form-input">
+                <option value="">— Sin recogida —</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia recogida</label>
+              <input type="text" id="ntAgenciaRecogida" class="form-input" placeholder="Ej. SEUR">
+            </div>
+          </div>
+        </section>
+    </div>
+
+    <div class="tienda-modal-foot">
+      <p class="err" id="ntError" style="display:none;"></p>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelarTienda">Cancelar</button>
+        <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de detalle de tienda/agencia (Ranking de Análisis) -->
+<div class="modal-overlay" id="analisisDetalleModalOverlay">
+  <div class="modal-box detalle-modal-box" role="dialog" aria-modal="true" aria-labelledby="analisisDetalleTitulo">
+    <button class="filtros-modal-close" id="btnAnalisisDetalleCerrar" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" id="analisisDetalleTitulo"></h3>
+    <p class="envio-modal-sub" id="analisisDetalleSubtitulo" style="margin-bottom:18px;"></p>
+
+    <div class="detalle-cuerpo">
+      <div class="detalle-seccion">
+        <h4 class="detalle-seccion-titulo">📋 Incidencias</h4>
+        <div class="detalle-lista" id="analisisDetalleIncidenciasLista"></div>
+      </div>
+
+      <div class="detalle-seccion">
+        <h4 class="detalle-seccion-titulo">📦 Siniestros</h4>
+        <div class="detalle-lista" id="analisisDetalleSiniestrosLista"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase JS client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Generación de PDF (exportar informes) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- Lectura de texto de PDF (detectar el nº de albarán automáticamente) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/instalar-app.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/comprimir-imagen.js"></script>
+<script src="js/extraer-albaran.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/permisos.js"></script>
+<script src="js/ui-modal.js"></script>
+<script src="js/carga-global.js"></script>
+<script src="js/permisos-aviso.js"></script>
+<script src="js/actualizaciones.js"></script>
+<script src="js/acerca-de.js"></script>
+<script src="js/navegacion.js"></script>
+<script src="js/usuarios.js"></script>
+<script src="js/auditoria.js"></script>
+<script src="js/informes-cambios-log.js"></script>
+<script src="js/tiendas.js"></script>
+<script src="js/emails.js"></script>
+<script src="js/facturacion-config.js"></script>
+<script src="js/cc-config.js"></script>
+<script src="js/config-gravedad-motivos.js"></script>
+<script src="js/codigos-informe.js"></script>
+<script src="js/submotivos-informe.js"></script>
+<script src="js/buscador-clear.js"></script>
+<script src="js/informe-hoy.js"></script>
+<script src="js/utilidades-informe.js"></script>
+<script src="js/siniestros-historial.js"></script>
+<script src="js/historial-editar.js"></script>
+<script src="js/filtros-motivos.js"></script>
+<script src="js/historial-filtros.js"></script>
+<script src="js/informes-cambios-log-panel.js"></script>
+<script src="js/reportes-mensuales.js"></script>
+<script src="js/email-plantillas.js"></script>
+<script src="js/email-service.js"></script>
+<script src="js/informe-envio.js"></script>
+<script src="js/siniestros.js"></script>
+<script src="js/panel-siniestros.js"></script>
+<script src="js/panel-siniestros-exportar.js"></script>
+<script src="js/informe-pdf.js"></script>
+<script src="js/reportes-mensuales-envio.js"></script>
+<script src="js/reportes-mensuales-exportar.js"></script>
+<script src="js/informe-autorefresh.js"></script>
+<script src="js/analisis.js"></script>
+<script src="js/analisis-pdf.js"></script>
+
+</body>
+</html>
