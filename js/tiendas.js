@@ -187,6 +187,9 @@
     const numBajas = tiendasCache.filter(t => t.activo && tiendaEnBajaHoy(t.id)).length;
     const totales = { HABITUAL: 0, SABADO: 0, PRUEBA: 0, ESPECIAL: 0 };
     activas.forEach(t => { if (totales[t.marca] != null) totales[t.marca]++; });
+    // "Sábados" = tiendas de marca Sábado + tiendas con "Entrega de sábado"
+    // por otra agencia (estas también siguen contando en su marca habitual).
+    totales.SABADO += activas.filter(t => t.marca !== 'SABADO' && tiendaTieneEntregaSabado(t)).length;
     cont.innerHTML = `
       <span class="tiendas-contador"><b>${totales.HABITUAL}</b><span>Tiendas</span></span>
       <span class="tiendas-contador sabado"><b>${totales.SABADO}</b><span>Sábados</span></span>
@@ -403,10 +406,15 @@
     }
     selTransito.value = t.transito_horas != null ? String(t.transito_horas) : '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
+    // (con ?. por si el index.html publicado aún no tiene la sección: así
+    // el modal se abre igualmente)
     const tieneSabado = tiendaTieneEntregaSabado(t);
-    document.getElementById('metSabadoOtra').checked = tieneSabado;
-    document.getElementById('metSabadoAgencia').value = tieneSabado ? String(t.sabado_agencia_id) : '';
-    document.getElementById('metSabadoHora').value = tieneSabado && t.sabado_hora ? t.sabado_hora.slice(0, 5) : '';
+    const chkSab = document.getElementById('metSabadoOtra');
+    if (chkSab) chkSab.checked = tieneSabado;
+    const selSab = document.getElementById('metSabadoAgencia');
+    if (selSab) selSab.value = tieneSabado ? String(t.sabado_agencia_id) : '';
+    const horaSab = document.getElementById('metSabadoHora');
+    if (horaSab) horaSab.value = tieneSabado && t.sabado_hora ? t.sabado_hora.slice(0, 5) : '';
     sincronizarCamposSabado('met');
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -460,8 +468,13 @@
 
   // Lee y valida la sección. Devuelve { error } o { sabado_agencia_id, sabado_hora }.
   function leerCamposSabado(prefijo, agenciaHabitualId, marca) {
-    const activo = document.getElementById(prefijo + 'SabadoOtra').checked;
-    if (!activo) return { sabado_agencia_id: null, sabado_hora: null };
+    const chk = document.getElementById(prefijo + 'SabadoOtra');
+    // Sin la sección en pantalla (index.html antiguo): no se toca lo guardado.
+    if (!chk) {
+      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      return { sabado_agencia_id: actual?.sabado_agencia_id ?? null, sabado_hora: actual?.sabado_hora ?? null };
+    }
+    if (!chk.checked) return { sabado_agencia_id: null, sabado_hora: null };
     const agId = Number(document.getElementById(prefijo + 'SabadoAgencia').value) || null;
     const hora = document.getElementById(prefijo + 'SabadoHora').value || null;
     if (marca === 'SABADO') return { error: 'Una tienda de marca Sábado ya entrega solo los sábados: desmarca "Los sábados entrega otra agencia".' };
@@ -852,9 +865,12 @@
     document.getElementById('ntTransito').value = '';
     document.getElementById('ntMarca').value = '';
     document.getElementById('ntAgencia').value = '';
-    document.getElementById('ntSabadoOtra').checked = false;
-    document.getElementById('ntSabadoAgencia').value = '';
-    document.getElementById('ntSabadoHora').value = '';
+    const ntChkSab = document.getElementById('ntSabadoOtra');
+    if (ntChkSab) ntChkSab.checked = false;
+    const ntSelSab = document.getElementById('ntSabadoAgencia');
+    if (ntSelSab) ntSelSab.value = '';
+    const ntHoraSab = document.getElementById('ntSabadoHora');
+    if (ntHoraSab) ntHoraSab.value = '';
     sincronizarCamposSabado('nt');
     document.getElementById('ntError').style.display = 'none';
   }
