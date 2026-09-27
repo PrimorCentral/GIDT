@@ -123,7 +123,9 @@ function rmePosicionarPanel() {
 }
 
 function rmeAbrirPanel() {
+  // Solo un desplegable abierto a la vez: Filtros, Exportar o Enviar.
   if (typeof rmCerrarFiltrosPanel === 'function') rmCerrarFiltrosPanel();
+  if (typeof rmxCerrarPanel === 'function') rmxCerrarPanel();
   rmePosicionarPanel();
   document.getElementById('rmEnviarPanel').classList.add('show');
   document.getElementById('btnRmEnviarAgencias').classList.add('open');
@@ -502,8 +504,15 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     // Tienda de baja ese día: gris, sin OK y sin contar (salvo incidencia ya registrada).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
     cerrarBloqueBaja();
-    // Tienda de sábado fuera del sábado, o su gemela habitual en sábado:
-    // gris rayado como un domingo (salvo incidencia ya registrada).
+    // Fila habitual en sábado con ficha gemela de SÁBADO: "S" como en los
+    // cambios puntuales de agencia (salvo incidencia ya registrada).
+    if (typeof rmAgenciaSabadoGemela === 'function'
+      && rmAgenciaSabadoGemela(f.tiendaId, anio, mesIndex, dia)
+      && !(diasEnviados.has(dia) && celdasTienda[dia])) {
+      celdas.push({ content: 'S', styles: estiloCambio }); continue;
+    }
+    // Tienda de sábado fuera del sábado: gris rayado como un domingo
+    // (salvo incidencia ya registrada).
     if (typeof rmMotivoSinEntregaTienda === 'function'
       && rmMotivoSinEntregaTienda(f.tiendaId, anio, mesIndex, dia)
       && !(diasEnviados.has(dia) && celdasTienda[dia])) {
@@ -634,8 +643,18 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
     const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex);
+    // Tiendas de sábado: redondel amarillo con "S" a la izquierda del
+    // nombre de la agencia (se dibuja en didDrawCell; aquí solo se deja
+    // hueco a la izquierda para que no se monte sobre el texto).
+    const tiendaFila = tiendasCache.find(x => x.id === f.tiendaId);
+    const esSabado = !!tiendaFila && tiendaFila.marca === 'SABADO';
+    const celdaAgencia = { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } };
+    if (esSabado) {
+      celdaAgencia.esSabado = true;
+      celdaAgencia.styles.cellPadding = { top: 2 * escala, bottom: 2 * escala, right: 1.5 * escala, left: 8.5 * escala };
+    }
     return [
-      { content: f.agenciaNombre + (f.esPuntual ? ' (puntual)' : ''), styles: { halign: 'center', fontStyle: 'bold' } },
+      celdaAgencia,
       { content: f.tiendaNombre, styles: { halign: 'center' } },
       { content: f.tiendaProvincia || '—', styles: { halign: 'center' } },
       ...celdasDias,
@@ -667,6 +686,22 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     // para que se distinga a simple vista de un informe realmente
     // pendiente entre semana (celda blanca vacía).
     didDrawCell(data) {
+      if (data.section === 'body' && data.cell.raw && data.cell.raw.esSabado) {
+        // Hueco justo para que "SEYLOTRANS" siga cabiendo en una línea
+        // en la columna AGENCIA (55 pt).
+        const r = 2.6 * escala;
+        const cx = data.cell.x + 1.2 * escala + r;
+        const cy = data.cell.y + data.cell.height / 2;
+        doc.saveGraphicsState();
+        doc.setFillColor(252, 229, 136);
+        doc.circle(cx, cy, r, 'F');
+        doc.setTextColor(122, 91, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(4.2 * escala);
+        doc.text('S', cx, cy, { align: 'center', baseline: 'middle' });
+        doc.restoreGraphicsState();
+        return;
+      }
       if (data.section !== 'body' || !data.cell.raw || !data.cell.raw.esDomingo) return;
       const { x, y, width: w, height: h } = data.cell;
       doc.saveGraphicsState();

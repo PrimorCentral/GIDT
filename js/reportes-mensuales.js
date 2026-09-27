@@ -99,8 +99,32 @@ function rmMotivoSinEntregaTienda(tiendaId, anio, mesIndex, dia) {
 // (pantalla, PDF y envío a agencias). Las de marca PRUEBA y ESPECIAL no
 // salen: ni fila, ni OK, ni incidencias. Las tiendas sin marca se tratan
 // como habituales.
+// Redondel "S" (el mismo de marca Sábado del Informe del día) delante del
+// nombre de la agencia en las filas de tiendas de sábado.
+function rmBadgeSabadoHtml(tiendaId) {
+  const t = tiendasCache.find(x => x.id === tiendaId);
+  if (!t || t.marca !== 'SABADO' || typeof badgeMarcaHtml !== 'function') return '';
+  return badgeMarcaHtml('SABADO');
+}
 function rmMarcaEntraEnReporte(t) {
   return !t.marca || t.marca === 'HABITUAL' || t.marca === 'SABADO';
+}
+
+// Si ese día es sábado y la tienda (habitual) tiene ficha gemela de
+// SÁBADO, devuelve el nombre de la agencia que entrega ese sábado; si no,
+// null. En la fila habitual ese día se pinta una "S" como en los cambios
+// puntuales de agencia (en vez de gris), sin OK y sin contar.
+function rmAgenciaSabadoGemela(tiendaId, anio, mesIndex, dia) {
+  if (new Date(anio, mesIndex, dia).getDay() !== 6) return null;
+  const t = tiendasCache.find(x => x.id === tiendaId);
+  if (!t || t.marca === 'SABADO') return null;
+  const num = rmNormalizarNumeroTienda(t.numero_tienda);
+  if (!num) return null;
+  const gemela = tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
+    && rmNormalizarNumeroTienda(x.numero_tienda) === num);
+  if (!gemela) return null;
+  const ag = agenciasCache.find(a => a.id === gemela.agencia_id);
+  return ag ? ag.nombre : 'otra agencia';
 }
 
 // Primer día del mes en que cada tienda "existe" (según tiendas.creado_en,
@@ -516,6 +540,9 @@ function rmPosicionarFiltrosPanel() {
 }
 
 function rmAbrirFiltrosPanel() {
+  // Solo un desplegable abierto a la vez: Filtros, Exportar o Enviar.
+  if (typeof rmxCerrarPanel === 'function') rmxCerrarPanel();
+  if (typeof rmeCerrarPanel === 'function') rmeCerrarPanel();
   rmPosicionarFiltrosPanel();
   document.getElementById('rmFiltrosPanel').classList.add('show');
   document.getElementById('btnRmFiltros').classList.add('open');
@@ -625,6 +652,8 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     cerrarBloqueBaja();
     // Tienda de sábado fuera del sábado, o su gemela habitual en sábado:
     // gris como un domingo (salvo que ya hubiera una incidencia registrada).
+    const agSabado = rmAgenciaSabadoGemela(f.tiendaId, rmAnio, rmMes, dia);
+    if (agSabado && !(diasEnviados.has(dia) && celdasTienda[dia])) { partes.push(`<td class="rm-td-cambio" title="Los sábados entrega ${escapeHtml(agSabado)} (tienda de sábado)">S</td>`); continue; }
     const sinEntrega = rmMotivoSinEntregaTienda(f.tiendaId, rmAnio, rmMes, dia);
     if (sinEntrega && !(diasEnviados.has(dia) && celdasTienda[dia])) { partes.push(`<td class="rm-td-domingo" title="${escapeHtml(sinEntrega)}"></td>`); continue; }
     if (!diasEnviados.has(dia)) {
@@ -693,7 +722,7 @@ async function rmRender() {
 
   const filasHtml = filasVisibles.map(({ f, html, totalIncidencias }) => `
     <tr class="${f.esPuntual ? 'rm-fila-puntual' : ''}">
-      <td class="rm-col-fija">${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
+      <td class="rm-col-fija">${rmBadgeSabadoHtml(f.tiendaId)}${escapeHtml(f.agenciaNombre)}${f.esPuntual ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}
