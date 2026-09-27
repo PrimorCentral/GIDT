@@ -2332,6 +2332,15 @@ table.tabla-tiendas td.celda-extra{ white-space:normal; }
 .xchip.s{ background:#FFF7D6; color:#7A5B00; }
 .xchip.p{ background:#DCF5E5; color:#166534; }
 .tiendas-contador.prueba{ background:#DCF5E5; color:#166534; }
+/* Botón mientras se guarda (modales de tienda) */
+.btn.btn-guardando{ opacity:.85; cursor:progress; }
+.btn-spinner{
+  display:inline-block; width:14px; height:14px; margin-right:8px; vertical-align:-2px;
+  border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
+  animation:btnSpinnerGira .7s linear infinite;
+}
+@keyframes btnSpinnerGira{ to{ transform:rotate(360deg); } }
+
 /* Contadores de Gestión de tiendas: se pueden pulsar para ver la lista */
 .tiendas-contador.pulsable{ cursor:pointer; border:0; font:inherit; transition:transform .12s, box-shadow .12s; }
 .tiendas-contador.pulsable:hover{ transform:translateY(-1px); box-shadow:0 4px 12px rgba(20,30,50,.12); }
