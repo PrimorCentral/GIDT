@@ -36,7 +36,23 @@ function nombreSeguroParaStorage(nombre) {
 
 let panelCache = [];
 let panelCargado = false;
-let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false, sinCorreo: false };
+let panelFiltros = { texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '', sinFactura: false, sinAlbaran: false, sinCorreo: false, verCompletados: false, verAnulados: false };
+
+// Paginación de la lista: 30 siniestros por página. Se vuelve a la página 1
+// cada vez que cambian los filtros (ver renderPanelSiniestros).
+const PS_POR_PAGINA = 30;
+let panelPagina = 1;
+let panelFirmaFiltros = '';
+
+// Siniestro con TODO el seguimiento hecho: enviado a la agencia, albarán a
+// facturación, factura emitida, recogida resuelta (si aplica) y cobrado.
+// Estos y los ANULADOS se ocultan por defecto de la lista (se pueden ver
+// con los botones "Completados" / "Anulados" o filtrando por su estado).
+function psSeguimientoCompleto(s) {
+  if (s.estado !== 'COBRADO') return false;
+  const recogidaOk = s.tipo === 'FALTAS' || s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
+  return !!s.correo_enviado && !!s.enviado_facturacion && !!s.factura_url && recogidaOk;
+}
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'AGENCIA', 'OTRO'];
@@ -140,7 +156,7 @@ function rellenarFiltroAgenciasPanel() {
   if (actual) sel.value = actual;
 }
 
-function siniestrosPanelFiltrados() {
+function siniestrosPanelFiltrados({ ignorarVisibilidad = false } = {}) {
   const f = panelFiltros;
   const texto = f.texto.trim().toUpperCase();
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -173,8 +189,53 @@ function siniestrosPanelFiltrados() {
         .filter(Boolean).join(' ').toUpperCase();
       if (!campo.includes(texto)) return false;
     }
+    if (!ignorarVisibilidad) {
+      // Ocultos por defecto (salvo que se pidan con el botón o se filtre
+      // expresamente por ese estado).
+      if (s.estado === 'ANULADO' && !f.verAnulados && f.estado !== 'ANULADO') return false;
+      if (psSeguimientoCompleto(s) && !f.verCompletados && f.estado !== 'COBRADO') return false;
+    }
     return true;
   });
+}
+
+function renderPaginacionPanel(total, desde, hasta, totalPaginas) {
+  const cont = document.getElementById('psPaginacion');
+  if (!cont) return;
+  if (!total) { cont.innerHTML = ''; return; }
+  // Números de página visibles: primera, última y las de alrededor de la actual.
+  const nums = [];
+  for (let p = 1; p <= totalPaginas; p++) {
+    if (p === 1 || p === totalPaginas || Math.abs(p - panelPagina) <= 2) nums.push(p);
+    else if (nums[nums.length - 1] !== '…') nums.push('…');
+  }
+  cont.innerHTML = `
+    <span>Mostrando <b>${desde}–${hasta}</b> de <b>${total}</b> siniestro${total === 1 ? '' : 's'}</span>
+    ${totalPaginas > 1 ? `<div class="ps-pag-botones">
+      <button type="button" class="ps-pag-btn" data-pag="${panelPagina - 1}" ${panelPagina === 1 ? 'disabled' : ''} title="Página anterior">‹</button>
+      ${nums.map(n => n === '…' ? '<span class="ps-pag-puntos">…</span>' : `<button type="button" class="ps-pag-btn${n === panelPagina ? ' activa' : ''}" data-pag="${n}">${n}</button>`).join('')}
+      <button type="button" class="ps-pag-btn" data-pag="${panelPagina + 1}" ${panelPagina === totalPaginas ? 'disabled' : ''} title="Página siguiente">›</button>
+    </div>` : ''}`;
+  cont.querySelectorAll('.ps-pag-btn[data-pag]').forEach(btn => btn.addEventListener('click', () => {
+    panelPagina = Number(btn.dataset.pag);
+    renderPanelSiniestros();
+    const scroll = document.querySelector('.ps-tabla-flex');
+    if (scroll) scroll.scrollTop = 0;
+  }));
+}
+
+function actualizarBotonesVisibilidadPanel() {
+  const base = siniestrosPanelFiltrados({ ignorarVisibilidad: true });
+  const nC = base.filter(psSeguimientoCompleto).length;
+  const nA = base.filter(s => s.estado === 'ANULADO').length;
+  const setChip = (id, idNum, n, activo) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    document.getElementById(idNum).textContent = n;
+  };
+  setChip('psVerCompletados', 'psNumCompletados', nC, panelFiltros.verCompletados);
+  setChip('psVerAnulados', 'psNumAnulados', nA, panelFiltros.verAnulados);
 }
 
 function psPillTipo(tipo) {
@@ -209,13 +270,26 @@ function psFormatearValor(v) {
 function renderPanelSiniestros() {
   const tbody = document.getElementById('panelSiniestrosBody');
   if (!tbody) return;
-  const filas = siniestrosPanelFiltrados();
+  const todas = siniestrosPanelFiltrados();
+  actualizarBotonesVisibilidadPanel();
+
+  // Si han cambiado los filtros, se vuelve a la página 1.
+  const firma = JSON.stringify(panelFiltros);
+  if (firma !== panelFirmaFiltros) { panelFirmaFiltros = firma; panelPagina = 1; }
+  const totalPaginas = Math.max(1, Math.ceil(todas.length / PS_POR_PAGINA));
+  if (panelPagina > totalPaginas) panelPagina = totalPaginas;
+  const inicio = (panelPagina - 1) * PS_POR_PAGINA;
+  const filas = todas.slice(inicio, inicio + PS_POR_PAGINA);
+  renderPaginacionPanel(todas.length, inicio + 1, inicio + filas.length, totalPaginas);
 
   if (!filas.length) {
+    const ocultos = siniestrosPanelFiltrados({ ignorarVisibilidad: true }).length;
     tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:30px; color:var(--ink-soft);">
-      ${panelCache.length
-        ? 'Ningún siniestro coincide con los filtros.'
-        : 'Aquí aparecerán solas las filas en cuanto marques un siniestro como "enviado" en Siniestros del día.'}
+      ${!panelCache.length
+        ? 'Aquí aparecerán solas las filas en cuanto marques un siniestro como "enviado" en Siniestros del día.'
+        : ocultos
+          ? 'No hay siniestros en curso con estos filtros. Pulsa "Completados" o "Anulados" para ver los que están ocultos.'
+          : 'Ningún siniestro coincide con los filtros.'}
     </td></tr>`;
     return;
   }
@@ -235,7 +309,7 @@ function renderPanelSiniestros() {
       ? `${psFormatearFecha(s.recogida_limite)}${recogidaEstadoTexto ? `<br><span class="ps-recogida-mini">${recogidaEstadoTexto}</span>` : ''}`
       : 'NO APLICA';
     return `
-      <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}">
+      <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}${psSeguimientoCompleto(s) ? ' ps-fila-completa' : ''}${s.estado === 'ANULADO' ? ' ps-fila-anulada' : ''}"${psSeguimientoCompleto(s) ? ' title="Seguimiento completado"' : ''}>
         <td class="ps-col-num"><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
@@ -415,6 +489,16 @@ document.getElementById('psFiltroSinAlbaran')?.addEventListener('change', (e) =>
 });
 document.getElementById('psFiltroSinCorreo')?.addEventListener('change', (e) => {
   panelFiltros.sinCorreo = e.target.checked;
+  renderPanelSiniestros();
+});
+
+// Botones "Completados" / "Anulados": muestran u ocultan esos siniestros.
+document.getElementById('psVerCompletados')?.addEventListener('click', () => {
+  panelFiltros.verCompletados = !panelFiltros.verCompletados;
+  renderPanelSiniestros();
+});
+document.getElementById('psVerAnulados')?.addEventListener('click', () => {
+  panelFiltros.verAnulados = !panelFiltros.verAnulados;
   renderPanelSiniestros();
 });
 
