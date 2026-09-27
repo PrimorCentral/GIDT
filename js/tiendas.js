@@ -240,7 +240,7 @@
             <span class="count">${tds.length - numDeBaja} tienda${(tds.length - numDeBaja) === 1 ? '' : 's'}${numDeBaja ? ` · ${numDeBaja} de baja` : ''}</span>
           </div>
           <div class="agencia-body ${abierta ? 'open' : ''}">
-            <div class="tabla-tiendas-scroll">
+            <div class="tabla-tiendas-scroll" data-scroll-agencia="${ag.id}">
               <table class="tabla-tiendas">
                 <thead>
                   <tr>
@@ -266,9 +266,34 @@
         </div>`;
     });
 
+    // Conserva la posición de scroll al redibujar (p. ej. tras editar una
+    // tienda): la de cada tabla de agencia (que tiene su propio scroll) y la
+    // de los contenedores que envuelven el acordeón (<main>, página...).
+    const scrollTablas = {};
+    cont.querySelectorAll('[data-scroll-agencia]').forEach(el => {
+      scrollTablas[el.dataset.scrollAgencia] = { top: el.scrollTop, left: el.scrollLeft };
+    });
+    const scrollPadres = [];
+    for (let el = cont.parentElement; el; el = el.parentElement) {
+      if (el.scrollTop || el.scrollLeft) scrollPadres.push({ el, top: el.scrollTop, left: el.scrollLeft });
+    }
+    const scrollVentana = { x: window.scrollX, y: window.scrollY };
+    // Fija la altura mientras se sustituye el contenido para que el navegador
+    // no recorte el scroll al quedarse el contenedor vacío un instante.
+    const altoPrevio = cont.offsetHeight;
+    if (altoPrevio) cont.style.minHeight = altoPrevio + 'px';
+
     cont.innerHTML = buscando && bloques.every(b => !b)
       ? `<div class="card" style="text-align:center; padding:30px; color:var(--ink-soft);">Ninguna tienda coincide con "${escapeHtml(filtroTiendasTexto)}".</div>`
       : bloques.join('');
+
+    cont.querySelectorAll('[data-scroll-agencia]').forEach(el => {
+      const s = scrollTablas[el.dataset.scrollAgencia];
+      if (s) { el.scrollTop = s.top; el.scrollLeft = s.left; }
+    });
+    scrollPadres.forEach(s => { s.el.scrollTop = s.top; s.el.scrollLeft = s.left; });
+    if (scrollVentana.x || scrollVentana.y) window.scrollTo(scrollVentana.x, scrollVentana.y);
+    cont.style.minHeight = '';
 
     cont.querySelectorAll('.agencia-head').forEach(head => {
       head.addEventListener('click', () => {
@@ -367,6 +392,40 @@
     editarTiendaId = null;
   }
 
+  // Nº de tienda único: no puede haber dos tiendas ACTIVAS con el mismo
+  // número (las eliminadas —activo=false— no cuentan, para poder reutilizar
+  // el número de una tienda cerrada). Se compara sin espacios, en
+  // mayúsculas y sin ceros a la izquierda ("021" = "21").
+  // Excepción: una misma tienda puede tener DOS fichas con el mismo número,
+  // una de marca SÁBADO (agencia que entrega los sábados) y otra de otra
+  // marca (agencia habitual el resto de días). Lo que no se permite es
+  // repetir número dentro del mismo grupo (dos SÁBADO, o dos no-SÁBADO).
+  function normalizarNumeroTienda(n) {
+    return String(n ?? '').trim().toUpperCase().replace(/^0+(?=.)/, '');
+  }
+
+  async function tiendaConMismoNumero(numeroTienda, excluirId, marca) {
+    const esSabado = marca === 'SABADO';
+    const buscado = normalizarNumeroTienda(numeroTienda);
+    if (!buscado) return null;
+    // Se consulta la BD (no solo la caché) por si otra persona creó una
+    // tienda mientras esta pantalla estaba abierta.
+    let lista = tiendasCache;
+    try {
+      const { data, error } = await sb.from('tiendas')
+        .select('id, nombre, numero_tienda, activo, marca')
+        .eq('activo', true)
+        .not('numero_tienda', 'is', null);
+      if (!error && data) lista = data;
+    } catch (_) { /* si falla, se usa la caché */ }
+    return lista.find(t =>
+      t.activo &&
+      t.id !== excluirId &&
+      (t.marca === 'SABADO') === esSabado &&
+      normalizarNumeroTienda(t.numero_tienda) === buscado
+    ) || null;
+  }
+
   async function guardarModalEditarTienda() {
     if (editarTiendaId == null) return;
     const numeroTienda = document.getElementById('metNumero').value.trim().toUpperCase();
@@ -386,6 +445,13 @@
 
     if (!nombre) {
       errEl.textContent = 'Ponle un nombre a la tienda.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId, marca);
+    if (repetidaEditar) {
+      errEl.textContent = `Ya existe una tienda${marca === 'SABADO' ? ' de sábado' : ''} con el Nº ${numeroTienda}: "${repetidaEditar.nombre}".`;
       errEl.style.display = 'block';
       return;
     }
@@ -742,6 +808,13 @@
     const btn = document.getElementById('btnGuardarTienda');
     btn.disabled = true;
     try {
+      const repetida = await tiendaConMismoNumero(numeroTienda, null, marca);
+      if (repetida) {
+        errEl.textContent = `Ya existe una tienda${marca === 'SABADO' ? ' de sábado' : ''} con el Nº ${numeroTienda}: "${repetida.nombre}".`;
+        errEl.style.display = 'block';
+        return;
+      }
+
       const { error } = await sb.from('tiendas').insert({
         numero_tienda: numeroTienda || null,
         nombre,

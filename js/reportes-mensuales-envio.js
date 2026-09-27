@@ -502,6 +502,13 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     // Tienda de baja ese día: gris, sin OK y sin contar (salvo incidencia ya registrada).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
     cerrarBloqueBaja();
+    // Tienda de sábado fuera del sábado, o su gemela habitual en sábado:
+    // gris rayado como un domingo (salvo incidencia ya registrada).
+    if (typeof rmMotivoSinEntregaTienda === 'function'
+      && rmMotivoSinEntregaTienda(f.tiendaId, anio, mesIndex, dia)
+      && !(diasEnviados.has(dia) && celdasTienda[dia])) {
+      celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue;
+    }
     if (!diasEnviados.has(dia)) {
       if (rmEsDomingo(anio, mesIndex, dia)) { celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } }); continue; }
       celdas.push({ content: '', styles: {} }); continue;

@@ -68,6 +68,33 @@ function rmEsDomingo(anio, mesIndex, dia) {
   return new Date(anio, mesIndex, dia).getDay() === 0;
 }
 
+// Tiendas de SÁBADO y su "gemela" habitual (misma tienda física, mismo
+// Nº de tienda, pero una ficha con marca SABADO para la agencia que
+// entrega los sábados y otra con la marca habitual para el resto de días):
+//  - la ficha SABADO solo tiene entrega los sábados;
+//  - la ficha habitual NO tiene entrega los sábados si existe su gemela
+//    SABADO activa (ese día entrega la otra agencia).
+// Devuelve el motivo (texto para el tooltip) si ese día la fila no tiene
+// entrega, o null si sí la tiene. Esos días se pintan en gris como los
+// domingos: sin OK y sin contar en el Total.
+function rmNormalizarNumeroTienda(n) {
+  return String(n ?? '').trim().toUpperCase().replace(/^0+(?=.)/, '');
+}
+function rmMotivoSinEntregaTienda(tiendaId, anio, mesIndex, dia) {
+  const t = tiendasCache.find(x => x.id === tiendaId);
+  if (!t) return null;
+  const esSabado = new Date(anio, mesIndex, dia).getDay() === 6;
+  if (t.marca === 'SABADO') return esSabado ? null : 'Tienda de sábado — solo entrega los sábados';
+  if (!esSabado) return null;
+  const num = rmNormalizarNumeroTienda(t.numero_tienda);
+  if (!num) return null;
+  const gemela = tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
+    && rmNormalizarNumeroTienda(x.numero_tienda) === num);
+  if (!gemela) return null;
+  const ag = agenciasCache.find(a => a.id === gemela.agencia_id);
+  return `Los sábados entrega ${ag ? ag.nombre : 'otra agencia'} (tienda de sábado)`;
+}
+
 // Primer día del mes en que cada tienda "existe" (según tiendas.creado_en,
 // en hora de Madrid): tiendaId → nº de día. 1 = existía ya todo el mes;
 // totalDias + 1 = todavía no existía en este mes. Lo rellena
@@ -587,6 +614,10 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     // hubiera una incidencia registrada, que se muestra como siempre).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
     cerrarBloqueBaja();
+    // Tienda de sábado fuera del sábado, o su gemela habitual en sábado:
+    // gris como un domingo (salvo que ya hubiera una incidencia registrada).
+    const sinEntrega = rmMotivoSinEntregaTienda(f.tiendaId, rmAnio, rmMes, dia);
+    if (sinEntrega && !(diasEnviados.has(dia) && celdasTienda[dia])) { partes.push(`<td class="rm-td-domingo" title="${escapeHtml(sinEntrega)}"></td>`); continue; }
     if (!diasEnviados.has(dia)) {
       if (rmEsDomingo(rmAnio, rmMes, dia)) { partes.push(`<td class="rm-td-domingo" title="Domingo — sin entrega habitual"></td>`); continue; }
       partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
