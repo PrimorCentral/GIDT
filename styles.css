@@ -2308,6 +2308,21 @@ table.tabla-tiendas td.celda-extra{ white-space:normal; }
 .xchip.s{ background:#FFF7D6; color:#7A5B00; }
 .xchip.p{ background:#DCF5E5; color:#166534; }
 .tiendas-contador.prueba{ background:#DCF5E5; color:#166534; }
+/* Contadores de Gestión de tiendas: se pueden pulsar para ver la lista */
+.tiendas-contador.pulsable{ cursor:pointer; border:0; font:inherit; transition:transform .12s, box-shadow .12s; }
+.tiendas-contador.pulsable:hover{ transform:translateY(-1px); box-shadow:0 4px 12px rgba(20,30,50,.12); }
+.tiendas-contador.pulsable:focus-visible{ outline:2px solid var(--accent, #f97316); outline-offset:2px; }
+.lista-contador-box{ max-width:820px; width:calc(100vw - 40px); padding:0; display:flex; flex-direction:column; max-height:calc(100dvh - 40px); overflow:hidden; }
+.lista-contador-body{ overflow:auto; padding:6px 0 10px; }
+table.tabla-lista-contador{ width:100%; border-collapse:collapse; font-size:13px; }
+table.tabla-lista-contador th{ position:sticky; top:0; background:var(--panel); text-align:left; font-size:11px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--ink-soft); padding:10px 16px; border-bottom:1px solid var(--border); }
+table.tabla-lista-contador td{ padding:10px 16px; border-bottom:1px solid var(--panel-muted); vertical-align:middle; }
+table.tabla-lista-contador tbody tr{ cursor:pointer; }
+table.tabla-lista-contador tbody tr:hover{ background:var(--panel-muted); }
+table.tabla-lista-contador td.nombre{ font-weight:700; }
+table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
+.lista-contador-vacia{ padding:30px; text-align:center; color:var(--ink-soft); font-size:13px; }
+
 /* Pestañas del panel Utilidades (Informe del día) */
 .util-tabs{ display:flex; background:var(--panel-muted, #F1F3F5); border-radius:10px; padding:3px; margin:0 0 14px; }
 .util-tab{ flex:1; border:0; background:transparent; padding:7px 8px; border-radius:8px; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
