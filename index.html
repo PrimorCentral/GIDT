@@ -217,21 +217,28 @@
             </div>
           </div>
           <div class="filtros-wrap">
-            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales de hoy (hora / agencia de entrega)">
+            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales y entregas especiales de hoy">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2-2 2.5-2.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Utilidades
               <span class="filtros-count" id="utilidadesCount" style="display:none;"></span>
             </button>
             <div class="filtros-modal-overlay" id="utilidadesPanel">
               <div class="filtros-modal-header">
-                <b>Cambios puntuales de hoy</b>
+                <b>Utilidades de hoy</b>
                 <div class="filtros-modal-header-actions">
                   <button class="filtros-modal-close" id="btnCerrarUtilidades" aria-label="Cerrar">✕</button>
                 </div>
               </div>
               <div class="filtros-modal-body">
-                <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
+                <div class="util-tabs">
+                  <button type="button" class="util-tab activa" data-tab="cambio">🛠️ Cambio puntual</button>
+                  <button type="button" class="util-tab" data-tab="especial">➕ Entrega especial</button>
+                </div>
+                <p id="utilIntroCambio" style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">
                   Cambia la hora y/o la agencia de entrega de una tienda solo para el informe de hoy. No afecta a la ficha de la tienda ni al resto de informes.
+                </p>
+                <p id="utilIntroEspecial" style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); display:none;">
+                  Hoy la tienda recibe <b>además</b> por otra agencia. Sale dos veces en el informe, cada una con su incidencia. No cuenta en el reporte mensual.
                 </p>
                 <div class="filtro-campo filtros-span2">
                   <label>Tienda</label>
@@ -266,7 +273,25 @@
                     <button type="button" class="btn primary" id="utilBtnGuardarAjuste">Aplicar solo hoy</button>
                   </div>
                 </div>
+                <div id="utilFormEspecial" style="display:none;">
+                  <div class="filtros-grid" style="margin-top:16px;">
+                    <div class="filtro-campo">
+                      <label>Agencia especial <span class="tf-req">*</span></label>
+                      <select class="form-input" id="utilEspecialAgencia"></select>
+                    </div>
+                    <div class="filtro-campo">
+                      <label>Hora</label>
+                      <input type="time" class="form-input" id="utilEspecialHora">
+                    </div>
+                  </div>
+                  <p id="utilEspecialHabitual" style="margin:6px 0 0; font-size:11.5px; color:var(--ink-soft);"></p>
+                  <div class="modal-footer" style="margin-top:16px; justify-content:space-between;">
+                    <button type="button" class="btn" id="utilBtnQuitarEspecial" style="display:none;">Quitar entrega especial</button>
+                    <button type="button" class="btn primary" id="utilBtnGuardarEspecial">Añadir solo hoy</button>
+                  </div>
+                </div>
                 <div id="utilListaAjustes" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);"></div>
+                <div id="utilListaEspeciales" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); display:none;"></div>
               </div>
             </div>
           </div>
@@ -1239,7 +1264,7 @@
 
 <!-- Modal: editar datos de una tienda (Gestión de tiendas) -->
 <div class="modal-overlay" id="modalEditarTiendaOverlay">
-  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
+  <div class="modal-box tienda-modal-box dos-col" role="dialog" aria-modal="true" aria-labelledby="modalEditarTiendaTitulo">
     <div class="tienda-modal-head">
       <div>
         <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
@@ -1247,6 +1272,7 @@
       </div>
     </div>
 
+    <div class="tienda-modal-cols">
     <div class="tienda-modal-body">
         <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
@@ -1255,18 +1281,9 @@
               <label class="form-label">Nº tienda</label>
               <input type="text" id="metNumero" class="form-input" placeholder="Ej. 002">
             </div>
-            <div class="tf-campo tf-span-2">
+            <div class="tf-campo tf-span-3">
               <label class="form-label">Nombre tienda</label>
               <input type="text" id="metNombre" class="form-input">
-            </div>
-            <div class="tf-campo tf-span-1">
-              <label class="form-label">Marca</label>
-              <select id="metMarca" class="form-input">
-                <option value="HABITUAL">Habitual</option>
-                <option value="SABADO">Sábado</option>
-                <option value="PRUEBA">Prueba</option>
-                <option value="ESPECIAL">Especial</option>
-              </select>
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Supervisor/a</label>
@@ -1317,23 +1334,6 @@
           </div>
         </section>
         <section class="tf-seccion">
-          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
-          <label class="tf-check"><input type="checkbox" id="metSabadoOtra"> Los sábados entrega otra agencia</label>
-          <div class="tf-grid" id="metSabadoCampos" style="display:none;">
-            <div class="tf-campo tf-span-2">
-              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
-              <select id="metSabadoAgencia" class="form-input"></select>
-            </div>
-            <div class="tf-campo tf-span-1">
-              <label class="form-label">Hora sábado</label>
-              <input type="time" id="metSabadoHora" class="form-input">
-            </div>
-            <div class="tf-campo tf-span-1 tf-campo-ayuda">
-              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
-            </div>
-          </div>
-        </section>
-        <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-2">
@@ -1355,6 +1355,44 @@
             </div>
           </div>
         </section>
+    </div>
+      <aside class="tienda-extra">
+        <div class="tienda-extra-head">
+          <h4>🔁 Entregas de otra agencia</h4>
+          <p>Misma tienda: no hace falta crear otra ficha.</p>
+        </div>
+        <div class="ea-card sab" id="metCardSabado">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="metSabadoOtra">
+            <span class="marca-badge sabado">S</span><b>Sábados</b>
+            <span class="ea-res" id="metSabadoResumen">Desactivado</span>
+          </label>
+          <div class="ea-body" id="metSabadoCampos" style="display:none;">
+            <div class="ea-row">
+              <div><label class="form-label">Agencia <span class="tf-req">*</span></label><select id="metSabadoAgencia" class="form-input"></select></div>
+              <div><label class="form-label">Hora</label><input type="time" id="metSabadoHora" class="form-input"></div>
+            </div>
+            <p class="ea-hint">Sustituye a la agencia habitual todos los sábados. Hora vacía = hora habitual.</p>
+          </div>
+        </div>
+        <div class="ea-card pru" id="metCardPrueba">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="metPruebaOtra">
+            <span class="marca-badge prueba">P</span><b>Prueba</b>
+            <span class="ea-res" id="metPruebaResumen">Desactivado</span>
+          </label>
+          <div class="ea-body" id="metPruebaCampos" style="display:none;">
+            <div class="ea-row">
+              <div><label class="form-label">Agencia <span class="tf-req">*</span></label><select id="metPruebaAgencia" class="form-input"></select></div>
+              <div><label class="form-label">Hora</label><input type="time" id="metPruebaHora" class="form-input"></div>
+            </div>
+            <label class="form-label" style="display:block; margin-top:10px;">Fechas de entrega <span class="tf-req">*</span></label>
+            <div class="ea-cal" id="metPruebaCal"></div>
+            <div class="ea-fchips" id="metPruebaChips"></div>
+            <p class="ea-hint">Además de la habitual: esos días la tienda sale también en la agencia de prueba. Cuando pasa la última fecha, se quita sola.</p>
+          </div>
+        </div>
+      </aside>
     </div>
 
     <div class="tienda-modal-foot">
@@ -2098,7 +2136,7 @@
 
 <!-- Modal: nueva tienda -->
 <div class="modal-overlay" id="nuevaTiendaModalOverlay">
-  <div class="modal-box tienda-modal-box" role="dialog" aria-modal="true" aria-labelledby="nuevaTiendaTitulo">
+  <div class="modal-box tienda-modal-box dos-col" role="dialog" aria-modal="true" aria-labelledby="nuevaTiendaTitulo">
     <div class="tienda-modal-head">
       <div>
         <h3 class="modal-title" id="nuevaTiendaTitulo">Nueva tienda</h3>
@@ -2107,6 +2145,7 @@
       <button class="filtros-modal-close" id="btnCerrarNuevaTienda" aria-label="Cerrar">✕</button>
     </div>
 
+    <div class="tienda-modal-cols">
     <div class="tienda-modal-body">
         <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
@@ -2115,19 +2154,9 @@
               <label class="form-label">Nº tienda <span class="tf-req">*</span></label>
               <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
             </div>
-            <div class="tf-campo tf-span-2">
+            <div class="tf-campo tf-span-3">
               <label class="form-label">Nombre tienda <span class="tf-req">*</span></label>
               <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
-            </div>
-            <div class="tf-campo tf-span-1">
-              <label class="form-label">Marca <span class="tf-req">*</span></label>
-              <select id="ntMarca" class="form-input">
-                <option value="">— Elige marca —</option>
-                <option value="HABITUAL">Habitual</option>
-                <option value="SABADO">Sábado</option>
-                <option value="PRUEBA">Prueba</option>
-                <option value="ESPECIAL">Especial</option>
-              </select>
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Agencia <span class="tf-req">*</span></label>
@@ -2182,23 +2211,6 @@
           </div>
         </section>
         <section class="tf-seccion">
-          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📅</span>Entrega de sábado<span class="tf-seccion-nota">· Solo si los sábados entrega una agencia distinta a la habitual.</span></h4>
-          <label class="tf-check"><input type="checkbox" id="ntSabadoOtra"> Los sábados entrega otra agencia</label>
-          <div class="tf-grid" id="ntSabadoCampos" style="display:none;">
-            <div class="tf-campo tf-span-2">
-              <label class="form-label">Agencia sábado <span class="tf-req">*</span></label>
-              <select id="ntSabadoAgencia" class="form-input"></select>
-            </div>
-            <div class="tf-campo tf-span-1">
-              <label class="form-label">Hora sábado</label>
-              <input type="time" id="ntSabadoHora" class="form-input">
-            </div>
-            <div class="tf-campo tf-span-1 tf-campo-ayuda">
-              <span>Si la dejas vacía, el sábado se usa la hora prevista habitual.</span>
-            </div>
-          </div>
-        </section>
-        <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🔄</span>Recogida semanal</h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-2">
@@ -2220,6 +2232,44 @@
             </div>
           </div>
         </section>
+    </div>
+      <aside class="tienda-extra">
+        <div class="tienda-extra-head">
+          <h4>🔁 Entregas de otra agencia</h4>
+          <p>Misma tienda: no hace falta crear otra ficha.</p>
+        </div>
+        <div class="ea-card sab" id="ntCardSabado">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="ntSabadoOtra">
+            <span class="marca-badge sabado">S</span><b>Sábados</b>
+            <span class="ea-res" id="ntSabadoResumen">Desactivado</span>
+          </label>
+          <div class="ea-body" id="ntSabadoCampos" style="display:none;">
+            <div class="ea-row">
+              <div><label class="form-label">Agencia <span class="tf-req">*</span></label><select id="ntSabadoAgencia" class="form-input"></select></div>
+              <div><label class="form-label">Hora</label><input type="time" id="ntSabadoHora" class="form-input"></div>
+            </div>
+            <p class="ea-hint">Sustituye a la agencia habitual todos los sábados. Hora vacía = hora habitual.</p>
+          </div>
+        </div>
+        <div class="ea-card pru" id="ntCardPrueba">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="ntPruebaOtra">
+            <span class="marca-badge prueba">P</span><b>Prueba</b>
+            <span class="ea-res" id="ntPruebaResumen">Desactivado</span>
+          </label>
+          <div class="ea-body" id="ntPruebaCampos" style="display:none;">
+            <div class="ea-row">
+              <div><label class="form-label">Agencia <span class="tf-req">*</span></label><select id="ntPruebaAgencia" class="form-input"></select></div>
+              <div><label class="form-label">Hora</label><input type="time" id="ntPruebaHora" class="form-input"></div>
+            </div>
+            <label class="form-label" style="display:block; margin-top:10px;">Fechas de entrega <span class="tf-req">*</span></label>
+            <div class="ea-cal" id="ntPruebaCal"></div>
+            <div class="ea-fchips" id="ntPruebaChips"></div>
+            <p class="ea-hint">Además de la habitual: esos días la tienda sale también en la agencia de prueba. Cuando pasa la última fecha, se quita sola.</p>
+          </div>
+        </div>
+      </aside>
     </div>
 
     <div class="tienda-modal-foot">

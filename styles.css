@@ -2244,18 +2244,75 @@ header.top .app-name.abre-acerca-de:hover{ opacity:.85; }
   font-size:12.5px; font-weight:400; color:var(--ink-soft); line-height:1.4; letter-spacing:0;
 }
 .tf-seccion-nota b{ color:var(--ink); font-weight:600; }
-/* Casilla "Los sábados entrega otra agencia" (modales de tienda) */
-.tf-check{
-  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-  font-size:13px; font-weight:600; color:var(--ink); margin:0 0 10px;
+
+/* ---------- Modales de tienda a dos columnas: datos (izq.) + "Entregas de otra agencia" (der.) ---------- */
+.tienda-modal-box.dos-col{ max-width:1180px; width:calc(100vw - 40px); }
+.tienda-modal-cols{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 370px; }
+.tienda-modal-cols > .tienda-modal-body{ min-height:0; overflow-y:auto; }
+.tienda-extra{
+  min-height:0; overflow-y:auto; padding:18px 18px 20px;
+  background:var(--panel-muted); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; gap:12px;
 }
-.tf-check input{ width:16px; height:16px; accent-color:var(--accent, #f97316); cursor:pointer; }
-.tf-campo-ayuda{ display:flex; align-items:flex-end; }
-.tf-campo-ayuda span{ font-size:11.5px; color:var(--ink-soft); line-height:1.35; padding-bottom:6px; }
-/* Nota "Sáb: AGENCIA hh:mm" bajo el nombre en Gestión de tiendas */
-.tienda-nota-sabado{
-  display:block; margin-top:2px; font-size:11px; font-weight:500; color:#7A5B00; white-space:nowrap;
+.tienda-extra-head h4{ margin:0 0 2px; font-size:13px; font-weight:700; color:var(--ink); }
+.tienda-extra-head p{ margin:0; font-size:12px; color:var(--ink-soft); }
+.ea-card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+.ea-card.on.sab{ border-color:#F2D675; box-shadow:inset 3px 0 0 #F2C94C; }
+.ea-card.on.pru{ border-color:#A7E3BD; box-shadow:inset 3px 0 0 #34C06A; }
+.ea-toggle{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink); cursor:pointer; margin:0; }
+.ea-toggle .marca-badge{ margin-right:0; }
+.ea-res{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; }
+.ea-card:not(.on) .ea-res{ font-weight:500; opacity:.75; }
+/* Interruptor (checkbox con aspecto de switch) */
+.ea-switch{
+  appearance:none; -webkit-appearance:none; margin:0; flex-shrink:0; cursor:pointer;
+  width:32px; height:18px; border-radius:9px; background:#D5D9E0; position:relative; transition:background .15s;
 }
+.ea-switch::after{
+  content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:left .15s;
+}
+.ea-switch:checked{ background:var(--accent, #f97316); }
+.ea-switch:checked::after{ left:16px; }
+.ea-switch:focus-visible{ outline:2px solid var(--accent, #f97316); outline-offset:2px; }
+.ea-body{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+.ea-row{ display:grid; grid-template-columns:minmax(0,1fr) 112px; gap:10px; }
+.ea-row .form-input{ height:38px; }
+.ea-hint{ margin:6px 0 0; font-size:11.5px; color:var(--ink-soft); line-height:1.35; }
+/* Calendario de fechas de prueba */
+.ea-cal{ border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:var(--panel); margin-top:4px; user-select:none; }
+.ea-cal-head{ display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:6px; text-transform:uppercase; }
+.ea-cal-nav{ border:0; background:transparent; color:var(--ink-soft); font-size:13px; cursor:pointer; padding:2px 8px; border-radius:6px; }
+.ea-cal-nav:hover{ background:var(--panel-muted); color:var(--ink); }
+.ea-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center; font-size:12px; }
+.ea-cal-dw{ color:var(--ink-soft); font-weight:700; font-size:10.5px; padding-bottom:2px; }
+.ea-cal-d{ border:0; background:transparent; font:inherit; padding:5px 0; border-radius:6px; color:var(--ink); cursor:pointer; }
+.ea-cal-d:hover{ background:var(--panel-muted); }
+.ea-cal-d.domingo{ opacity:.4; }
+.ea-cal-d.hoy{ outline:1.5px solid var(--accent, #f97316); outline-offset:-1.5px; }
+.ea-cal-d.on{ background:#16a34a; color:#fff; font-weight:700; }
+.ea-cal-d.on.pasada{ background:#C9D6CE; color:#476152; }
+.ea-fchips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+.ea-fchip{ font-size:11px; font-weight:600; background:#DCF5E5; color:#166534; border-radius:999px; padding:3px 8px; }
+.ea-fchip.pasada{ background:#EEF0F3; color:#6B7280; }
+@media (max-width:980px){
+  .tienda-modal-cols{ display:block; overflow-y:auto; }
+  .tienda-modal-cols > .tienda-modal-body{ overflow:visible; }
+  .tienda-extra{ overflow:visible; border-left:0; border-top:1px solid var(--border); }
+}
+/* Columna "Entregas de otra agencia" de Gestión de tiendas */
+table.tabla-tiendas th.th-extra{ width:230px; }
+table.tabla-tiendas td.celda-extra{ white-space:normal; }
+.xchip{ display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:2px 9px 2px 3px; font-size:11.5px; font-weight:600; margin:2px 4px 2px 0; white-space:nowrap; }
+.xchip .marca-badge{ margin:0; width:17px; height:17px; font-size:10px; }
+.xchip.s{ background:#FFF7D6; color:#7A5B00; }
+.xchip.p{ background:#DCF5E5; color:#166534; }
+.tiendas-contador.prueba{ background:#DCF5E5; color:#166534; }
+/* Pestañas del panel Utilidades (Informe del día) */
+.util-tabs{ display:flex; background:var(--panel-muted, #F1F3F5); border-radius:10px; padding:3px; margin:0 0 14px; }
+.util-tab{ flex:1; border:0; background:transparent; padding:7px 8px; border-radius:8px; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
+.util-tab.activa{ background:var(--panel, #fff); color:var(--ink); font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
 .tf-seccion-icono{
   display:inline-flex; align-items:center; justify-content:center;
   width:26px; height:26px; border-radius:7px;
