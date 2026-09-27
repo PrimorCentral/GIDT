@@ -17,16 +17,18 @@
   // ENTREGAN, donde no tiene sentido poder descartarlo sin querer).
   let modalBloqueaClicFuera = false;
 
-  function modalAlert(mensaje, { titulo = 'Aviso', icono = '', danger = false } = {}) {
+  function modalAlert(mensaje, { titulo = 'Aviso', icono = '', danger = false, textoOk = 'Aceptar' } = {}) {
     return new Promise(resolve => {
       modalIconEl.style.display = icono ? '' : 'none';
       modalIconEl.textContent = icono;
       modalTitleEl.textContent = titulo;
       modalTitleEl.classList.toggle('modal-title-danger', danger);
+      // Con danger: cuadro con franja roja arriba, para que se vea bien.
+      modalOverlay.querySelector('.modal-box')?.classList.toggle('modal-box-danger', danger);
       modalMessageEl.textContent = mensaje;
       modalInputEl.style.display = 'none';
       modalBtnCancel.style.display = 'none';
-      modalBtnOk.textContent = 'Aceptar';
+      modalBtnOk.textContent = textoOk;
       modalBtnOk.className = danger ? 'btn danger' : 'btn primary';
       _abrirModal();
 
@@ -34,6 +36,7 @@
       function limpiar() {
         _cerrarModal();
         modalTitleEl.classList.remove('modal-title-danger');
+        modalOverlay.querySelector('.modal-box')?.classList.remove('modal-box-danger');
         modalBtnOk.removeEventListener('click', onOk);
       }
       modalBtnOk.addEventListener('click', onOk);
