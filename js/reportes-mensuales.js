@@ -95,6 +95,14 @@ function rmMotivoSinEntregaTienda(tiendaId, anio, mesIndex, dia) {
   return `Los sábados entrega ${ag ? ag.nombre : 'otra agencia'} (tienda de sábado)`;
 }
 
+// Solo las tiendas de marca HABITUAL y SÁBADO entran en el Reporte mensual
+// (pantalla, PDF y envío a agencias). Las de marca PRUEBA y ESPECIAL no
+// salen: ni fila, ni OK, ni incidencias. Las tiendas sin marca se tratan
+// como habituales.
+function rmMarcaEntraEnReporte(t) {
+  return !t.marca || t.marca === 'HABITUAL' || t.marca === 'SABADO';
+}
+
 // Primer día del mes en que cada tienda "existe" (según tiendas.creado_en,
 // en hora de Madrid): tiendaId → nº de día. 1 = existía ya todo el mes;
 // totalDias + 1 = todavía no existía en este mes. Lo rellena
@@ -362,6 +370,7 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
   const todas = [];
   tiendasCache.forEach(t => {
     if (rmTiendasOcultasMes.has(t.id)) return; // eliminada antes de este mes
+    if (!rmMarcaEntraEnReporte(t)) return; // marca Prueba / Especial: no salen en el reporte
     const cambios = cambiosPorTienda.get(t.id);
     const puntualPorDia = puntualAgenciaPorTienda.get(t.id);
     const segmentosPermanentes = rmSegmentosDeTienda(t, cambios, totalDias);
@@ -427,7 +436,7 @@ function rmConstruirPanelFiltros() {
     listaAg.dataset.built = '1';
   }
   if (!listaTd.dataset.built) {
-    listaTd.innerHTML = tiendasCache.map(t => `
+    listaTd.innerHTML = tiendasCache.filter(rmMarcaEntraEnReporte).map(t => `
       <label class="filtro-check">
         <input type="checkbox" value="${t.id}" data-filtro="tienda">
         <span>${escapeHtml(t.nombre)}</span>

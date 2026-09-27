@@ -310,6 +310,18 @@ function renderAcordeonHistorialEditable() {
       && (typeof tiendaEnBajaEnFecha !== 'function' || !tiendaEnBajaEnFecha(t.id, informe.fecha) || incidenciaDeTiendaHistorial(t.id) || historialBorrador.has(t.id)));
     if (f) tds = tds.filter(t => t.nombre.toUpperCase().includes(f));
 
+    // Igual que en el Informe del día: las tiendas de marca Sábado solo
+    // salen si el informe es de un sábado, y ese día la ficha habitual con
+    // el mismo Nº de tienda no sale (entrega la agencia de sábado). En ambos
+    // casos se muestran igualmente si ya tienen algo registrado.
+    const informeEsSabado = new Date(informe.fecha + 'T00:00:00').getDay() === 6;
+    tds = tds.filter(t => {
+      if (incidenciaDeTiendaHistorial(t.id)?.marcada || historialBorrador.has(t.id)) return true;
+      if (t.marca === 'SABADO') return informeEsSabado || (typeof filtrosHistorial !== 'undefined' && filtrosHistorial.marcas.has('SABADO'));
+      if (informeEsSabado && typeof tiendaGemelaSabado === 'function' && tiendaGemelaSabado(t)) return false;
+      return true;
+    });
+
     if (typeof filtrosHistorial !== 'undefined') {
       if (filtrosHistorial.marcas.size) tds = tds.filter(t => filtrosHistorial.marcas.has(t.marca));
       if (filtrosHistorial.tipos.size || filtrosHistorial.motivos.size || filtrosHistorial.soloConIncidencias || filtrosHistorial.soloPendientes) {

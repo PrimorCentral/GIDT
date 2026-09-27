@@ -170,24 +170,32 @@
   // correctamente"), arriba a la derecha. No bloquean la interfaz
   // como los modales de arriba, y se quitan solos a los 3 segundos.
   // ---------------------------------------------------------------
-  function mostrarToast(mensaje, { icono = '✓', duracionMs = 3000 } = {}) {
-    let cont = document.getElementById('toastContainer');
+  //
+  // Con { posicion: 'abajo' } sale abajo del todo, centrado y animado
+  // (sube con rebote, el icono "salta" y una barra se va vaciando hasta
+  // que desaparece). Se usa, p. ej., al crear/editar tiendas.
+  function mostrarToast(mensaje, { icono = '✓', duracionMs = 3000, posicion = 'arriba' } = {}) {
+    const abajo = posicion === 'abajo';
+    const idCont = abajo ? 'toastContainerAbajo' : 'toastContainer';
+    let cont = document.getElementById(idCont);
     if (!cont) {
       cont = document.createElement('div');
-      cont.id = 'toastContainer';
+      cont.id = idCont;
       document.body.appendChild(cont);
     }
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = abajo ? 'toast toast-abajo' : 'toast';
     const textoSeguro = typeof escapeHtml === 'function' ? escapeHtml(mensaje) : mensaje;
-    toast.innerHTML = `<span class="toast-glyph">${icono}</span><span>${textoSeguro}</span>`;
+    toast.innerHTML = `<span class="toast-glyph">${icono}</span><span>${textoSeguro}</span>`
+      + (abajo ? `<span class="toast-barra" style="animation-duration:${duracionMs}ms"></span>` : '');
     cont.appendChild(toast);
 
     requestAnimationFrame(() => toast.classList.add('show'));
 
     setTimeout(() => {
       toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 200);
+      if (abajo) toast.classList.add('hide');
+      setTimeout(() => toast.remove(), abajo ? 350 : 200);
     }, duracionMs);
   }

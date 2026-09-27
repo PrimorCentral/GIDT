@@ -299,6 +299,11 @@
       // más la selección manual del usuario (Habitual/Sábado/Prueba/Especial).
       tds = tds.filter(t => {
         if (!hoyEsSabado && t.marca === 'SABADO' && !filtrosIncidencias.marcas.has('SABADO')) return false;
+        // Sábado: si la tienda tiene una ficha de marca Sábado con el mismo
+        // Nº de tienda, ese día entrega la agencia de sábado → la ficha
+        // habitual no sale (salvo que ya tenga una incidencia marcada hoy).
+        if (hoyEsSabado && typeof tiendaGemelaSabado === 'function' && tiendaGemelaSabado(t)
+          && !incidenciaDeTienda(t.id)?.marcada) return false;
         if (filtrosIncidencias.marcas.size && !filtrosIncidencias.marcas.has(t.marca)) return false;
         return true;
       });

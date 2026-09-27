@@ -163,7 +163,11 @@
 
     // rellenar el <select> de agencia del formulario de alta
     const sel = document.getElementById('ntAgencia');
-    sel.innerHTML = agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    // Sin agencia preseleccionada: hay que elegirla al crear la tienda.
+    const valorPrevioAgencia = sel.value;
+    sel.innerHTML = `<option value="">— Elige agencia —</option>`
+      + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    sel.value = valorPrevioAgencia;
 
     renderAcordeonTiendas();
   }
@@ -377,7 +381,19 @@
     document.getElementById('metSupervisor').value = t.supervisor || '';
     document.getElementById('metRecogidaDia').value = t.recogida_semanal_dia ? String(t.recogida_semanal_dia) : '';
     document.getElementById('metAgenciaRecogida').value = t.agencia_recogida || '';
-    document.getElementById('metTransito').value = t.transito_horas != null ? t.transito_horas : '';
+    // Tránsito es un desplegable (24 h … 144 h). Si la tienda tiene un valor
+    // antiguo que no está en la lista (p. ej. 12 h), se añade como opción
+    // para no perderlo al guardar.
+    const selTransito = document.getElementById('metTransito');
+    selTransito.querySelectorAll('option[data-extra]').forEach(o => o.remove());
+    if (t.transito_horas != null && !selTransito.querySelector(`option[value="${t.transito_horas}"]`)) {
+      const o = document.createElement('option');
+      o.value = t.transito_horas;
+      o.textContent = `${t.transito_horas} h`;
+      o.dataset.extra = '1';
+      selTransito.appendChild(o);
+    }
+    selTransito.value = t.transito_horas != null ? String(t.transito_horas) : '';
     document.getElementById('metMarca').value = t.marca || 'HABITUAL';
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
@@ -402,6 +418,18 @@
   // repetir número dentro del mismo grupo (dos SÁBADO, o dos no-SÁBADO).
   function normalizarNumeroTienda(n) {
     return String(n ?? '').trim().toUpperCase().replace(/^0+(?=.)/, '');
+  }
+
+  // Ficha SÁBADO "gemela" de una tienda habitual: otra tienda ACTIVA con el
+  // mismo Nº de tienda y marca SABADO (la agencia que entrega los sábados).
+  // Si existe, ese día sale solo la ficha de sábado (Informe del día,
+  // Historial y Reporte mensual). Devuelve la gemela o null.
+  function tiendaGemelaSabado(t) {
+    if (!t || t.marca === 'SABADO') return null;
+    const num = normalizarNumeroTienda(t.numero_tienda);
+    if (!num) return null;
+    return tiendasCache.find(x => x.id !== t.id && x.activo && x.marca === 'SABADO'
+      && normalizarNumeroTienda(x.numero_tienda) === num) || null;
   }
 
   async function tiendaConMismoNumero(numeroTienda, excluirId, marca) {
@@ -474,6 +502,7 @@
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
       cerrarModalEditarTienda();
+      if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${nombre}" modificada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error editando tienda:', err);
@@ -766,7 +795,8 @@
     document.getElementById('ntRecogidaDia').value = '';
     document.getElementById('ntAgenciaRecogida').value = '';
     document.getElementById('ntTransito').value = '';
-    document.getElementById('ntMarca').value = 'HABITUAL';
+    document.getElementById('ntMarca').value = '';
+    document.getElementById('ntAgencia').value = '';
     document.getElementById('ntError').style.display = 'none';
   }
 
@@ -797,8 +827,18 @@
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
 
-    if (!nombre || !agenciaId) {
-      errEl.textContent = 'Rellena al menos el nombre y la agencia.';
+    // Campos obligatorios al crear una tienda.
+    const faltan = [];
+    if (!numeroTienda) faltan.push('Nº tienda');
+    if (!nombre) faltan.push('Nombre tienda');
+    if (!marca) faltan.push('Marca');
+    if (!agenciaId) faltan.push('Agencia');
+    if (!supervisor) faltan.push('Supervisor/a');
+    if (!provincia) faltan.push('Provincia');
+    if (!hora) faltan.push('Hora prevista');
+    if (limitePaletsRaw === '') faltan.push('Límite palets');
+    if (faltan.length) {
+      errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
       errEl.style.display = 'block';
       return;
     }
@@ -834,6 +874,7 @@
       if (error) throw error;
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Crear tienda', nombre);
       cerrarModalNuevaTienda();
+      if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${nombre}" creada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);
