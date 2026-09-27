@@ -2115,6 +2115,45 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
 }
 
 
+/* Toast animado abajo del todo (mostrarToast(..., { posicion: 'abajo' })) */
+#toastContainerAbajo{
+  position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:9999;
+  display:flex; flex-direction:column-reverse; align-items:center; gap:10px;
+  pointer-events:none; max-width:calc(100vw - 32px);
+}
+.toast.toast-abajo{
+  position:relative; overflow:hidden;
+  padding:14px 22px 16px; border-radius:999px;
+  box-shadow:0 10px 30px rgba(20,30,50,.22);
+  opacity:0; transform:translateY(40px) scale(.9);
+  transition:none;
+}
+.toast.toast-abajo.show{ animation:toastAbajoEntra .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+.toast.toast-abajo.hide{ animation:toastAbajoSale .35s ease-in forwards; }
+.toast.toast-abajo.show .toast-glyph{ animation:toastGlyphSalta .5s .18s cubic-bezier(.34,1.56,.64,1) both; }
+.toast.toast-abajo .toast-barra{
+  position:absolute; left:0; bottom:0; height:3px; width:100%;
+  background:rgba(255,255,255,.55); transform-origin:left;
+  animation-name:toastBarra; animation-timing-function:linear; animation-fill-mode:forwards;
+}
+@keyframes toastAbajoEntra{
+  from{ opacity:0; transform:translateY(40px) scale(.9); }
+  to  { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes toastAbajoSale{
+  from{ opacity:1; transform:translateY(0) scale(1); }
+  to  { opacity:0; transform:translateY(30px) scale(.95); }
+}
+@keyframes toastGlyphSalta{
+  0%  { transform:scale(0) rotate(-45deg); }
+  100%{ transform:scale(1) rotate(0); }
+}
+@keyframes toastBarra{ from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
+@media (prefers-reduced-motion: reduce){
+  .toast.toast-abajo.show, .toast.toast-abajo.hide,
+  .toast.toast-abajo.show .toast-glyph{ animation-duration:.01ms; }
+}
+
 /* ---------- Ventana "Acerca de" (js/acerca-de.js) ---------- */
 .abre-acerca-de{ cursor:pointer; }
 .login-card .mark.abre-acerca-de{ transition:transform .15s; }

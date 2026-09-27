@@ -1303,8 +1303,16 @@
               <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Tránsito (horas)</label>
-              <input type="number" id="metTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
+              <label class="form-label">Tránsito</label>
+              <select id="metTransito" class="form-input">
+                <option value="">— Sin indicar —</option>
+                <option value="24">24 h (1 día)</option>
+                <option value="48">48 h (2 días)</option>
+                <option value="72">72 h (3 días)</option>
+                <option value="96">96 h (4 días)</option>
+                <option value="120">120 h (5 días)</option>
+                <option value="144">144 h (6 días)</option>
+              </select>
             </div>
           </div>
         </section>
@@ -2087,7 +2095,7 @@
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🏬</span>Datos generales</h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Nº tienda</label>
+              <label class="form-label">Nº tienda <span class="tf-req">*</span></label>
               <input type="text" id="ntNumero" class="form-input" placeholder="Ej. 002">
             </div>
             <div class="tf-campo tf-span-2">
@@ -2095,8 +2103,9 @@
               <input type="text" id="ntNombre" class="form-input" placeholder="Ej. NERVION">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Marca</label>
+              <label class="form-label">Marca <span class="tf-req">*</span></label>
               <select id="ntMarca" class="form-input">
+                <option value="">— Elige marca —</option>
                 <option value="HABITUAL">Habitual</option>
                 <option value="SABADO">Sábado</option>
                 <option value="PRUEBA">Prueba</option>
@@ -2108,7 +2117,7 @@
               <select id="ntAgencia" class="form-input"></select>
             </div>
             <div class="tf-campo tf-span-2">
-              <label class="form-label">Supervisor/a</label>
+              <label class="form-label">Supervisor/a <span class="tf-req">*</span></label>
               <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
             </div>
           </div>
@@ -2121,7 +2130,7 @@
               <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, 41010 Sevilla">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Provincia</label>
+              <label class="form-label">Provincia <span class="tf-req">*</span></label>
               <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
             </div>
           </div>
@@ -2130,7 +2139,7 @@
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega</h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Hora prevista</label>
+              <label class="form-label">Hora prevista <span class="tf-req">*</span></label>
               <input type="time" id="ntHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
@@ -2138,12 +2147,20 @@
               <input type="time" id="ntLimiteHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Límite palets</label>
+              <label class="form-label">Límite palets <span class="tf-req">*</span></label>
               <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Tránsito (horas)</label>
-              <input type="number" id="ntTransito" class="form-input" min="0" step="1" placeholder="Ej. 24">
+              <label class="form-label">Tránsito</label>
+              <select id="ntTransito" class="form-input">
+                <option value="">— Sin indicar —</option>
+                <option value="24">24 h (1 día)</option>
+                <option value="48">48 h (2 días)</option>
+                <option value="72">72 h (3 días)</option>
+                <option value="96">96 h (4 días)</option>
+                <option value="120">120 h (5 días)</option>
+                <option value="144">144 h (6 días)</option>
+              </select>
             </div>
           </div>
         </section>
