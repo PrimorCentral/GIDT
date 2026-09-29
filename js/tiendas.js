@@ -465,6 +465,9 @@
     document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
     document.getElementById('metSupervisor').value = t.supervisor || '';
+    // Agencia habitual: solo informativa (no editable desde este modal).
+    const metAgInfo = document.getElementById('metAgenciaInfo');
+    if (metAgInfo) metAgInfo.value = agenciasCache.find(a => a.id === t.agencia_id)?.nombre || '—';
     document.getElementById('metRecogidaDia').value = t.recogida_semanal_dia ? String(t.recogida_semanal_dia) : '';
     document.getElementById('metAgenciaRecogida').value = t.agencia_recogida || '';
     // Tránsito es un desplegable (24 h … 144 h). Si la tienda tiene un valor
@@ -1262,7 +1265,6 @@
   });
 
   document.getElementById('btnNuevaTienda').addEventListener('click', abrirModalNuevaTienda);
-  document.getElementById('btnCerrarNuevaTienda')?.addEventListener('click', cerrarModalNuevaTienda);
   document.getElementById('btnCancelarTienda').addEventListener('click', cerrarModalNuevaTienda);
   document.getElementById('btnGuardarTienda').addEventListener('click', guardarNuevaTienda);
   // Nota (2026-09-17): a petición de Jose, este modal ya NO se cierra al
