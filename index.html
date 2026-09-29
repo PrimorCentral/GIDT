@@ -1273,6 +1273,11 @@
       <div>
         <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
         <p class="tienda-modal-sub">Modifica los datos y pulsa Guardar. Los campos marcados con <span class="tf-req">*</span> son obligatorios.</p>
+        <p id="metError" class="err" style="display:none;"></p>
+      </div>
+      <div class="tienda-modal-head-acciones">
+        <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
       </div>
     </div>
 
@@ -1292,6 +1297,10 @@
             <div class="tf-campo tf-span-2">
               <label class="form-label">Supervisor/a <span class="tf-req">*</span></label>
               <input type="text" id="metSupervisor" class="form-input">
+            </div>
+            <div class="tf-campo tf-span-2">
+              <label class="form-label">Agencia</label>
+              <input type="text" id="metAgenciaInfo" class="form-input tf-solo-lectura" readonly tabindex="-1" title="Para cambiar de agencia usa el movimiento de tienda">
             </div>
           </div>
         </section>
@@ -1399,13 +1408,6 @@
       </aside>
     </div>
 
-    <div class="tienda-modal-foot">
-      <p id="metError" class="err" style="display:none;"></p>
-      <div class="modal-footer">
-        <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
-        <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -2159,8 +2161,12 @@
       <div>
         <h3 class="modal-title" id="nuevaTiendaTitulo">Nueva tienda</h3>
         <p class="tienda-modal-sub">Los campos marcados con <span class="tf-req">*</span> son obligatorios.</p>
+        <p class="err" id="ntError" style="display:none;"></p>
       </div>
-      <button class="filtros-modal-close" id="btnCerrarNuevaTienda" aria-label="Cerrar">✕</button>
+      <div class="tienda-modal-head-acciones">
+        <button class="btn" id="btnCancelarTienda">Cancelar</button>
+        <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
+      </div>
     </div>
 
     <div class="tienda-modal-cols">
@@ -2290,13 +2296,6 @@
       </aside>
     </div>
 
-    <div class="tienda-modal-foot">
-      <p class="err" id="ntError" style="display:none;"></p>
-      <div class="modal-footer">
-        <button class="btn" id="btnCancelarTienda">Cancelar</button>
-        <button class="btn primary" id="btnGuardarTienda">💾 Crear tienda</button>
-      </div>
-    </div>
   </div>
 </div>
 

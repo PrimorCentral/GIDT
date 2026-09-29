@@ -2393,3 +2393,19 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
    (el valor real se convierte en js/tiendas.js; el placeholder se deja normal). */
 .tienda-modal-box input[type="text"]{ text-transform:uppercase; }
 .tienda-modal-box input[type="text"]::placeholder{ text-transform:none; }
+
+/* Modales Nueva/Editar tienda: Cancelar y Guardar en la cabecera (sin X ni pie) */
+.tienda-modal-head-acciones{ flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+.tienda-modal-head-acciones .btn{ min-width:110px; justify-content:center; }
+.tienda-modal-head .err{ margin:8px 0 0; color:var(--grave); font-size:12.5px; }
+@media (max-width:680px){
+  .tienda-modal-head{ flex-wrap:wrap; }
+  .tienda-modal-head > div:first-child{ flex:1 1 100%; }
+  .tienda-modal-head-acciones{ flex:1 1 100%; }
+  .tienda-modal-head-acciones .btn{ flex:1 1 0; min-width:0; }
+}
+/* Campo informativo (no editable) en los modales de tienda */
+.tienda-modal-box .form-input.tf-solo-lectura{
+  background:#eef0f3; color:var(--ink-soft); cursor:default; pointer-events:none;
+  border-color:var(--border);
+}
