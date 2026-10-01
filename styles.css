@@ -606,6 +606,17 @@
   }
   .email-comercial-anadir:hover{ opacity:1; text-decoration:underline; }
   .email-comercial-linea .mini-btn{ width:22px; height:22px; font-size:11px; padding:0; }
+  /* Dar de baja / reactivar agencias (Gestión de agencias) */
+  .agencia-cabecera-acciones{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+  .agencia-btn-baja{ font-size:12px; padding:5px 10px; white-space:nowrap; }
+  .agencia-btn-baja.atenuado{ opacity:.5; }
+  .agencias-baja-seccion{ margin-top:22px; }
+  .agencias-baja-seccion summary{ cursor:pointer; font-weight:700; font-size:13.5px; color:var(--ink-soft); padding:6px 0 10px; }
+  .email-card.agencia-de-baja{ border-style:dashed; opacity:.8; }
+  .agencia-badge-baja{
+    display:inline-block; margin-left:8px; font-size:11px; font-weight:700; vertical-align:middle;
+    background:var(--panel-muted); color:var(--ink-soft); border-radius:12px; padding:2px 9px;
+  }
   .email-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
   .email-chip{
     display:flex; align-items:center; gap:6px; background:var(--panel-muted);
@@ -1844,6 +1855,8 @@ body:not(.perm-config_emails) #btnNuevaAgencia,
 body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-comercial],
 body:not(.perm-config_emails) #listaEmailsAgencias [data-editar-grupo],
 body:not(.perm-config_emails) #listaEmailsAgencias [data-quitar],
+body:not(.perm-config_emails) #listaEmailsAgencias [data-dar-baja],
+body:not(.perm-config_emails) #listaEmailsAgencias [data-reactivar],
 body:not(.perm-config_emails) #listaEmailsAgencias .email-add-row button{
   opacity:.5;
 }
