@@ -274,7 +274,7 @@ async function recargarConGiro(btn, ...cargas) {
       console.error('Error comprobando el informe de hoy:', err);
     }
 
-    // 3. Panel siniestros: pendiente de cobro (más de 15 días), sin
+    // 3. Panel siniestros: pendiente de cobro (más de 30 días), sin
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
@@ -282,19 +282,19 @@ async function recargarConGiro(btn, ...cargas) {
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
-        // Solo avisa si lleva más de 15 días pendiente de cobro (a partir
+        // Solo avisa si lleva más de 30 días pendiente de cobro (a partir
         // de la fecha del siniestro), no en cuanto entra en ese estado.
         const pdteCobro = data.filter(s => {
           if (s.estado !== 'PDTE COBRO' || !s.fecha) return false;
           const dias = Math.floor((hoy - new Date(s.fecha + 'T00:00:00')) / 86400000);
-          return dias > 15;
+          return dias > 30;
         });
         if (pdteCobro.length) {
           const totalPdte = pdteCobro.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
           const totalTxt = totalPdte.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           items.push({
             icono: '💰',
-            texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro desde hace más de 15 días (${totalTxt} €)`,
+            texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro desde hace más de 30 días (${totalTxt} €)`,
             vista: 'panel-siniestros'
           });
         }
