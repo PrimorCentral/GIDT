@@ -45,6 +45,8 @@ const BOTONES_CON_PERMISO = [
   ['#listaEmailsAgencias [data-editar-grupo]', 'config_emails'],
   ['#listaEmailsAgencias [data-quitar]', 'config_emails'],
   ['#listaEmailsAgencias .email-add-row button', 'config_emails'],
+  ['#listaEmailsAgencias [data-dar-baja]', 'config_emails'],
+  ['#listaEmailsAgencias [data-reactivar]', 'config_emails'],
   ['#listaEmailsFacturacion .email-add-row button', 'config_facturacion'],
   ['#listaEmailsFacturacion [data-quitar-facturacion]', 'config_facturacion'],
   ['#listaEmailsCC .email-add-row button', 'config_cc_transporte'],

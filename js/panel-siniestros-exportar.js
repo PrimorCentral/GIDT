@@ -150,7 +150,7 @@ function psxActualizarUsoFiltro() {
 function psxRellenarPanel() {
   const selectAgencia = document.getElementById('psxAgencia');
   selectAgencia.innerHTML = '<option value="">Todas las agencias</option>' +
-    agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    agenciasParaFiltro().map(a => `<option value="${a.id}">${escapeHtml(nombreAgenciaFiltro(a))}</option>`).join('');
 
   const inputDesde = document.getElementById('psxFechaDesde');
   const inputHasta = document.getElementById('psxFechaHasta');

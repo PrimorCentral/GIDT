@@ -369,10 +369,10 @@
   function construirListaAgenciasExport(contexto) {
     const els = elsExportar(contexto);
     const set = exportarEstado[contexto].agencias;
-    els.agenciasLista.innerHTML = agenciasCache.map(ag => `
+    els.agenciasLista.innerHTML = agenciasParaFiltro().map(ag => `
       <label class="filtro-check">
         <input type="checkbox" value="${ag.id}" ${set.has(ag.id) ? 'checked' : ''}>
-        <span>${escapeHtml(ag.nombre)}</span>
+        <span>${escapeHtml(nombreAgenciaFiltro(ag))}</span>
       </label>`).join('');
   }
 

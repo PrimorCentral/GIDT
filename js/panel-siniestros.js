@@ -152,7 +152,7 @@ function rellenarFiltroAgenciasPanel() {
   const sel = document.getElementById('psFiltroAgencia');
   if (!sel) return;
   const actual = sel.value;
-  sel.innerHTML = `<option value="">Todas las agencias</option>` + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+  sel.innerHTML = `<option value="">Todas las agencias</option>` + agenciasParaFiltro().map(a => `<option value="${a.id}">${escapeHtml(nombreAgenciaFiltro(a))}</option>`).join('');
   if (actual) sel.value = actual;
 }
 
@@ -517,7 +517,7 @@ async function abrirModalNuevoPanelSiniestro() {
   document.getElementById('psnFecha').value = fechaLocalISO(new Date());
   document.getElementById('psnTipo').value = 'ROTURA';
   document.getElementById('psnAgencia').innerHTML = `<option value="">— Selecciona agencia —</option>` +
-    agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    agenciasParaFiltro().map(a => `<option value="${a.id}">${escapeHtml(nombreAgenciaFiltro(a))}</option>`).join('');
   rellenarSelectTiendasPsn(null);
   document.getElementById('psnInformacion').value = '';
   document.getElementById('psnError').style.display = 'none';

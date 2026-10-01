@@ -79,9 +79,11 @@ function rmeConstruirGrupos(agenciasFrescas) {
   agenciasFrescas.forEach(ag => {
     const clave = rmeClaveGrupo(ag);
     if (!porClave.has(clave)) {
-      porClave.set(clave, { clave, nombre: clave, agenciaIds: [], agenciasNombres: [], emails: new Set(), orden: ag.orden ?? 999999 });
+      porClave.set(clave, { clave, nombre: clave, agenciaIds: [], agenciasNombres: [], emails: new Set(), orden: ag.orden ?? 999999, todasDeBaja: true });
     }
     const g = porClave.get(clave);
+    // El grupo solo cuenta como "de baja" si TODAS sus agencias lo están.
+    if (ag.activo !== false) g.todasDeBaja = false;
     g.agenciaIds.push(ag.id);
     g.agenciasNombres.push(ag.nombre);
     (ag.emails || []).forEach(e => g.emails.add(e));
@@ -172,14 +174,14 @@ async function rmeCargarYRenderPanel() {
 
   try {
     const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
-      sb.from('agencias').select('id, nombre, orden, emails, grupo_envio').eq('activo', true).order('orden'),
+      sb.from('agencias').select('id, nombre, orden, emails, grupo_envio, activo').order('orden'),
       sb.from('informes_mensuales_agencia_enviados').select('grupo, enviado_en, enviado_por, omitido')
         .eq('anio', rmAnio).eq('mes', rmMes + 1)
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
 
-    const grupos = rmeConstruirGrupos(agencias || []);
+    let grupos = rmeConstruirGrupos(agencias || []);
     const enviosPorGrupo = new Map((envios || []).map(e => [e.grupo, e]));
     grupos.forEach(g => { g.envio = enviosPorGrupo.get(g.clave) || null; });
 
@@ -192,6 +194,10 @@ async function rmeCargarYRenderPanel() {
         console.error('No se pudo comprobar qué agencias no tienen incidencias este mes:', err);
       }
     }
+    // Agencias dadas de baja: solo se muestran en los meses en que
+    // todavía tuvieron tiendas (para poder mandarles su último resumen),
+    // o si ya tienen algo registrado ese mes.
+    grupos = grupos.filter(g => !g.todasDeBaja || g.envio || (mesTerminado && g.totalFilas > 0));
     rmeGruposActuales = grupos;
 
     const aviso = mesTerminado ? '' : `
@@ -326,7 +332,7 @@ function rmeHtmlFilaGrupo(g, mesTerminado) {
   return `
     <div class="rme-grupo-row" data-rme-fila="${escapeHtml(g.clave)}">
       <div class="rme-grupo-info">
-        <b>${escapeHtml(g.nombre)}</b>
+        <b>${escapeHtml(g.nombre)}</b>${g.todasDeBaja ? ' <span class="rme-sub" style="display:inline;">(de baja)</span>' : ''}
         ${subAgencias ? `<span class="rme-sub">Incluye: ${escapeHtml(subAgencias)}</span>` : ''}
         ${sinEmails
           ? `<span class="rme-sub rme-warn">Sin emails configurados</span>`
@@ -950,7 +956,7 @@ async function rmeComprobarPendienteInicio() {
 
   try {
     const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
-      sb.from('agencias').select('id, nombre, orden, emails, grupo_envio').eq('activo', true),
+      sb.from('agencias').select('id, nombre, orden, emails, grupo_envio, activo'),
       sb.from('informes_mensuales_agencia_enviados').select('grupo').eq('anio', anio).eq('mes', mes + 1)
     ]);
     if (e1) throw e1;
@@ -974,6 +980,8 @@ async function rmeComprobarPendienteInicio() {
       pendientes = pendientes.filter(g => !g.sinIncidencias);
     } catch (err) {
       console.error('No se pudo comprobar qué agencias no tienen incidencias este mes:', err);
+      // Sin poder calcularlo, al menos no se avisa de agencias de baja.
+      pendientes = pendientes.filter(g => !g.todasDeBaja);
     }
     if (!pendientes.length) return null;
 

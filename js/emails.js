@@ -1,13 +1,30 @@
   // Gestión de agencias
   // ---------------------------------------------------------------
-  async function cargarEmailsAgencias() {
-    const cont = document.getElementById('listaEmailsAgencias');
-    cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';
-    try {
-      const { data, error } = await sb.from('agencias').select('id, nombre, nombre_comercial, grupo_envio, emails, orden').order('orden');
-      if (error) throw error;
+  // Tiendas que dependen de cada agencia (como habitual, de sábado o de
+  // prueba). Solo cuentan las tiendas activas. Una agencia con alguna no
+  // se puede dar de baja: primero hay que reasignarlas.
+  async function contarTiendasPorAgencia() {
+    const { data, error } = await sb.from('tiendas')
+      .select('agencia_id, sabado_agencia_id, prueba_agencia_id')
+      .eq('activo', true);
+    if (error) throw error;
+    const cuenta = new Map();
+    const sumar = (id) => { if (id != null) cuenta.set(id, (cuenta.get(id) || 0) + 1); };
+    (data || []).forEach(t => {
+      // Una misma tienda cuenta una sola vez por agencia, aunque la tenga
+      // a la vez como habitual y de sábado.
+      new Set([t.agencia_id, t.sabado_agencia_id, t.prueba_agencia_id]).forEach(sumar);
+    });
+    return cuenta;
+  }
 
-      cont.innerHTML = data.map(ag => `
+  function htmlTarjetaAgencia(ag, numTiendas) {
+    const emails = ag.emails || [];
+    const textoTiendas = numTiendas ? `${numTiendas} tienda${numTiendas === 1 ? '' : 's'}` : 'Sin tiendas';
+    const tituloBaja = numTiendas
+      ? `Tiene ${textoTiendas} asignada${numTiendas === 1 ? '' : 's'}: reasígnala${numTiendas === 1 ? '' : 's'} antes de darla de baja`
+      : 'Dar de baja esta agencia';
+    return `
         <div class="email-card" data-agencia-email="${ag.id}">
           <div class="cabecera">
             <div class="email-card-titulos">
@@ -25,10 +42,13 @@
                 }
               </div>
             </div>
-            <span style="font-size:12px; color:var(--ink-soft); white-space:nowrap;">${(ag.emails||[]).length} destinatario${(ag.emails||[]).length===1?'':'s'}</span>
+            <div class="agencia-cabecera-acciones">
+              <span style="font-size:12px; color:var(--ink-soft); white-space:nowrap;">${emails.length} destinatario${emails.length===1?'':'s'} · ${textoTiendas}</span>
+              <button type="button" class="btn agencia-btn-baja${numTiendas ? ' atenuado' : ''}" data-dar-baja title="${tituloBaja}">🚫 Dar de baja</button>
+            </div>
           </div>
           <div class="email-chips">
-            ${(ag.emails||[]).map(em => `
+            ${emails.map(em => `
               <span class="email-chip">${escapeHtml(em)}<button data-quitar="${escapeHtml(em)}">✕</button></span>
             `).join('') || '<span style="font-size:12.5px; color:var(--ink-soft);">Sin emails configurados</span>'}
           </div>
@@ -36,8 +56,42 @@
             <input type="email" class="form-input" placeholder="nuevo@email.com" data-input-email>
             <button class="btn" data-anadir>Añadir</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+  }
+
+  function htmlTarjetaAgenciaBaja(ag) {
+    const desde = ag.baja_desde ? ` desde ${formatearFechaCorta(new Date(ag.baja_desde + 'T00:00:00'))}` : '';
+    return `
+        <div class="email-card agencia-de-baja" data-agencia-baja="${ag.id}">
+          <div class="cabecera" style="margin-bottom:0;">
+            <div class="email-card-titulos">
+              <b>${escapeHtml(ag.nombre)}</b><span class="agencia-badge-baja">De baja${desde}</span>
+              <div class="email-comercial-linea"><span class="email-comercial-texto">No aparece al asignar tiendas ni en el resumen mensual. Su historial se conserva.</span></div>
+            </div>
+            <button type="button" class="btn agencia-btn-baja" data-reactivar>↩ Reactivar</button>
+          </div>
+        </div>`;
+  }
+
+  async function cargarEmailsAgencias() {
+    const cont = document.getElementById('listaEmailsAgencias');
+    cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';
+    try {
+      const [{ data, error }, tiendasPorAgencia] = await Promise.all([
+        sb.from('agencias').select('id, nombre, nombre_comercial, grupo_envio, emails, orden, activo, baja_desde').order('orden'),
+        contarTiendasPorAgencia()
+      ]);
+      if (error) throw error;
+
+      const activas = data.filter(ag => ag.activo !== false);
+      const deBaja = data.filter(ag => ag.activo === false);
+
+      cont.innerHTML = activas.map(ag => htmlTarjetaAgencia(ag, tiendasPorAgencia.get(ag.id) || 0)).join('')
+        + (deBaja.length ? `
+          <details class="agencias-baja-seccion">
+            <summary>🚫 Agencias de baja (${deBaja.length})</summary>
+            ${deBaja.map(htmlTarjetaAgenciaBaja).join('')}
+          </details>` : '');
 
       cont.querySelectorAll('[data-agencia-email]').forEach(card => {
         const agenciaId = Number(card.dataset.agenciaEmail);
@@ -45,6 +99,7 @@
 
         card.querySelector('[data-editar-comercial]').addEventListener('click', () => editarNombreComercialAgencia(agenciaId, nombreAgencia));
         card.querySelector('[data-editar-grupo]').addEventListener('click', () => editarGrupoEnvioAgencia(agenciaId, nombreAgencia));
+        card.querySelector('[data-dar-baja]').addEventListener('click', () => darDeBajaAgencia(agenciaId, nombreAgencia));
 
         card.querySelectorAll('[data-quitar]').forEach(btn => {
           btn.addEventListener('click', () => actualizarEmailsAgencia(agenciaId, card, 'quitar', btn.dataset.quitar));
@@ -60,9 +115,67 @@
         btnAdd.addEventListener('click', anadir);
         input.addEventListener('keydown', e => { if (e.key === 'Enter') anadir(); });
       });
+
+      cont.querySelectorAll('[data-agencia-baja]').forEach(card => {
+        const agenciaId = Number(card.dataset.agenciaBaja);
+        const nombreAgencia = card.querySelector('b').textContent;
+        card.querySelector('[data-reactivar]').addEventListener('click', () => reactivarAgencia(agenciaId, nombreAgencia));
+      });
     } catch (err) {
       console.error('Error cargando emails de agencias:', err);
       cont.innerHTML = '<div class="card"><div class="empty"><p style="color:var(--grave);">Error al cargar.</p></div></div>';
+    }
+  }
+
+  // Tras dar de baja / reactivar: recarga esta lista y la caché de
+  // agencias (desplegables de tiendas, informe del día, filtros...).
+  async function refrescarTrasCambioEstadoAgencia() {
+    await cargarEmailsAgencias();
+    if (typeof cargarAgenciasYTiendas === 'function') await cargarAgenciasYTiendas();
+  }
+
+  async function darDeBajaAgencia(agenciaId, nombreAgencia) {
+    try {
+      // Se vuelve a comprobar en el momento (otro compañero podría haberle
+      // asignado una tienda desde que se cargó la lista).
+      const numTiendas = (await contarTiendasPorAgencia()).get(agenciaId) || 0;
+      if (numTiendas) {
+        await modalAlert(`${nombreAgencia} todavía tiene ${numTiendas} tienda${numTiendas === 1 ? '' : 's'} asignada${numTiendas === 1 ? '' : 's'} (como agencia habitual, de sábado o de prueba). Reasígnala${numTiendas === 1 ? '' : 's'} en Gestión de tiendas antes de darla de baja.`, { titulo: 'No se puede dar de baja' });
+        await cargarEmailsAgencias();
+        return;
+      }
+      const ok = await modalConfirm(
+        `Dejará de aparecer al asignar tiendas, en el cambio puntual de agencia del Informe del día y en el envío del resumen mensual.\n\nLas incidencias, siniestros y reportes de meses anteriores la seguirán mostrando. Podrás reactivarla cuando quieras.`,
+        { titulo: `Dar de baja ${nombreAgencia}`, icono: '🚫', danger: true, textoOk: 'Dar de baja' }
+      );
+      if (!ok) return;
+
+      const { error } = await sb.from('agencias')
+        .update({ activo: false, baja_desde: fechaLocalISO(new Date()) })
+        .eq('id', agenciaId);
+      if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('agencias', 'Dar de baja agencia', nombreAgencia);
+      await refrescarTrasCambioEstadoAgencia();
+    } catch (err) {
+      console.error('Error dando de baja la agencia:', err);
+      await modalAlert('No se pudo dar de baja la agencia. Inténtalo de nuevo.', { titulo: 'Error' });
+    }
+  }
+
+  async function reactivarAgencia(agenciaId, nombreAgencia) {
+    const ok = await modalConfirm(
+      `${nombreAgencia} volverá a aparecer al asignar tiendas, en el Informe del día y en el resumen mensual.`,
+      { titulo: `Reactivar ${nombreAgencia}`, icono: '↩', textoOk: 'Reactivar' }
+    );
+    if (!ok) return;
+    try {
+      const { error } = await sb.from('agencias').update({ activo: true, baja_desde: null }).eq('id', agenciaId);
+      if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('agencias', 'Reactivar agencia', nombreAgencia);
+      await refrescarTrasCambioEstadoAgencia();
+    } catch (err) {
+      console.error('Error reactivando la agencia:', err);
+      await modalAlert('No se pudo reactivar la agencia. Inténtalo de nuevo.', { titulo: 'Error' });
     }
   }
 

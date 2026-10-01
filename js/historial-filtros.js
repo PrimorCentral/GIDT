@@ -47,10 +47,10 @@ function construirPanelFiltrosHistorial() {
   const listaMarcas = document.getElementById('historialFiltrosMarcasLista');
   if (!listaAg || listaAg.dataset.built) return;
 
-  listaAg.innerHTML = agenciasCache.map(ag => `
+  listaAg.innerHTML = agenciasParaFiltro().map(ag => `
     <label class="filtro-check">
       <input type="checkbox" value="${ag.id}" data-filtro="agencia">
-      <span>${escapeHtml(ag.nombre)}</span>
+      <span>${escapeHtml(nombreAgenciaFiltro(ag))}</span>
     </label>`).join('');
   listaAg.dataset.built = '1';
 

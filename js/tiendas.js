@@ -1,6 +1,22 @@
 // Gestión de tiendas (acordeón por agencia)
   // ---------------------------------------------------------------
   let agenciasCache = [];
+
+  // Agencias dadas de baja (Configuración → Gestión de agencias): se
+  // quedan en agenciasCache para que los datos antiguos (reportes,
+  // historial, siniestros) sigan resolviendo su nombre, pero NO se
+  // ofrecen para asignar nada nuevo (tiendas, cambios de agencia...).
+  // En los filtros de consulta sí salen, al final y marcadas "(de baja)",
+  // para poder seguir buscando sus datos antiguos.
+  function agenciasActivas() {
+    return agenciasCache.filter(a => a.activo !== false);
+  }
+  function agenciasParaFiltro() {
+    return [...agenciasActivas(), ...agenciasCache.filter(a => a.activo === false)];
+  }
+  function nombreAgenciaFiltro(a) {
+    return a.activo === false ? `${a.nombre} (de baja)` : a.nombre;
+  }
   let tiendasCache = [];
   let agenciasTiendasAbiertas = new Set(); // ids de agencia desplegados en "Gestión de tiendas"
   let filtroTiendasTexto = '';
@@ -153,7 +169,7 @@
 
   async function cargarAgenciasYTiendas() {
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
-      sb.from('agencias').select('id, nombre, orden').order('orden'),
+      sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
       sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
       cargarBajasTiendas()
     ]);
@@ -166,14 +182,14 @@
     // Sin agencia preseleccionada: hay que elegirla al crear la tienda.
     const valorPrevioAgencia = sel.value;
     sel.innerHTML = `<option value="">— Elige agencia —</option>`
-      + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+      + agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
     sel.value = valorPrevioAgencia;
     ['ntSabadoAgencia', 'metSabadoAgencia', 'ntPruebaAgencia', 'metPruebaAgencia'].forEach(id => {
       const s = document.getElementById(id);
       if (!s) return;
       const previo = s.value;
       s.innerHTML = `<option value="">— Elige agencia —</option>`
-        + agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+        + agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
       s.value = previo;
     });
 
@@ -280,7 +296,7 @@
     const qNormalizada = normalizarTextoBusqueda(filtroTiendasTexto);
     const buscando = !!qNormalizada;
 
-    const bloques = agenciasCache.map(ag => {
+    const bloques = agenciasActivas().map(ag => {
       const tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo && tiendaCoincideBusqueda(t, qNormalizada));
       if (buscando && tds.length === 0) return ''; // oculta agencias sin coincidencias mientras se busca
       const abierta = buscando ? true : agenciasTiendasAbiertas.has(ag.id);
@@ -894,7 +910,7 @@
     const t = tiendasCache.find(x => x.id === id);
     if (!t) return;
 
-    const opciones = agenciasCache.map(a => ({ id: a.id, nombre: a.nombre }));
+    const opciones = agenciasActivas().map(a => ({ id: a.id, nombre: a.nombre }));
     const destinoId = await modalSeleccionar(
       `Selecciona la agencia a la que quieres mover "${t.nombre}":`,
       opciones,

@@ -593,10 +593,10 @@
     const listaSin = document.getElementById('analisisFiltrosSiniestroTiposLista');
 
     if (!listaAg.dataset.built) {
-      listaAg.innerHTML = agenciasCache.map(ag => `
+      listaAg.innerHTML = agenciasParaFiltro().map(ag => `
         <label class="filtro-check">
           <input type="checkbox" value="${ag.id}" data-filtro="agencia">
-          <span>${escapeHtml(ag.nombre)}</span>
+          <span>${escapeHtml(nombreAgenciaFiltro(ag))}</span>
         </label>`).join('');
       listaAg.dataset.built = '1';
     }

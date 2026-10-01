@@ -395,11 +395,11 @@ function construirListaTiendasUtilidades() {
 function construirSelectAgenciaUtilidades() {
   const sel = document.getElementById('utilNuevaAgencia');
   sel.innerHTML = '<option value="">— Sin cambio —</option>' +
-    agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
   const selEsp = document.getElementById('utilEspecialAgencia');
   if (selEsp) {
     selEsp.innerHTML = '<option value="">— Elige agencia —</option>' +
-      agenciasCache.map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+      agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
   }
 }
 
