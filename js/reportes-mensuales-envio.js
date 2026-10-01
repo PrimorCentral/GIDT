@@ -173,7 +173,7 @@ async function rmeCargarYRenderPanel() {
   try {
     const [{ data: agencias, error: e1 }, { data: envios, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, emails, grupo_envio').eq('activo', true).order('orden'),
-      sb.from('informes_mensuales_agencia_enviados').select('grupo, enviado_en, enviado_por')
+      sb.from('informes_mensuales_agencia_enviados').select('grupo, enviado_en, enviado_por, omitido')
         .eq('anio', rmAnio).eq('mes', rmMes + 1)
     ]);
     if (e1) throw e1;
@@ -182,6 +182,16 @@ async function rmeCargarYRenderPanel() {
     const grupos = rmeConstruirGrupos(agencias || []);
     const enviosPorGrupo = new Map((envios || []).map(e => [e.grupo, e]));
     grupos.forEach(g => { g.envio = enviosPorGrupo.get(g.clave) || null; });
+
+    // Mes ya terminado: se mira qué agencias no han tenido ninguna
+    // incidencia (o ninguna tienda) ese mes, para no darlas por pendientes.
+    if (mesTerminado) {
+      try {
+        await rmeMarcarSinIncidencias(grupos, await rmeObtenerDatosMes(), rmAnio, rmMes);
+      } catch (err) {
+        console.error('No se pudo comprobar qué agencias no tienen incidencias este mes:', err);
+      }
+    }
     rmeGruposActuales = grupos;
 
     const aviso = mesTerminado ? '' : `
@@ -199,6 +209,12 @@ async function rmeCargarYRenderPanel() {
     if (mesTerminado) {
       cont.querySelectorAll('[data-rme-enviar]').forEach(b => {
         b.addEventListener('click', () => rmeEnviarGrupo(b.dataset.rmeEnviar, rmeGruposActuales, cont));
+      });
+      cont.querySelectorAll('[data-rme-omitir]').forEach(b => {
+        b.addEventListener('click', () => rmeOmitirGrupo(b.dataset.rmeOmitir, rmeGruposActuales));
+      });
+      cont.querySelectorAll('[data-rme-deshacer]').forEach(b => {
+        b.addEventListener('click', () => rmeDeshacerOmitido(b.dataset.rmeDeshacer, rmeGruposActuales));
       });
     }
   } catch (err) {
@@ -230,32 +246,81 @@ function rmeActualizarToolbar(grupos, cargando, mesTerminado) {
     return;
   }
 
-  const pendientes = grupos.filter(g => !g.envio);
+  const pendientes = grupos.filter(rmeEstaPendiente);
+  const sinIncidencias = grupos.filter(g => !g.envio && g.sinIncidencias);
+  const omitidas = grupos.filter(g => g.envio && g.envio.omitido);
+  const extras = [];
+  if (sinIncidencias.length) extras.push(`${sinIncidencias.length} sin incidencias`);
+  if (omitidas.length) extras.push(`${omitidas.length} omitida${omitidas.length === 1 ? '' : 's'}`);
   resumen.textContent = grupos.length
-    ? `${grupos.length} agencia${grupos.length === 1 ? '' : 's'} · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'} de enviar`
+    ? `${grupos.length} agencia${grupos.length === 1 ? '' : 's'} · ${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'} de enviar${extras.length ? ' · ' + extras.join(' · ') : ''}`
     : '—';
   btn.disabled = rmeEnviando || !pendientes.length;
   btn.textContent = pendientes.length
     ? `📤 Enviar a todas las pendientes (${pendientes.length})`
-    : '✅ Todas enviadas';
+    : '✅ Nada pendiente';
+}
+
+// Una agencia/grupo cuenta como pendiente si todavía no tiene registro
+// este mes (ni enviado ni omitido a mano) y sí ha tenido incidencias.
+// Las que no han tenido ninguna incidencia en todo el mes no se dan por
+// pendientes (se pueden enviar igualmente desde su fila si se quiere).
+function rmeEstaPendiente(g) {
+  return !g.envio && !g.sinIncidencias;
+}
+
+// Marca en cada grupo g.totalFilas y g.sinIncidencias (true si en todo el
+// mes sus tiendas no han tenido ninguna incidencia, o si no ha tenido
+// ninguna tienda). Cuenta las incidencias igual que la columna "Total"
+// del PDF, para que coincida siempre con lo que se enviaría.
+async function rmeMarcarSinIncidencias(grupos, datosMes, anio, mesIndex) {
+  const { celdas, diasEnviados, totalDias, todasLasFilas, puntualAgenciaPorTienda } = datosMes;
+  const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
+  grupos.forEach(g => {
+    const filas = todasLasFilas.filter(f => g.agenciaIds.includes(f.agenciaId));
+    let total = 0;
+    filas.forEach(f => {
+      const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
+      const { totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualAgenciaPorTienda.get(f.tiendaId), celdas[f.tiendaId] || {}, diasEnviados, totalDias, 1, 1, totalDias, anio, mesIndex);
+      total += totalIncidencias;
+    });
+    g.totalFilas = filas.length;
+    g.sinIncidencias = total === 0;
+  });
 }
 
 function rmeHtmlFilaGrupo(g, mesTerminado) {
   const subAgencias = g.agenciasNombres.length > 1 ? g.agenciasNombres.join(' + ') : null;
   const sinEmails = !g.emails.length;
+  const clave = escapeHtml(g.clave);
 
   let estadoHtml;
   if (!mesTerminado) {
-    estadoHtml = g.envio
+    estadoHtml = g.envio && !g.envio.omitido
       ? `<span class="rme-badge-enviado">✅ Enviado</span>`
       : `<button type="button" class="btn rme-btn-enviar" disabled title="Podrás enviarlo cuando termine el mes">Enviar PDF</button>`;
+  } else if (g.envio && g.envio.omitido) {
+    // Marcada a mano "No enviar este mes": no se mandó ningún correo.
+    const quien = g.envio.enviado_por ? ` por ${escapeHtml(g.envio.enviado_por)}` : '';
+    estadoHtml = `
+      <span class="rme-badge-gris" title="Marcada como no enviar${quien}">⏭️ Omitido</span>
+      <button type="button" class="icono-accion rme-btn-enviar" data-rme-deshacer="${clave}" title="Deshacer: volver a dejarla pendiente">↩</button>`;
   } else if (g.envio) {
     const fecha = new Date(g.envio.enviado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     estadoHtml = `
       <span class="rme-badge-enviado" title="${g.envio.enviado_por ? 'Enviado por ' + escapeHtml(g.envio.enviado_por) : ''}">✅ ${fecha}</span>
-      <button type="button" class="rme-btn-reenviar rme-btn-enviar" data-rme-enviar="${escapeHtml(g.clave)}">Reenviar</button>`;
+      <button type="button" class="icono-accion rme-btn-enviar" data-rme-enviar="${clave}" title="Reenviar">↻</button>`;
+  } else if (g.sinIncidencias) {
+    // Sin incidencias en todo el mes: no cuenta como pendiente. Si tiene
+    // tiendas, se puede enviar igualmente (el PDF saldría todo en OK).
+    estadoHtml = g.totalFilas
+      ? `<span class="rme-badge-gris" title="Ninguna incidencia este mes: no cuenta como pendiente">Sin incidencias</span>
+         <button type="button" class="icono-accion rme-btn-enviar" data-rme-enviar="${clave}" title="Enviar el PDF igualmente" ${sinEmails ? 'disabled' : ''}>📤</button>`
+      : `<span class="rme-badge-gris" title="No ha tenido tiendas asignadas este mes">Sin tiendas este mes</span>`;
   } else {
-    estadoHtml = `<button type="button" class="btn primary rme-btn-enviar" data-rme-enviar="${escapeHtml(g.clave)}" ${sinEmails ? 'disabled' : ''}>Enviar PDF</button>`;
+    estadoHtml = `
+      <button type="button" class="icono-accion rme-btn-enviar" data-rme-omitir="${clave}" title="No enviar este mes">⏭️</button>
+      <button type="button" class="btn primary rme-btn-enviar" data-rme-enviar="${clave}" ${sinEmails ? 'disabled' : ''}>Enviar PDF</button>`;
   }
 
   return `
@@ -316,6 +381,7 @@ async function rmeProcesarEnvioGrupo(grupo, datosMes) {
     anio: rmAnio,
     mes: rmMes + 1,
     pdf_nombre: nombreArchivo,
+    omitido: false,
     enviado_en: new Date().toISOString(),
     enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
   }, { onConflict: 'grupo,anio,mes' });
@@ -370,6 +436,56 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
   }
 }
 
+// "No enviar este mes": deja registrado el grupo como omitido (sin mandar
+// ningún correo) para que deje de salir como pendiente, también en la
+// tarea de Inicio. Se puede deshacer desde la misma fila.
+async function rmeOmitirGrupo(clave, grupos) {
+  if (rmeEnviando) return;
+  const grupo = grupos.find(g => g.clave === clave);
+  if (!grupo) return;
+  const mesTexto = rmeTituloMes(rmAnio, rmMes);
+  const ok = await modalConfirm(
+    `"${grupo.nombre}" dejará de salir como pendiente para ${mesTexto} y no se le enviará ningún correo. Podrás deshacerlo después.`,
+    { titulo: '⏭️ No enviar este mes', textoOk: 'No enviar' }
+  );
+  if (!ok) return;
+
+  const { error } = await sb.from('informes_mensuales_agencia_enviados').upsert({
+    grupo: grupo.clave,
+    anio: rmAnio,
+    mes: rmMes + 1,
+    pdf_nombre: null,
+    omitido: true,
+    enviado_en: new Date().toISOString(),
+    enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+  }, { onConflict: 'grupo,anio,mes' });
+  if (error) {
+    console.error('No se pudo marcar como no enviar:', error);
+    await modalAlert('No se pudo guardar. Inténtalo de nuevo.', { titulo: 'Error' });
+    return;
+  }
+  if (typeof registrarAccion === 'function') registrarAccion('reportes_mensuales', 'Omitir resumen mensual a agencia', `${grupo.nombre} — ${mesTexto}`);
+  await rmeCargarYRenderPanel();
+}
+
+// Deshace un "No enviar este mes": borra el registro y la agencia vuelve
+// a quedar pendiente (o "Sin incidencias", si es el caso).
+async function rmeDeshacerOmitido(clave, grupos) {
+  if (rmeEnviando) return;
+  const grupo = grupos.find(g => g.clave === clave);
+  if (!grupo || !grupo.envio || !grupo.envio.omitido) return;
+
+  const { error } = await sb.from('informes_mensuales_agencia_enviados').delete()
+    .eq('grupo', grupo.clave).eq('anio', rmAnio).eq('mes', rmMes + 1).eq('omitido', true);
+  if (error) {
+    console.error('No se pudo deshacer el omitido:', error);
+    await modalAlert('No se pudo deshacer. Inténtalo de nuevo.', { titulo: 'Error' });
+    return;
+  }
+  if (typeof registrarAccion === 'function') registrarAccion('reportes_mensuales', 'Deshacer omitir resumen mensual', `${grupo.nombre} — ${rmeTituloMes(rmAnio, rmMes)}`);
+  await rmeCargarYRenderPanel();
+}
+
 // Envío masivo: todas las agencias/grupos que todavía no tengan el
 // resumen de este mes registrado como enviado.
 async function rmeEnviarTodosPendientes(grupos) {
@@ -379,9 +495,9 @@ async function rmeEnviarTodosPendientes(grupos) {
     await modalAlert('Todavía no puedes enviar el resumen del mes en curso: espera a que termine.', { titulo: 'Mes sin terminar' });
     return;
   }
-  const pendientes = grupos.filter(g => !g.envio);
+  const pendientes = grupos.filter(rmeEstaPendiente);
   if (!pendientes.length) {
-    await modalAlert('Todas las agencias ya tienen el resumen de este mes enviado.', { titulo: 'Nada pendiente' });
+    await modalAlert('No queda ninguna agencia pendiente de enviar este mes.', { titulo: 'Nada pendiente' });
     return;
   }
   const conEmails = pendientes.filter(g => g.emails.length);
@@ -842,8 +958,23 @@ async function rmeComprobarPendienteInicio() {
 
     const grupos = rmeConstruirGrupos(agencias || []);
     if (!grupos.length) return null;
+    // Cuentan como hechos tanto los enviados como los marcados "No enviar
+    // este mes" (omitido): los dos tienen su fila en la tabla.
     const enviados = new Set((envios || []).map(e => e.grupo));
-    const pendientes = grupos.filter(g => !enviados.has(g.clave));
+    let pendientes = grupos.filter(g => !enviados.has(g.clave));
+    if (!pendientes.length) return null;
+
+    // Las agencias sin ninguna incidencia en todo el mes tampoco cuentan
+    // como pendientes. Solo se calcula si queda alguna sin registro, para
+    // no cargar el mes entero cuando ya está todo enviado.
+    try {
+      const datos = await rmCargarDatosMes(anio, mes);
+      const todasLasFilas = rmConstruirTodasLasFilas(datos.cambiosPorTienda, datos.puntualAgenciaPorTienda, datos.totalDias);
+      await rmeMarcarSinIncidencias(pendientes, { ...datos, todasLasFilas }, anio, mes);
+      pendientes = pendientes.filter(g => !g.sinIncidencias);
+    } catch (err) {
+      console.error('No se pudo comprobar qué agencias no tienen incidencias este mes:', err);
+    }
     if (!pendientes.length) return null;
 
     return {
