@@ -212,7 +212,7 @@
       <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></button>
       <button type="button" class="tiendas-contador prueba pulsable" data-lista="prueba" title="Ver las tiendas con fechas de prueba pendientes"><b>${enPrueba}</b><span>En prueba</span></button>
       ${numBajas ? `<button type="button" class="tiendas-contador baja pulsable" data-lista="baja" title="Ver las tiendas de baja ahora mismo"><b>${numBajas}</b><span>De baja</span></button>` : ''}
-      ${programadosCache.length ? `<button type="button" class="tiendas-contador programado pulsable" data-lista="programados" title="Ver los cambios de agencia programados"><b>${programadosCache.length}</b><span>Cambios programados</span></button>` : ''}
+      <button type="button" class="tiendas-contador programado pulsable" data-lista="programados" title="Ver los cambios de agencia programados"><b>${programadosCache.length}</b><span>Cambios programados</span></button>
     `;
     cont.querySelectorAll('[data-lista]').forEach(btn => btn.addEventListener('click', () => abrirListaContador(btn.dataset.lista)));
   }
@@ -1119,8 +1119,7 @@
       if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Cancelar cambio de agencia programado', `${t?.nombre || '—'}: ${c.agencia_anterior_nombre || '—'} → ${c.agencia_nueva_nombre} el ${fechaISOaCorta(c.fecha_cambio)}`);
       await cargarAgenciasYTiendas();
       if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
-      if (programadosCache.length) abrirListaContador('programados');
-      else cerrarListaContador();
+      abrirListaContador('programados');
     } catch (err) {
       console.error('Error cancelando el cambio programado:', err);
       await modalAlert('No se pudo cancelar el cambio programado.', { titulo: 'Error' });
