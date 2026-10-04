@@ -377,6 +377,32 @@ async function recargarConGiro(btn, ...cargas) {
       console.error('Error comprobando informes enviados con incidencias pendientes:', err);
     }
 
+    // 6. Cambios de agencia programados: avisan desde 3 días antes del
+    // cambio. Antes se aplican los que ya tocan (por si el cron de las
+    // 00:05 no se hubiera ejecutado), para no avisar de algo ya pasado.
+    try {
+      if (typeof aplicarCambiosProgramadosVencidos === 'function') await aplicarCambiosProgramadosVencidos();
+      const hoyISO = fechaLocalISO(new Date());
+      const limite = new Date(); limite.setDate(limite.getDate() + 3);
+      const { data: progs, error: eProg } = await sb.from('tienda_cambios_agencia_programados')
+        .select('fecha_cambio, agencia_anterior_nombre, agencia_nueva_nombre, tiendas(nombre)')
+        .eq('estado', 'PENDIENTE')
+        .gte('fecha_cambio', hoyISO)
+        .lte('fecha_cambio', fechaLocalISO(limite))
+        .order('fecha_cambio');
+      if (eProg) throw eProg;
+      (progs || []).forEach(c => {
+        const [y, m, d] = c.fecha_cambio.split('-');
+        items.push({
+          icono: '🔀',
+          texto: `La tienda ${escapeHtml(c.tiendas?.nombre || '—')} cambiará de agencia ${escapeHtml(c.agencia_anterior_nombre || '—')} a ${escapeHtml(c.agencia_nueva_nombre)} el ${d}/${m}/${y}`,
+          vista: 'config-tiendas'
+        });
+      });
+    } catch (err) {
+      console.error('Error comprobando cambios de agencia programados:', err);
+    }
+
     if (!items.length) {
       cont.innerHTML = `
         <div class="empty" style="padding:20px;">
@@ -403,6 +429,10 @@ async function recargarConGiro(btn, ...cargas) {
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
         if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
         if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
+        if (vista === 'config-tiendas' && typeof cargarAgenciasYTiendas === 'function') {
+          await cargarAgenciasYTiendas();
+          if (typeof abrirListaContador === 'function') abrirListaContador('programados');
+        }
         if (vista === 'historial-informes' && btn.dataset.irFecha && typeof cargarInformeHistorial === 'function') {
           historialFechaInput.value = btn.dataset.irFecha;
           cargarInformeHistorial(btn.dataset.irFecha);

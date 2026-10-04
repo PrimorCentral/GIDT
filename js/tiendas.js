@@ -168,10 +168,14 @@
   }
 
   async function cargarAgenciasYTiendas() {
+    // Primero aplica los cambios de agencia programados que ya tocan (por
+    // si el cron de las 00:05 no se hubiera ejecutado), y luego carga.
+    await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
       sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
-      cargarBajasTiendas()
+      cargarBajasTiendas(),
+      cargarCambiosProgramados()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
@@ -208,6 +212,7 @@
       <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></button>
       <button type="button" class="tiendas-contador prueba pulsable" data-lista="prueba" title="Ver las tiendas con fechas de prueba pendientes"><b>${enPrueba}</b><span>En prueba</span></button>
       ${numBajas ? `<button type="button" class="tiendas-contador baja pulsable" data-lista="baja" title="Ver las tiendas de baja ahora mismo"><b>${numBajas}</b><span>De baja</span></button>` : ''}
+      ${programadosCache.length ? `<button type="button" class="tiendas-contador programado pulsable" data-lista="programados" title="Ver los cambios de agencia programados"><b>${programadosCache.length}</b><span>Cambios programados</span></button>` : ''}
     `;
     cont.querySelectorAll('[data-lista]').forEach(btn => btn.addEventListener('click', () => abrirListaContador(btn.dataset.lista)));
   }
@@ -259,6 +264,37 @@
           [p?.motivo || '—', 'suave']
         ] };
       });
+    } else if (tipo === 'programados') {
+      document.getElementById('listaContadorTitulo').textContent = `📅 Cambios de agencia programados (${programadosCache.length})`;
+      document.getElementById('listaContadorSub').textContent = 'Se aplican solos el día indicado. Puedes cancelarlos antes.';
+      const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const cuerpo = document.getElementById('listaContadorCuerpo');
+      cuerpo.innerHTML = programadosCache.length
+        ? `<div class="prog-lista">${programadosCache.map(c => {
+            const t = tiendasCache.find(x => x.id === c.tienda_id);
+            const creado = c.creado_en ? fechaISOaCorta(fechaLocalISO(new Date(c.creado_en))) : '';
+            return `
+              <div class="prog-fila" data-tienda="${c.tienda_id}" title="Abrir la ficha de la tienda">
+                <div class="prog-fecha"><b>${c.fecha_cambio.slice(8, 10)}</b><span>${meses[Number(c.fecha_cambio.slice(5, 7)) - 1]}</span></div>
+                <div class="prog-txt">
+                  <b>${escapeHtml(t?.nombre || '—')}${t?.numero_tienda ? ` <span class="prog-num">· nº ${escapeHtml(t.numero_tienda)}</span>` : ''}</b>
+                  <span class="prog-ag-de">${escapeHtml(c.agencia_anterior_nombre || '—')}</span> → <span class="prog-ag-a">${escapeHtml(c.agencia_nueva_nombre)}</span>
+                  <small>Programado por ${escapeHtml(c.creado_por || '—')}${creado ? ` · ${creado}` : ''}</small>
+                </div>
+                <button type="button" class="btn prog-cancelar" data-cancelar-programado="${c.id}">Cancelar</button>
+              </div>`;
+          }).join('')}</div>`
+        : '<div class="lista-contador-vacia">No hay ningún cambio de agencia programado.</div>';
+      cuerpo.querySelectorAll('[data-cancelar-programado]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cancelarCambioProgramado(Number(b.dataset.cancelarProgramado));
+      }));
+      cuerpo.querySelectorAll('.prog-fila[data-tienda]').forEach(f => f.addEventListener('click', () => {
+        cerrarListaContador();
+        abrirModalEditarTienda(Number(f.dataset.tienda));
+      }));
+      overlay.classList.add('show');
+      return;
     } else return;
 
     document.getElementById('listaContadorTitulo').textContent = titulo;
@@ -318,7 +354,7 @@
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
               <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
-              <td class="celda-extra">${chipsEntregasHtml(t) || (pBaja ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}</td>
+              <td class="celda-extra">${chipsEntregasHtml(t) || (pBaja || cambioProgramadoDeTienda(t.id) ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}${badgeProgramadoHtml(cambioProgramadoDeTienda(t.id))}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                 <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
@@ -906,18 +942,201 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // Mover tienda de agencia: AHORA MISMO o PROGRAMADO para una fecha.
+  //
+  // Programado → se guarda en tienda_cambios_agencia_programados (estado
+  // PENDIENTE) y lo aplica la base de datos sola ese día a las 00:05 hora
+  // de Madrid (pg_cron → aplicar_cambios_agencia_programados()). Hasta
+  // entonces la tienda sigue en su agencia actual, así que el Informe del
+  // día y el Reporte mensual siguen bien. Al aplicarse escribe en
+  // tienda_agencia_historial con la fecha programada (no la de hoy), que
+  // es la que usa el Reporte mensual para partir la fila.
+  // La app también llama a esa función al cargar (por si el cron fallara);
+  // es idempotente, así que no pasa nada si se llama varias veces.
+  // ---------------------------------------------------------------
+  let programadosCache = []; // cambios PENDIENTES, ordenados por fecha
+  let moverAgenciaTiendaId = null;
+  let moverAgenciaCuando = 'ahora';
+
+  async function aplicarCambiosProgramadosVencidos() {
+    try {
+      const { error } = await sb.rpc('aplicar_cambios_agencia_programados');
+      if (error) throw error;
+    } catch (err) {
+      console.error('No se pudieron aplicar los cambios de agencia programados:', err);
+    }
+  }
+
+  async function cargarCambiosProgramados() {
+    try {
+      const { data, error } = await sb.from('tienda_cambios_agencia_programados')
+        .select('id, tienda_id, agencia_anterior_id, agencia_anterior_nombre, agencia_nueva_id, agencia_nueva_nombre, fecha_cambio, creado_por, creado_en')
+        .eq('estado', 'PENDIENTE')
+        .order('fecha_cambio');
+      if (error) throw error;
+      programadosCache = data || [];
+    } catch (err) {
+      console.error('Error cargando cambios de agencia programados:', err);
+      programadosCache = [];
+    }
+  }
+
+  function cambioProgramadoDeTienda(tiendaId) {
+    return programadosCache.find(c => c.tienda_id === tiendaId) || null;
+  }
+
+  function badgeProgramadoHtml(c) {
+    if (!c) return '';
+    return ` <span class="pill programado" title="Cambio de agencia programado por ${escapeHtml(c.creado_por || '—')}">📅 Pasa a ${escapeHtml(c.agencia_nueva_nombre)} el ${fechaISOaCorta(c.fecha_cambio)}</span>`;
+  }
+
   async function cambiarAgenciaTienda(id) {
     const t = tiendasCache.find(x => x.id === id);
     if (!t) return;
 
-    const opciones = agenciasActivas().map(a => ({ id: a.id, nombre: a.nombre }));
-    const destinoId = await modalSeleccionar(
-      `Selecciona la agencia a la que quieres mover "${t.nombre}":`,
-      opciones,
-      { titulo: 'Mover tienda de agencia', textoOk: 'Mover', valorInicial: t.agencia_id, bloquearClicFuera: true }
-    );
-    if (!destinoId || destinoId === t.agencia_id) return;
+    const prog = cambioProgramadoDeTienda(id);
+    if (prog) {
+      const ver = await modalConfirm(
+        `"${t.nombre}" ya tiene programado el cambio a ${prog.agencia_nueva_nombre} el ${fechaISOaCorta(prog.fecha_cambio)}.\n\nPara moverla de otra forma, cancela antes ese cambio.`,
+        { titulo: 'Cambio ya programado', icono: '📅', textoOk: 'Ver cambios programados', textoCancel: 'Cerrar' }
+      );
+      if (ver) abrirListaContador('programados');
+      return;
+    }
 
+    moverAgenciaTiendaId = id;
+    document.getElementById('mmaMensaje').textContent = `Selecciona la agencia a la que quieres mover\n"${t.nombre}":`;
+    const sel = document.getElementById('mmaAgencia');
+    sel.innerHTML = agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    sel.value = String(t.agencia_id);
+    const fecha = document.getElementById('mmaFecha');
+    fecha.min = sumarDiasISO(fechaLocalISO(new Date()), 1);
+    fecha.value = '';
+    document.getElementById('mmaError').style.display = 'none';
+    elegirCuandoMoverAgencia('ahora');
+    document.getElementById('modalMoverAgenciaOverlay').classList.add('show');
+  }
+
+  function cerrarModalMoverAgencia() {
+    document.getElementById('modalMoverAgenciaOverlay')?.classList.remove('show');
+    moverAgenciaTiendaId = null;
+  }
+
+  function elegirCuandoMoverAgencia(cuando) {
+    moverAgenciaCuando = cuando;
+    document.querySelectorAll('#mmaCuando [data-cuando]').forEach(b => b.classList.toggle('activo', b.dataset.cuando === cuando));
+    document.getElementById('mmaFechaWrap').style.display = cuando === 'programar' ? '' : 'none';
+    document.getElementById('mmaBtnGuardar').textContent = cuando === 'programar' ? 'Programar cambio' : 'Mover';
+    actualizarNotaMoverAgencia();
+  }
+
+  function actualizarNotaMoverAgencia() {
+    const nota = document.getElementById('mmaNota');
+    const t = tiendasCache.find(x => x.id === moverAgenciaTiendaId);
+    const fecha = document.getElementById('mmaFecha').value;
+    const destinoId = Number(document.getElementById('mmaAgencia').value);
+    const destino = agenciasCache.find(a => a.id === destinoId);
+    const actual = agenciasCache.find(a => a.id === t?.agencia_id);
+    if (moverAgenciaCuando !== 'programar' || !fecha || !t || !destino || destinoId === t.agencia_id) {
+      nota.style.display = 'none';
+      return;
+    }
+    nota.innerHTML = `Hasta el <b>${fechaISOaCorta(fecha)}</b> la tienda sigue en <b>${escapeHtml(actual?.nombre || '—')}</b>. Ese día pasará sola a <b>${escapeHtml(destino.nombre)}</b>.`;
+    nota.style.display = '';
+  }
+
+  async function guardarModalMoverAgencia() {
+    const id = moverAgenciaTiendaId;
+    const t = tiendasCache.find(x => x.id === id);
+    if (!t) return;
+    const destinoId = Number(document.getElementById('mmaAgencia').value);
+    const fecha = document.getElementById('mmaFecha').value;
+    const errEl = document.getElementById('mmaError');
+    const btn = document.getElementById('mmaBtnGuardar');
+    const fallo = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+    errEl.style.display = 'none';
+
+    if (!destinoId || destinoId === t.agencia_id) { fallo('Elige una agencia distinta de la actual.'); return; }
+
+    if (moverAgenciaCuando === 'ahora') {
+      cerrarModalMoverAgencia();
+      await moverTiendaDeAgenciaAhora(t, destinoId);
+      return;
+    }
+
+    const manana = sumarDiasISO(fechaLocalISO(new Date()), 1);
+    if (!fecha) { fallo('Elige la fecha del cambio.'); return; }
+    if (fecha < manana) { fallo('La fecha tiene que ser a partir de mañana. Para hoy, usa "Ahora mismo".'); return; }
+
+    const agenciaAnterior = agenciasCache.find(a => a.id === t.agencia_id);
+    const agenciaNueva = agenciasCache.find(a => a.id === destinoId);
+    btn.disabled = true;
+    try {
+      const { error } = await sb.from('tienda_cambios_agencia_programados').insert({
+        tienda_id: id,
+        agencia_anterior_id: t.agencia_id,
+        agencia_anterior_nombre: agenciaAnterior?.nombre || null,
+        agencia_nueva_id: destinoId,
+        agencia_nueva_nombre: agenciaNueva?.nombre || '—',
+        fecha_cambio: fecha,
+        creado_por: sesionActual?.nombre || sesionActual?.usuario || null
+      });
+      if (error) {
+        // Índice único: solo un cambio pendiente por tienda (p. ej. lo ha
+        // programado otro compañero mientras tenías el modal abierto).
+        if (error.code === '23505') { fallo('Esta tienda ya tiene un cambio de agencia programado.'); return; }
+        throw error;
+      }
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Programar cambio de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'} el ${fechaISOaCorta(fecha)}`);
+      cerrarModalMoverAgencia();
+      await cargarAgenciasYTiendas();
+      if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+    } catch (err) {
+      console.error('Error programando el cambio de agencia:', err);
+      fallo('No se pudo programar el cambio de agencia.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function cancelarCambioProgramado(progId) {
+    const c = programadosCache.find(x => x.id === progId);
+    if (!c) return;
+    const t = tiendasCache.find(x => x.id === c.tienda_id);
+    const ok = await modalConfirm(
+      `¿Cancelar el cambio de "${t?.nombre || '—'}" de ${c.agencia_anterior_nombre || '—'} a ${c.agencia_nueva_nombre} del ${fechaISOaCorta(c.fecha_cambio)}?\n\nLa tienda seguirá en ${c.agencia_anterior_nombre || '—'}.`,
+      { titulo: 'Cancelar cambio programado', danger: true, textoOk: 'Sí, cancelar', textoCancel: 'No' }
+    );
+    if (!ok) return;
+    try {
+      const { error } = await sb.from('tienda_cambios_agencia_programados').update({
+        estado: 'CANCELADO',
+        resuelto_por: sesionActual?.nombre || sesionActual?.usuario || null,
+        resuelto_en: new Date().toISOString()
+      }).eq('id', progId).eq('estado', 'PENDIENTE');
+      if (error) throw error;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Cancelar cambio de agencia programado', `${t?.nombre || '—'}: ${c.agencia_anterior_nombre || '—'} → ${c.agencia_nueva_nombre} el ${fechaISOaCorta(c.fecha_cambio)}`);
+      await cargarAgenciasYTiendas();
+      if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+      if (programadosCache.length) abrirListaContador('programados');
+      else cerrarListaContador();
+    } catch (err) {
+      console.error('Error cancelando el cambio programado:', err);
+      await modalAlert('No se pudo cancelar el cambio programado.', { titulo: 'Error' });
+    }
+  }
+
+  document.querySelectorAll('#mmaCuando [data-cuando]').forEach(b =>
+    b.addEventListener('click', () => elegirCuandoMoverAgencia(b.dataset.cuando)));
+  document.getElementById('mmaFecha')?.addEventListener('input', actualizarNotaMoverAgencia);
+  document.getElementById('mmaAgencia')?.addEventListener('change', actualizarNotaMoverAgencia);
+  document.getElementById('mmaBtnCancelar')?.addEventListener('click', cerrarModalMoverAgencia);
+  document.getElementById('mmaBtnGuardar')?.addEventListener('click', guardarModalMoverAgencia);
+
+  // Movimiento inmediato (lo que hacía siempre el botón ⇄).
+  async function moverTiendaDeAgenciaAhora(t, destinoId) {
+    const id = t.id;
     try {
       const hermanasDestino = tiendasCache.filter(x => x.agencia_id === destinoId && x.activo);
       const nuevoOrden = hermanasDestino.length

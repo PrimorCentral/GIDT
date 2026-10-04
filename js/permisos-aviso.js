@@ -40,6 +40,8 @@ const BOTONES_CON_PERMISO = [
   ['[id^="btnEnviarFacturacion"]', 'enviar_facturacion'],
   ['#btnNuevaTienda', 'config_tiendas'],
   ['#view-config-tiendas .agencia-body .mini-btn', 'config_tiendas'],
+  ['[data-cancelar-programado]', 'config_tiendas'],
+  ['#mmaBtnGuardar', 'config_tiendas'],
   ['#btnNuevaAgencia', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-comercial]', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-grupo]', 'config_emails'],
