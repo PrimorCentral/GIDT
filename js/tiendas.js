@@ -1008,8 +1008,12 @@
     moverAgenciaTiendaId = id;
     document.getElementById('mmaMensaje').textContent = `Selecciona la agencia a la que quieres mover\n"${t.nombre}":`;
     const sel = document.getElementById('mmaAgencia');
-    sel.innerHTML = agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
-    sel.value = String(t.agencia_id);
+    // Vacío por defecto y sin la agencia actual (no tiene sentido moverla a
+    // la misma), para que haya que elegir la nueva a propósito.
+    sel.innerHTML = `<option value="">— Selecciona la nueva agencia —</option>`
+      + agenciasActivas().filter(a => a.id !== t.agencia_id)
+        .map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+    sel.value = '';
     const fecha = document.getElementById('mmaFecha');
     fecha.min = sumarDiasISO(fechaLocalISO(new Date()), 1);
     fecha.value = '';
@@ -1057,7 +1061,7 @@
     const fallo = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
     errEl.style.display = 'none';
 
-    if (!destinoId || destinoId === t.agencia_id) { fallo('Elige una agencia distinta de la actual.'); return; }
+    if (!destinoId || destinoId === t.agencia_id) { fallo('Selecciona la nueva agencia.'); return; }
 
     if (moverAgenciaCuando === 'ahora') {
       cerrarModalMoverAgencia();
