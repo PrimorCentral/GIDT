@@ -1443,6 +1443,37 @@
 </div>
 
 <!-- Modal: dar de baja / dar de alta una tienda (Gestión de tiendas) -->
+<!-- Modal: mover tienda de agencia (ahora mismo o programado para una fecha) -->
+<div class="modal-overlay" id="modalMoverAgenciaOverlay">
+  <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="mmaTitulo">
+    <h3 class="modal-title" id="mmaTitulo">Mover tienda de agencia</h3>
+    <p class="modal-message" id="mmaMensaje"></p>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div>
+        <label class="form-label" for="mmaAgencia">Agencia destino</label>
+        <select id="mmaAgencia" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">¿Cuándo?</label>
+        <div class="seg-cuando" id="mmaCuando">
+          <button type="button" class="activo" data-cuando="ahora">Ahora mismo</button>
+          <button type="button" data-cuando="programar">📅 Programar fecha</button>
+        </div>
+      </div>
+      <div id="mmaFechaWrap" style="display:none;">
+        <label class="form-label" for="mmaFecha">Fecha del cambio</label>
+        <input type="date" id="mmaFecha" class="form-input">
+      </div>
+    </div>
+    <div class="nota-programado" id="mmaNota" style="display:none;"></div>
+    <p id="mmaError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button type="button" class="btn" id="mmaBtnCancelar">Cancelar</button>
+      <button type="button" class="btn primary" id="mmaBtnGuardar">Mover</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalBajaTiendaOverlay">
   <div class="modal-box" style="max-width:440px;" role="dialog" aria-modal="true" aria-labelledby="mbtTitulo">
     <h3 class="modal-title" id="mbtTitulo">Dar de baja tienda</h3>
