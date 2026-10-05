@@ -1714,8 +1714,18 @@
         </div>
         <div class="ps-modal-cabecera-envio" id="psEnvioAgenciaBloque">
           <div class="ps-modal-numero" id="psNumeroSiniestro"></div>
-          <button type="button" class="btn primary" id="btnPsEnviarAgencia" style="font-size:12px; padding:6px 12px; white-space:nowrap;">✉️ Enviar a agencia</button>
         </div>
+      </div>
+
+      <!-- Aviso "Pendiente de enviar a la agencia": solo visible mientras no
+           se haya enviado el correo de reclamación (ver pintarBloqueEnvioAgencia). -->
+      <div class="ps-aviso-agencia" id="psAvisoAgencia" style="display:none;">
+        <div class="ps-aviso-agencia-ico">📧</div>
+        <div class="ps-aviso-agencia-txt">
+          <b>Pendiente de enviar a la agencia</b>
+          <span id="psAvisoAgenciaTexto"></span>
+        </div>
+        <button type="button" class="btn primary" id="btnPsEnviarAgencia">✉️ Enviar a agencia</button>
       </div>
 
       <div class="ps-form-grid">
