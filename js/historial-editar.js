@@ -266,7 +266,6 @@ async function crearSiniestroPanelDesdeBorrador(incidencia, draftSin, informe) {
     agencia_nombre: draftSin.agencia?.nombre || null,
     tienda_id: draftSin.tienda?.id || null,
     tienda_nombre: draftSin.tienda?.nombre || null,
-    informacion: incidencia.observaciones || null,
     fotos: draftSin.fotos,
     estado: 'PDTE COBRO',
     recogida_limite: recogidaLimite,

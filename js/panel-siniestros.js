@@ -65,7 +65,7 @@ const PS_TIPO_A_PLANTILLA = { ROTURA: 'ROTURA', FALTAS: 'FALTA', 'FALTAS Y ROTUR
 
 // ---------------- Alta automática (llamada desde siniestros.js) ----------------
 
-// s = fila de siniestrosHoyCache (id, tipo, fotos, fecha_limite, incidencia:{observaciones, tiendas:{...,agencias:{...}}})
+// s = fila de siniestrosHoyCache (id, tipo, fotos, fecha_limite, incidencia:{tiendas:{...,agencias:{...}}})
 // fechaInformeISO = informeHoyCache.fecha (fecha de recepción de la mercancía)
 async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
   try {
@@ -103,7 +103,6 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
         tienda_id: t.id || null,
         tienda_nombre: t.nombre || null,
         tipo: PS_TIPO_DESDE_SINIESTRO[s.tipo] || 'ROTURA',
-        informacion: s.incidencia?.observaciones || null,
         fotos: s.fotos || [],
         estado: 'PDTE COBRO',
         // La recogida solo aplica si hay algo roto físicamente que recoger
@@ -684,22 +683,46 @@ async function abrirModalPanelSiniestro(id) {
   document.getElementById('psModalOverlay').classList.add('show');
 }
 
-// Botón "Enviar a agencia" en la cabecera del detalle del siniestro: solo se
-// muestra mientras el correo de reclamación no se haya enviado todavía — en
-// cuanto se envía, esa información pasa a mostrarse en el paso "Enviado a
-// agencia" del seguimiento (columna de la izquierda), así que aquí el botón
-// simplemente desaparece.
+// Aviso "Pendiente de enviar a la agencia" (bajo la cabecera del detalle del
+// siniestro, con el botón "Enviar a agencia" dentro): solo se muestra
+// mientras el correo de reclamación no se haya enviado todavía. Mientras
+// tanto el detalle lleva además una franja naranja arriba (clase
+// "sin-enviar" en .ps-modal-box), igual que la fila en la tabla. En cuanto
+// se envía, todo esto desaparece y la información pasa al paso "Enviado a
+// agencia" del seguimiento (columna de la izquierda).
 function pintarBloqueEnvioAgencia(s) {
+  const aviso = document.getElementById('psAvisoAgencia');
   const btn = document.getElementById('btnPsEnviarAgencia');
+  const caja = aviso.closest('.ps-modal-box');
   if (s.correo_enviado) {
-    btn.style.display = 'none';
+    aviso.style.display = 'none';
+    caja.classList.remove('sin-enviar');
   } else {
-    btn.style.display = '';
+    aviso.style.display = '';
+    caja.classList.add('sin-enviar');
     const sinFotos = !(s.fotos || []).length;
     btn.disabled = sinFotos;
     btn.title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
     btn.textContent = '✉️ Enviar a agencia';
+    const hace = psTextoHaceDias(s.creado_en);
+    document.getElementById('psAvisoAgenciaTexto').textContent = sinFotos
+      ? `Creado ${hace}. Añade al menos 1 foto para poder enviar el correo de reclamación.`
+      : `Creado ${hace} y todavía no se ha mandado el correo de reclamación.`;
   }
+}
+
+// "hoy", "hace 1 día", "hace 5 días"… contando días naturales (no horas)
+// desde la fecha dada hasta hoy.
+function psTextoHaceDias(fechaIso) {
+  if (!fechaIso) return 'hace un tiempo';
+  const d = new Date(fechaIso);
+  if (isNaN(d)) return 'hace un tiempo';
+  const hoy = new Date();
+  const ini = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const fin = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const dias = Math.max(0, Math.round((fin - ini) / 86400000));
+  if (dias === 0) return 'hoy';
+  return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
 }
 
 // ---------------- Seguimiento del siniestro (columna izquierda) ----------------
@@ -716,9 +739,9 @@ function psLineasDetalle(...lineas) {
   return lineas.filter(l => l !== null && l !== undefined && l !== '').map(l => escapeHtml(l)).join('<br>');
 }
 
-function psPasoSeguimientoHtml({ estado, icono, titulo, detalleHtml, chip }) {
+function psPasoSeguimientoHtml({ estado, icono, titulo, detalleHtml, chip, clase }) {
   return `
-    <div class="step step-${estado}">
+    <div class="step step-${estado}${clase ? ' ' + clase : ''}">
       <div class="step-nodo">${icono}</div>
       <div class="step-cuerpo">
         <p class="step-label">${escapeHtml(titulo)}</p>
@@ -754,7 +777,9 @@ function renderSeguimientoPanel(s) {
   } else {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'current', icono: '2', titulo: 'Enviado a agencia',
-      detalleHtml: psLineasDetalle('Todavía no se ha enviado el correo a la agencia')
+      clase: 'step-sin-enviar',
+      detalleHtml: psLineasDetalle('Todavía no se ha enviado el correo a la agencia'),
+      chip: `⏳ Pendiente · ${psTextoHaceDias(s.creado_en)}`
     }));
   }
 
