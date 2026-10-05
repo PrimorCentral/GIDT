@@ -105,6 +105,7 @@
       <div class="dropdown" id="analisisDropdown">
         <button data-view="analisis-ranking">🏆 Ranking de incidencias</button>
         <button data-view="analisis-reportes-mensuales">🗓️ Reportes mensuales</button>
+        <button data-view="analisis-historico-agencias">🔀 Histórico de agencias</button>
       </div>
     </nav>
 
@@ -780,6 +781,31 @@
         </table>
       </div>
       <div class="ps-paginacion" id="psPaginacion"></div>
+    </section>
+
+    <!-- ============ ANÁLISIS: HISTÓRICO DE AGENCIAS ============ -->
+    <section class="view" id="view-analisis-historico-agencias">
+      <div class="page-head">
+        <div>
+          <h1>🔀 Histórico de agencias</h1>
+          <p>Por qué agencias ha pasado cada tienda, durante cuánto tiempo y con cuántas incidencias.</p>
+        </div>
+        <div class="ha-filtros">
+          <button class="ps-btn-icon btn-recargar" id="haBtnRecargar" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <input type="text" id="haBuscador" class="form-input" style="width:220px;" placeholder="🔎 Buscar tienda…">
+          <select id="haFiltroAgencia" class="form-input" style="width:190px;"><option value="">Todas las agencias</option></select>
+          <label class="ha-check"><input type="checkbox" id="haSoloCambios" checked> Solo tiendas con cambios</label>
+          <button class="btn" id="haBtnExportar">⬇️ Exportar</button>
+        </div>
+      </div>
+      <div class="ha-kpis">
+        <div class="kpi"><b id="haKpiTiendas">—</b><span>Tiendas que han cambiado de agencia</span></div>
+        <div class="kpi"><b id="haKpiCambios">—</b><span>Cambios de agencia en total</span></div>
+        <div class="kpi"><b id="haKpiProgramados" style="color:var(--moderado);">—</b><span>Cambios programados</span></div>
+        <div class="kpi"><b id="haKpiDesde">—</b><span>Datos desde (primer informe)</span></div>
+      </div>
+      <p class="ha-nota">Incidencias contadas como en el Reporte mensual: solo informes enviados y entregas habituales.</p>
+      <div class="ha-lista" id="haLista"></div>
     </section>
 
     <!-- ============ CONFIGURACIÓN: TIENDAS ============ -->
@@ -2401,6 +2427,7 @@
 <script src="js/reportes-mensuales-exportar.js"></script>
 <script src="js/informe-autorefresh.js"></script>
 <script src="js/analisis.js"></script>
+<script src="js/historico-agencias.js"></script>
 <script src="js/analisis-pdf.js"></script>
 
 </body>

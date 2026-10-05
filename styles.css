@@ -2462,3 +2462,48 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
 .prog-ag-de{ font-weight:700; color:var(--ink-soft); }
 .prog-ag-a{ font-weight:700; color:var(--accent-ink); }
 .btn.prog-cancelar{ padding:6px 10px; font-size:12px; color:var(--grave); flex:0 0 auto; }
+
+/* ========== Análisis · Histórico de agencias (historico-agencias.js) ========== */
+.ha-filtros{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.ha-check{
+  display:flex; align-items:center; gap:7px; cursor:pointer; user-select:none;
+  font-size:13px; font-weight:600; color:var(--ink);
+  background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:8px 11px;
+}
+.ha-check input{ accent-color:var(--accent); width:15px; height:15px; margin:0; }
+.ha-kpis{ display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:8px; }
+.ha-nota{ margin:0 0 14px; font-size:11.5px; color:var(--ink-soft); }
+.ha-lista{ display:flex; flex-direction:column; gap:14px; }
+.ha-card{ padding:0; overflow:hidden; }
+.ha-head{ display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.ha-num{ font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); background:var(--panel-muted); border-radius:6px; padding:3px 7px; }
+.ha-nombre{ font-size:15px; font-weight:800; letter-spacing:-.1px; }
+.ha-prov{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+.ha-head-derecha{ margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.ha-ahora{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+.ha-ag{ display:inline-block; padding:2px 9px; border-radius:99px; font-size:11.5px; font-weight:800; letter-spacing:.3px; }
+.ha-barra{ display:flex; gap:2px; height:10px; margin:14px 18px 4px; border-radius:99px; overflow:hidden; background:var(--panel-muted); }
+.ha-barra span{ display:block; height:100%; min-width:3px; }
+.ha-barra .ha-fut{ background:repeating-linear-gradient(45deg, color-mix(in srgb, var(--ha-c) 40%, #fff) 0 5px, #fff 5px 9px); }
+.ha-eje{ position:relative; height:14px; margin:0 18px; font-size:10.5px; color:var(--ink-soft); font-weight:600; }
+.ha-eje span{ position:absolute; top:0; white-space:nowrap; }
+.ha-eje span.fin{ transform:translateX(-100%); }
+.ha-tramos{ padding:8px 18px 14px; }
+.ha-tramo{ display:grid; grid-template-columns:4px 1fr 80px 92px; gap:14px; align-items:center; padding:9px 0; }
+.ha-linea{ align-self:stretch; border-radius:4px; }
+.ha-linea-fut{ background:repeating-linear-gradient(180deg, var(--ha-c) 0 4px, transparent 4px 8px) !important; }
+.ha-txt{ font-size:13.5px; color:var(--ink); line-height:1.55; }
+.ha-txt small{ display:block; font-size:11.5px; color:var(--ink-soft); }
+.ha-tramo-fut .ha-txt{ color:var(--ink-soft); }
+.ha-dato{ text-align:center; }
+.ha-dato b{ display:block; font-size:18px; font-weight:800; line-height:1.1; }
+.ha-dato span{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft); }
+.ha-dato.inc b{ color:var(--grave); }
+.ha-dato.cero b{ color:var(--ok); }
+.ha-tramo-fut .ha-dato b{ color:var(--ink-soft); }
+.ha-flecha{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--ink-soft); }
+.ha-flecha i{ font-style:normal; display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--panel-muted); align-items:center; justify-content:center; }
+@media (max-width: 900px){
+  .ha-kpis{ grid-template-columns:repeat(2, 1fr); }
+  .ha-tramo{ grid-template-columns:4px 1fr 60px 76px; gap:10px; }
+}
