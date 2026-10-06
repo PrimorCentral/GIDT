@@ -1988,6 +1988,12 @@ body.rol-lectura input[type="file"]{
 .inicio-pendiente-item .icono{ font-size:18px; flex:0 0 auto; }
 .inicio-pendiente-item .texto{ flex:1; font-size:13px; color:var(--ink); font-weight:600; }
 .inicio-pendiente-item .flecha{ color:var(--ink-soft); font-size:14px; flex:0 0 auto; }
+/* Aviso urgente (en rojo, siempre el primero): p. ej. siniestros del
+   Panel pendientes de enviar a la agencia. */
+.inicio-pendiente-item.urgente{ background:var(--grave-bg); border-color:#F5B5A8; box-shadow:inset 3px 0 0 var(--grave); }
+.inicio-pendiente-item.urgente:hover{ background:#FBD6CD; border-color:var(--grave); }
+.inicio-pendiente-item.urgente .texto{ color:var(--grave); font-weight:700; }
+.inicio-pendiente-item.urgente .flecha{ color:var(--grave); }
 
 /* ========== Inicio: 2 columnas (estado del informe + tareas pendientes) ========== */
 .inicio-2col{
