@@ -51,7 +51,14 @@ let panelFirmaFiltros = '';
 function psSeguimientoCompleto(s) {
   if (s.estado !== 'COBRADO') return false;
   const recogidaOk = s.tipo === 'FALTAS' || s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
-  return !!s.correo_enviado && !!s.enviado_facturacion && !!s.factura_url && recogidaOk;
+  return psEnvioAgenciaResuelto(s) && !!s.enviado_facturacion && !!s.factura_url && recogidaOk;
+}
+
+// El paso "Enviado a agencia" está resuelto si se mandó el correo o si se
+// omitió el envío a propósito (botón "Omitir envío"). Mientras no, la fila
+// sale en naranja, cuenta en Tareas pendientes y en el filtro "sin enviar".
+function psEnvioAgenciaResuelto(s) {
+  return !!s.correo_enviado || !!s.envio_omitido_en;
 }
 let panelActivoId = null;
 
@@ -182,7 +189,7 @@ function siniestrosPanelFiltrados({ ignorarVisibilidad = false } = {}) {
     }
     if (f.sinFactura && s.factura_url) return false;
     if (f.sinAlbaran && s.albaran_url) return false;
-    if (f.sinCorreo && s.correo_enviado) return false;
+    if (f.sinCorreo && psEnvioAgenciaResuelto(s)) return false;
     if (texto) {
       const campo = [s.id, s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura]
         .filter(Boolean).join(' ').toUpperCase();
@@ -308,13 +315,13 @@ function renderPanelSiniestros() {
       ? `${psFormatearFecha(s.recogida_limite)}${recogidaEstadoTexto ? `<br><span class="ps-recogida-mini">${recogidaEstadoTexto}</span>` : ''}`
       : 'NO APLICA';
     return `
-      <tr data-id="${s.id}" class="ps-fila${s.correo_enviado ? '' : ' ps-correo-pendiente'}${psSeguimientoCompleto(s) ? ' ps-fila-completa' : ''}${s.estado === 'ANULADO' ? ' ps-fila-anulada' : ''}"${psSeguimientoCompleto(s) ? ' title="Seguimiento completado"' : ''}>
+      <tr data-id="${s.id}" class="ps-fila${psEnvioAgenciaResuelto(s) ? '' : ' ps-correo-pendiente'}${psSeguimientoCompleto(s) ? ' ps-fila-completa' : ''}${s.estado === 'ANULADO' ? ' ps-fila-anulada' : ''}"${psSeguimientoCompleto(s) ? ' title="Seguimiento completado"' : ''}>
         <td class="ps-col-num"><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${escapeHtml(s.tienda_nombre || '—')}</td>
         <td>${escapeHtml(s.origen || '—')}</td>
-        <td>${psPillTipo(s.tipo)}${s.correo_enviado ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
+        <td>${psPillTipo(s.tipo)}${psEnvioAgenciaResuelto(s) ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td>${escapeHtml(s.num_factura || '—')}${tieneFactura ? ' 📄' : ''}</td>
@@ -688,13 +695,13 @@ async function abrirModalPanelSiniestro(id) {
 // mientras el correo de reclamación no se haya enviado todavía. Mientras
 // tanto el detalle lleva además una franja naranja arriba (clase
 // "sin-enviar" en .ps-modal-box), igual que la fila en la tabla. En cuanto
-// se envía, todo esto desaparece y la información pasa al paso "Enviado a
-// agencia" del seguimiento (columna de la izquierda).
+// se envía (o se omite el envío), todo esto desaparece y la información pasa
+// al paso "Enviado a agencia" del seguimiento (columna de la izquierda).
 function pintarBloqueEnvioAgencia(s) {
   const aviso = document.getElementById('psAvisoAgencia');
   const btn = document.getElementById('btnPsEnviarAgencia');
   const caja = aviso.closest('.ps-modal-box');
-  if (s.correo_enviado) {
+  if (psEnvioAgenciaResuelto(s)) {
     aviso.style.display = 'none';
     caja.classList.remove('sin-enviar');
   } else {
@@ -774,6 +781,13 @@ function renderSeguimientoPanel(s) {
         psFormatearFechaHora(s.correo_enviado_en)
       )
     }));
+  } else if (s.envio_omitido_en) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '–', titulo: 'Envío a agencia omitido',
+      clase: 'step-omitido',
+      detalleHtml: psLineasDetalle(s.envio_omitido_por, psFormatearFechaHora(s.envio_omitido_en)),
+      chip: 'No se envía correo'
+    }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'current', icono: '2', titulo: 'Enviado a agencia',
@@ -791,7 +805,7 @@ function renderSeguimientoPanel(s) {
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
-      estado: s.correo_enviado ? 'current' : 'pending', icono: '3',
+      estado: psEnvioAgenciaResuelto(s) ? 'current' : 'pending', icono: '3',
       titulo: 'Albarán enviado a facturación',
       detalleHtml: psLineasDetalle('Todavía no se ha enviado el albarán a Facturación')
     }));
@@ -994,6 +1008,130 @@ async function enviarCorreoAgenciaDesdePanel() {
   }
 }
 document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', enviarCorreoAgenciaDesdePanel);
+
+// ---------------- Omitir envío a la agencia ----------------
+// Para siniestros en los que no hace falta mandar el correo de reclamación
+// (p. ej. ya se ha gestionado por otra vía). Se confirma deslizando, sin
+// vuelta atrás: guarda quién y cuándo, y el paso 2 del seguimiento queda
+// como "Envío a agencia omitido" (en gris). Va dentro del permiso de Panel
+// siniestros (permisos-aviso.js bloquea cualquier .btn de #psModalOverlay).
+async function omitirEnvioAgenciaDesdePanel() {
+  const s = panelCache.find(x => x.id === panelActivoId);
+  if (!s || psEnvioAgenciaResuelto(s)) return;
+
+  const ok = await modalDeslizarConfirmar(
+    `El siniestro Nº ${s.id}${s.agencia_nombre ? ` (${s.agencia_nombre}${s.tienda_nombre ? ' · ' + s.tienda_nombre : ''})` : ''} se quedará sin enviar el correo de reclamación y pasará al siguiente paso.`,
+    { titulo: '¿Omitir el envío a la agencia?', icono: '🚫', textoDeslizar: 'Desliza para omitir el envío', textoHecho: 'Envío omitido' }
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById('btnPsOmitirEnvio');
+  btn.disabled = true;
+  try {
+    const omitidoEn = new Date().toISOString();
+    const omitidoPor = sesionActual?.nombre || sesionActual?.usuario || null;
+    const { error } = await sb.from('panel_siniestros').update({
+      envio_omitido_en: omitidoEn,
+      envio_omitido_por: omitidoPor
+    }).eq('id', s.id);
+    if (error) throw error;
+
+    s.envio_omitido_en = omitidoEn;
+    s.envio_omitido_por = omitidoPor;
+    pintarBloqueEnvioAgencia(s);
+    renderSeguimientoPanel(s);
+    renderPanelSiniestros();
+  } catch (err) {
+    console.error('Error omitiendo el envío a la agencia:', err);
+    await modalAlert(`No se pudo omitir el envío: ${err.message}`, { titulo: 'Error' });
+  } finally {
+    btn.disabled = false;
+  }
+}
+document.getElementById('btnPsOmitirEnvio')?.addEventListener('click', omitirEnvioAgenciaDesdePanel);
+
+// Confirmación "deslizar para confirmar" (como el desbloqueo del iPhone):
+// hay que arrastrar el círculo hasta el final; si se suelta antes, vuelve
+// al principio. Con teclado: Enter / flecha derecha sobre el círculo.
+// Devuelve una promesa con true (confirmado) o false (cancelado).
+function modalDeslizarConfirmar(mensaje, { titulo = 'Confirmar', icono = '', textoDeslizar = 'Desliza para confirmar', textoHecho = 'Hecho' } = {}) {
+  const overlay = document.getElementById('deslizarOverlay');
+  const pista = document.getElementById('deslizarPista');
+  const tirador = document.getElementById('deslizarTirador');
+  const relleno = document.getElementById('deslizarRelleno');
+  const texto = document.getElementById('deslizarTexto');
+  const btnCancelar = document.getElementById('deslizarCancelar');
+  const MARGEN = 4;
+
+  document.getElementById('deslizarIcono').textContent = icono;
+  document.getElementById('deslizarIcono').style.display = icono ? '' : 'none';
+  document.getElementById('deslizarTitulo').textContent = titulo;
+  document.getElementById('deslizarMensaje').textContent = mensaje;
+  texto.textContent = textoDeslizar;
+  tirador.textContent = '›';
+  pista.classList.remove('hecho', 'arrastrando', 'volviendo');
+
+  return new Promise(resolve => {
+    let x0 = 0, pos = 0, arrastrando = false, terminado = false;
+    const max = () => pista.clientWidth - tirador.offsetWidth - MARGEN * 2;
+    const pintar = p => {
+      tirador.style.left = (MARGEN + p) + 'px';
+      relleno.style.width = (p + tirador.offsetWidth + MARGEN * 2) + 'px';
+    };
+
+    function cerrar(resultado, retardo = 0) {
+      terminado = true;
+      tirador.removeEventListener('pointerdown', onDown);
+      tirador.removeEventListener('pointermove', onMove);
+      tirador.removeEventListener('pointerup', onUp);
+      tirador.removeEventListener('pointercancel', onUp);
+      tirador.removeEventListener('keydown', onKey);
+      btnCancelar.removeEventListener('click', onCancelar);
+      setTimeout(() => { overlay.classList.remove('show'); resolve(resultado); }, retardo);
+    }
+    function confirmar() {
+      pos = max(); pintar(pos);
+      pista.classList.add('hecho');
+      tirador.textContent = '✓';
+      texto.textContent = textoHecho;
+      cerrar(true, 450);
+    }
+    function onDown(e) {
+      if (terminado) return;
+      arrastrando = true; x0 = e.clientX - pos;
+      pista.classList.add('arrastrando'); pista.classList.remove('volviendo');
+      tirador.setPointerCapture(e.pointerId);
+    }
+    function onMove(e) {
+      if (!arrastrando) return;
+      pos = Math.max(0, Math.min(max(), e.clientX - x0));
+      pintar(pos);
+    }
+    function onUp() {
+      if (!arrastrando) return;
+      arrastrando = false; pista.classList.remove('arrastrando');
+      if (pos >= max() * 0.92) confirmar();
+      else { pista.classList.add('volviendo'); pos = 0; pintar(0); }
+    }
+    function onKey(e) {
+      if (terminado) return;
+      if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); confirmar(); }
+      if (e.key === 'Escape') { e.preventDefault(); cerrar(false); }
+    }
+    function onCancelar() { if (!terminado) cerrar(false); }
+
+    tirador.addEventListener('pointerdown', onDown);
+    tirador.addEventListener('pointermove', onMove);
+    tirador.addEventListener('pointerup', onUp);
+    tirador.addEventListener('pointercancel', onUp);
+    tirador.addEventListener('keydown', onKey);
+    btnCancelar.addEventListener('click', onCancelar);
+
+    overlay.classList.add('show');
+    pintar(0);
+    tirador.focus();
+  });
+}
 
 async function cerrarModalPanelSiniestro() {
   if (guardadoPanelTimer) {

@@ -279,14 +279,15 @@ async function recargarConGiro(btn, ...cargas) {
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen, correo_enviado');
+        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen, correo_enviado, envio_omitido_en');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
         // Siniestros del Panel que todavía no se han enviado a la agencia
-        // (mismo criterio que las filas resaltadas en naranja en la tabla).
+        // ni se ha omitido el envío (mismo criterio que las filas resaltadas
+        // en naranja en la tabla).
         // Va el primero y en rojo (clase "urgente"). Los anulados no cuentan.
-        const sinEnviarAgencia = data.filter(s => !s.correo_enviado && s.estado !== 'ANULADO');
+        const sinEnviarAgencia = data.filter(s => !s.correo_enviado && !s.envio_omitido_en && s.estado !== 'ANULADO');
         if (sinEnviarAgencia.length) {
           const n = sinEnviarAgencia.length;
           items.unshift({

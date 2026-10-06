@@ -207,7 +207,7 @@ function psxFilasAExportar(fechaDesde, fechaHasta, usarFiltroActivo) {
     }
     if (criterio.sinFactura && s.factura_url) return false;
     if (criterio.sinAlbaran && s.albaran_url) return false;
-    if (criterio.sinCorreo && s.correo_enviado) return false;
+    if (criterio.sinCorreo && (s.correo_enviado || s.envio_omitido_en)) return false;
     if (criterio.texto) {
       const texto = criterio.texto.trim().toUpperCase();
       const campo = [s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura].filter(Boolean).join(' ').toUpperCase();
