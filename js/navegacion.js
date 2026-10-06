@@ -279,9 +279,23 @@ async function recargarConGiro(btn, ...cargas) {
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen');
+        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen, correo_enviado');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+        // Siniestros del Panel que todavía no se han enviado a la agencia
+        // (mismo criterio que las filas resaltadas en naranja en la tabla).
+        // Va el primero y en rojo (clase "urgente"). Los anulados no cuentan.
+        const sinEnviarAgencia = data.filter(s => !s.correo_enviado && s.estado !== 'ANULADO');
+        if (sinEnviarAgencia.length) {
+          const n = sinEnviarAgencia.length;
+          items.unshift({
+            icono: '📧',
+            texto: `${n} siniestro${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'} de enviar a la agencia`,
+            vista: 'panel-siniestros',
+            urgente: true
+          });
+        }
 
         // Solo avisa si lleva más de 30 días pendiente de cobro (a partir
         // de la fecha del siniestro), no en cuanto entra en ese estado.
@@ -415,7 +429,7 @@ async function recargarConGiro(btn, ...cargas) {
     }
 
     cont.innerHTML = items.map(it => `
-      <button type="button" class="inicio-pendiente-item" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}>
+      <button type="button" class="inicio-pendiente-item${it.urgente ? ' urgente' : ''}" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
         <span class="flecha">→</span>
