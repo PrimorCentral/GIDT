@@ -1616,11 +1616,16 @@ table.tabla-panel-siniestros td:nth-child(n+8){ text-align:center; }
 .ps-aviso-agencia-txt{ flex:1; min-width:0; }
 .ps-aviso-agencia-txt b{ display:block; font-size:13.5px; font-weight:800; color:var(--accent-ink); }
 .ps-aviso-agencia-txt span{ font-size:12px; color:var(--accent-ink); }
+.ps-aviso-agencia-botones{ display:flex; gap:8px; flex:0 0 auto; }
+.ps-aviso-agencia-botones .btn{ white-space:nowrap; }
+.ps-aviso-agencia-botones .btn:not(.primary){ background:#fff; border-color:#F5C9A6; color:var(--accent-ink); }
+.ps-aviso-agencia-botones .btn:not(.primary):hover{ border-color:var(--accent); }
 .ps-aviso-agencia .btn.primary{ flex:0 0 auto; white-space:nowrap; box-shadow:0 3px 10px -3px rgba(255,122,26,.55); }
 .ps-aviso-agencia .btn.primary:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none; filter:none; }
 @media (max-width:600px){
   .ps-aviso-agencia{ flex-wrap:wrap; }
-  .ps-aviso-agencia .btn.primary{ width:100%; justify-content:center; }
+  .ps-aviso-agencia-botones{ width:100%; }
+  .ps-aviso-agencia-botones .btn{ flex:1 1 0; justify-content:center; }
 }
 .step-sin-enviar .step-cuerpo{
   flex:1; align-self:flex-start;
@@ -1630,6 +1635,42 @@ table.tabla-panel-siniestros td:nth-child(n+8){ text-align:center; }
 .step-sin-enviar .step-label{ color:var(--accent-ink); }
 .step-sin-enviar .step-detalle{ color:var(--accent-ink); font-weight:600; }
 .step-sin-enviar .step-chip{ background:var(--accent); color:#2A1200; }
+/* Paso 2 cuando se ha omitido el envío a la agencia (a propósito): gris. */
+.step-omitido::before{ background:var(--ink-soft); }
+.step-omitido .step-nodo{ background:var(--ink-soft); color:#fff; border-color:var(--ink-soft); }
+.step-omitido .step-chip{ background:#E6E9ED; color:var(--ink-soft); }
+
+/* ---------- Confirmación "deslizar para confirmar" (#deslizarOverlay) ---------- */
+#deslizarOverlay{ z-index:500; }
+#deslizarOverlay .modal-message{ margin-bottom:18px; }
+.deslizar{
+  position:relative; height:54px; border-radius:99px; user-select:none; -webkit-user-select:none; touch-action:none;
+  background:var(--panel-muted); border:1px solid var(--border); overflow:hidden;
+}
+.deslizar-relleno{ position:absolute; top:0; bottom:0; left:0; width:54px; background:#FFE3CC; border-radius:99px; }
+.deslizar-texto{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-left:40px;
+  font-size:13.5px; font-weight:700; pointer-events:none;
+  background:linear-gradient(90deg, var(--ink-soft) 0%, var(--ink-soft) 40%, #C7CDD5 50%, var(--ink-soft) 60%, var(--ink-soft) 100%);
+  background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:deslizar-brillo 2.2s linear infinite;
+}
+@keyframes deslizar-brillo{ from{ background-position:100% 0; } to{ background-position:-100% 0; } }
+.deslizar-tirador{
+  position:absolute; top:4px; left:4px; width:46px; height:46px; border-radius:50%;
+  background:var(--accent); color:#2A1200; font-size:20px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; cursor:grab;
+  box-shadow:0 3px 10px -3px rgba(255,122,26,.7); outline:none;
+}
+.deslizar-tirador:focus-visible{ box-shadow:0 0 0 3px rgba(255,122,26,.35); }
+.deslizar.arrastrando .deslizar-tirador{ cursor:grabbing; }
+.deslizar.volviendo .deslizar-tirador{ transition:left .25s ease; }
+.deslizar.volviendo .deslizar-relleno{ transition:width .25s ease; }
+.deslizar.hecho{ background:var(--ok); border-color:var(--ok); }
+.deslizar.hecho .deslizar-relleno{ display:none; }
+.deslizar.hecho .deslizar-texto{ animation:none; background:none; color:#fff; padding-left:0; }
+.deslizar.hecho .deslizar-tirador{ background:#fff; color:var(--ok); box-shadow:none; cursor:default; }
+.deslizar-pie{ justify-content:center; margin-top:12px; }
 
 .ps-modal-meta{
   display:flex; flex-direction:column; gap:6px; margin-top:12px;

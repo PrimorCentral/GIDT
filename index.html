@@ -1679,6 +1679,25 @@
 </div>
 
 <!-- Modal: completar datos de un siniestro (Panel siniestros) -->
+<!-- Confirmación "deslizar para confirmar" (estilo desbloqueo de iPhone),
+     usada para "Omitir envío" a la agencia en el detalle del siniestro.
+     Ver modalDeslizarConfirmar() en js/panel-siniestros.js. -->
+<div class="modal-overlay" id="deslizarOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <div class="modal-icon" id="deslizarIcono">🚫</div>
+    <h3 class="modal-title" id="deslizarTitulo"></h3>
+    <p class="modal-message" id="deslizarMensaje"></p>
+    <div class="deslizar" id="deslizarPista">
+      <div class="deslizar-relleno" id="deslizarRelleno"></div>
+      <div class="deslizar-texto" id="deslizarTexto"></div>
+      <div class="deslizar-tirador" id="deslizarTirador" role="button" tabindex="0" aria-label="Desliza para confirmar">›</div>
+    </div>
+    <div class="modal-footer deslizar-pie">
+      <button type="button" class="btn" id="deslizarCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="psModalOverlay">
   <div class="ps-modal-conjunto">
     <aside class="seguimiento-panel" id="psSeguimientoPanel">
@@ -1725,7 +1744,10 @@
           <b>Pendiente de enviar a la agencia</b>
           <span id="psAvisoAgenciaTexto"></span>
         </div>
-        <button type="button" class="btn primary" id="btnPsEnviarAgencia">✉️ Enviar a agencia</button>
+        <div class="ps-aviso-agencia-botones">
+          <button type="button" class="btn" id="btnPsOmitirEnvio">🚫 Omitir envío</button>
+          <button type="button" class="btn primary" id="btnPsEnviarAgencia">✉️ Enviar a agencia</button>
+        </div>
       </div>
 
       <div class="ps-form-grid">
