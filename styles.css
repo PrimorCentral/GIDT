@@ -2583,3 +2583,26 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
   .ha-kpis{ grid-template-columns:repeat(2, 1fr); }
   .ha-tramo{ grid-template-columns:4px 1fr 60px 76px; gap:10px; }
 }
+
+/* ---------- "Acerca de": pestañas Licencia / Novedades (js/acerca-de.js + js/changelog.js) ---------- */
+.acerca-tabs{ display:flex; border-bottom:1px solid var(--border); }
+.acerca-tab{
+  flex:1; padding:11px 10px; background:transparent; border:0; border-bottom:2px solid transparent;
+  border-radius:0; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-soft); margin-bottom:-1px;
+}
+.acerca-tab:hover{ color:var(--ink); }
+.acerca-tab.activa{ color:var(--ink); font-weight:700; border-bottom-color:var(--accent); }
+.acerca-novedades{ padding:6px 26px 4px; max-height:380px; overflow-y:auto; }
+.acerca-version-item{ padding:12px 0; border-bottom:1px solid var(--border); }
+.acerca-version-item:last-child{ border-bottom:0; }
+.acerca-version-cab{ display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--ink); }
+.acerca-version-actual{ font-size:10.5px; font-weight:700; background:var(--bg); color:#fff; padding:2px 7px; border-radius:6px; }
+.acerca-version-fecha{ margin-left:auto; font-size:12px; font-weight:500; color:var(--ink-soft); }
+.acerca-cambios{ list-style:none; margin:8px 0 0; padding:0; }
+.acerca-cambios li{ display:flex; align-items:flex-start; gap:8px; margin:6px 0; font-size:13px; line-height:1.45; color:var(--ink); }
+.acerca-tag{ flex:0 0 auto; font-size:11px; font-weight:700; padding:1px 7px; border-radius:6px; margin-top:1px; }
+.acerca-tag.nuevo{ background:var(--ok-bg); color:var(--ok); }
+.acerca-tag.mejora{ background:var(--moderado-bg); color:var(--moderado); }
+.acerca-tag.correccion{ background:#FFEEDF; color:var(--accent-ink); }
+.acerca-novedades-vacio{ font-size:13px; color:var(--ink-soft); padding:16px 0; text-align:center; }
+.acerca-panel[hidden]{ display:none !important; }

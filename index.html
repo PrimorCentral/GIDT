@@ -1618,6 +1618,11 @@
       <div class="acerca-nombre" id="acercaDeNombre">GESTIÓN <span>INCIDENCIAS</span></div>
       <div class="acerca-version" id="acercaDeVersion"></div>
     </div>
+    <div class="acerca-tabs" role="tablist">
+      <button type="button" class="acerca-tab activa" id="acercaTabLicencia" role="tab" aria-selected="true" aria-controls="acercaPanelLicencia">Licencia</button>
+      <button type="button" class="acerca-tab" id="acercaTabNovedades" role="tab" aria-selected="false" aria-controls="acercaPanelNovedades">Novedades</button>
+    </div>
+    <div class="acerca-panel" id="acercaPanelLicencia" role="tabpanel">
     <div class="acerca-cuerpo">
       <div class="acerca-campo">
         <span class="lbl">Desarrollado por</span>
@@ -1640,6 +1645,10 @@
       <p class="acerca-copy" id="acercaDeCopy"></p>
       <p>Este software está protegido por la legislación sobre propiedad intelectual. La licencia de uso concedida es no exclusiva e intransferible y se limita a la actividad interna del licenciatario.</p>
       <p>Queda prohibida su copia, cesión, distribución, modificación o ingeniería inversa, total o parcial, sin autorización previa y por escrito del autor. Cualquier uso no autorizado podrá dar lugar a las acciones legales correspondientes.</p>
+    </div>
+    </div>
+    <div class="acerca-panel" id="acercaPanelNovedades" role="tabpanel" hidden>
+      <div class="acerca-novedades" id="acercaDeNovedades"></div>
     </div>
     <div class="acerca-acciones">
       <button type="button" class="btn acerca-aceptar" id="btnAcercaDeAceptar">Aceptar</button>
@@ -2427,6 +2436,7 @@
 <script src="js/carga-global.js"></script>
 <script src="js/permisos-aviso.js"></script>
 <script src="js/actualizaciones.js"></script>
+<script src="js/changelog.js"></script>
 <script src="js/acerca-de.js"></script>
 <script src="js/navegacion.js"></script>
 <script src="js/usuarios.js"></script>
