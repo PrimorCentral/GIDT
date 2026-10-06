@@ -56,6 +56,48 @@ const ACERCA_DE_GIDT = {
       '© ' + e(d.anio) + ' ' + e(d.titularDerechos) + '<span>Todos los derechos reservados.</span>';
   }
 
+  // Pestaña "Novedades": historial de versiones de js/changelog.js.
+  const TIPOS_CAMBIO = { nuevo: 'Nuevo', mejora: 'Mejora', correccion: 'Corrección' };
+
+  function fechaChangelog(iso) {
+    const p = String(iso || '').split('-');
+    return p.length === 3 ? p[2].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + p[0] : '';
+  }
+
+  function pintarNovedades() {
+    const cont = document.getElementById('acercaDeNovedades');
+    if (!cont) return;
+    const e = escaparHtmlAcerca;
+    const lista = (typeof CHANGELOG_GIDT !== 'undefined' && Array.isArray(CHANGELOG_GIDT)) ? CHANGELOG_GIDT : [];
+    if (!lista.length) {
+      cont.innerHTML = '<p class="acerca-novedades-vacio">Aún no hay novedades registradas.</p>';
+      return;
+    }
+    cont.innerHTML = lista.map(function (v, i) {
+      const cambios = (v.cambios || []).map(function (c) {
+        const tipo = TIPOS_CAMBIO[c.tipo] ? c.tipo : 'mejora';
+        return '<li><span class="acerca-tag ' + tipo + '">' + TIPOS_CAMBIO[tipo] + '</span><span>' + e(c.texto) + '</span></li>';
+      }).join('');
+      return '<div class="acerca-version-item">' +
+        '<div class="acerca-version-cab">v' + e(v.version) +
+          (i === 0 ? ' <span class="acerca-version-actual">Actual</span>' : '') +
+          '<span class="acerca-version-fecha">' + e(fechaChangelog(v.fecha)) + '</span></div>' +
+        '<ul class="acerca-cambios">' + cambios + '</ul></div>';
+    }).join('');
+  }
+
+  function mostrarPestana(cual) {
+    const esNov = cual === 'novedades';
+    const tabL = document.getElementById('acercaTabLicencia');
+    const tabN = document.getElementById('acercaTabNovedades');
+    tabL.classList.toggle('activa', !esNov);
+    tabN.classList.toggle('activa', esNov);
+    tabL.setAttribute('aria-selected', String(!esNov));
+    tabN.setAttribute('aria-selected', String(esNov));
+    document.getElementById('acercaPanelLicencia').hidden = esNov;
+    document.getElementById('acercaPanelNovedades').hidden = !esNov;
+  }
+
   function abrir() {
     const overlay = document.getElementById('acercaDeModalOverlay');
     if (!overlay) return;
@@ -64,6 +106,8 @@ const ACERCA_DE_GIDT = {
     if (act && act.classList.contains('show')) return;
 
     pintarContenido();
+    pintarNovedades();
+    mostrarPestana('licencia');
     const elVersion = document.getElementById('acercaDeVersion');
     const v = versionYaPintada();
     elVersion.textContent = v ? 'Versión ' + v : '';
@@ -88,6 +132,8 @@ const ACERCA_DE_GIDT = {
 
     document.getElementById('btnAcercaDeAceptar').addEventListener('click', cerrar);
     document.getElementById('btnAcercaDeCerrar').addEventListener('click', cerrar);
+    document.getElementById('acercaTabLicencia').addEventListener('click', function () { mostrarPestana('licencia'); });
+    document.getElementById('acercaTabNovedades').addEventListener('click', function () { mostrarPestana('novedades'); });
     overlay.addEventListener('click', function (ev) { if (ev.target === overlay) cerrar(); });
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && overlay.classList.contains('show')) cerrar();
