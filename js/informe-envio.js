@@ -244,56 +244,113 @@ function listarIncidenciasSinRevisar(grupos) {
 }
 
 // ---------------------------------------------------------------
-// Tarea pendiente en Inicio: cuando un informe ya enviado se quedó con
-// incidencias "sin revisar" (Retraso Pdte Confirmar / Revisando posible
-// incidencia), lo recuerda en "Pendiente de atención" — sea o no el día
-// de hoy — hasta que esas incidencias se reclasifiquen con un motivo
-// definitivo. Al pulsar el aviso: si es el informe de hoy, lleva a
+// Banner "informe enviado con incidencias sin revisar": cuando un informe
+// ya enviado se quedó con incidencias "sin revisar" (Retraso Pdte
+// Confirmar / Revisando posible incidencia), sale una franja roja debajo
+// de la barra superior, en todas las pestañas, que no se puede cerrar:
+// desaparece sola cuando esas incidencias se reclasifican con un motivo
+// definitivo. (Antes era una tarea más en "Tareas pendientes" y se pasaba
+// por alto.) Al pulsar "Revisar ahora": si es el informe de hoy, lleva a
 // "Incidencias" (donde sí se puede editar); si es de un día anterior,
 // lleva al Historial de informes con esa fecha ya cargada.
 // ---------------------------------------------------------------
-async function informeEnvioComprobarPendientesInicio() {
+
+// Devuelve [{ fecha, n, esHoy }] de los informes enviados con incidencias
+// sin revisar, del más antiguo al más reciente.
+async function informeEnvioPendientesSinRevisar() {
+  const { data: incs, error: eInc } = await sb.from('incidencias')
+    .select('informe_id')
+    .eq('marcada', true)
+    .overlaps('motivo', MOTIVOS_SIN_REVISAR);
+  if (eInc) throw eInc;
+  if (!incs || !incs.length) return [];
+
+  const conteoPorInforme = {};
+  incs.forEach(i => { conteoPorInforme[i.informe_id] = (conteoPorInforme[i.informe_id] || 0) + 1; });
+
+  const { data: informes, error: eInf } = await sb.from('informes_diarios')
+    .select('id, fecha, informe_enviado')
+    .in('id', Object.keys(conteoPorInforme).map(Number))
+    .eq('informe_enviado', true);
+  if (eInf) throw eInf;
+
+  return (informes || [])
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    .map(inf => ({ fecha: inf.fecha, n: conteoPorInforme[inf.id], esHoy: inf.fecha === fechaHoyISO }));
+}
+
+function avisoInformesTextoHaceDias(fechaISO) {
+  const ini = new Date(fechaISO + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const dias = Math.max(0, Math.round((hoy - ini) / 86400000));
+  if (dias === 0) return 'desde hoy';
+  return dias === 1 ? 'desde hace 1 día' : `desde hace ${dias} días`;
+}
+
+let avisoInformesComprobando = false;
+async function actualizarAvisoInformesSinRevisar() {
+  const banner = document.getElementById('avisoGlobalInformes');
+  if (!banner || avisoInformesComprobando) return;
+  if (typeof sesionActual !== 'undefined' && !sesionActual) { banner.hidden = true; return; }
+  avisoInformesComprobando = true;
   try {
-    const { data: incs, error: eInc } = await sb.from('incidencias')
-      .select('informe_id')
-      .eq('marcada', true)
-      .overlaps('motivo', MOTIVOS_SIN_REVISAR);
-    if (eInc) throw eInc;
-    if (!incs || !incs.length) return [];
+    const pendientes = await informeEnvioPendientesSinRevisar();
+    if (!pendientes.length) { banner.hidden = true; banner.innerHTML = ''; return; }
 
-    const conteoPorInforme = {};
-    incs.forEach(i => { conteoPorInforme[i.informe_id] = (conteoPorInforme[i.informe_id] || 0) + 1; });
+    const masAntiguo = pendientes[0];
+    const totalInc = pendientes.reduce((acc, p) => acc + p.n, 0);
+    const fechaTxt = f => formatearFechaCorta(new Date(f + 'T00:00:00'));
+    const pl = (n, s, p) => (n === 1 ? s : p);
 
-    const { data: informes, error: eInf } = await sb.from('informes_diarios')
-      .select('id, fecha, informe_enviado')
-      .in('id', Object.keys(conteoPorInforme).map(Number))
-      .eq('informe_enviado', true);
-    if (eInf) throw eInf;
+    let titulo, detalle;
+    if (pendientes.length === 1) {
+      titulo = `El informe del ${fechaTxt(masAntiguo.fecha)} se envió a las agencias con ${totalInc} incidencia${pl(totalInc, '', 's')} sin revisar`;
+      detalle = `Pendiente ${avisoInformesTextoHaceDias(masAntiguo.fecha)} · Hay que reclasificar${pl(totalInc, 'la', 'las')} con un motivo definitivo`;
+    } else {
+      titulo = `${pendientes.length} informes se enviaron a las agencias con ${totalInc} incidencias sin revisar`;
+      detalle = `El más antiguo es del ${fechaTxt(masAntiguo.fecha)} (pendiente ${avisoInformesTextoHaceDias(masAntiguo.fecha)}) · Hay que reclasificarlas con un motivo definitivo`;
+    }
 
-    return (informes || [])
-      .sort((a, b) => a.fecha.localeCompare(b.fecha))
-      .map(inf => {
-        const n = conteoPorInforme[inf.id];
-        // El informe de hoy no se edita desde el Historial (ahí el botón
-        // "Editar informe" está oculto para la fecha de hoy) — se edita en
-        // la propia pestaña "Incidencias". Solo los informes de días
-        // anteriores llevan al Historial, con la fecha ya cargada.
-        const esHoy = inf.fecha === fechaHoyISO;
-        return {
-          icono: '🔎',
-          texto: `Informe ${formatearFechaCorta(new Date(inf.fecha + 'T00:00:00'))} enviado con ${n} incidencia${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`,
-          vista: esHoy ? 'incidencias' : 'historial-informes',
-          fecha: esHoy ? undefined : inf.fecha,
-          // En rojo y arriba del todo: son incidencias que ya han salido a
-          // las agencias sin clasificar, y se pasaban por alto en la lista.
-          urgente: true
-        };
-      });
+    banner.innerHTML = `
+      <span class="aviso-global-icono">⚠️</span>
+      <div class="aviso-global-texto"><b>${escapeHtml(titulo)}</b><span>${escapeHtml(detalle)}</span></div>
+      <button type="button" class="aviso-global-btn" id="btnAvisoInformesRevisar">Revisar ahora →</button>`;
+    banner.hidden = false;
+    document.getElementById('btnAvisoInformesRevisar').addEventListener('click', () => avisoInformesIrA(masAntiguo));
   } catch (err) {
     console.error('Error comprobando informes enviados con incidencias pendientes:', err);
-    return [];
+  } finally {
+    avisoInformesComprobando = false;
   }
 }
+
+// El informe de hoy no se edita desde el Historial (ahí el botón "Editar
+// informe" está oculto para la fecha de hoy) — se edita en la propia
+// pestaña "Incidencias". Los de días anteriores llevan al Historial, con la
+// fecha ya cargada.
+async function avisoInformesIrA(p) {
+  if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+  if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
+  if (p.esHoy) {
+    activarVista('incidencias');
+    if (typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
+  } else {
+    activarVista('historial-informes');
+    const inputFecha = document.getElementById('historialFechaInput');
+    if (inputFecha) inputFecha.value = p.fecha;
+    if (typeof cargarInformeHistorial === 'function') cargarInformeHistorial(p.fecha);
+  }
+}
+
+// Además de al iniciar sesión y al cambiar de pestaña, se comprueba cada
+// 2 minutos, para que desaparezca (o aparezca) sin tener que moverse.
+setInterval(() => {
+  if (document.visibilityState === 'visible') actualizarAvisoInformesSinRevisar();
+}, 120000);
+// Al abrir la app con la sesión ya guardada: cuando navegacion.js lanza la
+// primera carga, este archivo aún no se ha cargado, así que se comprueba
+// aquí una vez que están todos los scripts (y sesionActual ya rellena).
+window.addEventListener('load', () => actualizarAvisoInformesSinRevisar());
 
 // Modal de confirmación de envío: lista de agencias/incidencias, agencias
 // omitidas por falta de email, aviso de reenvío y aviso de incidencias sin

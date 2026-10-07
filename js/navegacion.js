@@ -51,6 +51,10 @@ async function recargarConGiro(btn, ...cargas) {
     } else {
       document.querySelector('.tab-btn[data-view="' + nombreVista + '"]')?.classList.add('active');
     }
+
+    // Al cambiar de pestaña se vuelve a comprobar el banner de informes
+    // enviados con incidencias sin revisar (p. ej. tras reclasificarlas).
+    if (typeof actualizarAvisoInformesSinRevisar === 'function') actualizarAvisoInformesSinRevisar();
   }
 
   document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
@@ -217,6 +221,7 @@ async function recargarConGiro(btn, ...cargas) {
       document.getElementById('statusWrap').title = 'Error de conexión';
     }
     cargarPendienteAtencion();
+    if (typeof actualizarAvisoInformesSinRevisar === 'function') actualizarAvisoInformesSinRevisar();
   }
 
   // ---------------------------------------------------------------
@@ -382,16 +387,9 @@ async function recargarConGiro(btn, ...cargas) {
       console.error('Error comprobando el resumen mensual pendiente:', err);
     }
 
-    // 5. Informes ya enviados que se quedaron con incidencias "sin revisar"
-    // (Retraso Pdte Confirmar / Revisando posible incidencia): avisa aunque
-    // no sea el informe de hoy, y sigue avisando mientras no se reclasifiquen.
-    try {
-      if (typeof informeEnvioComprobarPendientesInicio === 'function') {
-        items.push(...(await informeEnvioComprobarPendientesInicio()));
-      }
-    } catch (err) {
-      console.error('Error comprobando informes enviados con incidencias pendientes:', err);
-    }
+    // 5. Informes ya enviados con incidencias "sin revisar": ya no salen
+    // aquí, sino en el banner rojo bajo la barra superior (ver
+    // actualizarAvisoInformesSinRevisar en informe-envio.js).
 
     // 6. Cambios de agencia programados: avisan desde 3 días antes del
     // cambio. Antes se aplican los que ya tocan (por si el cron de las
