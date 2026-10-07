@@ -505,6 +505,33 @@ document.getElementById('psFiltroSinCorreo')?.addEventListener('change', (e) => 
   renderPanelSiniestros();
 });
 
+// Aplica de golpe unos filtros (p. ej. desde una tarea pendiente de Inicio:
+// "2 siniestros sin albarán" → abre el Panel con "Sin albarán" marcado).
+// Primero deja todos los filtros como de fábrica, para que no se mezclen
+// con los que hubiera puestos, y luego sincroniza los controles de la
+// barra de filtros para que se vea qué está filtrado.
+function psAplicarFiltros(parciales = {}) {
+  panelFiltros = {
+    texto: '', agenciaId: '', estado: '', tipo: '', origen: '', recogida: '', fechaDesde: '', fechaHasta: '',
+    sinFactura: false, sinAlbaran: false, sinCorreo: false, verCompletados: false, verAnulados: false,
+    ...parciales
+  };
+  const valor = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  const check = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  valor('psFiltroTexto', panelFiltros.texto);
+  valor('psFiltroFechaDesde', panelFiltros.fechaDesde);
+  valor('psFiltroFechaHasta', panelFiltros.fechaHasta);
+  valor('psFiltroAgencia', panelFiltros.agenciaId);
+  valor('psFiltroEstado', panelFiltros.estado);
+  valor('psFiltroTipo', panelFiltros.tipo);
+  valor('psFiltroOrigen', panelFiltros.origen);
+  valor('psFiltroRecogida', panelFiltros.recogida);
+  check('psFiltroSinFactura', panelFiltros.sinFactura);
+  check('psFiltroSinAlbaran', panelFiltros.sinAlbaran);
+  check('psFiltroSinCorreo', panelFiltros.sinCorreo);
+  if (panelCargado) renderPanelSiniestros();
+}
+
 // Botones "Completados" / "Anulados": muestran u ocultan esos siniestros.
 document.getElementById('psVerCompletados')?.addEventListener('click', () => {
   panelFiltros.verCompletados = !panelFiltros.verCompletados;

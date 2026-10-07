@@ -252,6 +252,7 @@ function inicioActualizarKpiSiniestros() {
   card.classList.toggle('alerta', total > 0);
   // Al pulsar va a donde están: al Panel si hay alguno ahí; si no, a los del día.
   card.dataset.view = delPanel ? 'panel-siniestros' : (delDia ? 'siniestros' : 'panel-siniestros');
+  card.dataset.filtro = JSON.stringify({ sinCorreo: true });
 }
 
 // Pendiente de cobro: total y nº de siniestros "PDTE COBRO", con la
@@ -452,12 +453,31 @@ function inicioEventosActividad() {
   };
   inicioDatos.panel.forEach(s => {
     const ref = `Nº ${s.id} · ${s.agencia_nombre || 'Sin agencia'}${s.tienda_nombre ? ' · ' + s.tienda_nombre : ''}`;
-    add(s.creado_en, s.creado_por, '🆕', `Creó el siniestro ${ref}`, s.id);
-    add(s.correo_enviado_en, s.correo_enviado_por, '📧', `Envió a la agencia el siniestro ${ref}`, s.id);
-    add(s.envio_omitido_en, s.envio_omitido_por, '🚫', `Omitió el envío a agencia del siniestro ${ref}`, s.id);
-    add(s.albaran_adjuntado_en, s.albaran_adjuntado_por, '📄', `Adjuntó el albarán del siniestro ${ref}`, s.id);
-    add(s.facturacion_enviado_en, s.facturacion_enviado_por, '📤', `Envió a Facturación el albarán del siniestro ${ref}`, s.id);
-    add(s.facturacion_omitida_en, s.facturacion_omitida_por, '🚫', `Omitió el envío a Facturación del siniestro ${ref}`, s.id);
+    // Pasos que suelen ir seguidos (crear y enviar a la agencia; adjuntar
+    // el albarán y enviarlo/omitirlo a Facturación): si los hace la misma
+    // persona con menos de 15 minutos de diferencia, salen en una sola línea.
+    const juntos = (en1, por1, en2, por2) => en1 && en2 && por1 && por1 === por2 &&
+      Math.abs(new Date(en2) - new Date(en1)) <= 15 * 60000;
+
+    if (juntos(s.creado_en, s.creado_por, s.correo_enviado_en, s.correo_enviado_por)) {
+      add(s.correo_enviado_en, s.correo_enviado_por, '📧', `Creó y envió a la agencia el siniestro ${ref}`, s.id);
+    } else if (juntos(s.creado_en, s.creado_por, s.envio_omitido_en, s.envio_omitido_por)) {
+      add(s.envio_omitido_en, s.envio_omitido_por, '🆕', `Creó el siniestro ${ref} (sin enviar a la agencia)`, s.id);
+    } else {
+      add(s.creado_en, s.creado_por, '🆕', `Creó el siniestro ${ref}`, s.id);
+      add(s.correo_enviado_en, s.correo_enviado_por, '📧', `Envió a la agencia el siniestro ${ref}`, s.id);
+      add(s.envio_omitido_en, s.envio_omitido_por, '🚫', `Omitió el envío a agencia del siniestro ${ref}`, s.id);
+    }
+
+    if (juntos(s.albaran_adjuntado_en, s.albaran_adjuntado_por, s.facturacion_enviado_en, s.facturacion_enviado_por)) {
+      add(s.facturacion_enviado_en, s.facturacion_enviado_por, '📤', `Adjuntó el albarán y lo envió a Facturación · siniestro ${ref}`, s.id);
+    } else if (juntos(s.albaran_adjuntado_en, s.albaran_adjuntado_por, s.facturacion_omitida_en, s.facturacion_omitida_por)) {
+      add(s.facturacion_omitida_en, s.facturacion_omitida_por, '📄', `Adjuntó el albarán (sin enviar a Facturación) · siniestro ${ref}`, s.id);
+    } else {
+      add(s.albaran_adjuntado_en, s.albaran_adjuntado_por, '📄', `Adjuntó el albarán del siniestro ${ref}`, s.id);
+      add(s.facturacion_enviado_en, s.facturacion_enviado_por, '📤', `Envió a Facturación el albarán del siniestro ${ref}`, s.id);
+      add(s.facturacion_omitida_en, s.facturacion_omitida_por, '🚫', `Omitió el envío a Facturación del siniestro ${ref}`, s.id);
+    }
     add(s.factura_adjuntada_en, s.factura_adjuntada_por, '🧾', `Adjuntó la factura del siniestro ${ref}`, s.id);
     if (s.recogida_estado) add(s.recogida_estado_en, s.recogida_estado_por, '🚚', `Recogida «${inicioCapitalizar(s.recogida_estado)}» · siniestro ${ref}`, s.id);
     add(s.cobrado_en, s.cobrado_por, '💶', `Marcó como cobrado el siniestro ${ref}`, s.id);
@@ -519,9 +539,11 @@ async function inicioAbrirSiniestro(id) {
   if (typeof abrirModalPanelSiniestro === 'function') abrirModalPanelSiniestro(id);
 }
 
-async function inicioIrA(vista) {
+async function inicioIrA(vista, filtro) {
   if (!(await inicioPuedeSalir())) return;
   activarVista(vista);
+  // Al Panel siniestros se llega con el filtro de la tarjeta puesto (o limpio)
+  if (vista === 'panel-siniestros' && typeof psAplicarFiltros === 'function') psAplicarFiltros(filtro || {});
   if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
   if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
   if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
@@ -532,7 +554,11 @@ async function inicioIrA(vista) {
 // data-view, permisos-aviso.js no las trata como botones de acción para
 // los usuarios de solo lectura).
 document.querySelectorAll('.inicio-kpi[data-view]').forEach(card => {
-  card.addEventListener('click', () => inicioIrA(card.dataset.view));
+  card.addEventListener('click', () => {
+    let filtro = null;
+    try { filtro = card.dataset.filtro ? JSON.parse(card.dataset.filtro) : null; } catch { filtro = null; }
+    inicioIrA(card.dataset.view, filtro);
+  });
 });
 
 // "Ver todo →" de Actividad reciente: abre el Registro de auditoría. Sin

@@ -289,6 +289,7 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '📧',
             texto: `${n} siniestro${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'} de enviar a la agencia`,
             vista: 'panel-siniestros',
+            filtro: { sinCorreo: true },
             urgente: true,
             edad: edadTareaPendiente(sinEnviarAgencia, 'creado_en')
           });
@@ -308,6 +309,8 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '💰',
             texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro desde hace más de 30 días (${totalTxt} €)`,
             vista: 'panel-siniestros',
+            // "Hasta" = hace 31 días: solo los que llevan más de 30 días
+            filtro: { estado: 'PDTE COBRO', fechaHasta: fechaLocalISO(new Date(hoy.getTime() - 31 * 86400000)) },
             edad: edadTareaPendiente(pdteCobro, 'fecha')
           });
         }
@@ -318,6 +321,7 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '📄',
             texto: `${sinAlbaran.length} siniestro${sinAlbaran.length === 1 ? '' : 's'} sin albarán`,
             vista: 'panel-siniestros',
+            filtro: { estado: 'PDTE COBRO', sinAlbaran: true },
             edad: edadTareaPendiente(sinAlbaran, 'fecha')
           });
         }
@@ -328,6 +332,7 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '🧾',
             texto: `${sinFactura.length} siniestro${sinFactura.length === 1 ? '' : 's'} sin factura`,
             vista: 'panel-siniestros',
+            filtro: { estado: 'PDTE COBRO', sinFactura: true },
             edad: edadTareaPendiente(sinFactura, 'fecha')
           });
         }
@@ -351,6 +356,7 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '⏰',
             texto: `${vencidas.length} recogida${vencidas.length === 1 ? '' : 's'} con la fecha límite ya cumplida`,
             vista: 'panel-siniestros',
+            filtro: { recogida: 'PDTE_FUERA' },
             edad: edadTareaPendiente(vencidas, 'recogida_limite', { prefijo: 'vencida' })
           });
         }
@@ -364,6 +370,7 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '🏬',
             texto: `${enEsperaTienda.length} siniestro${enEsperaTienda.length === 1 ? '' : 's'} en espera de respuesta por parte de tienda`,
             vista: 'panel-siniestros',
+            filtro: { recogida: 'EN ESPERA DE TIENDA' },
             edad: edadTareaPendiente(enEsperaTienda, 'recogida_estado_en', { prefijo: 'esperando' })
           });
         }
@@ -433,7 +440,7 @@ async function recargarConGiro(btn, ...cargas) {
     }
 
     cont.innerHTML = items.map(it => `
-      <button type="button" class="inicio-pendiente-item${it.urgente ? ' urgente' : ''}" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}>
+      <button type="button" class="inicio-pendiente-item${it.urgente ? ' urgente' : ''}" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}${it.filtro ? ` data-ir-filtro='${escapeHtml(JSON.stringify(it.filtro))}'` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
         ${it.edad ? `<span class="edad">${escapeHtml(it.edad)}</span>` : ''}
@@ -448,6 +455,14 @@ async function recargarConGiro(btn, ...cargas) {
         activarVista(vista);
         if (vista === 'incidencias' && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
         if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
+        // Panel siniestros: además de ir, deja puesto el filtro de esa tarea
+        // (p. ej. "Sin enviar a agencia" marcado), o los filtros limpios si
+        // la tarea no tiene uno propio.
+        if (vista === 'panel-siniestros' && typeof psAplicarFiltros === 'function') {
+          let filtro = {};
+          try { filtro = btn.dataset.irFiltro ? JSON.parse(btn.dataset.irFiltro) : {}; } catch { filtro = {}; }
+          psAplicarFiltros(filtro);
+        }
         if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
         if (vista === 'config-tiendas' && typeof cargarAgenciasYTiendas === 'function') {
           await cargarAgenciasYTiendas();
