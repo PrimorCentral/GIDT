@@ -81,7 +81,7 @@ function rmMotivoSinEntregaTienda(tiendaId, anio, mesIndex, dia) {
 // ficha de tienda que los sábados entrega otra agencia. En el reporte se
 // trata como un cambio puntual de agencia que se repite cada sábado: sus
 // sábados van a una fila propia bajo la agencia de sábado (con el
-// redondel "S", f.esSabado) y en la fila habitual esos días llevan una "S".
+// redondel "S", f.esSabado) y en la fila habitual esos días llevan las 3 primeras letras de esa agencia (p.ej. SEY).
 function rmTieneEntregaSabado(t) {
   return !!t && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id;
 }
@@ -649,7 +649,9 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     const pun = puntualPorDia && puntualPorDia[dia];
     if (pun && pun.esSabado) {
       cerrarBloqueBaja();
-      partes.push(`<td class="rm-td-cambio" title="Los sábados entrega ${escapeHtml(pun.agenciaNombre)} (entrega de sábado)">S</td>`);
+      // Las 3 primeras letras de la agencia de sábado (p.ej. SEY), como en los cambios puntuales
+      const abreviaturaSab = String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase() || 'S';
+      partes.push(`<td class="rm-td-cambio" title="Los sábados entrega ${escapeHtml(pun.agenciaNombre)} (entrega de sábado)">${escapeHtml(abreviaturaSab)}</td>`);
       continue;
     }
     if (pun) {

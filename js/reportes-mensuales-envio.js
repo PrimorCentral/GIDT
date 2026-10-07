@@ -628,8 +628,8 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     // Solo las 3 primeras letras (p.ej. SEYLOTRANS → SEY), igual que en la
     // pantalla de Reportes mensuales; el nombre completo va en la fila
     // "puntual" de esa agencia.
-    // Sábado de "Entrega de sábado": una "S" (el sábado lo entrega la otra agencia).
-    if (pun && pun.esSabado) { cerrarBloqueBaja(); celdas.push({ content: 'S', styles: estiloCambio }); continue; }
+    // Sábado de "Entrega de sábado": las 3 primeras letras de la agencia que entrega ese día (p.ej. SEY).
+    if (pun && pun.esSabado) { cerrarBloqueBaja(); celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase() || 'S', styles: estiloCambio }); continue; }
     if (pun) { cerrarBloqueBaja(); celdas.push({ content: String(pun.agenciaNombre || '').trim().slice(0, 3).toUpperCase(), styles: estiloCambio }); continue; }
     // Tienda de baja ese día: gris, sin OK y sin contar (salvo incidencia ya registrada).
     if (rmDiaEnBaja(f.tiendaId, dia) && !(diasEnviados.has(dia) && celdasTienda[dia])) { diasBajaSeguidos++; continue; }
