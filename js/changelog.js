@@ -10,6 +10,19 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.7.7',
+    fecha: '2026-10-07',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Nueva pantalla de Inicio: todo cabe en una sola pantalla, con tarjetas de resumen (incidencias de hoy, siniestros sin enviar, pendiente de cobro y siniestros del mes), gráfica de incidencias por día, incidencias del mes por agencia y actividad reciente del equipo' },
+      { tipo: 'nuevo',  texto: 'Fecha y hora en vivo en la barra superior' },
+      { tipo: 'nuevo',  texto: 'Aviso fijo en rojo, en todas las pantallas, cuando un informe ya enviado tiene incidencias sin revisar; desaparece al reclasificarlas' },
+      { tipo: 'mejora', texto: 'Al adjuntar un albarán se puede pulsar "Omitir envío", y el seguimiento del siniestro muestra quién adjuntó el albarán y quién omitió el envío a Facturación' },
+      { tipo: 'mejora', texto: 'Tareas pendientes muestra cuántas hay y cuánto tiempo lleva cada una, con las urgentes siempre arriba' },
+      { tipo: 'mejora', texto: 'Al pulsar una tarea pendiente o una tarjeta de Inicio, el Panel de siniestros se abre con el filtro correspondiente ya marcado (sin enviar a agencia, sin albarán, sin factura…)' },
+      { tipo: 'mejora', texto: '"Siniestros sin enviar a la agencia" suma los del día y los del Panel, indicando cuántos hay de cada' }
+    ]
+  },
+  {
     version: '1.7.6',
     fecha: '2026-10-06',
     cambios: [
