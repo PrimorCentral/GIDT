@@ -164,29 +164,28 @@
             <div class="inicio-card-head"><h3>📋 Informe de hoy</h3></div>
             <p class="inicio-vacio">Cargando estado del informe…</p>
           </div>
-          <div class="inicio-card inicio-crece">
-            <div class="inicio-card-head"><h3>📈 Incidencias por día</h3><span class="inicio-card-nota">últimos 7 informes</span></div>
-            <div class="inicio-grafica" id="inicioGraficaDias"></div>
-          </div>
-        </div>
-
-        <div class="inicio-col">
-          <div class="inicio-card inicio-crece">
-            <div class="inicio-card-head"><h3>📌 Tareas pendientes <span class="inicio-num" id="tareasNum" hidden></span></h3></div>
-            <div class="inicio-scroll" id="cardPendienteAtencion">
-              <p class="inicio-vacio">Comprobando…</p>
+          <div class="inicio-fila inicio-crece">
+            <div class="inicio-card">
+              <div class="inicio-card-head"><h3>📈 Incidencias por día</h3><span class="inicio-card-nota">últimos 7 informes</span></div>
+              <div class="inicio-grafica" id="inicioGraficaDias"></div>
+            </div>
+            <div class="inicio-card">
+              <div class="inicio-card-head"><h3 id="inicioDonutTitulo">🚚 Incidencias del mes por agencia</h3></div>
+              <div class="inicio-donut" id="inicioDonut"></div>
             </div>
           </div>
         </div>
 
         <div class="inicio-col">
-          <div class="inicio-card">
-            <div class="inicio-card-head"><h3 id="inicioDonutTitulo">🚚 Incidencias del mes por agencia</h3></div>
-            <div class="inicio-donut" id="inicioDonut"></div>
+          <div class="inicio-card inicio-tareas">
+            <div class="inicio-card-head"><h3>📌 Tareas pendientes <span class="inicio-num" id="tareasNum" hidden></span></h3></div>
+            <div class="inicio-scroll" id="cardPendienteAtencion">
+              <p class="inicio-vacio">Comprobando…</p>
+            </div>
           </div>
           <div class="inicio-card inicio-crece">
             <div class="inicio-card-head"><h3>🕒 Actividad reciente</h3><button type="button" class="inicio-link" id="btnActividadVerTodo" data-view="config-auditoria">Ver todo →</button></div>
-            <div class="inicio-scroll" id="inicioActividad"><p class="inicio-vacio">Cargando…</p></div>
+            <div class="inicio-scroll inicio-act-lista" id="inicioActividad"><p class="inicio-vacio">Cargando…</p></div>
           </div>
         </div>
       </div>

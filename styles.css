@@ -2689,9 +2689,16 @@ header.top .reloj-hora{ font-size:15px; font-weight:700; font-variant-numeric:ta
 
 /* ---------- Rejilla de 3 columnas ---------- */
 .inicio-grid{
-  display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);
+  display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr);
   gap:12px; align-items:stretch;
 }
+/* Gráfica y donut, lado a lado, debajo del informe de hoy */
+.inicio-fila{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:12px; min-height:0; }
+.inicio-fila > .inicio-card{ min-height:0; }
+.inicio-fila .inicio-grafica{ flex:1 1 auto; }
+.inicio-fila .inicio-donut{ flex:1 1 auto; min-height:0; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.inicio-fila .inicio-donut-svg{ flex:1 1 auto; width:auto; height:auto; min-height:120px; max-height:240px; aspect-ratio:1 / 1; }
+.inicio-fila .inicio-leyenda{ flex:0 0 auto; width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:5px 18px; }
 .inicio-col{ display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0; }
 .inicio-card{
   display:flex; flex-direction:column; min-height:0;
@@ -2780,12 +2787,18 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
   #view-inicio .inicio-col > .inicio-card:not(.inicio-crece){ flex:0 0 auto; }
   #view-inicio .inicio-crece .inicio-scroll{ flex:1 1 auto; }
   #view-inicio .inicio-crece .inicio-grafica{ flex:1 1 auto; min-height:120px; }
+  /* Tareas: solo el alto que necesite (como mucho la mitad de la columna) */
+  #view-inicio .inicio-tareas{ flex:0 1 auto; max-height:50%; }
+  #view-inicio .inicio-tareas .inicio-scroll{ flex:1 1 auto; }
+  /* Actividad: las 10 líneas se reparten el alto que queda, sin hueco */
+  #view-inicio .inicio-act-lista{ display:flex; flex-direction:column; }
+  #view-inicio .inicio-act-lista .inicio-act{ flex:1 1 0; min-height:42px; max-height:64px; }
 }
 
 /* ---------- Pantallas más pequeñas: scroll normal ---------- */
 @media (max-width:1199px), (max-height:679px){
-  .inicio-grid{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
-  .inicio-grid > .inicio-col:last-child{ grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; }
+  .inicio-grid{ grid-template-columns:minmax(0,1fr); }
+  .inicio-fila .inicio-grafica{ height:220px; flex:0 0 auto; }
   .inicio-grafica{ height:220px; }
   .inicio-scroll{ max-height:420px; }
 }
@@ -2793,7 +2806,7 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
   .inicio-kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 @media (max-width:760px){
-  .inicio-grid, .inicio-grid > .inicio-col:last-child{ grid-template-columns:minmax(0,1fr); }
+  .inicio-fila{ grid-template-columns:minmax(0,1fr); }
   .inicio-donut{ flex-direction:column; align-items:stretch; }
   /* En el móvil la antigüedad de cada tarea baja a su propia línea */
   #cardPendienteAtencion .inicio-pendiente-item{ flex-wrap:wrap; }
