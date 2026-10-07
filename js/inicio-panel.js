@@ -381,22 +381,59 @@ function inicioPintarDonut() {
   const R = 62, C = 2 * Math.PI * R;
   let desplaz = 0;
   let arcos = '';
-  datos.forEach(d => {
+  datos.forEach((d, k) => {
     const largo = d.n / total * C;
     const hueco = datos.length > 1 ? Math.min(2, largo / 3) : 0;
-    arcos += `<circle cx="80" cy="80" r="${R}" fill="none" stroke="${d.color}" stroke-width="24"
-      stroke-dasharray="${Math.max(0, largo - hueco).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-desplaz).toFixed(2)}"><title>${escapeHtml(d.nombre)}: ${d.n}</title></circle>`;
+    arcos += `<circle class="inicio-donut-arco" data-k="${k}" cx="80" cy="80" r="${R}" fill="none" stroke="${d.color}" stroke-width="24"
+      stroke-dasharray="${Math.max(0, largo - hueco).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-desplaz).toFixed(2)}"></circle>`;
     desplaz += largo;
   });
-  const leyenda = datos.map(d => `
-    <li><i style="background:${d.color}"></i><span class="nombre">${escapeHtml(d.nombre)}</span><b>${d.n}</b><span class="pct">${Math.round(d.n / total * 100)}%</span></li>`).join('');
+  const pct = d => Math.round(d.n / total * 100);
+  const leyenda = datos.map((d, k) => `
+    <li data-k="${k}"><i style="background:${d.color}"></i><span class="nombre">${escapeHtml(d.nombre)}</span><b>${d.n}</b><span class="pct">${pct(d)}%</span></li>`).join('');
   el.innerHTML = `
     <svg viewBox="0 0 160 160" class="inicio-donut-svg" role="img" aria-label="Incidencias del mes por agencia">
       <g transform="rotate(-90 80 80)">${arcos}</g>
-      <text x="80" y="80" text-anchor="middle" font-size="28" font-weight="800" fill="#12181F">${total}</text>
-      <text x="80" y="99" text-anchor="middle" font-size="11" fill="#5B6572">incidencias</text>
+      <text class="inicio-donut-num" x="80" y="80" text-anchor="middle" font-size="28" font-weight="800" fill="#12181F">${total}</text>
+      <text class="inicio-donut-txt" x="80" y="99" text-anchor="middle" font-size="11" fill="#5B6572">incidencias</text>
     </svg>
-    <ul class="inicio-leyenda">${leyenda}</ul>`;
+    <ul class="inicio-leyenda">${leyenda}</ul>
+    <div class="inicio-donut-tip" hidden></div>`;
+
+  // Al pasar el ratón por un color (o por su fila de la leyenda): se
+  // resalta ese trozo, el centro muestra sus incidencias y sale una
+  // etiqueta con el nombre de la agencia junto al cursor.
+  const numEl = el.querySelector('.inicio-donut-num');
+  const txtEl = el.querySelector('.inicio-donut-txt');
+  const tip = el.querySelector('.inicio-donut-tip');
+  const marcar = (k) => {
+    el.classList.toggle('resaltando', k !== null);
+    el.querySelectorAll('[data-k]').forEach(n => n.classList.toggle('activo', k !== null && Number(n.dataset.k) === k));
+    if (k === null) {
+      numEl.textContent = total; txtEl.textContent = 'incidencias';
+      tip.hidden = true;
+      return;
+    }
+    const d = datos[k];
+    numEl.textContent = d.n;
+    txtEl.textContent = d.nombre.length > 16 ? d.nombre.slice(0, 15) + '…' : d.nombre;
+    tip.innerHTML = `<i style="background:${d.color}"></i><b>${escapeHtml(d.nombre)}</b> · ${d.n} incidencia${d.n === 1 ? '' : 's'} (${pct(d)}%)`;
+  };
+  const moverTip = (ev) => {
+    const caja = el.getBoundingClientRect();
+    tip.hidden = false;
+    tip.style.left = (ev.clientX - caja.left + 14) + 'px';
+    tip.style.top = (ev.clientY - caja.top + 14) + 'px';
+  };
+  el.querySelectorAll('.inicio-donut-arco').forEach(arco => {
+    arco.addEventListener('mouseenter', () => marcar(Number(arco.dataset.k)));
+    arco.addEventListener('mousemove', moverTip);
+    arco.addEventListener('mouseleave', () => marcar(null));
+  });
+  el.querySelectorAll('.inicio-leyenda li').forEach(li => {
+    li.addEventListener('mouseenter', () => { marcar(Number(li.dataset.k)); tip.hidden = true; });
+    li.addEventListener('mouseleave', () => marcar(null));
+  });
 }
 
 // ---------------- Actividad reciente ----------------
@@ -443,8 +480,8 @@ function inicioEventosActividad() {
     }
     add(a.creado_en, a.usuario, icono, texto, null);
   });
-  // Solo las 10 últimas (para ver más, "Ver todo →" abre el Registro de auditoría)
-  return eventos.sort((a, b) => b.t - a.t).slice(0, 10);
+  // Solo las 6 últimas (para ver más, "Ver todo →" abre el Registro de auditoría)
+  return eventos.sort((a, b) => b.t - a.t).slice(0, 6);
 }
 
 function inicioPintarActividad() {
