@@ -419,6 +419,10 @@ async function recargarConGiro(btn, ...cargas) {
       console.error('Error comprobando cambios de agencia programados:', err);
     }
 
+    // Los avisos urgentes (en rojo) van siempre arriba del todo, manteniendo
+    // entre ellos y entre el resto el orden en que se han ido añadiendo.
+    items.sort((x, y) => (y.urgente ? 1 : 0) - (x.urgente ? 1 : 0));
+
     if (!items.length) {
       cont.innerHTML = `
         <div class="empty" style="padding:20px;">

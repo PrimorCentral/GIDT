@@ -283,7 +283,10 @@ async function informeEnvioComprobarPendientesInicio() {
           icono: '🔎',
           texto: `Informe ${formatearFechaCorta(new Date(inf.fecha + 'T00:00:00'))} enviado con ${n} incidencia${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`,
           vista: esHoy ? 'incidencias' : 'historial-informes',
-          fecha: esHoy ? undefined : inf.fecha
+          fecha: esHoy ? undefined : inf.fecha,
+          // En rojo y arriba del todo: son incidencias que ya han salido a
+          // las agencias sin clasificar, y se pasaban por alto en la lista.
+          urgente: true
         };
       });
   } catch (err) {
