@@ -2132,6 +2132,10 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
 .tabla-reporte-mensual th, .tabla-reporte-mensual td{ border:1px solid var(--border); padding:4px 6px; text-align:center; }
 .tabla-reporte-mensual thead th{ background:var(--panel-muted); position:sticky; top:0; z-index:2; }
 .rm-col-fija{ text-align:left; background:#fff; }
+/* Redondel "S" dentro del Reporte mensual: un poco más pequeño y con
+   márgenes negativos arriba/abajo para que no haga la fila más alta que
+   las demás (todas las filas con la misma altura). */
+.tabla-reporte-mensual .marca-badge{ width:16px; height:16px; font-size:10px; margin:-4px 6px -4px 0; }
 .tabla-reporte-mensual th:nth-child(1), .tabla-reporte-mensual td:nth-child(1){ min-width:140px; }
 .tabla-reporte-mensual th:nth-child(2), .tabla-reporte-mensual td:nth-child(2){ min-width:170px; }
 .tabla-reporte-mensual th:nth-child(3), .tabla-reporte-mensual td:nth-child(3){ min-width:120px; }
