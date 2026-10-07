@@ -51,7 +51,14 @@ let panelFirmaFiltros = '';
 function psSeguimientoCompleto(s) {
   if (s.estado !== 'COBRADO') return false;
   const recogidaOk = s.tipo === 'FALTAS' || s.recogida_estado === 'ENVIADO A CENTRAL' || s.recogida_estado === 'RECOGIDO POR AGENCIA';
-  return psEnvioAgenciaResuelto(s) && !!s.enviado_facturacion && !!s.factura_url && recogidaOk;
+  return psEnvioAgenciaResuelto(s) && psFacturacionResuelta(s) && !!s.factura_url && recogidaOk;
+}
+
+// El paso "Albarán enviado a facturación" está resuelto cuando se ha mandado
+// el correo a Facturación o cuando se decidió no mandarlo ("Omitir envío"
+// al adjuntar el albarán), igual que pasa con el envío a la agencia.
+function psFacturacionResuelta(s) {
+  return !!s.enviado_facturacion || !!s.facturacion_omitida_en;
 }
 
 // El paso "Enviado a agencia" está resuelto si se mandó el correo o si se
@@ -798,10 +805,32 @@ function renderSeguimientoPanel(s) {
   }
 
   // 3) Albarán enviado a Facturación
+  // Línea "Albarán adjuntado por …" (quién y cuándo subió el PDF), que se
+  // muestra en todas las variantes del paso en las que ya hay albarán.
+  const lineaAdjuntado = (s.albaran_url && s.albaran_adjuntado_por)
+    ? `Albarán adjuntado por ${s.albaran_adjuntado_por}` + (s.albaran_adjuntado_en ? ` · ${psFormatearFechaHora(s.albaran_adjuntado_en)}` : '')
+    : null;
   if (s.enviado_facturacion) {
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Albarán enviado a facturación',
       detalleHtml: psLineasDetalle(s.facturacion_enviado_por, psFormatearFechaHora(s.facturacion_enviado_en))
+    }));
+  } else if (s.facturacion_omitida_en) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: 'done', icono: '–', titulo: 'Envío a facturación omitido',
+      clase: 'step-omitido',
+      detalleHtml: psLineasDetalle(
+        lineaAdjuntado,
+        s.facturacion_omitida_por ? `Omitido por ${s.facturacion_omitida_por}` : null,
+        psFormatearFechaHora(s.facturacion_omitida_en)
+      ),
+      chip: 'No se envía correo'
+    }));
+  } else if (s.albaran_url) {
+    pasos.push(psPasoSeguimientoHtml({
+      estado: psEnvioAgenciaResuelto(s) ? 'current' : 'pending', icono: '3',
+      titulo: 'Albarán enviado a facturación',
+      detalleHtml: psLineasDetalle(lineaAdjuntado, 'Albarán adjuntado, pendiente de enviar a Facturación')
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
@@ -819,7 +848,7 @@ function renderSeguimientoPanel(s) {
     }));
   } else {
     pasos.push(psPasoSeguimientoHtml({
-      estado: s.enviado_facturacion ? 'current' : 'pending', icono: '4',
+      estado: psFacturacionResuelta(s) ? 'current' : 'pending', icono: '4',
       titulo: 'Factura emitida',
       detalleHtml: psLineasDetalle('Todavía no se ha adjuntado')
     }));
@@ -1886,7 +1915,16 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     // Intentamos leer el nº de albarán del propio PDF ("Num.Entrada")
     const numeroDetectado = await extraerNumAlbaranDePdf(file);
 
-    const cambios = { albaran_url: pub.publicUrl, albaran_nombre: file.name, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
+    // Quién y cuándo adjunta el albarán (se ve en el seguimiento). Un albarán
+    // nuevo vuelve a abrir la decisión de enviarlo o no a Facturación, así
+    // que se limpia un "omitido" anterior.
+    const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
+    const albaranAdjuntadoEn = new Date().toISOString();
+    const cambios = {
+      albaran_url: pub.publicUrl, albaran_nombre: file.name, actualizado_por: usuarioActual,
+      albaran_adjuntado_en: albaranAdjuntadoEn, albaran_adjuntado_por: usuarioActual,
+      facturacion_omitida_en: null, facturacion_omitida_por: null
+    };
     if (numeroDetectado) cambios.num_albaran = numeroDetectado;
 
     const { error: eDb } = await sb.from('panel_siniestros').update(cambios).eq('id', panelActivoId);
@@ -1895,14 +1933,19 @@ document.getElementById('psAlbaranInput')?.addEventListener('change', async (e) 
     const s = psSiniestroPorId(panelActivoId);
     s.albaran_url = pub.publicUrl;
     s.albaran_nombre = file.name;
+    s.albaran_adjuntado_en = albaranAdjuntadoEn;
+    s.albaran_adjuntado_por = usuarioActual;
+    s.facturacion_omitida_en = null;
+    s.facturacion_omitida_por = null;
     if (numeroDetectado) s.num_albaran = numeroDetectado;
     pintarAlbaranModal(s);
+    renderSeguimientoPanel(s);
     aplicarEstadoCampoAlbaran(s);
     renderPanelSiniestros();
     document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     // Recién adjuntado: preguntamos directamente si se envía a Facturación
     // (ya no hay botón "Guardar" que sirva de punto de corte para preguntar).
-    await ofrecerEnvioFacturacion(s);
+    await ofrecerEnvioFacturacion(s, { trasAdjuntar: true });
   } catch (err) {
     console.error('Error subiendo el albarán:', err);
     errEl.textContent = 'No se pudo subir el albarán.';
@@ -1919,10 +1962,15 @@ async function quitarAlbaranPanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.albaran_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, num_albaran: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, num_albaran: null, albaran_adjuntado_en: null, albaran_adjuntado_por: null, facturacion_omitida_en: null, facturacion_omitida_por: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
-    if (s) { s.albaran_url = null; s.albaran_nombre = null; s.num_albaran = null; }
+    if (s) {
+      s.albaran_url = null; s.albaran_nombre = null; s.num_albaran = null;
+      s.albaran_adjuntado_en = null; s.albaran_adjuntado_por = null;
+      s.facturacion_omitida_en = null; s.facturacion_omitida_por = null;
+    }
     pintarAlbaranModal(s);
+    renderSeguimientoPanel(s);
     aplicarEstadoCampoAlbaran(s); // vacía y libera el campo Nº Albarán para poder editarlo a mano
     renderPanelSiniestros();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
@@ -2012,14 +2060,21 @@ async function quitarJustificantePanel() {
 // La plantilla del correo (asunto + cuerpo) vive en email-plantillas.js:
 // plantillaFacturacionAlbaran(s, nombreComercialAgencia).
 
-async function ofrecerEnvioFacturacion(s) {
+async function ofrecerEnvioFacturacion(s, { trasAdjuntar = false } = {}) {
+  // Justo después de adjuntar un albarán que aún no se ha enviado, decir que
+  // no deja registrado el envío como omitido (quién y cuándo), para que el
+  // seguimiento lo muestre igual que "Envío a agencia omitido".
+  const registrarOmitido = trasAdjuntar && !s.enviado_facturacion;
   const ok = await modalConfirm(
     s.enviado_facturacion
       ? '¿Reenviar este albarán a Facturación por correo?'
       : '¿Quieres enviar este albarán a Facturación por correo?',
-    { titulo: 'Enviar a Facturación', textoOk: 'Enviar' }
+    { titulo: 'Enviar a Facturación', textoOk: 'Enviar', textoCancel: registrarOmitido ? 'Omitir envío' : 'Cancelar' }
   );
-  if (!ok) return;
+  if (!ok) {
+    if (registrarOmitido) await registrarFacturacionOmitida(s);
+    return;
+  }
 
   try {
     const { data: dest, error: eDest } = await sb.from('facturacion_emails').select('email').eq('activo', true);
@@ -2048,18 +2103,42 @@ async function ofrecerEnvioFacturacion(s) {
     const { error: eUpd } = await sb.from('panel_siniestros').update({
       enviado_facturacion: true,
       facturacion_enviado_en: facturacionEnviadoEn,
-      facturacion_enviado_por: facturacionEnviadoPor
+      facturacion_enviado_por: facturacionEnviadoPor,
+      facturacion_omitida_en: null,
+      facturacion_omitida_por: null
     }).eq('id', s.id);
     if (eUpd) throw eUpd;
 
     s.enviado_facturacion = true;
     s.facturacion_enviado_en = facturacionEnviadoEn;
     s.facturacion_enviado_por = facturacionEnviadoPor;
+    s.facturacion_omitida_en = null;
+    s.facturacion_omitida_por = null;
     pintarAlbaranModal(s);
     renderSeguimientoPanel(s);
+    renderPanelSiniestros();
   } catch (err) {
     console.error('Error enviando el albarán a Facturación:', err);
     await modalAlert(`No se pudo enviar el correo a Facturación: ${err.message}`, { titulo: 'Error de envío' });
+  }
+}
+
+// Deja constancia de que se decidió no enviar el albarán a Facturación.
+async function registrarFacturacionOmitida(s) {
+  const omitidaEn = new Date().toISOString();
+  const omitidaPor = sesionActual?.nombre || sesionActual?.usuario || null;
+  try {
+    const { error } = await sb.from('panel_siniestros').update({
+      facturacion_omitida_en: omitidaEn,
+      facturacion_omitida_por: omitidaPor
+    }).eq('id', s.id);
+    if (error) throw error;
+    s.facturacion_omitida_en = omitidaEn;
+    s.facturacion_omitida_por = omitidaPor;
+    renderSeguimientoPanel(s);
+    renderPanelSiniestros();
+  } catch (err) {
+    console.error('No se pudo registrar el envío a Facturación omitido:', err);
   }
 }
 
