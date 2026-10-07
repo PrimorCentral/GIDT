@@ -582,6 +582,12 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
     let hueco = 0;
     const cerrarHueco = () => { if (hueco) { celdas.push({ content: '', colSpan: hueco, styles: estiloNaPuntual }); hueco = 0; } };
     for (let dia = diaDesde; dia <= diaHasta; dia++) {
+      // Fila de "Entrega de sábado": los días sin entrega, gris como un domingo
+      if (f.esSabado && (!f.diasPuntuales || !f.diasPuntuales.has(dia))) {
+        cerrarHueco();
+        celdas.push({ content: '', esDomingo: true, styles: { fillColor: [244, 245, 247] } });
+        continue;
+      }
       if (!f.diasPuntuales || !f.diasPuntuales.has(dia)) { hueco++; continue; }
       cerrarHueco();
       if (!diasEnviados.has(dia)) {

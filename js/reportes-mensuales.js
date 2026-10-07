@@ -605,6 +605,13 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     let hueco = 0;
     const cerrarHueco = () => { if (hueco) { partes.push(`<td colspan="${hueco}" class="rm-td-napuntual">–</td>`); hueco = 0; } };
     for (let dia = 1; dia <= totalDias; dia++) {
+      // Fila de "Entrega de sábado": los días que esa agencia no entrega se
+      // pintan día a día como un domingo (gris rayado), no como hueco en blanco.
+      if (f.esSabado && (!f.diasPuntuales || !f.diasPuntuales.has(dia))) {
+        cerrarHueco();
+        partes.push(`<td class="rm-td-domingo" title="Sin entrega: ${escapeHtml(f.agenciaNombre || 'esta agencia')} solo entrega los sábados"></td>`);
+        continue;
+      }
       if (!f.diasPuntuales || !f.diasPuntuales.has(dia)) { hueco++; continue; }
       cerrarHueco();
       if (!diasEnviados.has(dia)) {
