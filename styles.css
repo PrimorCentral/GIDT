@@ -2709,6 +2709,7 @@ header.top .reloj-hora{ font-size:15px; font-weight:700; font-variant-numeric:ta
 .inicio-card-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; flex:0 0 auto; }
 .inicio-card-head h3{ margin:0; font-size:14.5px; display:flex; align-items:center; gap:8px; }
 .inicio-card-nota{ margin-left:auto; font-size:12px; color:var(--ink-soft); }
+.inicio-card-sub{ font-size:12px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .inicio-link{
   margin-left:auto; background:none; border:0; padding:2px 4px; border-radius:6px;
   font:600 12.5px var(--font-ui); color:var(--ink-soft); cursor:pointer;
@@ -2721,7 +2722,7 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
 .inicio-vacio{ margin:6px 0; font-size:13px; color:var(--ink-soft); }
 
 /* Tareas pendientes dentro de la rejilla */
-#cardPendienteAtencion .inicio-pendiente-item{ padding:10px 12px; margin-bottom:7px; }
+#cardPendienteAtencion .inicio-pendiente-item{ padding:8px 12px; margin-bottom:6px; }
 .inicio-pendiente-item .edad{ flex:0 0 auto; font-size:11.5px; font-weight:500; color:var(--ink-soft); white-space:nowrap; }
 .inicio-pendiente-item.urgente .edad{ color:#8A2410; }
 
@@ -2757,9 +2758,25 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
 .inicio-leyenda .nombre{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .inicio-leyenda b{ margin-left:auto; }
 .inicio-leyenda .pct{ width:34px; text-align:right; color:var(--ink-soft); font-size:11.5px; }
+/* Resaltado al pasar el ratón por el donut o su leyenda */
+.inicio-donut{ position:relative; }
+.inicio-donut-arco{ cursor:pointer; transition:opacity .15s ease, stroke-width .15s ease; }
+.inicio-donut.resaltando .inicio-donut-arco{ opacity:.3; }
+.inicio-donut.resaltando .inicio-donut-arco.activo{ opacity:1; stroke-width:30; }
+.inicio-leyenda li{ cursor:default; border-radius:6px; padding:1px 4px; margin:0 -4px; transition:opacity .15s ease; }
+.inicio-donut.resaltando .inicio-leyenda li{ opacity:.45; }
+.inicio-donut.resaltando .inicio-leyenda li.activo{ opacity:1; background:var(--panel-muted); }
+.inicio-donut-tip{
+  position:absolute; z-index:5; pointer-events:none; white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:8px; font-size:12px; color:#fff;
+  background:var(--bg); box-shadow:0 6px 18px rgba(0,0,0,.25);
+}
+.inicio-donut-tip[hidden]{ display:none; }
+.inicio-donut-tip i{ width:9px; height:9px; border-radius:2px; }
 
 /* ---------- Actividad reciente ---------- */
-.inicio-act{ display:flex; align-items:center; gap:10px; padding:7px 6px; border-bottom:1px solid var(--border); border-radius:8px; }
+.inicio-act{ display:flex; align-items:center; gap:10px; padding:5px 6px; border-bottom:1px solid var(--border); border-radius:8px; }
 .inicio-act:last-child{ border-bottom:0; }
 .inicio-act.clicable{ cursor:pointer; }
 .inicio-act.clicable:hover{ background:var(--panel-muted); }
@@ -2788,11 +2805,9 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
   #view-inicio .inicio-crece .inicio-scroll{ flex:1 1 auto; }
   #view-inicio .inicio-crece .inicio-grafica{ flex:1 1 auto; min-height:120px; }
   /* Tareas: solo el alto que necesite (como mucho la mitad de la columna) */
-  #view-inicio .inicio-tareas{ flex:0 1 auto; max-height:50%; }
+  /* Tareas: ocupa todo el alto que deja la actividad (6 líneas fijas);
+     si hubiera muchísimas, hacen scroll dentro de su tarjeta */
   #view-inicio .inicio-tareas .inicio-scroll{ flex:1 1 auto; }
-  /* Actividad: las 10 líneas se reparten el alto que queda, sin hueco */
-  #view-inicio .inicio-act-lista{ display:flex; flex-direction:column; }
-  #view-inicio .inicio-act-lista .inicio-act{ flex:1 1 0; min-height:42px; max-height:64px; }
 }
 
 /* ---------- Pantallas más pequeñas: scroll normal ---------- */
