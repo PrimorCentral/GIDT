@@ -2628,3 +2628,179 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
 .acerca-tag.correccion{ background:#FFEEDF; color:var(--accent-ink); }
 .acerca-novedades-vacio{ font-size:13px; color:var(--ink-soft); padding:16px 0; text-align:center; }
 .acerca-panel[hidden]{ display:none !important; }
+
+/* =====================================================================
+   Pantalla de Inicio (rediseño): tarjetas con color y minigráfica,
+   3 columnas a pantalla completa sin scroll en escritorio, gráficas,
+   actividad reciente y reloj de la cabecera. (js/inicio-panel.js)
+   ===================================================================== */
+
+/* ---------- Reloj de la cabecera ---------- */
+header.top .reloj-top{
+  display:flex; align-items:center; gap:10px; flex:0 0 auto;
+  padding:5px 12px; border-radius:10px;
+  background:rgba(255,255,255,.05); border:1px solid var(--line-onbg);
+  color:#fff; user-select:none;
+}
+header.top .reloj-fecha{ font-size:12.5px; color:#C9D1DA; }
+header.top .reloj-hora{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.3px; }
+@media (max-width:1440px){ header.top .reloj-fecha{ display:none; } }
+@media (max-width:760px){ header.top .reloj-top{ display:none; } }
+
+/* ---------- Tarjetas de arriba ---------- */
+.inicio-kpis{
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:12px; margin-bottom:12px;
+}
+.inicio-kpi{
+  --kpi-c:var(--ink); --kpi-bg:#EEF0F3;
+  position:relative; overflow:hidden; display:flex; flex-direction:column; gap:2px;
+  min-height:116px; padding:12px 16px 34px; text-align:left; cursor:pointer;
+  font-family:inherit; color:var(--ink);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  background:linear-gradient(135deg, var(--panel) 45%, var(--kpi-bg));
+  box-shadow:var(--shadow);
+  transition:border-color .15s ease, transform .15s ease;
+}
+.inicio-kpi:hover{ border-color:var(--kpi-c); transform:translateY(-1px); }
+.inicio-kpi.kpi-rojo{ --kpi-c:var(--grave); --kpi-bg:var(--grave-bg); }
+.inicio-kpi.kpi-verde{ --kpi-c:var(--ok); --kpi-bg:#E3F5E8; }
+.inicio-kpi.kpi-azul{ --kpi-c:var(--moderado); --kpi-bg:var(--moderado-bg); }
+.inicio-kpi.kpi-gris{ --kpi-c:var(--ink); --kpi-bg:#EEF0F3; }
+.inicio-kpi.alerta{ border-color:#F5B5A8; }
+.inicio-kpi-top{ display:flex; align-items:center; gap:8px; }
+.inicio-kpi-icono{
+  width:28px; height:28px; border-radius:8px; flex:0 0 auto;
+  display:grid; place-items:center; font-size:14px; background:var(--kpi-bg);
+}
+.inicio-kpi-label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+.inicio-kpi-flecha{ margin-left:auto; color:var(--ink-soft); font-size:14px; }
+.inicio-kpi b{ font-size:26px; line-height:1.15; letter-spacing:-.5px; color:var(--kpi-c); margin-top:4px; }
+.inicio-kpi-sub{ font-size:12px; color:var(--ink-soft); display:flex; gap:6px; align-items:center; flex-wrap:wrap; position:relative; z-index:1; }
+.inicio-kpi-sub .sube{ color:var(--grave); font-weight:700; }
+.inicio-kpi-sub .baja{ color:var(--ok); font-weight:700; }
+.inicio-kpi-spark{ position:absolute; left:0; right:0; bottom:3px; height:28px; pointer-events:none; }
+.inicio-kpi-spark svg{ display:block; width:100%; height:100%; }
+.inicio-chip{
+  font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;
+  background:#EEF0F3; color:var(--ink-soft);
+}
+.inicio-chip.on{ background:var(--grave); color:#fff; }
+
+/* ---------- Rejilla de 3 columnas ---------- */
+.inicio-grid{
+  display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);
+  gap:12px; align-items:stretch;
+}
+.inicio-col{ display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0; }
+.inicio-card{
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow);
+  padding:14px 16px;
+}
+.inicio-card-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; flex:0 0 auto; }
+.inicio-card-head h3{ margin:0; font-size:14.5px; display:flex; align-items:center; gap:8px; }
+.inicio-card-nota{ margin-left:auto; font-size:12px; color:var(--ink-soft); }
+.inicio-link{
+  margin-left:auto; background:none; border:0; padding:2px 4px; border-radius:6px;
+  font:600 12.5px var(--font-ui); color:var(--ink-soft); cursor:pointer;
+}
+.inicio-link:hover{ color:var(--accent); }
+body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
+.inicio-num{ background:var(--ink); color:#fff; font-size:11.5px; font-weight:700; border-radius:99px; padding:1px 8px; }
+.inicio-num[hidden]{ display:none; }
+.inicio-scroll{ min-height:0; overflow-y:auto; margin:0 -6px; padding:0 6px; }
+.inicio-vacio{ margin:6px 0; font-size:13px; color:var(--ink-soft); }
+
+/* Tareas pendientes dentro de la rejilla */
+#cardPendienteAtencion .inicio-pendiente-item{ padding:10px 12px; margin-bottom:7px; }
+.inicio-pendiente-item .edad{ flex:0 0 auto; font-size:11.5px; font-weight:500; color:var(--ink-soft); white-space:nowrap; }
+.inicio-pendiente-item.urgente .edad{ color:#8A2410; }
+
+/* ---------- Tarjeta compacta "Informe de hoy" ---------- */
+.inicio-informe{ display:flex; align-items:center; gap:12px; }
+.inicio-informe-icono{
+  width:42px; height:42px; border-radius:12px; flex:0 0 auto;
+  display:grid; place-items:center; font-size:20px; background:var(--panel-muted);
+}
+.inicio-informe-icono.verde{ background:var(--ok-bg); }
+.inicio-informe-icono.naranja{ background:#FFF1E5; }
+.inicio-informe-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.inicio-informe-txt b{ font-size:14px; }
+.inicio-informe-txt span{ font-size:12.5px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inicio-estado{ flex:0 0 auto; font-size:11px; font-weight:800; letter-spacing:.3px; border-radius:99px; padding:4px 10px; }
+.inicio-estado.verde{ color:var(--ok); background:var(--ok-bg); }
+.inicio-estado.naranja{ color:var(--accent-ink); background:#FFE9D6; }
+.inicio-progreso{ height:7px; margin:12px 0 7px; border-radius:99px; overflow:hidden; background:#EEF0F3; }
+.inicio-progreso i{ display:block; height:100%; border-radius:99px; background:var(--ok); }
+.inicio-progreso.pendiente i{ background:var(--accent); }
+.inicio-informe-datos{ display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--ink-soft); }
+.inicio-informe-datos b{ color:var(--ink); }
+.inicio-informe-datos .aviso, .inicio-informe-datos .aviso b{ color:var(--accent-ink); }
+
+/* ---------- Gráficas ---------- */
+.inicio-grafica{ position:relative; min-height:170px; }
+.inicio-grafica svg{ position:absolute; inset:0; display:block; }
+.inicio-donut{ display:flex; align-items:center; gap:16px; }
+.inicio-donut-svg{ width:150px; height:150px; flex:0 0 auto; }
+.inicio-leyenda{ list-style:none; margin:0; padding:0; flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; font-size:12.5px; }
+.inicio-leyenda li{ display:flex; align-items:center; gap:7px; }
+.inicio-leyenda i{ width:10px; height:10px; border-radius:3px; flex:0 0 auto; }
+.inicio-leyenda .nombre{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inicio-leyenda b{ margin-left:auto; }
+.inicio-leyenda .pct{ width:34px; text-align:right; color:var(--ink-soft); font-size:11.5px; }
+
+/* ---------- Actividad reciente ---------- */
+.inicio-act{ display:flex; align-items:center; gap:10px; padding:7px 6px; border-bottom:1px solid var(--border); border-radius:8px; }
+.inicio-act:last-child{ border-bottom:0; }
+.inicio-act.clicable{ cursor:pointer; }
+.inicio-act.clicable:hover{ background:var(--panel-muted); }
+.inicio-act-avatar{
+  width:30px; height:30px; border-radius:50%; flex:0 0 auto;
+  display:grid; place-items:center; font-size:11px; font-weight:800;
+  background:#FFE9D6; color:var(--accent-ink);
+}
+.inicio-act-avatar.auto{ background:#EEF0F3; color:var(--ink-soft); }
+.inicio-act-txt{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.inicio-act-txt b{ font-size:12.8px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.inicio-act-txt span{ font-size:11.5px; color:var(--ink-soft); }
+.inicio-act-icono{ font-size:15px; flex:0 0 auto; }
+
+/* ---------- Escritorio: todo cabe en la pantalla, sin scroll ----------
+   La vista ocupa justo el alto que queda bajo la cabecera (y el banner,
+   si lo hay); las listas largas (tareas, actividad) hacen scroll por
+   dentro de su tarjeta, nunca la página. */
+@media (min-width:1200px) and (min-height:680px){
+  main:has(#view-inicio.active){ overflow:hidden; display:flex; flex-direction:column; padding:14px 18px; }
+  #view-inicio.active{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; width:100%; }
+  #view-inicio .inicio-grid{ flex:1 1 auto; min-height:0; }
+  #view-inicio .inicio-crece{ flex:1 1 auto; min-height:0; }
+  /* Las tarjetas que no crecen mantienen su alto (no se aplastan) */
+  #view-inicio .inicio-col > .inicio-card:not(.inicio-crece){ flex:0 0 auto; }
+  #view-inicio .inicio-crece .inicio-scroll{ flex:1 1 auto; }
+  #view-inicio .inicio-crece .inicio-grafica{ flex:1 1 auto; min-height:120px; }
+}
+
+/* ---------- Pantallas más pequeñas: scroll normal ---------- */
+@media (max-width:1199px), (max-height:679px){
+  .inicio-grid{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .inicio-grid > .inicio-col:last-child{ grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; }
+  .inicio-grafica{ height:220px; }
+  .inicio-scroll{ max-height:420px; }
+}
+@media (max-width:900px){
+  .inicio-kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+@media (max-width:760px){
+  .inicio-grid, .inicio-grid > .inicio-col:last-child{ grid-template-columns:minmax(0,1fr); }
+  .inicio-donut{ flex-direction:column; align-items:stretch; }
+  /* En el móvil la antigüedad de cada tarea baja a su propia línea */
+  #cardPendienteAtencion .inicio-pendiente-item{ flex-wrap:wrap; }
+  #cardPendienteAtencion .inicio-pendiente-item .texto{ flex:1 1 calc(100% - 70px); }
+  #cardPendienteAtencion .inicio-pendiente-item .edad{ order:3; width:100%; padding-left:30px; }
+  .inicio-donut-svg{ align-self:center; }
+}
+@media (max-width:480px){
+  .inicio-kpis{ grid-template-columns:minmax(0,1fr); }
+}

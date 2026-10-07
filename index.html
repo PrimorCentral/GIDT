@@ -109,6 +109,8 @@
       </div>
     </nav>
 
+    <!-- Fecha y hora en vivo (js/inicio-panel.js) -->
+    <div class="reloj-top" id="relojTop" aria-label="Fecha y hora"><span class="reloj-fecha" id="relojFecha"></span><span class="reloj-hora" id="relojHora"></span></div>
     <div class="status" id="statusWrap" title="Conectando…">
       <span class="auto-refresh-indicator" id="autoRefreshIndicator" title="Actualización automática del informe del día">
         <span class="hourglass" id="autoRefreshHourglass">⏳</span><span id="autoRefreshCountdown">20</span>s
@@ -125,33 +127,66 @@
 
     <!-- ============ INICIO ============ -->
     <section class="view active" id="view-inicio">
-      <div class="page-head">
-        <div>
-          <h1 id="inicioSaludo">Inicio</h1>
-          <p id="fechaHoyTexto">—</p>
-        </div>
+      <!-- Tarjetas de arriba (las pinta js/inicio-panel.js; los números de
+           incidencias y siniestros del día los siguen poniendo informe-hoy.js
+           y siniestros.js). -->
+      <div class="inicio-kpis">
+        <button type="button" class="inicio-kpi kpi-rojo" id="kpiCardIncidencias" data-view="incidencias">
+          <span class="inicio-kpi-top"><span class="inicio-kpi-icono">⚠️</span><span class="inicio-kpi-label">Incidencias de hoy</span><span class="inicio-kpi-flecha">→</span></span>
+          <b id="kpiIncidenciasHoy">—</b>
+          <span class="inicio-kpi-sub" id="kpiIncidenciasSub">&nbsp;</span>
+          <span class="inicio-kpi-spark" id="kpiIncidenciasSpark"></span>
+        </button>
+        <button type="button" class="inicio-kpi kpi-rojo" id="kpiCardSiniestros" data-view="panel-siniestros">
+          <span class="inicio-kpi-top"><span class="inicio-kpi-icono">📧</span><span class="inicio-kpi-label">Siniestros sin enviar a la agencia</span><span class="inicio-kpi-flecha">→</span></span>
+          <b id="kpiSiniestrosTotal">—</b>
+          <span class="inicio-kpi-sub" id="kpiSiniestrosSub">&nbsp;</span>
+          <!-- Nº de siniestros del día pendientes (lo escribe siniestros.js; oculto) -->
+          <span id="kpiSiniestrosPend" hidden>—</span>
+        </button>
+        <button type="button" class="inicio-kpi kpi-verde" id="kpiCardCobro" data-view="panel-siniestros">
+          <span class="inicio-kpi-top"><span class="inicio-kpi-icono">💶</span><span class="inicio-kpi-label">Pendiente de cobro</span><span class="inicio-kpi-flecha">→</span></span>
+          <b id="kpiCobroTotal">—</b>
+          <span class="inicio-kpi-sub" id="kpiCobroSub">&nbsp;</span>
+          <span class="inicio-kpi-spark" id="kpiCobroSpark"></span>
+        </button>
+        <button type="button" class="inicio-kpi kpi-azul" id="kpiCardMes" data-view="panel-siniestros">
+          <span class="inicio-kpi-top"><span class="inicio-kpi-icono">📦</span><span class="inicio-kpi-label" id="kpiMesLabel">Siniestros este mes</span><span class="inicio-kpi-flecha">→</span></span>
+          <b id="kpiMesTotal">—</b>
+          <span class="inicio-kpi-sub" id="kpiMesSub">&nbsp;</span>
+          <span class="inicio-kpi-spark" id="kpiMesSpark"></span>
+        </button>
       </div>
 
-      <div class="grid-kpi">
-        <div class="kpi"><b id="kpiAgencias">—</b><span>Agencias activas</span></div>
-        <div class="kpi"><b id="kpiTiendas">—</b><span>Tiendas activas</span></div>
-        <div class="kpi warn"><b id="kpiIncidenciasHoy">—</b><span>Incidencias de hoy</span></div>
-        <div class="kpi"><b id="kpiSiniestrosPend">—</b><span>Siniestros pendientes de envio</span></div>
-      </div>
-
-      <div class="inicio-2col">
-        <div class="card" id="cardEstadoInforme">
-          <div class="empty">
-            <div class="glyph">📋</div>
-            <h3>Cargando estado del informe…</h3>
+      <div class="inicio-grid">
+        <div class="inicio-col">
+          <div class="inicio-card" id="cardEstadoInforme">
+            <div class="inicio-card-head"><h3>📋 Informe de hoy</h3></div>
+            <p class="inicio-vacio">Cargando estado del informe…</p>
+          </div>
+          <div class="inicio-card inicio-crece">
+            <div class="inicio-card-head"><h3>📈 Incidencias por día</h3><span class="inicio-card-nota">últimos 7 informes</span></div>
+            <div class="inicio-grafica" id="inicioGraficaDias"></div>
           </div>
         </div>
 
-        <div class="card" style="padding:18px 20px;">
-          <h3 style="margin:0 0 4px; font-size:15px;">📌 Tareas pendientes</h3>
-          <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">Accede a ellas pulsando en cada una.</p>
-          <div id="cardPendienteAtencion">
-            <div class="empty" style="padding:20px;"><p>Comprobando…</p></div>
+        <div class="inicio-col">
+          <div class="inicio-card inicio-crece">
+            <div class="inicio-card-head"><h3>📌 Tareas pendientes <span class="inicio-num" id="tareasNum" hidden></span></h3></div>
+            <div class="inicio-scroll" id="cardPendienteAtencion">
+              <p class="inicio-vacio">Comprobando…</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="inicio-col">
+          <div class="inicio-card">
+            <div class="inicio-card-head"><h3 id="inicioDonutTitulo">🚚 Incidencias del mes por agencia</h3></div>
+            <div class="inicio-donut" id="inicioDonut"></div>
+          </div>
+          <div class="inicio-card inicio-crece">
+            <div class="inicio-card-head"><h3>🕒 Actividad reciente</h3><button type="button" class="inicio-link" id="btnActividadVerTodo" data-view="config-auditoria">Ver todo →</button></div>
+            <div class="inicio-scroll" id="inicioActividad"><p class="inicio-vacio">Cargando…</p></div>
           </div>
         </div>
       </div>
@@ -2467,6 +2502,7 @@
 <script src="js/siniestros.js"></script>
 <script src="js/panel-siniestros.js"></script>
 <script src="js/panel-siniestros-exportar.js"></script>
+<script src="js/inicio-panel.js"></script>
 <script src="js/informe-pdf.js"></script>
 <script src="js/reportes-mensuales-envio.js"></script>
 <script src="js/reportes-mensuales-exportar.js"></script>
