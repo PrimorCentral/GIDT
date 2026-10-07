@@ -199,6 +199,8 @@
     const pendientes = siniestrosHoyCache.filter(s => s.estado === 'PENDIENTE').length;
     document.getElementById('kpiSiniestrosPend').textContent = pendientes;
     document.getElementById('dotSiniestros').classList.toggle('show', pendientes > 0);
+    // Tarjeta de Inicio "Siniestros sin enviar" (suma del día + Panel)
+    if (typeof inicioActualizarKpiSiniestros === 'function') inicioActualizarKpiSiniestros();
   }
 
   // Refresca el KPI "Siniestros pendientes de envío" de Inicio y el punto rojo
@@ -210,6 +212,7 @@
     if (!informeHoyCache) {
       if (kpiEl) kpiEl.textContent = '0';
       if (dotEl) dotEl.classList.remove('show');
+      if (typeof inicioActualizarKpiSiniestros === 'function') inicioActualizarKpiSiniestros();
       return;
     }
     try {
@@ -220,6 +223,7 @@
       const pendientes = Array.from(existentesPorIncidencia.values()).filter(s => s.estado === 'PENDIENTE').length;
       if (kpiEl) kpiEl.textContent = pendientes;
       if (dotEl) dotEl.classList.toggle('show', pendientes > 0);
+      if (typeof inicioActualizarKpiSiniestros === 'function') inicioActualizarKpiSiniestros();
     } catch (err) {
       console.error('Error actualizando KPI de siniestros:', err);
     }

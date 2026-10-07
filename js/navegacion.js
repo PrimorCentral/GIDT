@@ -155,9 +155,11 @@ async function recargarConGiro(btn, ...cargas) {
     return `${formatearFechaCorta(fecha)} ${h}:${min}`;
   }
 
+  // (Inicio ya no tiene saludo ni fecha: la fecha y la hora van ahora en
+  // el reloj de la cabecera. Se deja por si vuelve a existir el elemento.)
   function actualizarFechaHoyTexto() {
-    document.getElementById('fechaHoyTexto').textContent =
-      dias[hoy.getDay()] + ", " + formatearFechaCorta(hoy);
+    const el = document.getElementById('fechaHoyTexto');
+    if (el) el.textContent = dias[hoy.getDay()] + ", " + formatearFechaCorta(hoy);
   }
   actualizarFechaHoyTexto();
 
@@ -166,44 +168,14 @@ async function recargarConGiro(btn, ...cargas) {
   // ---------------------------------------------------------------
   async function cargarKPIs() {
     const statusEl = document.getElementById('statusText');
-    const saludoEl = document.getElementById('inicioSaludo');
-    if (saludoEl) {
-      const nombreCorto = (sesionActual?.nombre || sesionActual?.usuario || '').split(' ')[0];
-      saludoEl.textContent = nombreCorto ? `Hola, ${nombreCorto}` : 'Inicio';
-    }
+    // Inicio ya no muestra "Agencias activas" / "Tiendas activas" (las
+    // tarjetas nuevas las pinta inicio-panel.js); aquí solo queda la
+    // comprobación de conexión con Supabase (punto verde de la cabecera).
     try {
-      const [{ count: numAgencias, error: e1 }, { count: numTiendas, error: e2 }] = await Promise.all([
-        sb.from('agencias').select('*', { count: 'exact', head: true }).eq('activo', true),
-        sb.from('tiendas').select('*', { count: 'exact', head: true }).eq('activo', true).eq('marca', 'HABITUAL')
-      ]);
-      if (e1 || e2) throw (e1 || e2);
+      const { error: eConexion } = await sb.from('agencias').select('*', { count: 'exact', head: true }).eq('activo', true);
+      if (eConexion) throw eConexion;
 
-      // Las tiendas HABITUALES que están de baja hoy no cuentan como activas
-      // (si esta consulta falla, se muestra el total sin descontar).
-      let numTiendasActivas = numTiendas;
-      try {
-        const hoyKpiISO = fechaLocalISO(new Date());
-        const { data: bajasHoy, error: eBajasKpi } = await sb.from('tienda_bajas')
-          .select('tienda_id')
-          .eq('tipo', 'BAJA')
-          .lte('fecha_desde', hoyKpiISO)
-          .or(`fecha_reactivacion.is.null,fecha_reactivacion.gt.${hoyKpiISO}`);
-        if (eBajasKpi) throw eBajasKpi;
-        const idsBaja = [...new Set((bajasHoy || []).map(b => b.tienda_id))];
-        if (idsBaja.length) {
-          const { count: numBajasHabituales, error: eBajasHab } = await sb.from('tiendas')
-            .select('*', { count: 'exact', head: true })
-            .in('id', idsBaja).eq('activo', true).eq('marca', 'HABITUAL');
-          if (eBajasHab) throw eBajasHab;
-          numTiendasActivas = (numTiendas ?? 0) - (numBajasHabituales ?? 0);
-        }
-      } catch (eKpiBajas) {
-        console.error('No se pudieron descontar las tiendas de baja del KPI:', eKpiBajas);
-      }
-
-      document.getElementById('kpiAgencias').textContent = numAgencias ?? '—';
-      document.getElementById('kpiTiendas').textContent = numTiendasActivas ?? '—';
-      // Estos dos KPIs los pintan actualizarKpiIncidencias() y
+      // Estos KPIs los pintan actualizarKpiIncidencias() y
       // actualizarKpiSiniestrosDesdeDB() (las llama cargarInformeHoy, que se
       // ejecuta a la vez que esta función). Aquí solo se pone un "0" si
       // todavía no hay ningún valor: si esta función acaba DESPUÉS de
@@ -222,6 +194,8 @@ async function recargarConGiro(btn, ...cargas) {
     }
     cargarPendienteAtencion();
     if (typeof actualizarAvisoInformesSinRevisar === 'function') actualizarAvisoInformesSinRevisar();
+    // Tarjetas, gráficas y actividad de Inicio (js/inicio-panel.js)
+    if (typeof inicioRefrescar === 'function') inicioRefrescar();
   }
 
   // ---------------------------------------------------------------
@@ -229,10 +203,26 @@ async function recargarConGiro(btn, ...cargas) {
   // fuentes, lo que necesita algo de ti ahora mismo, con acceso
   // directo a la pantalla correspondiente.
   // ---------------------------------------------------------------
+  // Antigüedad de una tarea pendiente a partir de la fecha más antigua del
+  // grupo (YYYY-MM-DD o timestamp): "desde hoy", "hace 3 días"… Con más de
+  // un elemento dice "el más antiguo hace…", para que se vea qué urge.
+  function edadTareaPendiente(lista, campo, { prefijo = '' } = {}) {
+    const fechas = lista.map(s => s[campo]).filter(Boolean).map(v => String(v).length === 10 ? new Date(v + 'T00:00:00') : new Date(v)).filter(d => !isNaN(d));
+    if (!fechas.length) return '';
+    const masAntigua = new Date(Math.min(...fechas.map(d => d.getTime())));
+    const ini = new Date(masAntigua.getFullYear(), masAntigua.getMonth(), masAntigua.getDate());
+    const hoyD = new Date(); hoyD.setHours(0, 0, 0, 0);
+    const dias = Math.max(0, Math.round((hoyD - ini) / 86400000));
+    const cuando = dias === 0 ? 'desde hoy' : (dias === 1 ? 'hace 1 día' : `hace ${dias} días`);
+    if (prefijo) return `${prefijo} ${cuando}`;
+    return lista.length > 1 && dias > 0 ? `el más antiguo ${cuando}` : cuando;
+  }
+
   async function cargarPendienteAtencion() {
     const cont = document.getElementById('cardPendienteAtencion');
     if (!cont) return;
-    cont.innerHTML = `<div class="empty" style="padding:20px;"><p>Comprobando…</p></div>`;
+    // Solo la primera vez: al refrescar se deja lo que había hasta tener lo nuevo.
+    if (!cont.querySelector(".inicio-pendiente-item, .empty")) cont.innerHTML = `<p class="inicio-vacio">Comprobando…</p>`;
 
     const items = [];
 
@@ -284,7 +274,7 @@ async function recargarConGiro(btn, ...cargas) {
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, valor, fecha, albaran_url, factura_url, origen, correo_enviado, envio_omitido_en');
+        .select('estado, tipo, recogida_estado, recogida_limite, recogida_estado_en, valor, fecha, creado_en, albaran_url, factura_url, origen, correo_enviado, envio_omitido_en');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
@@ -299,7 +289,8 @@ async function recargarConGiro(btn, ...cargas) {
             icono: '📧',
             texto: `${n} siniestro${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'} de enviar a la agencia`,
             vista: 'panel-siniestros',
-            urgente: true
+            urgente: true,
+            edad: edadTareaPendiente(sinEnviarAgencia, 'creado_en')
           });
         }
 
@@ -316,7 +307,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '💰',
             texto: `${pdteCobro.length} siniestro${pdteCobro.length === 1 ? '' : 's'} pendiente${pdteCobro.length === 1 ? '' : 's'} de cobro desde hace más de 30 días (${totalTxt} €)`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(pdteCobro, 'fecha')
           });
         }
 
@@ -325,7 +317,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '📄',
             texto: `${sinAlbaran.length} siniestro${sinAlbaran.length === 1 ? '' : 's'} sin albarán`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(sinAlbaran, 'fecha')
           });
         }
 
@@ -334,7 +327,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '🧾',
             texto: `${sinFactura.length} siniestro${sinFactura.length === 1 ? '' : 's'} sin factura`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(sinFactura, 'fecha')
           });
         }
 
@@ -343,7 +337,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '🏷️',
             texto: `${sinOrigen.length} siniestro${sinOrigen.length === 1 ? '' : 's'} sin origen de mercancía`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(sinOrigen, 'fecha')
           });
         }
 
@@ -355,7 +350,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '⏰',
             texto: `${vencidas.length} recogida${vencidas.length === 1 ? '' : 's'} con la fecha límite ya cumplida`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(vencidas, 'recogida_limite', { prefijo: 'vencida' })
           });
         }
 
@@ -367,7 +363,8 @@ async function recargarConGiro(btn, ...cargas) {
           items.push({
             icono: '🏬',
             texto: `${enEsperaTienda.length} siniestro${enEsperaTienda.length === 1 ? '' : 's'} en espera de respuesta por parte de tienda`,
-            vista: 'panel-siniestros'
+            vista: 'panel-siniestros',
+            edad: edadTareaPendiente(enEsperaTienda, 'recogida_estado_en', { prefijo: 'esperando' })
           });
         }
       }
@@ -421,6 +418,10 @@ async function recargarConGiro(btn, ...cargas) {
     // entre ellos y entre el resto el orden en que se han ido añadiendo.
     items.sort((x, y) => (y.urgente ? 1 : 0) - (x.urgente ? 1 : 0));
 
+    // Contador junto al título "Tareas pendientes"
+    const numEl = document.getElementById('tareasNum');
+    if (numEl) { numEl.textContent = items.length; numEl.hidden = !items.length; }
+
     if (!items.length) {
       cont.innerHTML = `
         <div class="empty" style="padding:20px;">
@@ -435,6 +436,7 @@ async function recargarConGiro(btn, ...cargas) {
       <button type="button" class="inicio-pendiente-item${it.urgente ? ' urgente' : ''}" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
+        ${it.edad ? `<span class="edad">${escapeHtml(it.edad)}</span>` : ''}
         <span class="flecha">→</span>
       </button>`).join('');
 

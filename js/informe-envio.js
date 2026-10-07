@@ -314,7 +314,7 @@ async function actualizarAvisoInformesSinRevisar() {
     banner.innerHTML = `
       <span class="aviso-global-icono">⚠️</span>
       <div class="aviso-global-texto"><b>${escapeHtml(titulo)}</b><span>${escapeHtml(detalle)}</span></div>
-      <button type="button" class="aviso-global-btn" id="btnAvisoInformesRevisar">Revisar ahora →</button>`;
+      <button type="button" class="aviso-global-btn" id="btnAvisoInformesRevisar" data-view="${masAntiguo.esHoy ? 'incidencias' : 'historial-informes'}">Revisar ahora →</button>`;
     banner.hidden = false;
     document.getElementById('btnAvisoInformesRevisar').addEventListener('click', () => avisoInformesIrA(masAntiguo));
   } catch (err) {

@@ -23,57 +23,75 @@
     }
     renderCardEstadoInforme();
     if (informeHoyCache) await cargarIncidenciasHoy();
+    // Se vuelve a pintar ya con las incidencias (contadores y barra de revisadas)
+    if (informeHoyCache) renderCardEstadoInforme();
     actualizarKpiIncidencias();
     if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
     if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
   }
 
+  // Tarjeta compacta "Informe de hoy" de Inicio: cabecera con el enlace
+  // "Ir al informe →" (como "Ver todo →" de Actividad reciente), estado,
+  // quién/cuándo, y una barra con las incidencias ya revisadas (las que no
+  // siguen en "Retraso Pdte Confirmar" / "Revisando posible incidencia").
   function renderCardEstadoInforme() {
     const card = document.getElementById('cardEstadoInforme');
+    if (!card) return;
+    const cabecera = (conEnlace) => `
+      <div class="inicio-card-head">
+        <h3>📋 Informe de hoy</h3>
+        ${conEnlace ? '<button type="button" class="inicio-link" id="btnIrInformeHoy" data-view="incidencias">Ir al informe →</button>' : ''}
+      </div>`;
+
     if (!informeHoyCache) {
-      card.innerHTML = `
-        <div class="empty">
-          <div class="glyph">📋</div>
-          <h3>Sin informe abierto para hoy</h3>
-          <p>Genera el informe diario para empezar a registrar incidencias por agencia.</p>
-          <button class="btn primary" id="btnGenerarInformeEmpty">Generar informe de hoy</button>
+      card.innerHTML = `${cabecera(false)}
+        <div class="inicio-informe">
+          <span class="inicio-informe-icono gris">📋</span>
+          <div class="inicio-informe-txt"><b>Sin informe abierto para hoy</b><span>Genera el informe diario para empezar a registrar incidencias.</span></div>
+          <button class="btn primary" id="btnGenerarInformeEmpty">Generar informe</button>
         </div>`;
       document.getElementById('btnGenerarInformeEmpty').addEventListener('click', generarInformeHoy);
-    } else {
-      const enviado = !!informeHoyCache.informe_enviado;
-      const estadoTexto = enviado ? 'ENVIADO' : informeHoyCache.estado;
-      const icono = enviado ? '📨' : '✅';
-      const tituloCard = enviado ? 'Informe de hoy enviado' : 'Informe de hoy creado';
-      const horaEnvio = informeHoyCache.informe_enviado_en
-        ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        : null;
-      const filaCreadoOEnviado = enviado
-        ? `<div class="fila"><span class="etiqueta">Enviado por</span><span class="valor">${escapeHtml(informeHoyCache.informe_enviado_por || '—')}</span></div>
-           <div class="fila"><span class="etiqueta">Hora de envío</span><span class="valor">${horaEnvio ? horaEnvio + 'h' : '—'}</span></div>`
-        : `<div class="fila"><span class="etiqueta">Creado por</span><span class="valor">${escapeHtml(informeHoyCache.creado_por || '—')}</span></div>`;
-      card.innerHTML = `
-        <div class="informe-estado-detalle">
-          <div class="informe-estado-header">
-            <span class="glyph-check">${icono}</span>
-            <h3>${tituloCard}</h3>
-            <p>${formatearFechaCorta(hoy)}</p>
-          </div>
-          <div class="informe-estado-lista">
-            <div class="fila"><span class="etiqueta">Palets previstos</span><span class="valor">${informeHoyCache.total_palets || 'Sin especificar'}</span></div>
-            <div class="fila"><span class="etiqueta">Estado del informe</span><span class="valor">${escapeHtml(estadoTexto)}</span></div>
-            ${filaCreadoOEnviado}
-          </div>
-          <div class="informe-estado-boton">
-            <button class="btn primary" data-view="incidencias">Ir al informe de hoy</button>
-          </div>
-        </div>`;
-      card.querySelector('[data-view="incidencias"]').addEventListener('click', async () => {
-        if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
-        if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
-        activarVista('incidencias');
-        renderVistaIncidencias();
-      });
+      return;
     }
+
+    const enviado = !!informeHoyCache.informe_enviado;
+    const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + 'h' : null;
+    const marcadas = (incidenciasHoyCache || []).filter(i => i.marcada);
+    const sinRevisarLista = (typeof MOTIVOS_SIN_REVISAR !== 'undefined') ? MOTIVOS_SIN_REVISAR : ['RETRASO PDTE CONFIRMAR', 'REVISANDO POSIBLE INCIDENCIA'];
+    const sinRevisar = marcadas.filter(i => (i.motivo || []).some(m => sinRevisarLista.includes(m))).length;
+    const revisadas = marcadas.length - sinRevisar;
+    const agencias = new Set(marcadas.map(i => i.agencia_id).filter(Boolean)).size;
+    const pct = marcadas.length ? Math.round(revisadas / marcadas.length * 100) : 100;
+
+    const quien = enviado
+      ? [informeHoyCache.informe_enviado_por, horaDe(informeHoyCache.informe_enviado_en)]
+      : [informeHoyCache.creado_por, horaDe(informeHoyCache.creado_en)];
+    const detalle = [...quien.filter(Boolean), informeHoyCache.total_palets ? `${informeHoyCache.total_palets} palets previstos` : null].filter(Boolean).join(' · ');
+    const estadoTexto = enviado ? 'ENVIADO' : (informeHoyCache.estado || 'ABIERTO');
+    const pl = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+
+    card.innerHTML = `${cabecera(true)}
+      <div class="inicio-informe">
+        <span class="inicio-informe-icono ${enviado ? 'verde' : 'naranja'}">${enviado ? '✅' : '📝'}</span>
+        <div class="inicio-informe-txt">
+          <b>${enviado ? 'Enviado a las agencias' : (marcadas.length ? `Abierto · ${pl(marcadas.length, 'incidencia', 'incidencias')} sin enviar` : 'Abierto · sin incidencias todavía')}</b>
+          <span>${escapeHtml(detalle || '—')}</span>
+        </div>
+        <span class="inicio-estado ${enviado ? 'verde' : 'naranja'}">${escapeHtml(estadoTexto)}</span>
+      </div>
+      <div class="inicio-progreso${sinRevisar ? ' pendiente' : ''}" title="${revisadas} de ${marcadas.length} incidencias revisadas"><i style="width:${pct}%"></i></div>
+      <div class="inicio-informe-datos">
+        <span><b>${marcadas.length}</b> incidencias</span>
+        <span${sinRevisar ? ' class="aviso"' : ''}><b>${revisadas}</b> de ${marcadas.length} revisadas</span>
+        <span><b>${agencias}</b> ${agencias === 1 ? 'agencia' : 'agencias'}</span>
+      </div>`;
+
+    document.getElementById('btnIrInformeHoy').addEventListener('click', async () => {
+      if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+      if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
+      activarVista('incidencias');
+      renderVistaIncidencias();
+    });
   }
 
   async function generarInformeHoy() {
@@ -105,6 +123,8 @@
     document.getElementById('kpiIncidenciasHoy').textContent = informeHoyCache
       ? incidenciasHoyCache.filter(i => i.marcada).length
       : '0';
+    // Comparación con el informe anterior en la tarjeta de Inicio
+    if (typeof inicioActualizarKpiIncidencias === 'function') inicioActualizarKpiIncidencias();
   }
 
   // ---------------------------------------------------------------
