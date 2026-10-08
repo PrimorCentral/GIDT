@@ -307,6 +307,7 @@
         }
 
         tr.querySelector('.i-obs').value = '';
+        cancelarSalidaFiltro(tiendaId, entrega);
 
         await cargarIncidenciasHoy();
 
@@ -388,18 +389,15 @@
         sincronizarSiniestroIncidencia(incGuardada.id, motivos);
       }
 
-      if (filtrosActivos() && tr?.querySelector('.motivo-select.open')) {
-        // Desplegable de motivos de esta fila aún abierto: no se repinta el
-        // listado ahora (la fila podría desaparecer del filtro a mitad del
-        // cambio); se actualiza solo la fila y se repinta al cerrarlo.
-        actualizarFilaIncidencia(tiendaId, tr);
-        tr.dataset.repintarAlCerrar = '1';
-      } else if (filtrosActivos()) {
-        // Con filtros activos, la fila podría dejar de cumplirlos: recalculamos el listado
-        // (el estado de agencias desplegadas ya se conserva, así que no se cierra nada).
-        renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
+      // Se actualiza solo la fila (sin repintar el listado, que cerraría el
+      // desplegable o quitaría el foco de Observaciones). Si con filtros
+      // activos la fila ya no los cumple, no desaparece al momento: arranca
+      // una cuenta atrás (ver iniciarSalidaFiltro en siniestros-historial.js).
+      actualizarFilaIncidencia(tiendaId, tr);
+      if (filtrosActivos() && !filaCumpleFiltrosIncidencias(tiendaId, entrega)) {
+        iniciarSalidaFiltro(tiendaId, entrega);
       } else {
-        actualizarFilaIncidencia(tiendaId, tr);
+        cancelarSalidaFiltro(tiendaId, entrega);
       }
       actualizarKpiIncidencias();
     } catch (err) {

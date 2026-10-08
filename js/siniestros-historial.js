@@ -269,6 +269,139 @@
     return filtrosIncidencias.agencias.size > 0 || filtrosIncidencias.tipos.size > 0 || filtrosIncidencias.motivos.size > 0 || filtrosIncidencias.marcas.size > 0 || filtrosIncidencias.soloConIncidencias || filtrosIncidencias.soloPendientes;
   }
 
+  // ¿La fila (tienda + entrega) cumple los filtros de Tipo / Motivo /
+  // "Solo con incidencias" / "Solo pendientes"? (los de Agencia y Marca no
+  // dependen de los motivos, así que no cambian al editar una fila).
+  function filaCumpleFiltrosIncidencias(tiendaId, entrega) {
+    const inc = incidenciaDeTienda(tiendaId, entrega);
+    const motivosActuales = inc?.motivo || [];
+    const marcada = motivosActuales.length > 0;
+    const tipoCalc = calcularTipo(motivosActuales);
+    const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
+
+    if (filtrosIncidencias.soloConIncidencias && !marcada) return false;
+    if (filtrosIncidencias.soloPendientes && !motivosActuales.some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA')) return false;
+    if (filtrosIncidencias.tipos.size && (!tipoEfectivo || !filtrosIncidencias.tipos.has(tipoEfectivo))) return false;
+    if (filtrosIncidencias.motivos.size && !motivosActuales.some(m => filtrosIncidencias.motivos.has(m))) return false;
+    return true;
+  }
+
+  // ---------------------------------------------------------------
+  // Cuenta atrás antes de que una fila salga del filtro
+  // ---------------------------------------------------------------
+  // Si al cambiar los motivos de una fila deja de cumplir los filtros
+  // activos (p. ej. pasar de "RETRASO PDTE CONFIRMAR" a "RETRASO LEVE" con
+  // "Solo pendientes"), no desaparece al momento: se queda con un aviso
+  // "Sale del filtro en N s" para dar tiempo a retocar las observaciones.
+  // La cuenta se pausa mientras se escribe en Observaciones o el desplegable
+  // de motivos de esa fila está abierto. Al salir de Observaciones, o al
+  // acabar la cuenta, se marca "Guardado" y la fila sale de la lista.
+  const SEGUNDOS_SALIDA_FILTRO = 8;
+  const filasSaliendoFiltro = new Map(); // 'tiendaId|entrega' -> { segundos, pausa, guardada, timer }
+
+  function claveFilaInforme(tiendaId, entrega) {
+    return tiendaId + '|' + (entrega || 'HABITUAL');
+  }
+
+  function trDeFilaInforme(tiendaId, entrega) {
+    return document.querySelector(`#contenidoIncidencias tr[data-tienda="${tiendaId}"][data-entrega="${entrega || 'HABITUAL'}"]`);
+  }
+
+  function filaInformeEnEdicion(tr) {
+    if (!tr) return false;
+    if (tr.querySelector('.motivo-select.open')) return true;
+    const activo = document.activeElement;
+    return !!(activo && tr.contains(activo) && activo.classList.contains('i-obs'));
+  }
+
+  function chipSalidaFiltroHtml(tiendaId, entrega) {
+    const s = filasSaliendoFiltro.get(claveFilaInforme(tiendaId, entrega));
+    if (!s) return '';
+    if (s.guardada) return '<span class="fila-sale-chip guardado">✓ Guardado</span>';
+    if (s.pausa) return '<span class="fila-sale-chip pausa">✏️ En pausa mientras escribes</span>';
+    return `<span class="fila-sale-chip">⏳ Sale del filtro en <span class="seg">${s.segundos}</span> s</span>`;
+  }
+
+  function pintarChipSalidaFiltro(tiendaId, entrega) {
+    const tr = trDeFilaInforme(tiendaId, entrega);
+    if (!tr) return;
+    const s = filasSaliendoFiltro.get(claveFilaInforme(tiendaId, entrega));
+    let wrap = tr.querySelector('.fila-sale-wrap');
+    if (!s) {
+      tr.classList.remove('fila-saliendo', 'fila-saliendo-ok');
+      if (wrap) wrap.remove();
+      return;
+    }
+    tr.classList.add('fila-saliendo');
+    tr.classList.toggle('fila-saliendo-ok', !!s.guardada);
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'fila-sale-wrap';
+      tr.querySelector('.col-tienda')?.appendChild(wrap);
+    }
+    wrap.innerHTML = chipSalidaFiltroHtml(tiendaId, entrega);
+  }
+
+  function iniciarSalidaFiltro(tiendaId, entrega) {
+    const clave = claveFilaInforme(tiendaId, entrega);
+    if (!filasSaliendoFiltro.has(clave)) {
+      const s = { segundos: SEGUNDOS_SALIDA_FILTRO, pausa: false, guardada: false, timer: null };
+      filasSaliendoFiltro.set(clave, s);
+      s.timer = setInterval(() => {
+        const tr = trDeFilaInforme(tiendaId, entrega);
+        if (!tr) { cancelarSalidaFiltro(tiendaId, entrega); return; }
+        s.pausa = filaInformeEnEdicion(tr);
+        if (!s.pausa) {
+          s.segundos -= 1;
+          if (s.segundos <= 0) { finalizarSalidaFiltro(tiendaId, entrega); return; }
+        }
+        pintarChipSalidaFiltro(tiendaId, entrega);
+      }, 1000);
+    }
+    const s = filasSaliendoFiltro.get(clave);
+    s.pausa = filaInformeEnEdicion(trDeFilaInforme(tiendaId, entrega));
+    pintarChipSalidaFiltro(tiendaId, entrega);
+  }
+
+  function cancelarSalidaFiltro(tiendaId, entrega) {
+    const clave = claveFilaInforme(tiendaId, entrega);
+    const s = filasSaliendoFiltro.get(clave);
+    if (!s) return;
+    clearInterval(s.timer);
+    filasSaliendoFiltro.delete(clave);
+    pintarChipSalidaFiltro(tiendaId, entrega);
+  }
+
+  function finalizarSalidaFiltro(tiendaId, entrega) {
+    const clave = claveFilaInforme(tiendaId, entrega);
+    const s = filasSaliendoFiltro.get(clave);
+    if (!s || s.guardada) return;
+    clearInterval(s.timer);
+    s.guardada = true;
+    pintarChipSalidaFiltro(tiendaId, entrega);
+
+    setTimeout(() => {
+      filasSaliendoFiltro.delete(clave);
+      const tr = trDeFilaInforme(tiendaId, entrega);
+      if (!filtrosActivos() || filaCumpleFiltrosIncidencias(tiendaId, entrega)) {
+        // Ya no hay filtro (o vuelve a cumplirlo): se queda, sin aviso.
+        pintarChipSalidaFiltro(tiendaId, entrega);
+        return;
+      }
+      // Si se está editando otra fila, no se repinta todo (perdería el foco
+      // o cerraría su desplegable): solo se quita esta fila.
+      const cont = document.getElementById('contenidoIncidencias');
+      const activo = document.activeElement;
+      const editando = cont && (cont.querySelector('.motivo-select.open')
+        || (activo && cont.contains(activo) && (activo.tagName === 'INPUT' || activo.tagName === 'TEXTAREA')));
+      if (editando) {
+        if (tr) tr.remove();
+      } else {
+        renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
+      }
+    }, 900);
+  }
+
   function renderAcordeonIncidencias(filtroTexto = '') {
     const cont = document.getElementById('contenidoIncidencias');
     const f = filtroTexto.trim().toUpperCase();
@@ -331,17 +464,9 @@
 
       if (filtrosIncidencias.tipos.size || filtrosIncidencias.motivos.size || filtrosIncidencias.soloConIncidencias || filtrosIncidencias.soloPendientes) {
         tds = tds.filter(t => {
-          const inc = incidenciaDeTienda(t.id, t.entrega);
-          const motivosActuales = inc?.motivo || [];
-          const marcada = motivosActuales.length > 0;
-          const tipoCalc = calcularTipo(motivosActuales);
-          const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
-
-          if (filtrosIncidencias.soloConIncidencias && !marcada) return false;
-          if (filtrosIncidencias.soloPendientes && !motivosActuales.some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA')) return false;
-          if (filtrosIncidencias.tipos.size && (!tipoEfectivo || !filtrosIncidencias.tipos.has(tipoEfectivo))) return false;
-          if (filtrosIncidencias.motivos.size && !motivosActuales.some(m => filtrosIncidencias.motivos.has(m))) return false;
-          return true;
+          // Fila en cuenta atrás para salir del filtro: se sigue mostrando.
+          if (filasSaliendoFiltro.has(claveFilaInforme(t.id, t.entrega))) return true;
+          return filaCumpleFiltrosIncidencias(t.id, t.entrega);
         });
       }
 
@@ -356,6 +481,9 @@
         const tipoCalc = calcularTipo(motivosActuales);
         const esPendiente = marcada && !tipoCalc;
         const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
+        const salida = filasSaliendoFiltro.get(claveFilaInforme(t.id, t.entrega));
+        const claseSalida = salida ? (' fila-saliendo' + (salida.guardada ? ' fila-saliendo-ok' : '')) : '';
+        const chipSalida = salida ? `<span class="fila-sale-wrap">${chipSalidaFiltroHtml(t.id, t.entrega)}</span>` : '';
 
         const badgeTipo = !marcada
           ? '<span style="color:var(--ink-soft); font-size:12px;">—</span>'
@@ -369,10 +497,10 @@
           : '';
 
         return `
-          <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
+          <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${(claseFila ? 'con-incidencia ' + claseFila : '') + claseSalida}">
             <td class="col-estado">${marcada ? '🔴' : '—'}</td>
             <td class="col-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</td>
-            <td class="col-tienda">${badgeFilaInformeHtml(t)}${escapeHtml(t.nombre)}${iconoAjuste}</td>
+            <td class="col-tienda">${badgeFilaInformeHtml(t)}${escapeHtml(t.nombre)}${iconoAjuste}${chipSalida}</td>
             <td class="col-tipo">${badgeTipo}</td>
                         <td class="col-motivo">
               <div class="motivo-select">
@@ -540,7 +668,16 @@
         inputObs.value = inputObs.value.toUpperCase();
         inputObs.setSelectionRange(pos, pos);
       });
-      inputObs.addEventListener('blur', guardar);
+      inputObs.addEventListener('blur', async (e) => {
+        await guardar();
+        // Fila en cuenta atrás para salir del filtro: al terminar de escribir
+        // las observaciones sale ya (salvo que se haya pasado a otro control
+        // de la misma fila, p. ej. el desplegable de motivos).
+        if (filasSaliendoFiltro.has(claveFilaInforme(tiendaId, entrega))
+            && !(e.relatedTarget && tr.contains(e.relatedTarget))) {
+          finalizarSalidaFiltro(tiendaId, entrega);
+        }
+      });
 
       // Abrir/cerrar el desplegable de motivos de esta fila (sin cerrar al marcar checkboxes)
       const motivoSel = tr.querySelector('.motivo-select');
@@ -563,18 +700,12 @@
         // Al cerrar el desplegable:
         //  - si se ha quedado sin ningún motivo, ahora sí se borra la
         //    incidencia (con sus observaciones), igual que antes;
-        //  - si mientras estaba abierto se guardó un cambio que hace que la
-        //    fila ya no cumpla los filtros, se repinta el listado ahora.
+        //  - si el cambio hizo que la fila ya no cumpla los filtros, su
+        //    cuenta atrás (ver iniciarSalidaFiltro) sigue sola al cerrarse.
         motivoSel.addEventListener('motivo-cerrado', () => {
           const hayMotivo = tr.querySelectorAll('.i-motivo-check:checked').length > 0;
           if (!hayMotivo && incidenciaDeTienda(tiendaId, entrega)) {
-            delete tr.dataset.repintarAlCerrar;
             guardar();
-            return;
-          }
-          if (tr.dataset.repintarAlCerrar) {
-            delete tr.dataset.repintarAlCerrar;
-            if (filtrosActivos()) renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
           }
         });
 
