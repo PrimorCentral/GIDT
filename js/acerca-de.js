@@ -139,7 +139,7 @@ const ACERCA_DE_GIDT = {
     }
 
     overlay.classList.add('show');
-    document.getElementById('btnAcercaDeAceptar').focus();
+    document.getElementById('btnAcercaDeCerrar').focus();
   }
 
   function cerrar() {
@@ -151,11 +151,18 @@ const ACERCA_DE_GIDT = {
     const overlay = document.getElementById('acercaDeModalOverlay');
     if (!overlay) return;
 
-    document.getElementById('btnAcercaDeAceptar').addEventListener('click', cerrar);
     document.getElementById('btnAcercaDeCerrar').addEventListener('click', cerrar);
     document.getElementById('acercaTabLicencia').addEventListener('click', function () { mostrarPestana('licencia'); });
     document.getElementById('acercaTabNovedades').addEventListener('click', function () { mostrarPestana('novedades'); });
-    overlay.addEventListener('click', function (ev) { if (ev.target === overlay) cerrar(); });
+    // Un clic fuera de la ventana NO la cierra (solo la ✕ o Escape): la
+    // ventana da un pequeño "toque" para indicar que hay que usar la ✕.
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target !== overlay) return;
+      const box = overlay.querySelector('.acerca-de-box');
+      if (box && box.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.02)' }, { transform: 'scale(1)' }], { duration: 240, easing: 'ease-out' });
+      }
+    });
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && overlay.classList.contains('show')) cerrar();
     });
