@@ -388,7 +388,13 @@
         sincronizarSiniestroIncidencia(incGuardada.id, motivos);
       }
 
-      if (filtrosActivos()) {
+      if (filtrosActivos() && tr?.querySelector('.motivo-select.open')) {
+        // Desplegable de motivos de esta fila aún abierto: no se repinta el
+        // listado ahora (la fila podría desaparecer del filtro a mitad del
+        // cambio); se actualiza solo la fila y se repinta al cerrarlo.
+        actualizarFilaIncidencia(tiendaId, tr);
+        tr.dataset.repintarAlCerrar = '1';
+      } else if (filtrosActivos()) {
         // Con filtros activos, la fila podría dejar de cumplirlos: recalculamos el listado
         // (el estado de agencias desplegadas ya se conserva, así que no se cierra nada).
         renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);

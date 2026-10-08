@@ -437,6 +437,11 @@
         const hayMotivo = tr.querySelectorAll('.i-motivo-check:checked').length > 0;
         inputObs.disabled = !hayMotivo;
         if (btnBorrarMotivos) btnBorrarMotivos.style.display = hayMotivo ? '' : 'none';
+        // Si la fila se queda sin ningún motivo con el desplegable aún
+        // abierto, NO se borra todavía: puede que se esté cambiando un
+        // motivo pendiente (p. ej. "RETRASO PDTE CONFIRMAR") por el real.
+        // El borrado se decide al cerrar el desplegable (ver 'motivo-cerrado').
+        if (!hayMotivo && tr.querySelector('.motivo-select.open')) return;
         guardar();
       }));
 
@@ -545,11 +550,33 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const yaAbierto = motivoSel.classList.contains('open');
-          document.querySelectorAll('.motivo-select.open').forEach(o => { if (o !== motivoSel) o.classList.remove('open'); });
-          motivoSel.classList.toggle('open', !yaAbierto);
-          if (!yaAbierto) posicionarDropdownMotivo(motivoSel, dropdown);
+          document.querySelectorAll('.motivo-select.open').forEach(o => { if (o !== motivoSel) cerrarMotivoSelect(o); });
+          if (yaAbierto) {
+            cerrarMotivoSelect(motivoSel);
+          } else {
+            motivoSel.classList.add('open');
+            posicionarDropdownMotivo(motivoSel, dropdown);
+          }
         });
         dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        // Al cerrar el desplegable:
+        //  - si se ha quedado sin ningún motivo, ahora sí se borra la
+        //    incidencia (con sus observaciones), igual que antes;
+        //  - si mientras estaba abierto se guardó un cambio que hace que la
+        //    fila ya no cumpla los filtros, se repinta el listado ahora.
+        motivoSel.addEventListener('motivo-cerrado', () => {
+          const hayMotivo = tr.querySelectorAll('.i-motivo-check:checked').length > 0;
+          if (!hayMotivo && incidenciaDeTienda(tiendaId, entrega)) {
+            delete tr.dataset.repintarAlCerrar;
+            guardar();
+            return;
+          }
+          if (tr.dataset.repintarAlCerrar) {
+            delete tr.dataset.repintarAlCerrar;
+            if (filtrosActivos()) renderAcordeonIncidencias(document.getElementById('buscarTiendaIncidencias').value);
+          }
+        });
 
         const buscadorMotivo = dropdown.querySelector('.i-buscar-motivo');
         if (buscadorMotivo) {
@@ -593,14 +620,22 @@
 
   // Cierra cualquier desplegable de motivos abierto al hacer clic fuera,
   // o al hacer scroll (para que no se quede flotando en un sitio erróneo)
+  // Cierra un desplegable de motivos y avisa a su fila ('motivo-cerrado'),
+  // que decide entonces si borrar la incidencia o repintar el listado.
+  function cerrarMotivoSelect(o) {
+    if (!o.classList.contains('open')) return;
+    o.classList.remove('open');
+    o.dispatchEvent(new CustomEvent('motivo-cerrado'));
+  }
+
   document.addEventListener('click', () => {
-    document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
+    document.querySelectorAll('.motivo-select.open').forEach(cerrarMotivoSelect);
   });
   document.addEventListener('scroll', (e) => {
     // Si el scroll ocurre dentro del propio desplegable (la lista de motivos
     // tiene su propio scroll interno), no lo cerramos.
     if (e.target && e.target.closest && e.target.closest('.filtro-select-dropdown')) return;
-    document.querySelectorAll('.motivo-select.open').forEach(o => o.classList.remove('open'));
+    document.querySelectorAll('.motivo-select.open').forEach(cerrarMotivoSelect);
   }, true);
 
   // ---------------------------------------------------------------
