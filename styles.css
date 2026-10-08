@@ -2836,3 +2836,15 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
 @media (max-width:480px){
   .inicio-kpis{ grid-template-columns:minmax(0,1fr); }
 }
+
+/* ---------- Informe del día: fila en cuenta atrás para salir del filtro ----------
+   (js/siniestros-historial.js → iniciarSalidaFiltro) */
+.fila-sale-wrap{ display:block; }
+.fila-sale-chip{ display:inline-flex; align-items:center; gap:5px; margin-top:5px; font-size:11px; font-weight:600;
+  padding:2px 9px; border-radius:999px; background:var(--panel-muted); color:var(--ink-soft); border:1px solid var(--border);
+  white-space:nowrap; letter-spacing:.2px; }
+.fila-sale-chip .seg{ font-variant-numeric:tabular-nums; }
+.fila-sale-chip.pausa{ background:#FFEEDF; color:var(--accent-ink); border-color:#FFD9BC; }
+.fila-sale-chip.guardado{ background:var(--ok-bg); color:var(--ok); border-color:#C6E6CF; }
+table.tabla-incidencias tr.fila-saliendo td{ background:#FFFBF7; }
+table.tabla-incidencias tr.fila-saliendo-ok td{ opacity:.45; transition:opacity .4s; }
