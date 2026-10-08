@@ -73,17 +73,38 @@ const ACERCA_DE_GIDT = {
       cont.innerHTML = '<p class="acerca-novedades-vacio">Aún no hay novedades registradas.</p>';
       return;
     }
+    // La versión actual sale desplegada; las anteriores, plegadas (solo la
+    // cabecera con un resumen de cuántos cambios de cada tipo tienen).
     cont.innerHTML = lista.map(function (v, i) {
+      const conteo = { nuevo: 0, mejora: 0, correccion: 0 };
       const cambios = (v.cambios || []).map(function (c) {
         const tipo = TIPOS_CAMBIO[c.tipo] ? c.tipo : 'mejora';
+        conteo[tipo] += 1;
         return '<li><span class="acerca-tag ' + tipo + '">' + TIPOS_CAMBIO[tipo] + '</span><span>' + e(c.texto) + '</span></li>';
       }).join('');
-      return '<div class="acerca-version-item">' +
-        '<div class="acerca-version-cab">v' + e(v.version) +
-          (i === 0 ? ' <span class="acerca-version-actual">Actual</span>' : '') +
-          '<span class="acerca-version-fecha">' + e(fechaChangelog(v.fecha)) + '</span></div>' +
-        '<ul class="acerca-cambios">' + cambios + '</ul></div>';
+      const resumen = Object.keys(conteo).filter(function (t) { return conteo[t] > 0; }).map(function (t) {
+        return '<span class="acerca-resumen-tag ' + t + '">' + conteo[t] + ' ' + TIPOS_CAMBIO[t] + '</span>';
+      }).join('');
+      const abierta = i === 0;
+      return '<div class="acerca-version-item' + (abierta ? ' abierta' : '') + '">' +
+        '<button type="button" class="acerca-version-cab" aria-expanded="' + abierta + '">' +
+          '<span class="acerca-version-num">v' + e(v.version) + '</span>' +
+          (i === 0 ? '<span class="acerca-version-actual">Actual</span>' : '') +
+          '<span class="acerca-version-resumen">' + resumen + '</span>' +
+          '<span class="acerca-version-fecha">' + e(fechaChangelog(v.fecha)) + '</span>' +
+          '<svg class="acerca-version-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
+        '</button>' +
+        '<div class="acerca-version-detalle"><div><ul class="acerca-cambios">' + cambios + '</ul></div></div></div>';
     }).join('');
+
+    cont.querySelectorAll('.acerca-version-cab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const item = btn.closest('.acerca-version-item');
+        const abrir = !item.classList.contains('abierta');
+        item.classList.toggle('abierta', abrir);
+        btn.setAttribute('aria-expanded', String(abrir));
+      });
+    });
   }
 
   function mostrarPestana(cual) {
