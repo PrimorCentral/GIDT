@@ -13,7 +13,9 @@ const CHANGELOG_GIDT = [
     version: '1.7.8',
     fecha: '2026-10-08',
     cambios: [
-      { tipo: 'correccion', texto: 'En el Informe del día, al cambiar un motivo pendiente (como "RETRASO PDTE CONFIRMAR") por el definitivo, ya no se borran las observaciones ni desaparece la tienda de la lista filtrada; la incidencia solo se elimina si se cierra el desplegable sin ningún motivo marcado' }
+      { tipo: 'correccion', texto: 'En el Informe del día, al cambiar un motivo pendiente (como "RETRASO PDTE CONFIRMAR") por el definitivo, ya no se borran las observaciones ni desaparece la tienda de la lista filtrada; la incidencia solo se elimina si se cierra el desplegable sin ningún motivo marcado' },
+      { tipo: 'mejora',     texto: 'Con filtros activos en el Informe del día, si una tienda deja de cumplirlos al cambiar su motivo, se queda unos segundos en la lista con una cuenta atrás para poder retocar las observaciones; la cuenta se pausa mientras se escribe' },
+      { tipo: 'mejora',     texto: 'Nueva ventana "Acerca de": más grande y animada, con la licencia en dos columnas y las novedades de versiones anteriores plegadas; solo se cierra con la ✕ (o la tecla Escape)' }
     ]
   },
   {
