@@ -2848,3 +2848,137 @@ body.rol-operador:not(.perm-ver_auditoria) #btnActividadVerTodo{ opacity:.6; }
 .fila-sale-chip.guardado{ background:var(--ok-bg); color:var(--ok); border-color:#C6E6CF; }
 table.tabla-incidencias tr.fila-saliendo td{ background:#FFFBF7; }
 table.tabla-incidencias tr.fila-saliendo-ok td{ opacity:.45; transition:opacity .4s; }
+
+/* ---------- "Acerca de" ampliado (más ancho y legible) ---------- */
+.acerca-de-box{ max-width:780px; height:min(640px, calc(100vh - 40px)); display:flex; flex-direction:column; overflow:hidden; }
+.acerca-cabecera{ display:grid; grid-template-columns:auto 1fr; column-gap:18px; align-items:center; text-align:left; padding:26px 34px; flex:0 0 auto; }
+.acerca-logo{ grid-row:1 / span 2; width:72px; height:72px; border-radius:18px; margin:0; }
+.acerca-nombre{ font-size:24px; align-self:end; }
+.acerca-version{ font-size:14px; align-self:start; margin-top:6px; }
+.acerca-cerrar-x{ top:16px; right:16px; width:34px; height:34px; font-size:17px; }
+.acerca-tabs{ flex:0 0 auto; }
+.acerca-tab{ font-size:14.5px; padding:14px 10px; }
+.acerca-panel{ flex:1 1 auto; min-height:0; overflow-y:auto; }
+#acercaPanelLicencia{ display:grid; grid-template-columns:1fr 1fr; }
+.acerca-cuerpo{ padding:28px 34px; }
+.acerca-campo{ gap:5px; margin-bottom:22px; }
+.acerca-campo .lbl{ font-size:12px; }
+.acerca-campo .val{ font-size:18px; }
+.acerca-clave{ font-size:15.5px; padding:12px; }
+.acerca-activado{ font-size:13.5px; margin-top:6px; }
+.acerca-legal{ margin:0; padding:28px 34px; border-top:0; border-left:1px solid var(--border); background:var(--panel-muted); }
+.acerca-legal p{ font-size:13.5px; line-height:1.6; margin-bottom:12px; }
+.acerca-legal p.acerca-copy{ font-size:14.5px; margin-bottom:14px; }
+.acerca-novedades{ max-height:none; padding:8px 34px 12px; }
+.acerca-version-cab{ font-size:17px; gap:10px; }
+.acerca-version-actual{ font-size:12px; padding:3px 9px; }
+.acerca-version-fecha{ font-size:13.5px; }
+.acerca-cambios{ margin-top:12px; }
+.acerca-cambios li{ font-size:14.5px; line-height:1.55; gap:10px; margin:9px 0; }
+.acerca-tag{ font-size:12px; padding:2px 9px; min-width:92px; text-align:center; }
+.acerca-acciones{ flex:0 0 auto; margin:0; padding:16px 34px; border-top:1px solid var(--border); }
+.acerca-aceptar{ font-size:14px; padding:10px 26px; }
+@media (max-width:700px){
+  .acerca-de-box{ height:auto; max-height:calc(100vh - 20px); }
+  .acerca-cabecera{ padding:22px 52px 22px 20px; column-gap:14px; }
+  .acerca-logo{ width:56px; height:56px; border-radius:15px; }
+  .acerca-nombre{ font-size:17px; }
+  #acercaPanelLicencia{ display:block; }
+  .acerca-cuerpo, .acerca-legal{ padding:20px; }
+  .acerca-legal{ border-left:0; border-top:1px solid var(--border); }
+  .acerca-novedades{ padding:6px 20px 10px; }
+  .acerca-acciones{ padding:14px 20px; }
+}
+
+/* ---------- "Acerca de": animaciones ---------- */
+.acerca-de-overlay.show{ animation:acercaFondo .3s ease both; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+.acerca-de-overlay.show .acerca-de-box{ animation:acercaEntrada .55s cubic-bezier(.16,1,.3,1) both; }
+@keyframes acercaFondo{ from{ background:rgba(18,24,31,0); } }
+@keyframes acercaEntrada{ from{ opacity:0; transform:translateY(22px) scale(.94); } to{ opacity:1; transform:none; } }
+
+/* Cabecera: halo naranja que respira y destello que cruza */
+.acerca-cabecera{ position:relative; overflow:hidden; isolation:isolate; }
+.acerca-cabecera::before{
+  content:''; position:absolute; z-index:-1; width:320px; height:320px; left:-90px; top:-150px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,122,26,.28) 0%, rgba(255,122,26,0) 65%);
+  animation:acercaHalo 6s ease-in-out infinite alternate;
+}
+.acerca-cabecera::after{
+  content:''; position:absolute; z-index:-1; inset:0;
+  background:linear-gradient(105deg, transparent 35%, rgba(255,255,255,.07) 50%, transparent 65%);
+  transform:translateX(-100%); animation:acercaBrillo 1.6s .5s ease-out both;
+}
+@keyframes acercaHalo{ from{ transform:translate(0,0) scale(1); opacity:.8; } to{ transform:translate(40px,20px) scale(1.15); opacity:1; } }
+@keyframes acercaBrillo{ to{ transform:translateX(100%); } }
+.acerca-de-overlay.show .acerca-logo{ animation:acercaLogo .7s .15s cubic-bezier(.34,1.56,.64,1) both; box-shadow:0 10px 30px -8px rgba(27,109,224,.55); }
+@keyframes acercaLogo{ from{ opacity:0; transform:scale(.6) rotate(-8deg); } to{ opacity:1; transform:none; } }
+.acerca-de-overlay.show .acerca-nombre{ animation:acercaSube .5s .25s cubic-bezier(.16,1,.3,1) both; }
+.acerca-de-overlay.show .acerca-version{ animation:acercaSube .5s .35s cubic-bezier(.16,1,.3,1) both; }
+@keyframes acercaSube{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+/* Pestañas: barra naranja que se desliza */
+.acerca-tab{ transition:color .2s; }
+@supports selector(:has(*)){
+  .acerca-tabs{ position:relative; }
+  .acerca-tab.activa{ border-bottom-color:transparent; }
+  .acerca-tabs::after{
+    content:''; position:absolute; left:0; bottom:-1px; width:50%; height:2px; background:var(--accent);
+    transition:transform .35s cubic-bezier(.16,1,.3,1);
+  }
+  .acerca-tabs:has(#acercaTabNovedades.activa)::after{ transform:translateX(100%); }
+}
+
+/* Contenido: aparece escalonado al abrir y al cambiar de pestaña */
+.acerca-panel:not([hidden]) .acerca-campo,
+.acerca-panel:not([hidden]) .acerca-legal,
+.acerca-panel:not([hidden]) .acerca-version-item{ animation:acercaSube .45s cubic-bezier(.16,1,.3,1) both; }
+.acerca-panel:not([hidden]) .acerca-campo:nth-child(1){ animation-delay:.30s; }
+.acerca-panel:not([hidden]) .acerca-campo:nth-child(2){ animation-delay:.38s; }
+.acerca-panel:not([hidden]) .acerca-campo:nth-child(3){ animation-delay:.46s; }
+.acerca-panel:not([hidden]) .acerca-legal{ animation-delay:.42s; }
+.acerca-panel:not([hidden]) .acerca-version-item:nth-child(1){ animation-delay:.05s; }
+.acerca-panel:not([hidden]) .acerca-version-item:nth-child(2){ animation-delay:.12s; }
+.acerca-panel:not([hidden]) .acerca-version-item:nth-child(3){ animation-delay:.19s; }
+.acerca-panel:not([hidden]) .acerca-version-item:nth-child(n+4){ animation-delay:.26s; }
+
+/* Nº de activación con destello y "Producto activado" con check que se dibuja */
+.acerca-clave{ position:relative; overflow:hidden; }
+.acerca-panel:not([hidden]) .acerca-clave::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 30%, rgba(255,122,26,.18) 50%, transparent 70%);
+  transform:translateX(-100%); animation:acercaBrillo 1s .75s ease-out both;
+}
+.acerca-panel:not([hidden]) .acerca-activado svg path{ stroke-dasharray:24; stroke-dashoffset:24; animation:acercaCheck .45s .95s ease-out forwards; }
+@keyframes acercaCheck{ to{ stroke-dashoffset:0; } }
+
+/* Novedades: versiones plegables (la actual abierta, las anteriores plegadas) */
+.acerca-version-item{ padding:4px 0; }
+.acerca-version-cab{
+  width:100%; display:flex; align-items:center; gap:10px; padding:14px 12px; margin:0 -12px; width:calc(100% + 24px);
+  background:transparent; border:0; border-radius:10px; cursor:pointer; text-align:left; font:inherit;
+  font-size:17px; font-weight:700; color:var(--ink); transition:background .2s;
+}
+.acerca-version-cab:hover{ background:var(--panel-muted); }
+.acerca-version-cab:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+.acerca-version-resumen{ display:inline-flex; gap:6px; flex-wrap:wrap; transition:opacity .25s; }
+.acerca-version-item.abierta .acerca-version-resumen{ opacity:0; pointer-events:none; }
+.acerca-resumen-tag{ font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px; }
+.acerca-resumen-tag.nuevo{ background:var(--ok-bg); color:var(--ok); }
+.acerca-resumen-tag.mejora{ background:var(--moderado-bg); color:var(--moderado); }
+.acerca-resumen-tag.correccion{ background:#FFEEDF; color:var(--accent-ink); }
+.acerca-version-chevron{ flex:0 0 auto; color:var(--ink-soft); transition:transform .3s cubic-bezier(.16,1,.3,1); }
+.acerca-version-item.abierta .acerca-version-chevron{ transform:rotate(180deg); }
+.acerca-version-detalle{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .4s cubic-bezier(.16,1,.3,1); }
+.acerca-version-item.abierta .acerca-version-detalle{ grid-template-rows:1fr; }
+.acerca-version-detalle > div{ overflow:hidden; min-height:0; }
+.acerca-version-detalle .acerca-cambios{ margin:2px 0 14px; opacity:0; transform:translateY(-6px); transition:opacity .3s, transform .3s; }
+.acerca-version-item.abierta .acerca-version-detalle .acerca-cambios{ opacity:1; transform:none; }
+
+/* Detalles al pasar el ratón */
+.acerca-aceptar{ transition:transform .15s, filter .15s; }
+.acerca-aceptar:hover{ transform:translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce){
+  .acerca-de-overlay *, .acerca-de-overlay *::before, .acerca-de-overlay *::after, .acerca-de-overlay{ animation:none !important; transition:none !important; }
+  .acerca-panel .acerca-activado svg path{ stroke-dashoffset:0; }
+}
