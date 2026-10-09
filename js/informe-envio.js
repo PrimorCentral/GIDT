@@ -366,6 +366,9 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
     const alertaPendLista     = document.getElementById('envioAlertaPendientesLista');
     const todoRevisado         = document.getElementById('envioTodoRevisado');
     const alertaReenvio       = document.getElementById('envioAlertaReenvio');
+    const alertaReenvioTitulo = document.getElementById('envioAlertaReenvioTitulo');
+    const titulo               = document.getElementById('envioModalTitulo');
+    const icono                = document.getElementById('envioModalIcono');
     const alertaOmitidas      = document.getElementById('envioAlertaOmitidas');
     const alertaOmitTexto     = document.getElementById('envioAlertaOmitidasTexto');
     const btnOk                = document.getElementById('envioModalBtnOk');
@@ -398,29 +401,49 @@ function mostrarModalEnvioInforme({ conEmails, sinEmails, reenvio, sinRevisar })
       alertaPendLista.innerHTML = sinRevisar.map(it => `<li><b>${escapeHtml(it.tienda)}</b> (${escapeHtml(it.agencia)}, ${it.hora})</li>`).join('');
       alertaPend.style.display = '';
       todoRevisado.style.display = 'none';
-
-      // Como se va a enviar con incidencias aún sin revisar, se obliga a
-      // esperar 5 segundos antes de poder pulsar el botón — para que no
-      // se acabe pulsando por reflejo sin leer el aviso de arriba.
-      let segundos = 5;
-      btnOk.disabled = true;
-      btnOk.textContent = `⚠️ Enviar de todos modos (${segundos})`;
-      intervaloCuentaAtras = setInterval(() => {
-        segundos--;
-        if (segundos > 0) {
-          btnOk.textContent = `⚠️ Enviar de todos modos (${segundos})`;
-        } else {
-          pararCuentaAtras();
-          btnOk.disabled = false;
-          btnOk.textContent = '⚠️ Enviar de todos modos';
-        }
-      }, 1000);
     } else {
       alertaPend.style.display = 'none';
       alertaPendLista.innerHTML = '';
       todoRevisado.style.display = '';
+    }
+
+    // Cabecera y aviso: envío normal o reenvío (informe ya enviado hoy).
+    titulo.textContent = reenvio ? 'Reenviar informe del día' : 'Enviar informe del día';
+    if (icono) {
+      icono.textContent = reenvio ? '🔁' : '✉️';
+      icono.classList.toggle('reenvio', !!reenvio);
+    }
+    if (reenvio && alertaReenvioTitulo) {
+      const horaEnvio = informeHoyCache?.informe_enviado_en
+        ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      alertaReenvioTitulo.textContent = horaEnvio
+        ? `Este informe ya se envió a las ${horaEnvio}.`
+        : 'Este informe ya se había enviado.';
+    }
+
+    // Cuenta atrás antes de poder pulsar el botón, para que no se pulse
+    // por reflejo sin leer los avisos: 10 s si es un reenvío, 5 s si hay
+    // incidencias sin revisar (si se dan las dos, mandan los 10 s).
+    const textoBoton = reenvio ? '🔁 Reenviar informe'
+      : (sinRevisar.length ? '⚠️ Enviar de todos modos' : '✉️ Enviar informe');
+    let segundos = reenvio ? 10 : (sinRevisar.length ? 5 : 0);
+    if (segundos > 0) {
+      btnOk.disabled = true;
+      btnOk.textContent = `${textoBoton} (${segundos})`;
+      intervaloCuentaAtras = setInterval(() => {
+        segundos--;
+        if (segundos > 0) {
+          btnOk.textContent = `${textoBoton} (${segundos})`;
+        } else {
+          pararCuentaAtras();
+          btnOk.disabled = false;
+          btnOk.textContent = textoBoton;
+        }
+      }, 1000);
+    } else {
       btnOk.disabled = false;
-      btnOk.textContent = '✉️ Enviar informe';
+      btnOk.textContent = textoBoton;
     }
 
     alertaReenvio.style.display = reenvio ? '' : 'none';
@@ -494,6 +517,7 @@ function renderBotonEnviarInforme() {
   }
 
   if (btn) btn.classList.toggle('primary', !enviado);
+  if (btn) btn.textContent = enviado ? '🔁 Volver a enviar el informe' : '📧 Enviar informe';
 }
 
 // Handler principal: agrupa, confirma y envía el informe de hoy a todas las agencias con incidencias.
