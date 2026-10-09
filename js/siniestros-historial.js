@@ -480,7 +480,7 @@
         const marcada = motivosActuales.length > 0;
         const tipoCalc = calcularTipo(motivosActuales);
         const esPendiente = marcada && !tipoCalc;
-        const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
+        const claseFila = claseFilaIncidencia(motivosActuales);
         const salida = filasSaliendoFiltro.get(claveFilaInforme(t.id, t.entrega));
         const claseSalida = salida ? (' fila-saliendo' + (salida.guardada ? ' fila-saliendo-ok' : '')) : '';
         const chipSalida = salida ? `<span class="fila-sale-wrap">${chipSalidaFiltroHtml(t.id, t.entrega)}</span>` : '';

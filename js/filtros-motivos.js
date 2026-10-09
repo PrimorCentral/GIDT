@@ -414,7 +414,7 @@
     const marcada = motivosActuales.length > 0;
     const tipoCalc = calcularTipo(motivosActuales);
     const esPendiente = marcada && !tipoCalc;
-    const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
+    const claseFila = claseFilaIncidencia(motivosActuales);
 
     tr.className = claseFila ? 'con-incidencia ' + claseFila : '';
     tr.querySelector('.col-estado').textContent = marcada ? '🔴' : '—';
@@ -504,6 +504,20 @@
     if (niveles.includes('moderado')) return 'MODERADO';
     if (niveles.includes('leve')) return 'LEVE';
     return null; // motivos "pendientes" (RETRASO PDTE CONFIRMAR / REVISANDO POSIBLE INCIDENCIA)
+  }
+
+  // Clase de color de la fila de una incidencia. Si entre los motivos
+  // queda alguno "pendiente" (RETRASO PDTE CONFIRMAR / REVISANDO POSIBLE
+  // INCIDENCIA), la fila mantiene el color de pendiente aunque haya otro
+  // motivo con gravedad (p. ej. "+ RETRASO LEVE"), porque sigue sin revisar.
+  function claseFilaIncidencia(motivos) {
+    const arr = motivos || [];
+    if (!arr.length) return '';
+    const tipo = calcularTipo(arr);
+    const pendientes = (typeof MOTIVOS_SIN_REVISAR !== 'undefined') ? MOTIVOS_SIN_REVISAR : ['RETRASO PDTE CONFIRMAR', 'REVISANDO POSIBLE INCIDENCIA'];
+    const hayPendiente = arr.some(m => pendientes.includes(m));
+    if (!tipo) return 'pendiente';
+    return tipo.toLowerCase() + (hayPendiente ? ' pendiente' : '');
   }
 
   // Texto corto que se muestra en el botón del desplegable de motivos de cada fila.

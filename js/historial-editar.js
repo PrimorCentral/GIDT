@@ -396,7 +396,7 @@ function renderAcordeonHistorialEditable() {
       const marcada = motivosActuales.length > 0;
       const tipoCalc = calcularTipo(motivosActuales);
       const esPendiente = marcada && !tipoCalc;
-      const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
+      const claseFila = claseFilaIncidencia(motivosActuales);
       const badgeTipo = !marcada
         ? '<span style="color:var(--ink-soft); font-size:12px;">—</span>'
         : esPendiente
@@ -580,7 +580,7 @@ function actualizarFilaHistorial(tiendaId, tr) {
   const marcada = motivosActuales.length > 0;
   const tipoCalc = calcularTipo(motivosActuales);
   const esPendiente = marcada && !tipoCalc;
-  const claseFila = marcada ? (tipoCalc ? tipoCalc.toLowerCase() : 'pendiente') : '';
+  const claseFila = claseFilaIncidencia(motivosActuales);
 
   tr.className = claseFila ? 'con-incidencia ' + claseFila : '';
   tr.querySelector('.col-estado').textContent = marcada ? '🔴' : '—';

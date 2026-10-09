@@ -345,7 +345,7 @@
     const bloques = Object.values(porAgencia).map(grupo => {
       const filas = grupo.filas.map(inc => {
         const tipo = inc.tipo;
-        const claseFila = tipo ? tipo.toLowerCase() : 'pendiente';
+        const claseFila = typeof claseFilaIncidencia === 'function' ? claseFilaIncidencia(inc.motivo || []) || 'pendiente' : (tipo ? tipo.toLowerCase() : 'pendiente');
         const badgeTipo = tipo
           ? `<span class="pill ${tipo.toLowerCase()}">${tipo.charAt(0)+tipo.slice(1).toLowerCase()}</span>`
           : `<span class="pill pendiente">Pendiente</span>`;
