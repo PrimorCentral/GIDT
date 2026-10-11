@@ -218,6 +218,11 @@ async function recargarConGiro(btn, ...cargas) {
     return lista.length > 1 && dias > 0 ? `el más antiguo ${cuando}` : cuando;
   }
 
+  // Siniestros olvidados de días anteriores ({ id, fecha }), calculados en
+  // cargarPendienteAtencion. También los usa la tarjeta "Siniestros sin
+  // enviar a la agencia" de Inicio (inicio-panel.js).
+  let siniestrosOlvidadosInicio = [];
+
   async function cargarPendienteAtencion() {
     const cont = document.getElementById('cardPendienteAtencion');
     if (!cont) return;
@@ -295,6 +300,10 @@ async function recargarConGiro(btn, ...cargas) {
         const registrados = new Set((enPanel || []).map(p => p.siniestro_id));
         olvidados = olvidados.filter(s => !registrados.has(s.id));
       }
+      siniestrosOlvidadosInicio = olvidados
+        .map(s => ({ id: s.id, fecha: s.incidencia.informes_diarios.fecha }))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+      if (typeof inicioActualizarKpiSiniestros === 'function') inicioActualizarKpiSiniestros();
       const TIPO_TXT = { ROTURA: 'Rotura', FALTA: 'Falta', MIXTO: 'Rotura y falta' };
       olvidados
         .sort((a, b) => a.incidencia.informes_diarios.fecha.localeCompare(b.incidencia.informes_diarios.fecha))

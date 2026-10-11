@@ -235,7 +235,9 @@ function inicioActualizarKpiIncidencias() {
 }
 
 // Siniestros sin enviar a la agencia: los del día (siniestros.js) + los
-// del Panel sin enviar ni omitir (mismo criterio que la tarea en rojo).
+// del Panel sin enviar ni omitir (mismo criterio que la tarea en rojo) +
+// los de días anteriores que nunca se enviaron (siniestrosOlvidadosInicio,
+// de navegacion.js; su pastilla solo sale si hay alguno).
 function inicioActualizarKpiSiniestros() {
   const card = document.getElementById('kpiCardSiniestros');
   const totalEl = document.getElementById('kpiSiniestrosTotal');
@@ -243,16 +245,26 @@ function inicioActualizarKpiSiniestros() {
   if (!card || !totalEl) return;
   const delDia = Number(document.getElementById('kpiSiniestrosPend')?.textContent) || 0;
   const delPanel = inicioDatos.panel.filter(s => !s.correo_enviado && !s.envio_omitido_en && s.estado !== 'ANULADO').length;
+  const anteriores = (typeof siniestrosOlvidadosInicio !== 'undefined' && Array.isArray(siniestrosOlvidadosInicio)) ? siniestrosOlvidadosInicio : [];
+  const delAnteriores = anteriores.length;
   if (!inicioCargadoUnaVez) return;
-  const total = delDia + delPanel;
+  const total = delDia + delPanel + delAnteriores;
   totalEl.textContent = total;
-  subEl.innerHTML = `<span class="inicio-chip${delPanel ? ' on' : ''}">${delPanel} del Panel</span><span class="inicio-chip${delDia ? ' on' : ''}">${delDia} del día</span>`;
+  subEl.innerHTML = `<span class="inicio-chip${delPanel ? ' on' : ''}">${delPanel} del Panel</span><span class="inicio-chip${delDia ? ' on' : ''}">${delDia} del día</span>`
+    + (delAnteriores ? `<span class="inicio-chip on">${delAnteriores} de días anteriores</span>` : '');
   card.classList.toggle('kpi-rojo', total > 0);
   card.classList.toggle('kpi-gris', total === 0);
   card.classList.toggle('alerta', total > 0);
   // Al pulsar va a donde están: al Panel si hay alguno ahí; si no, a los del día.
-  card.dataset.view = delPanel ? 'panel-siniestros' : (delDia ? 'siniestros' : 'panel-siniestros');
-  card.dataset.filtro = JSON.stringify({ sinCorreo: true });
+  // Si solo hay de días anteriores, al Historial de siniestros con el día
+  // del más antiguo ya cargado.
+  if (!delPanel && !delDia && delAnteriores) {
+    card.dataset.view = 'historial-siniestros';
+    card.dataset.filtro = JSON.stringify({ fecha: anteriores[0].fecha });
+  } else {
+    card.dataset.view = delPanel ? 'panel-siniestros' : (delDia ? 'siniestros' : 'panel-siniestros');
+    card.dataset.filtro = JSON.stringify({ sinCorreo: true });
+  }
 }
 
 // Pendiente de cobro: total y nº de siniestros "PDTE COBRO", con la
@@ -548,6 +560,11 @@ async function inicioIrA(vista, filtro) {
   if (vista === 'siniestros' && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
   if (vista === 'panel-siniestros' && typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
   if (vista === 'config-auditoria' && typeof prepararVistaAuditoria === 'function') prepararVistaAuditoria();
+  if (vista === 'historial-siniestros' && filtro?.fecha && typeof cargarHistorialSiniestros === 'function') {
+    const inp = document.getElementById('historialSiniestrosFechaInput');
+    if (inp) inp.value = filtro.fecha;
+    cargarHistorialSiniestros(filtro.fecha);
+  }
 }
 
 // Tarjetas de arriba: cada una lleva a su pantalla (data-view; con
