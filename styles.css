@@ -2036,6 +2036,36 @@ body.rol-lectura input[type="file"]{
 .inicio-pendiente-item.urgente:hover{ background:#FBD6CD; border-color:var(--grave); }
 .inicio-pendiente-item.urgente .texto{ color:var(--grave); font-weight:700; }
 .inicio-pendiente-item.urgente .flecha{ color:var(--grave); }
+/* Aviso GRAVE (rojo macizo, por encima incluso de los urgentes): siniestro
+   de un día anterior que nunca se envió a la agencia ni se registró en el
+   Panel. No es un botón: lleva dentro "Enviar ahora" y "Ver en historial". */
+.inicio-pendiente-item.grave,
+#cardPendienteAtencion .inicio-pendiente-item.grave{
+  background:var(--grave); border-color:var(--grave); box-shadow:0 4px 14px -6px rgba(209,43,13,.55);
+  align-items:flex-start; padding:11px 12px; cursor:default;
+}
+.inicio-pendiente-item.grave:hover{ background:var(--grave); border-color:var(--grave); }
+.inicio-pendiente-item.grave .texto{ color:#fff; font-weight:800; display:flex; flex-direction:column; gap:3px; }
+.inicio-pendiente-item.grave .texto small{ font-size:12px; font-weight:500; color:#FFE1DA; }
+.inicio-pendiente-item.grave .edad{ color:#FFE1DA; }
+.grave-acciones{ display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+.btn-grave{
+  background:#fff; color:var(--grave); border:0; border-radius:8px;
+  padding:6px 12px; font:800 12px var(--font-ui); cursor:pointer; white-space:nowrap;
+}
+.btn-grave:hover{ filter:brightness(.95); }
+.btn-grave.sec{ background:transparent; color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.55); font-weight:700; }
+.btn-grave.sec:hover{ background:rgba(255,255,255,.12); filter:none; }
+
+/* Historial de siniestros: el mismo siniestro olvidado, en su tarjeta */
+.badge-envio.olvidado{ background:var(--grave); color:#fff; }
+.siniestro-card.olvidado{ border-color:#F5B5A8; background:var(--grave-bg); box-shadow:inset 3px 0 0 var(--grave), var(--shadow); }
+.siniestro-card.olvidado .aviso{ font-size:12px; color:var(--grave); font-weight:700; margin-top:8px; }
+.siniestro-card.olvidado .acciones{ display:flex; justify-content:flex-end; margin-top:10px; }
+.siniestro-card.olvidado .btn.danger{ background:var(--grave); border-color:var(--grave); color:#fff; }
+.siniestro-card.olvidado .btn.danger:hover{ filter:brightness(1.08); }
+/* Modal del siniestro abierto desde un día anterior */
+.siniestro-meta .meta-row.olvidado{ color:var(--grave); font-weight:700; }
 
 /* ---------- Banner fijo bajo la barra superior (#avisoGlobalInformes) ----------
    Informes enviados a las agencias con incidencias sin revisar. No se puede
