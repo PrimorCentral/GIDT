@@ -133,13 +133,19 @@
       return '<span class="badge-envio pendiente">Pendiente</span>';
     };
 
+    // Un PENDIENTE de un día anterior es un siniestro olvidado: no se mandó
+    // el correo a la agencia ni se registró en el Panel. Se resalta en rojo y
+    // se deja enviar desde aquí (los de hoy se envían desde "Siniestros").
+    const esDiaAnterior = informe.fecha < fechaLocalISO(new Date());
+
     const tarjeta = (s) => {
       const numFotos = (s.fotos || []).length;
+      const olvidado = esDiaAnterior && s.estado === 'PENDIENTE';
       return `
-        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}" style="cursor:default;">
+        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}${olvidado ? ' olvidado' : ''}" style="cursor:default;">
           <div class="fila-top">
             <b>${escapeHtml(s.incidencia.tienda_nombre || '—')}</b>
-            ${badgeEstado(s.estado)}
+            ${olvidado ? '<span class="badge-envio olvidado">Sin enviar</span>' : badgeEstado(s.estado)}
           </div>
           <div class="agencia">
             <span class="pill ${s.tipo === 'ROTURA' ? 'moderado' : 'grave'}">${s.tipo === 'ROTURA' ? 'Rotura' : 'Falta'}</span>
@@ -152,6 +158,9 @@
             : s.estado === 'ANULADO'
               ? `<div class="fotos-mini">🚫 Anulado desde el Panel siniestros</div>`
               : `<div class="fotos-mini">Fecha límite: ${s.fecha_limite ? formatearFechaCorta(new Date(s.fecha_limite+'T00:00:00')) : '—'}</div>`}
+          ${olvidado ? `
+          <div class="aviso">⚠️ No se ha enviado el correo a la agencia ni está registrado en el Panel siniestros.</div>
+          <div class="acciones"><button type="button" class="btn danger" data-enviar-olvidado="${s.id}">✉️ ${numFotos ? 'Revisar y enviar' : 'Añadir fotos y enviar'}</button></div>` : ''}
         </div>`;
     };
 
@@ -174,6 +183,12 @@
         ${anulados ? `· <span style="color:var(--ink-soft); font-weight:700;">${anulados} anulado${anulados===1?'':'s'}</span>` : ''}
       </div>
       ${bloques}`;
+
+    cont.querySelectorAll('[data-enviar-olvidado]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (typeof abrirModalSiniestroExterno === 'function') abrirModalSiniestroExterno(Number(btn.dataset.enviarOlvidado));
+      });
+    });
   }
 
   async function renderVistaIncidencias() {

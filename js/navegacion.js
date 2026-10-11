@@ -270,6 +270,54 @@ async function recargarConGiro(btn, ...cargas) {
       console.error('Error comprobando el informe de hoy:', err);
     }
 
+    // 2.5. Siniestros OLVIDADOS de días anteriores: se marcó FALTAS o
+    // ROTURA CONFIRMADA pero nunca se envió el correo a la agencia, así que
+    // tampoco se registró en el Panel siniestros. La tarea "del día" de
+    // arriba deja de verlos al cambiar de día, por eso van aparte, uno por
+    // siniestro y en rojo macizo (clase "grave"), por encima de todo.
+    // Se pueden enviar desde aquí mismo (abre el modal del siniestro).
+    try {
+      const hoyISO = fechaLocalISO(new Date());
+      const { data: pend, error: ePend } = await sb.from('siniestros')
+        .select('id, tipo, fotos, incidencia:incidencias ( tienda_nombre, agencia_nombre, informes_diarios ( fecha ) )')
+        .eq('estado', 'PENDIENTE');
+      if (ePend) throw ePend;
+      let olvidados = (pend || []).filter(s => {
+        const f = s.incidencia?.informes_diarios?.fecha;
+        return f && f < hoyISO;
+      });
+      // Por si alguno se hubiera registrado en el Panel por otra vía: esos
+      // ya no están "sin registrar", no se avisa.
+      if (olvidados.length) {
+        const { data: enPanel } = await sb.from('panel_siniestros')
+          .select('siniestro_id')
+          .in('siniestro_id', olvidados.map(s => s.id));
+        const registrados = new Set((enPanel || []).map(p => p.siniestro_id));
+        olvidados = olvidados.filter(s => !registrados.has(s.id));
+      }
+      const TIPO_TXT = { ROTURA: 'Rotura', FALTA: 'Falta', MIXTO: 'Rotura y falta' };
+      olvidados
+        .sort((a, b) => a.incidencia.informes_diarios.fecha.localeCompare(b.incidencia.informes_diarios.fecha))
+        .forEach(s => {
+          const fecha = s.incidencia.informes_diarios.fecha;
+          const f = new Date(fecha + 'T00:00:00');
+          const fechaTxt = `${dias[f.getDay()].toLowerCase()} ${String(f.getDate()).padStart(2, '0')}/${String(f.getMonth() + 1).padStart(2, '0')}`;
+          const nFotos = (s.fotos || []).length;
+          items.push({
+            grave: true,
+            urgente: true,
+            icono: '🚨',
+            siniestroId: s.id,
+            fecha,
+            titulo: `Siniestro SIN ENVIAR NI REGISTRAR · ${escapeHtml(s.incidencia.tienda_nombre || '—')}`,
+            detalle: `${TIPO_TXT[s.tipo] || s.tipo} · ${escapeHtml(s.incidencia.agencia_nombre || 'Sin agencia')} · ${fechaTxt} · ${nFotos} foto${nFotos === 1 ? '' : 's'} — no se ha mandado el correo a la agencia y no consta en el Panel siniestros`,
+            edad: edadTareaPendiente([{ fecha }], 'fecha')
+          });
+        });
+    } catch (err) {
+      console.error('Error comprobando siniestros olvidados de días anteriores:', err);
+    }
+
     // 3. Panel siniestros: pendiente de cobro (más de 30 días), sin
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
@@ -423,7 +471,9 @@ async function recargarConGiro(btn, ...cargas) {
 
     // Los avisos urgentes (en rojo) van siempre arriba del todo, manteniendo
     // entre ellos y entre el resto el orden en que se han ido añadiendo.
-    items.sort((x, y) => (y.urgente ? 1 : 0) - (x.urgente ? 1 : 0));
+    // Por encima de todos, los siniestros olvidados (clase "grave").
+    const pesoTarea = it => (it.grave ? 2 : (it.urgente ? 1 : 0));
+    items.sort((x, y) => pesoTarea(y) - pesoTarea(x));
 
     // Contador junto al título "Tareas pendientes"
     const numEl = document.getElementById('tareasNum');
@@ -439,13 +489,45 @@ async function recargarConGiro(btn, ...cargas) {
       return;
     }
 
-    cont.innerHTML = items.map(it => `
+    cont.innerHTML = items.map(it => it.grave ? `
+      <div class="inicio-pendiente-item grave" role="alert">
+        <span class="icono">${it.icono}</span>
+        <span class="texto">
+          ${it.titulo}
+          <small>${it.detalle}</small>
+          <span class="grave-acciones">
+            <button type="button" class="btn-grave" data-sin-olvidado-enviar="${it.siniestroId}">✉️ Enviar ahora</button>
+            <button type="button" class="btn-grave sec" data-sin-olvidado-historial="${it.fecha}">Ver en historial</button>
+          </span>
+        </span>
+        ${it.edad ? `<span class="edad">${escapeHtml(it.edad)}</span>` : ''}
+      </div>` : `
       <button type="button" class="inicio-pendiente-item${it.urgente ? ' urgente' : ''}" data-ir="${it.vista}"${it.anio !== undefined ? ` data-ir-anio="${it.anio}" data-ir-mes="${it.mes}"` : ''}${it.fecha !== undefined ? ` data-ir-fecha="${it.fecha}"` : ''}${it.filtro ? ` data-ir-filtro='${escapeHtml(JSON.stringify(it.filtro))}'` : ''}>
         <span class="icono">${it.icono}</span>
         <span class="texto">${it.texto}</span>
         ${it.edad ? `<span class="edad">${escapeHtml(it.edad)}</span>` : ''}
         <span class="flecha">→</span>
       </button>`).join('');
+
+    // Siniestro olvidado: "Enviar ahora" abre su modal (fotos + envío) sin
+    // salir de Inicio; "Ver en historial" lleva al Historial de siniestros
+    // con ese día ya cargado.
+    cont.querySelectorAll('[data-sin-olvidado-enviar]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (typeof abrirModalSiniestroExterno === 'function') abrirModalSiniestroExterno(Number(btn.dataset.sinOlvidadoEnviar));
+      });
+    });
+    cont.querySelectorAll('[data-sin-olvidado-historial]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
+        if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
+        const fecha = btn.dataset.sinOlvidadoHistorial;
+        activarVista('historial-siniestros');
+        const inp = document.getElementById('historialSiniestrosFechaInput');
+        if (inp) inp.value = fecha;
+        if (typeof cargarHistorialSiniestros === 'function') cargarHistorialSiniestros(fecha);
+      });
+    });
 
     cont.querySelectorAll('[data-ir]').forEach(btn => {
       btn.addEventListener('click', async () => {

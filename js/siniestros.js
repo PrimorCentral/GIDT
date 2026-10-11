@@ -280,9 +280,71 @@
 
   // ---- Modal de detalle de siniestro ----
   let siniestroActivoId = null;
+  // Siniestro de un día ANTERIOR abierto en este mismo modal (desde la tarea
+  // grave de Inicio o desde el Historial de siniestros): se marcó FALTAS o
+  // ROTURA CONFIRMADA pero no se llegó a enviar ese día. Lleva además
+  // .fechaInforme (fecha de recepción), que sustituye a informeHoyCache.fecha
+  // en la plantilla del correo y al registrarlo en el Panel siniestros.
+  let siniestroExterno = null;
 
   function siniestroPorId(id) {
+    if (siniestroExterno && siniestroExterno.id === id) return siniestroExterno;
     return siniestrosHoyCache.find(s => s.id === id);
+  }
+
+  function esSiniestroExterno(s) {
+    return !!s && s === siniestroExterno;
+  }
+
+  // Carga un siniestro de cualquier día (con la misma forma que las filas de
+  // siniestrosHoyCache) y abre su modal para añadir fotos y enviarlo.
+  async function abrirModalSiniestroExterno(id) {
+    if (typeof mostrarCargandoGlobal === 'function') mostrarCargandoGlobal();
+    try {
+      const { data: s, error } = await sb
+        .from('siniestros')
+        .select(`
+          id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por,
+          incidencia:incidencias (
+            id, motivo, observaciones, tienda_nombre, tienda_hora_prevista,
+            informes_diarios ( fecha ),
+            tiendas ( id, nombre, hora_prevista,
+              agencias!tiendas_agencia_id_fkey ( id, nombre, emails )
+            ),
+            agencia_dia:agencias!incidencias_agencia_id_fkey ( id, nombre, emails )
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!s || !s.incidencia) {
+        await modalAlert('No se ha encontrado ese siniestro. Puede que se haya borrado.', { titulo: 'Siniestro' });
+        if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+        return;
+      }
+      const i = s.incidencia;
+      // Igual que en sincronizarSiniestrosDelDia: la agencia que ENTREGÓ ese
+      // día (snapshot de la incidencia) es la que se pinta y a la que se envía.
+      if (!i.tiendas) i.tiendas = { id: null, nombre: i.tienda_nombre, hora_prevista: null };
+      if (i.agencia_dia) i.tiendas.agencias = i.agencia_dia;
+      if (i.tienda_hora_prevista) i.tiendas.hora_prevista = i.tienda_hora_prevista;
+      s.fechaInforme = i.informes_diarios?.fecha || null;
+
+      siniestroExterno = s;
+      abrirModalSiniestro(s.id);
+    } catch (err) {
+      console.error('Error abriendo el siniestro:', err);
+      await modalAlert(`No se pudo abrir el siniestro: ${err.message}`, { titulo: 'Error' });
+    } finally {
+      if (typeof ocultarCargandoGlobal === 'function') ocultarCargandoGlobal();
+    }
+  }
+
+  // Tras subir/borrar fotos o enviar: el del día repinta su kanban; el de un
+  // día anterior no está en el kanban (no se toca: hoy puede ni haber informe).
+  function refrescarVistaTrasCambioSiniestro(s) {
+    if (esSiniestroExterno(s)) return;
+    renderKanbanSiniestros();
   }
 
   function abrirModalSiniestro(id) {
@@ -294,6 +356,19 @@
   function cerrarModalSiniestro() {
     document.getElementById('siniestroModalOverlay').classList.remove('show');
     siniestroActivoId = null;
+    // Al cerrar uno de un día anterior se refrescan las tareas de Inicio y,
+    // si está abierto en ese mismo día, el Historial de siniestros.
+    if (siniestroExterno) {
+      const fecha = siniestroExterno.fechaInforme;
+      siniestroExterno = null;
+      if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+      const inp = document.getElementById('historialSiniestrosFechaInput');
+      if (fecha && inp && inp.value === fecha
+          && document.getElementById('view-historial-siniestros')?.classList.contains('active')
+          && typeof cargarHistorialSiniestros === 'function') {
+        cargarHistorialSiniestros(fecha);
+      }
+    }
   }
 
   function escapeHtmlSiniestro(str) {
@@ -311,6 +386,13 @@
     document.getElementById('siniestroModalTitulo').textContent = t.nombre || '—';
 
     const filas = [];
+    if (esSiniestroExterno(s) && s.fechaInforme) {
+      const fI = new Date(s.fechaInforme + 'T00:00:00');
+      const txtDia = `${dias[fI.getDay()].toLowerCase()} ${formatearFechaCorta(fI)}`;
+      filas.push(s.estado === 'PENDIENTE'
+        ? `<div class="meta-row olvidado"><span class="ic">🚨</span>Siniestro del ${txtDia} sin enviar ni registrar en el Panel siniestros</div>`
+        : `<div class="meta-row"><span class="ic">📅</span>Siniestro del ${txtDia}</div>`);
+    }
     filas.push(`<div class="meta-row"><span class="ic">🚚</span>${escapeHtmlSiniestro(ag.nombre || 'Sin agencia')} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</div>`);
     if (s.incidencia.observaciones) {
       filas.push(`<div class="meta-row"><span class="ic">📝</span>${escapeHtmlSiniestro(s.incidencia.observaciones)}</div>`);
@@ -403,7 +485,7 @@
 
       s.fotos = fotosActualizadas;
       pintarModalSiniestro();
-      renderKanbanSiniestros();
+      refrescarVistaTrasCambioSiniestro(s);
     } catch (err) {
       console.error('Error subiendo fotos:', err);
       errEl.textContent = 'No se pudieron subir las fotos.';
@@ -460,7 +542,7 @@
       if (error) throw error;
       s.fotos = fotosActualizadas;
       pintarModalSiniestro();
-      renderKanbanSiniestros();
+      refrescarVistaTrasCambioSiniestro(s);
       if (typeof registrarAccion === 'function') {
         registrarAccion('siniestros', 'Borrar foto de siniestro', s?.incidencia?.tiendas?.nombre || '—');
       }
@@ -506,7 +588,10 @@
     document.getElementById('cargandoEnvioOverlay').classList.add('show');
 
     try {
-      const { subject, html, text } = plantillaSiniestro(s, informeHoyCache.fecha);
+      // Fecha de recepción: la del informe del siniestro (puede ser de un día
+      // anterior si se envía desde Inicio o el Historial de siniestros).
+      const fechaInformeISO = s.fechaInforme || informeHoyCache?.fecha;
+      const { subject, html, text } = plantillaSiniestro(s, fechaInformeISO);
 
       await enviarEmail({
         to: emails,
@@ -526,10 +611,14 @@
       s.estado = 'ENVIADO';
       s.enviado_en = new Date().toISOString();
       s.enviado_por = sesionActual?.nombre || sesionActual?.usuario || null;
-      registrarSiniestroEnPanelAutomatico(s, informeHoyCache.fecha);
+      registrarSiniestroEnPanelAutomatico(s, fechaInformeISO);
       pintarModalSiniestro();
-      renderKanbanSiniestros();
-      actualizarKpiSiniestros();
+      if (esSiniestroExterno(s)) {
+        if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+      } else {
+        renderKanbanSiniestros();
+        actualizarKpiSiniestros();
+      }
     } catch (err) {
       console.error('Error enviando siniestro:', err);
       await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
