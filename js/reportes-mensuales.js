@@ -856,6 +856,84 @@ async function rmRender() {
   rmPintarLeyendaCompacta(conteo);
   rmPintarResumenMes({ totalInc, totalOk, diasEnviados, totalDias });
   rmPintarDetalleVacio();
+  rmPintarComparativaMesAnterior(totalInc, diasEnviados, totalDias);
+}
+
+// ---------------------------------------------------------------
+// Resumen: comparativa con el mes anterior
+// ---------------------------------------------------------------
+// Cuenta las incidencias del mes anterior con el mismo criterio que la
+// tabla (informes enviados, entrega HABITUAL, motivos con código, una por
+// tienda y día) y con los filtros de Agencia/Tienda/Motivo activos. Si el
+// mes en pantalla está a medias, compara el MISMO tramo de días (del 1 al
+// último día enviado) para que sea justo.
+let rmComparativaPeticion = 0;
+
+async function rmContarIncidenciasMes(anio, mesIndex, hastaDia) {
+  const totalDias = rmDiasDelMes(anio, mesIndex);
+  const ultimo = Math.min(hastaDia, totalDias);
+  const mm = String(mesIndex + 1).padStart(2, '0');
+  const { data: informes, error: e1 } = await sb
+    .from('informes_diarios')
+    .select('id, fecha')
+    .eq('informe_enviado', true)
+    .gte('fecha', `${anio}-${mm}-01`)
+    .lte('fecha', `${anio}-${mm}-${String(ultimo).padStart(2, '0')}`);
+  if (e1) throw e1;
+  if (!informes || !informes.length) return 0;
+
+  const fechaPorInforme = new Map(informes.map(i => [i.id, i.fecha]));
+  const { data: incs, error: e2 } = await sb
+    .from('incidencias')
+    .select('informe_id, tienda_id, agencia_id, motivo')
+    .in('informe_id', informes.map(i => i.id))
+    .eq('marcada', true)
+    .eq('entrega', 'HABITUAL');
+  if (e2) throw e2;
+
+  const tiendaDia = new Set();
+  (incs || []).forEach(inc => {
+    const c = codigoDeMotivos(inc.motivo);
+    if (!c) return;
+    if (rmFiltros.tiendas.size && !rmFiltros.tiendas.has(inc.tienda_id)) return;
+    if (rmFiltros.agencias.size && !rmFiltros.agencias.has(inc.agencia_id)) return;
+    if (rmFiltros.motivos.size && !rmFiltros.motivos.has(String(c.codigo))) return;
+    tiendaDia.add(`${inc.tienda_id}|${fechaPorInforme.get(inc.informe_id)}`);
+  });
+  return tiendaDia.size;
+}
+
+async function rmPintarComparativaMesAnterior(totalInc, diasEnviados, totalDias) {
+  const peticion = ++rmComparativaPeticion;
+  const el = () => document.getElementById('rmKpiDelta');
+  if (!diasEnviados.size || !el()) return;
+
+  const hoy = new Date();
+  const esMesActual = hoy.getFullYear() === rmAnio && hoy.getMonth() === rmMes;
+  const hastaDia = esMesActual ? Math.max(...diasEnviados) : totalDias;
+  const anioAnt = rmMes === 0 ? rmAnio - 1 : rmAnio;
+  const mesAnt = rmMes === 0 ? 11 : rmMes - 1;
+  const nombreAnt = RM_NOMBRES_MES[mesAnt].toLowerCase();
+  const tramo = esMesActual ? ` (1–${Math.min(hastaDia, rmDiasDelMes(anioAnt, mesAnt))})` : '';
+
+  el().innerHTML = `<span class="rm-delta-igual">…</span>`;
+  let anterior;
+  try {
+    anterior = await rmContarIncidenciasMes(anioAnt, mesAnt, hastaDia);
+  } catch (err) {
+    console.error('Error calculando la comparativa con el mes anterior:', err);
+    if (peticion === rmComparativaPeticion && el()) el().innerHTML = '';
+    return;
+  }
+  if (peticion !== rmComparativaPeticion || !el()) return; // cambió de mes o de filtros mientras tanto
+
+  const dif = totalInc - anterior;
+  const titulo = `${nombreAnt}${tramo}: ${anterior} incidencias`;
+  el().title = titulo.charAt(0).toUpperCase() + titulo.slice(1);
+  if (!anterior && !totalInc) { el().innerHTML = `<span class="rm-delta-igual">= ${escapeHtml(nombreAnt)}</span>`; return; }
+  el().innerHTML = dif === 0
+    ? `<span class="rm-delta-igual">= vs ${escapeHtml(nombreAnt)}</span>`
+    : `<span class="${dif > 0 ? 'rm-delta-sube' : 'rm-delta-baja'}">${dif > 0 ? '▲' : '▼'} ${Math.abs(dif)} vs ${escapeHtml(nombreAnt)}</span>`;
 }
 
 // ---------------------------------------------------------------
@@ -896,7 +974,7 @@ function rmPintarResumenMes({ totalInc, totalOk, diasEnviados, totalDias }) {
       <span class="rm-side-sub">${ultimoEnviado ? `hasta el día ${ultimoEnviado}` : 'sin informes enviados'}${hayFiltros ? ' · con filtros' : ''}</span>
     </div>
     <div class="rm-kpis">
-      <div class="rm-kpi"><b>${totalInc}</b><small>incidencias</small></div>
+      <div class="rm-kpi"><b>${totalInc}</b><small>incidencias</small><div class="rm-kpi-delta" id="rmKpiDelta"></div></div>
       <div class="rm-kpi" title="Días con OK frente al total de días revisados (OK + incidencias)"><b>${pctOk === null ? '—' : pctOk + '%'}</b><small>entregas OK</small></div>
       <div class="rm-kpi${faltan ? ' rm-kpi-aviso' : ''}" title="Informes enviados frente a días con entrega habitual (sin domingos)">
         <b>${enviadosLaborables}/${Math.max(esperados, enviadosLaborables)}</b>
