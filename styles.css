@@ -2232,6 +2232,11 @@ main:has(#view-analisis-reportes-mensuales.active){ padding-bottom:14px; }
 .rm-kpi b{ display:block; font-size:20px; line-height:1.15; }
 .rm-kpi small{ font-size:10.5px; color:var(--ink-soft); font-weight:600; }
 .rm-kpi.rm-kpi-aviso{ background:var(--grave-bg); }
+/* Comparativa con el mes anterior: más incidencias = rojo, menos = verde. */
+.rm-kpi-delta{ font-size:10.5px; font-weight:700; margin-top:2px; min-height:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rm-delta-sube{ color:var(--grave); }
+.rm-delta-baja{ color:var(--ok); }
+.rm-delta-igual{ color:var(--ink-soft); }
 .rm-kpi.rm-kpi-aviso b, .rm-kpi.rm-kpi-aviso small{ color:var(--grave); }
 
 /* Detalle de la celda pulsada */
