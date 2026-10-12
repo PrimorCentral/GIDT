@@ -406,9 +406,10 @@
     const puedeQuitarFotos = s.estado === 'PENDIENTE';
     grid.innerHTML = (s.fotos || []).map((url, idx) => `
       <div class="foto-item">
-        <img src="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
+        <img data-src-archivo="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
         ${puedeQuitarFotos ? `<button data-quitar-foto="${idx}" title="Borrar foto">🗑️</button>` : ''}
       </div>`).join('');
+    firmarImagenesEn(grid);
     grid.querySelectorAll('[data-abrir-foto]').forEach(img => {
       img.addEventListener('click', () => abrirLightboxPanel(img.dataset.abrirFoto));
     });

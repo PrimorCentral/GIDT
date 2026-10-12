@@ -1435,15 +1435,23 @@ function cerrarModalPanelSiniestroForzado() {
 // como PWA saca a la persona fuera de la app), estos documentos se
 // muestran embebidos en un modal propio, con opción de descargar o
 // imprimir directamente desde ahí.
-function abrirVisorPdfPanel(url, { titulo = '📄 Documento' } = {}) {
+async function abrirVisorPdfPanel(url, { titulo = '📄 Documento' } = {}) {
   if (!url) return;
   document.getElementById('psVisorPdfTitulo').textContent = titulo;
+  const frame = document.getElementById('psVisorPdfFrame');
+  frame.src = 'about:blank';
+  document.getElementById('psVisorPdfOverlay').classList.add('show');
+  // Los archivos guardados en Storage se abren con un enlace temporal
+  // (ver archivos-storage.js). Un blob generado al vuelo (resumen) se
+  // devuelve tal cual.
+  const urlAbrir = await firmarUrlArchivo(url);
+  // Si mientras tanto se ha cerrado el visor, no se carga nada.
+  if (!document.getElementById('psVisorPdfOverlay').classList.contains('show')) return;
   // "navpanes=0" oculta el panel lateral de miniaturas que el visor de PDF
   // del navegador abre por defecto (parámetro estándar de los visores
   // basados en pdf.js/PDFium). El propio visor ya trae sus botones de
   // descargar e imprimir en la barra de herramientas de arriba.
-  document.getElementById('psVisorPdfFrame').src = url + (url.includes('#') ? '&' : '#') + 'navpanes=0';
-  document.getElementById('psVisorPdfOverlay').classList.add('show');
+  frame.src = urlAbrir + (urlAbrir.includes('#') ? '&' : '#') + 'navpanes=0';
 }
 
 function cerrarVisorPdfPanel() {
@@ -1600,9 +1608,10 @@ function pintarFotosModal(s) {
   const fotos = s.fotos || [];
   grid.innerHTML = fotos.map((url, idx) => `
     <div class="ps-foto-thumb">
-      <img src="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
+      <img data-src-archivo="${url}" loading="lazy" data-abrir-foto="${url}" style="cursor:zoom-in;">
       <button type="button" class="ps-foto-quitar" data-idx="${idx}" title="Borrar foto">🗑️</button>
     </div>`).join('') || `<p class="ps-sin-archivos">Sin fotos todavía.</p>`;
+  firmarImagenesEn(grid);
 
   grid.querySelectorAll('[data-abrir-foto]').forEach(img => {
     img.addEventListener('click', () => abrirLightboxPanel(img.dataset.abrirFoto));
@@ -1612,9 +1621,15 @@ function pintarFotosModal(s) {
   });
 }
 
-function abrirLightboxPanel(url) {
-  document.getElementById('psLightboxImg').src = url;
-  document.getElementById('psLightboxOverlay').classList.add('show');
+async function abrirLightboxPanel(url) {
+  const img = document.getElementById('psLightboxImg');
+  const overlay = document.getElementById('psLightboxOverlay');
+  img.src = '';
+  overlay.classList.add('show');
+  // Enlace temporal recién pedido al abrir (ver archivos-storage.js), por
+  // si la miniatura lleva tiempo en pantalla y el suyo ya ha caducado.
+  const urlAbrir = await firmarUrlArchivo(url);
+  if (overlay.classList.contains('show')) img.src = urlAbrir;
 }
 function cerrarLightboxPanel() {
   document.getElementById('psLightboxOverlay').classList.remove('show');

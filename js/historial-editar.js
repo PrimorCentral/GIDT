@@ -740,9 +740,10 @@ function pintarFotosPendientesHistorial() {
   const grid = document.getElementById('historialFotosGrid');
   grid.innerHTML = (historialFotosPendiente?.fotos || []).map((url, idx) => `
     <div class="ps-foto-thumb">
-      <img src="${url}" loading="lazy">
+      <img data-src-archivo="${url}" loading="lazy">
       <button type="button" class="ps-foto-quitar" data-idx="${idx}" title="Quitar">✕</button>
     </div>`).join('') || `<p class="ps-sin-archivos">Sin fotos todavía.</p>`;
+  firmarImagenesEn(grid);
   grid.querySelectorAll('.ps-foto-quitar').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.idx);
