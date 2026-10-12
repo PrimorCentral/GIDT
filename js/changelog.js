@@ -10,6 +10,18 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.7.9',
+    fecha: '2026-10-12',
+    cambios: [
+      { tipo: 'nuevo',      texto: 'Los siniestros de días anteriores que se quedaron sin enviar a la agencia aparecen en Tareas pendientes como tarea urgente, siempre la primera, con los botones "Enviar ahora" y "Ver en historial"; al enviarlos se usa la fecha del informe original y se dan de alta en el Panel siniestros' },
+      { tipo: 'mejora',     texto: 'La tarjeta "Siniestros sin enviar a la agencia" de Inicio cuenta también los de días anteriores, y al pulsarla abre el Historial de siniestros en el día correspondiente' },
+      { tipo: 'mejora',     texto: 'Una vez enviado el informe del día, el botón pasa a "Volver a enviar el informe"; al reenviarlo, la ventana indica a qué hora se envió la primera vez y el botón espera 10 segundos antes de poder pulsarse' },
+      { tipo: 'correccion', texto: 'Las incidencias con un motivo pendiente de confirmar junto a otro motivo mantienen su color de "pendiente" en todas las pantallas' },
+      { tipo: 'correccion', texto: 'Al quitar el albarán de un siniestro, el paso "Albarán enviado a facturación" del seguimiento vuelve a quedar pendiente' },
+      { tipo: 'correccion', texto: 'Al añadir o quitar Faltas o Rotura desde el Historial de informes diarios en una incidencia que ya tenía siniestro, el Panel siniestros actualiza su tipo' }
+    ]
+  },
+  {
     version: '1.7.8',
     fecha: '2026-10-08',
     cambios: [
