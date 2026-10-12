@@ -49,7 +49,9 @@
 let rmAnio = new Date().getFullYear();
 let rmMes = new Date().getMonth(); // 0 = enero
 let rmInicializado = false;
-let rmLeyendaPintada = false;
+// Informe enviado de cada día del mes en pantalla: dia → { id, fecha, enviadoEn }.
+// Lo usa el panel "Detalle" de la barra lateral al pulsar una celda.
+let rmInformesPorDia = new Map();
 
 // motivos = códigos del reporte (CODIGOS_INFORME[].codigo, p. ej. '7', 'F').
 const rmFiltros = { agencias: new Set(), tiendas: new Set(), motivos: new Set(), soloConIncidencias: false };
@@ -166,7 +168,7 @@ async function rmCargarDatosMes(anio, mesIndex) {
 
   const { data: informes, error: e1 } = await sb
     .from('informes_diarios')
-    .select('id, fecha, informe_enviado, ajustes_puntuales')
+    .select('id, fecha, informe_enviado, informe_enviado_en, ajustes_puntuales')
     .gte('fecha', desde)
     .lte('fecha', hasta);
   if (e1) throw e1;
@@ -308,7 +310,13 @@ async function rmCargarDatosMes(anio, mesIndex) {
     });
   });
 
-  return { celdas, diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda };
+  // Informe ENVIADO de cada día (para el panel de detalle de la barra lateral).
+  const informesPorDia = new Map();
+  (informes || []).forEach(i => {
+    if (i.informe_enviado) informesPorDia.set(Number(i.fecha.slice(8, 10)), { id: i.id, fecha: i.fecha, enviadoEn: i.informe_enviado_en });
+  });
+
+  return { celdas, diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda, informesPorDia };
 }
 
 // Agencia "habitual" de una tienda, día a día del mes (sin contar los
@@ -449,21 +457,26 @@ function rmFilasSegunFiltros(todasLasFilas) {
   );
 }
 
-// Se pinta UNA sola vez (la leyenda es fija) en la barra superior.
-function rmPintarLeyendaCompacta() {
-  if (rmLeyendaPintada) return;
+// Leyenda de la barra lateral. Con `conteo` (código → nº de veces que
+// sale en la tabla tal como se ve, con los filtros aplicados) cada chip
+// muestra su recuento y los códigos que no salen este mes se atenúan.
+// Sin `conteo` (mientras carga) se pinta sin números.
+function rmPintarLeyendaCompacta(conteo) {
   const cont = document.getElementById('rmLeyendaCompacta');
   if (!cont) return;
-  cont.innerHTML = CODIGOS_INFORME.map(c => `
-    <span class="rm-leyenda-item">
+  const conNumeros = !!conteo;
+  cont.innerHTML = CODIGOS_INFORME.map(c => {
+    const n = conNumeros ? (conteo[c.codigo] || 0) : 0;
+    return `
+    <span class="rm-leyenda-item${conNumeros && !n ? ' rm-leyenda-cero' : ''}">
       <span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};">${escapeHtml(c.codigo)}</span>
-      <span>${escapeHtml(c.label)}</span>
-    </span>`).join('') + `
+      <span>${escapeHtml(c.label)}</span>${conNumeros ? `<span class="rm-leyenda-num">${n}</span>` : ''}
+    </span>`;
+  }).join('') + `
     <span class="rm-leyenda-item">
       <span class="rm-celda-codigo" style="background:#E1E4E8; color:#5A6473;">BAJA</span>
       <span>Tienda de baja (sin recepción de mercancía)</span>
     </span>`;
-  rmLeyendaPintada = true;
 }
 
 // ---------------------------------------------------------------
@@ -657,6 +670,10 @@ function rmEngancharFiltros() {
 function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias) {
   const partes = [];
   let totalIncidencias = 0;
+  let totalOk = 0;
+  const codigos = []; // códigos pintados en esta fila (para la leyenda con recuento)
+  // Celda con código: se puede pulsar para ver el detalle en la barra lateral.
+  const tdCodigo = (dia, c) => `<td class="rm-td-codigo" data-rm-tienda="${f.tiendaId}" data-rm-dia="${dia}" data-rm-agencia="${escapeHtml(f.agenciaNombre || '')}" title="${escapeHtml(c.label)} — pulsa para ver el detalle"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};">${escapeHtml(c.codigo)}</span></td>`;
 
   if (f.esPuntual) {
     // Recorre el mes: los días propios de esta fila puntual se rellenan;
@@ -678,13 +695,14 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
         partes.push(`<td class="rm-td-pendiente" title="Informe no enviado ese día">–</td>`); continue;
       }
       const c = celdasTienda[dia];
-      if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
+      if (!c) { totalOk++; partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
       if (c.ocultoPorMotivo) { partes.push(`<td title="Otro motivo (oculto por el filtro de Motivo)"></td>`); continue; }
       totalIncidencias++;
-      partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+      codigos.push(String(c.codigo));
+      partes.push(tdCodigo(dia, c));
     }
     cerrarHueco();
-    return { html: partes.join(''), totalIncidencias };
+    return { html: partes.join(''), totalIncidencias, totalOk, codigos };
   }
 
   segmentosTienda
@@ -739,11 +757,13 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
     if (!c) {
       // Día anterior al alta de la tienda: no hay nada que revisar → "–", no "OK".
       if (dia < rmPrimerDiaTienda(f.tiendaId)) { partes.push(`<td class="rm-td-pendiente" title="La tienda aún no estaba dada de alta">–</td>`); continue; }
+      totalOk++;
       partes.push(`<td class="rm-td-ok">OK</td>`); continue;
     }
     if (c.ocultoPorMotivo) { partes.push(`<td title="Otro motivo (oculto por el filtro de Motivo)"></td>`); continue; }
     totalIncidencias++;
-    partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
+    codigos.push(String(c.codigo));
+    partes.push(tdCodigo(dia, c));
   }
   cerrarBloqueBaja();
 
@@ -754,7 +774,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       partes.push(`<td colspan="${dias}" class="rm-td-cambio">Cambia a: ${escapeHtml(s.agenciaNombre)}</td>`);
     });
 
-  return { html: partes.join(''), totalIncidencias };
+  return { html: partes.join(''), totalIncidencias, totalOk, codigos };
 }
 
 // ---------------------------------------------------------------
@@ -779,6 +799,7 @@ async function rmRender() {
   rmConstruirPanelFiltros();
 
   const { diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda } = datos;
+  rmInformesPorDia = datos.informesPorDia || new Map();
   const celdas = rmCeldasSegunMotivo(datos.celdas);
   const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias);
   const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
@@ -789,8 +810,8 @@ async function rmRender() {
     const celdasTienda = celdas[f.tiendaId] || {};
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
-    const { html, totalIncidencias } = rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias);
-    return { f, html, totalIncidencias };
+    const { html, totalIncidencias, totalOk, codigos } = rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias);
+    return { f, html, totalIncidencias, totalOk, codigos };
   });
 
   // Con "solo con incidencias" o con algún Motivo elegido, solo se quedan
@@ -821,6 +842,170 @@ async function rmRender() {
         <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
+
+  // Barra lateral: leyenda con recuento, resumen del mes y detalle vacío.
+  // Se cuenta sobre lo que se ve en la tabla (con los filtros aplicados),
+  // igual que la columna TOTAL.
+  const conteo = {};
+  let totalInc = 0, totalOk = 0;
+  filasVisibles.forEach(x => {
+    totalInc += x.totalIncidencias;
+    totalOk += x.totalOk;
+    x.codigos.forEach(cod => { conteo[cod] = (conteo[cod] || 0) + 1; });
+  });
+  rmPintarLeyendaCompacta(conteo);
+  rmPintarResumenMes({ totalInc, totalOk, diasEnviados, totalDias });
+  rmPintarDetalleVacio();
+}
+
+// ---------------------------------------------------------------
+// Barra lateral: resumen del mes
+// ---------------------------------------------------------------
+// Días que deberían tener informe: los del mes en pantalla sin domingos,
+// hasta hoy si es el mes actual. Hoy solo cuenta si ya se envió, para que
+// por la mañana no salga como que falta el informe del día.
+function rmDiasEsperados(diasEnviados, totalDias) {
+  const hoy = new Date();
+  const anioHoy = hoy.getFullYear(), mesHoy = hoy.getMonth();
+  if (rmAnio > anioHoy || (rmAnio === anioHoy && rmMes > mesHoy)) return 0; // mes futuro
+  const esMesActual = rmAnio === anioHoy && rmMes === mesHoy;
+  const ultimo = esMesActual ? hoy.getDate() : totalDias;
+  let n = 0;
+  for (let d = 1; d <= ultimo; d++) {
+    if (rmEsDomingo(rmAnio, rmMes, d)) continue;
+    if (esMesActual && d === ultimo && !diasEnviados.has(d)) continue;
+    n++;
+  }
+  return n;
+}
+
+function rmPintarResumenMes({ totalInc, totalOk, diasEnviados, totalDias }) {
+  const cont = document.getElementById('rmResumenMes');
+  if (!cont) return;
+  const esperados = rmDiasEsperados(diasEnviados, totalDias);
+  const enviadosLaborables = [...diasEnviados].filter(d => !rmEsDomingo(rmAnio, rmMes, d)).length;
+  const faltan = Math.max(0, esperados - enviadosLaborables);
+  const ultimoEnviado = diasEnviados.size ? Math.max(...diasEnviados) : 0;
+  const revisadas = totalOk + totalInc;
+  const pctOk = revisadas ? Math.round((totalOk / revisadas) * 100) : null;
+  const hayFiltros = rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.motivos.size || rmFiltros.soloConIncidencias;
+
+  cont.innerHTML = `
+    <div class="rm-side-cab">
+      <span class="rm-side-tit">${RM_NOMBRES_MES[rmMes]} ${rmAnio}</span>
+      <span class="rm-side-sub">${ultimoEnviado ? `hasta el día ${ultimoEnviado}` : 'sin informes enviados'}${hayFiltros ? ' · con filtros' : ''}</span>
+    </div>
+    <div class="rm-kpis">
+      <div class="rm-kpi"><b>${totalInc}</b><small>incidencias</small></div>
+      <div class="rm-kpi" title="Días con OK frente al total de días revisados (OK + incidencias)"><b>${pctOk === null ? '—' : pctOk + '%'}</b><small>entregas OK</small></div>
+      <div class="rm-kpi${faltan ? ' rm-kpi-aviso' : ''}" title="Informes enviados frente a días con entrega habitual (sin domingos)">
+        <b>${enviadosLaborables}/${Math.max(esperados, enviadosLaborables)}</b>
+        <small>${faltan ? `falta${faltan === 1 ? '' : 'n'} ${faltan}` : 'informes al día'}</small>
+      </div>
+    </div>`;
+}
+
+// ---------------------------------------------------------------
+// Barra lateral: detalle de la celda pulsada
+// ---------------------------------------------------------------
+function rmPintarDetalleVacio() {
+  const cont = document.getElementById('rmDetalleCelda');
+  if (!cont) return;
+  rmDetallePeticion++; // descarta cualquier carga de detalle en curso
+  cont.innerHTML = `<div class="rm-detalle-vacio"><span>👆</span>Pulsa una celda con código para ver el detalle de la incidencia.</div>`;
+}
+
+let rmDetallePeticion = 0; // para ignorar respuestas de clics anteriores
+
+async function rmMostrarDetalleCelda(td) {
+  const cont = document.getElementById('rmDetalleCelda');
+  if (!cont) return;
+  document.querySelectorAll('#contenidoReportesMensuales .rm-td-sel').forEach(x => x.classList.remove('rm-td-sel'));
+  td.classList.add('rm-td-sel');
+
+  const tiendaId = Number(td.dataset.rmTienda);
+  const dia = Number(td.dataset.rmDia);
+  const agenciaFila = td.dataset.rmAgencia || '';
+  const tienda = tiendasCache.find(t => t.id === tiendaId);
+  const informe = rmInformesPorDia.get(dia);
+  const codigoTxt = td.querySelector('.rm-celda-codigo')?.textContent || '';
+  const cod = CODIGOS_INFORME.find(c => String(c.codigo) === codigoTxt);
+  const fechaTxt = new Date(rmAnio, rmMes, dia).toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const fechaISO = `${rmAnio}-${String(rmMes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+  const lugar = [tienda && tienda.nombre, tienda && tienda.provincia, agenciaFila].filter(Boolean).map(escapeHtml).join(' · ');
+
+  const filaEnvio = informe && informe.enviadoEn
+    ? `<dt>Informe</dt><dd>Enviado ${new Date(informe.enviadoEn).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</dd>`
+    : '';
+
+  cont.innerHTML = `
+    <div class="rm-side-cab"><span class="rm-side-tit">Detalle</span><span class="rm-side-sub">celda seleccionada</span></div>
+    <div class="rm-detalle-cab">
+      <span class="rm-celda-codigo" style="background:${cod ? cod.color : '#E1E4E8'}; color:${cod ? cod.texto : '#12181F'};">${escapeHtml(codigoTxt)}</span>
+      <div><b>${escapeHtml(cod ? cod.label : 'Incidencia')}</b><small>${lugar || '—'}</small></div>
+    </div>
+    <dl class="rm-detalle-filas">
+      <dt>Fecha</dt><dd>${escapeHtml(fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1))}</dd>
+      ${filaEnvio}
+    </dl>
+    <div class="rm-detalle-obs rm-detalle-cargando">Cargando observaciones…</div>`;
+
+  if (!informe) return;
+  const peticion = ++rmDetallePeticion;
+  const { data, error } = await sb
+    .from('incidencias')
+    .select('motivo, observaciones, usuario')
+    .eq('informe_id', informe.id)
+    .eq('tienda_id', tiendaId)
+    .eq('marcada', true)
+    .eq('entrega', 'HABITUAL');
+  if (peticion !== rmDetallePeticion) return; // ya se pulsó otra celda (o se recargó la tabla)
+
+  const obsEl = cont.querySelector('.rm-detalle-obs');
+  if (!obsEl) return;
+  obsEl.classList.remove('rm-detalle-cargando');
+  if (error) {
+    console.error('Error cargando el detalle de la incidencia:', error);
+    obsEl.textContent = 'No se pudieron cargar las observaciones.';
+    return;
+  }
+  const filas = data || [];
+  const motivos = [...new Set(filas.map(r => r.motivo).filter(Boolean))].join(', ');
+  const usuarios = [...new Set(filas.map(r => r.usuario).filter(Boolean))].join(', ');
+  const obs = filas.map(r => (r.observaciones || '').trim()).filter(Boolean);
+
+  const dl = cont.querySelector('.rm-detalle-filas');
+  if (motivos) dl.insertAdjacentHTML('beforeend', `<dt>Motivo</dt><dd>${escapeHtml(motivos)}</dd>`);
+  if (usuarios) dl.insertAdjacentHTML('beforeend', `<dt>Registrado por</dt><dd>${escapeHtml(usuarios)}</dd>`);
+
+  if (obs.length) obsEl.innerHTML = obs.map(o => escapeHtml(o)).join('<br>');
+  else { obsEl.classList.add('rm-detalle-sin-obs'); obsEl.textContent = 'Sin observaciones.'; }
+
+  cont.insertAdjacentHTML('beforeend', `<button type="button" class="rm-detalle-link" data-rm-ir-informe="${fechaISO}">Abrir informe del día →</button>`);
+}
+
+// Lleva al Historial de informes en la fecha de la celda (mismo camino que
+// los avisos de Inicio, ver navegacion.js).
+function rmIrAInformeDelDia(fecha) {
+  if (typeof activarVista !== 'function' || typeof cargarInformeHistorial !== 'function') return;
+  activarVista('historial-informes');
+  const inp = document.getElementById('historialFechaInput');
+  if (inp) inp.value = fecha;
+  cargarInformeHistorial(fecha);
+}
+
+// Se engancha una sola vez (delegación): la tabla se repinta en cada render.
+function rmEngancharBarraLateral() {
+  const tabla = document.getElementById('contenidoReportesMensuales');
+  if (tabla) tabla.addEventListener('click', e => {
+    const td = e.target.closest('td.rm-td-codigo');
+    if (td) rmMostrarDetalleCelda(td);
+  });
+  const detalle = document.getElementById('rmDetalleCelda');
+  if (detalle) detalle.addEventListener('click', e => {
+    const btn = e.target.closest('[data-rm-ir-informe]');
+    if (btn) rmIrAInformeDelDia(btn.dataset.rmIrInforme);
+  });
 }
 
 function rmActualizarCabecera() {
@@ -861,6 +1046,7 @@ function renderVistaReportesMensuales() {
   });
 
   rmEngancharFiltros();
+  rmEngancharBarraLateral();
 
   rmActualizarCabecera();
   rmRender();
