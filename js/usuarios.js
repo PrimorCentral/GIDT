@@ -128,6 +128,48 @@
     return permisos;
   }
 
+  // Nombre legible de un permiso, sacado de la etiqueta del propio
+  // formulario (así no hay que mantener dos listas de nombres).
+  function etiquetaPermiso(clave) {
+    const el = document.getElementById(`euPerm_${clave}`);
+    const b = el?.closest('label')?.querySelector('b');
+    return (b?.textContent || clave).trim();
+  }
+
+  // Lista de cambios de un usuario para el registro de auditoría (lupa):
+  // datos básicos, PIN (sin mostrar nunca su valor) y permisos añadidos
+  // o quitados.
+  function cambiosAuditoriaUsuario(antes, despues, pinCambiado) {
+    if (typeof auditoriaCalcularCambios !== 'function') return null;
+    const rolTexto = r => (r === 'admin' ? 'Admin' : r === 'operador' ? 'Operador' : r === 'lectura' ? 'Lectura' : r);
+    const cambios = auditoriaCalcularCambios([
+      { clave: 'nombre', etiqueta: 'Nombre' },
+      { clave: 'usuario', etiqueta: 'Usuario' },
+      { clave: 'rol', etiqueta: 'Rol', formato: rolTexto },
+      { clave: 'activo', etiqueta: 'Activo', formato: v => (v === false ? 'No' : 'Sí') }
+    ], antes, despues);
+    if (pinCambiado) cambios.push({ campo: 'PIN', antes: '••••', despues: 'PIN cambiado' });
+
+    // Permisos: solo tienen sentido para operadores (el administrador
+    // lo puede todo), así que solo se comparan si queda como operador.
+    if (despues.rol === 'operador') {
+      const permAntes = antes && antes.rol === 'operador' ? (antes.permisos || {}) : {};
+      const permDespues = despues.permisos || {};
+      CLAVES_PERMISOS.forEach(clave => {
+        const a = !!permAntes[clave];
+        const d = !!permDespues[clave];
+        if (a !== d) {
+          cambios.push({
+            campo: `Permiso: ${etiquetaPermiso(clave)}`,
+            antes: a ? 'Sí' : 'No',
+            despues: d ? 'Sí (añadido)' : 'No (quitado)'
+          });
+        }
+      });
+    }
+    return cambios;
+  }
+
   function fijarPermisosEnFormulario(prefijo, permisos) {
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
@@ -257,12 +299,15 @@
       };
       if (pin) cambios.pin_hash = await sha256(pin);
 
+      const usuarioAntes = usuariosCache.find(x => x.id === usuarioEditandoId);
       const { error } = await sb.from('usuarios').update(cambios).eq('id', usuarioEditandoId);
       if (error) {
         if (error.code === '23505') throw new Error('Ese nombre de usuario ya existe.');
         throw error;
       }
-      if (typeof registrarAccion === 'function') registrarAccion('usuarios', 'Editar usuario', `${nombre} (${rol})`);
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('usuarios', 'Editar usuario', `${nombre} (${rol})`, cambiosAuditoriaUsuario(usuarioAntes, cambios, !!pin));
+      }
 
       cerrarModalEditarUsuario();
       cargarUsuarios();

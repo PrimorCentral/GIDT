@@ -21,20 +21,43 @@ const CATEGORIAS_AUDITORIA = {
   gravedad_motivos: 'Gravedad de motivos'
 };
 
-async function registrarAccion(categoria, accion, detalle) {
+// cambios (opcional): lista [{ campo, antes, despues }] con lo que se
+// modificó exactamente. Se muestra al pulsar la lupa en el registro.
+async function registrarAccion(categoria, accion, detalle, cambios) {
   try {
     const usuario = (typeof sesionActual !== 'undefined' && sesionActual) ? (sesionActual.nombre || sesionActual.usuario) : null;
-    const { error } = await sb.from('registro_acciones').insert({
+    const fila = {
       usuario: usuario || 'Sistema',
       categoria,
       accion,
       detalle: detalle || null,
       creado_en: new Date().toISOString()
-    });
+    };
+    if (Array.isArray(cambios) && cambios.length) fila.cambios = cambios;
+    const { error } = await sb.from('registro_acciones').insert(fila);
     if (error) throw error;
   } catch (err) {
     console.error('Error registrando acción de auditoría:', err);
   }
+}
+
+// Compara dos objetos campo a campo y devuelve solo lo que ha cambiado,
+// ya en texto legible. campos = [{ clave, etiqueta, formato? }]; formato
+// convierte el valor crudo en texto (hora, nombre de agencia, Sí/No…).
+function auditoriaCalcularCambios(campos, antes, despues) {
+  const texto = (v) => {
+    if (v === null || v === undefined || v === '') return '—';
+    if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+    return String(v);
+  };
+  const cambios = [];
+  campos.forEach(({ clave, etiqueta, formato }) => {
+    const fmt = formato || (v => v);
+    const a = texto(fmt(antes ? antes[clave] : null));
+    const d = texto(fmt(despues ? despues[clave] : null));
+    if (a !== d) cambios.push({ campo: etiqueta, antes: a, despues: d });
+  });
+  return cambios;
 }
 
 let auditoriaCache = [];
@@ -68,7 +91,7 @@ async function prepararVistaAuditoria() {
     auditoriaAbiertaYa = true;
     const tbody = document.getElementById('tablaAuditoriaBody');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--ink-soft);">Elige los filtros que quieras (o ninguno) y pulsa "Consultar".</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Elige los filtros que quieras (o ninguno) y pulsa "Consultar".</td></tr>';
     }
   }
 }
@@ -76,7 +99,7 @@ async function prepararVistaAuditoria() {
 async function cargarAuditoria() {
   const tbody = document.getElementById('tablaAuditoriaBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando registro…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando registro…</td></tr>';
 
   if (typeof usuariosCache !== 'undefined' && !usuariosCache.length && typeof cargarUsuarios === 'function') {
     await cargarUsuarios().catch(() => {});
@@ -90,7 +113,7 @@ async function cargarAuditoria() {
   try {
     mostrarCargandoGlobal();
     let query = sb.from('registro_acciones')
-      .select('id, usuario, categoria, accion, detalle, creado_en')
+      .select('id, usuario, categoria, accion, detalle, cambios, creado_en')
       .order('creado_en', { ascending: false })
       .limit(300);
     if (usuario) query = query.eq('usuario', usuario);
@@ -105,7 +128,7 @@ async function cargarAuditoria() {
     rellenarFiltroUsuariosAuditoria();
 
     if (!auditoriaCache.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--ink-soft);">No hay acciones registradas con estos filtros.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">No hay acciones registradas con estos filtros.</td></tr>';
       return;
     }
 
@@ -116,11 +139,14 @@ async function cargarAuditoria() {
         <td>${escapeHtml(CATEGORIAS_AUDITORIA[a.categoria] || a.categoria || '—')}</td>
         <td>${escapeHtml(a.accion || '—')}</td>
         <td>${a.detalle ? escapeHtml(a.detalle) : '—'}</td>
+        <td class="aud-col-lupa">${Array.isArray(a.cambios) && a.cambios.length
+          ? `<button type="button" class="aud-btn-lupa" data-aud-id="${a.id}" title="Ver qué se modificó" aria-label="Ver qué se modificó">&#128269;</button>`
+          : ''}</td>
       </tr>
     `).join('');
   } catch (err) {
     console.error('Error cargando el registro de auditoría:', err);
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar el registro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar el registro.</td></tr>';
   } finally {
     ocultarCargandoGlobal();
   }
@@ -133,4 +159,61 @@ document.getElementById('btnAudLimpiar')?.addEventListener('click', () => {
   document.getElementById('audDesde').value = '';
   document.getElementById('audHasta').value = '';
   cargarAuditoria();
+});
+
+// ---------------------------------------------------------------
+// Lupa: ventana con el detalle de lo modificado (Campo / Antes / Después)
+// ---------------------------------------------------------------
+function asegurarModalDetalleAuditoria() {
+  let overlay = document.getElementById('audDetalleOverlay');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'audDetalleOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box aud-detalle-box" role="dialog" aria-modal="true" aria-labelledby="audDetalleTitulo">
+      <div class="aud-detalle-cab">
+        <h3 class="modal-title" id="audDetalleTitulo"></h3>
+        <button type="button" class="aud-detalle-cerrar" id="audDetalleCerrar" aria-label="Cerrar">&times;</button>
+      </div>
+      <p class="aud-detalle-sub" id="audDetalleSub"></p>
+      <div class="aud-detalle-tabla-wrap">
+        <table class="aud-detalle-tabla">
+          <thead><tr><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
+          <tbody id="audDetalleBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer"><button class="btn" id="audDetalleBtnCerrar">Cerrar</button></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const cerrar = () => overlay.classList.remove('show');
+  overlay.querySelector('#audDetalleCerrar').addEventListener('click', cerrar);
+  overlay.querySelector('#audDetalleBtnCerrar').addEventListener('click', cerrar);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrar(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) cerrar();
+  });
+  return overlay;
+}
+
+function abrirDetalleAuditoria(id) {
+  const a = auditoriaCache.find(x => String(x.id) === String(id));
+  if (!a || !Array.isArray(a.cambios) || !a.cambios.length) return;
+  const overlay = asegurarModalDetalleAuditoria();
+  overlay.querySelector('#audDetalleTitulo').textContent =
+    `${a.accion || 'Detalle'}${a.detalle ? ' · ' + a.detalle : ''}`;
+  overlay.querySelector('#audDetalleSub').textContent =
+    `${a.usuario || '—'} · ${formatearFechaHoraCorta(new Date(a.creado_en))}`;
+  overlay.querySelector('#audDetalleBody').innerHTML = a.cambios.map(c => `
+    <tr>
+      <td>${escapeHtml(c.campo || '—')}</td>
+      <td><span class="aud-valor-antes">${escapeHtml(c.antes ?? '—')}</span></td>
+      <td><span class="aud-valor-despues">${escapeHtml(c.despues ?? '—')}</span></td>
+    </tr>`).join('');
+  overlay.classList.add('show');
+}
+
+document.getElementById('tablaAuditoriaBody')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.aud-btn-lupa');
+  if (btn) abrirDetalleAuditoria(btn.dataset.audId);
 });

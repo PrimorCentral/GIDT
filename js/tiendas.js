@@ -501,6 +501,30 @@
   // Modal "Editar tienda": nombre, hora prevista, provincia y marca.
   // Sustituye a la antigua edición en línea dentro de la propia fila.
   // ---------------------------------------------------------------
+  // Campos que se comparan al editar una tienda para guardar en el
+  // registro de auditoría exactamente qué cambió (lupa → Antes / Después).
+  const audHora = v => (v ? String(v).slice(0, 5) : null);
+  const audAgencia = id => (id == null || id === '' ? null : (agenciasCache.find(a => String(a.id) === String(id))?.nombre || `#${id}`));
+  const audDia = n => (n ? (DIAS_SEMANA_ISO.find(d => d.iso === Number(n))?.label || String(n)) : null);
+  const CAMPOS_AUDITORIA_TIENDA = [
+    { clave: 'numero_tienda', etiqueta: 'Nº tienda' },
+    { clave: 'nombre', etiqueta: 'Nombre' },
+    { clave: 'hora_prevista', etiqueta: 'Hora prevista', formato: audHora },
+    { clave: 'direccion', etiqueta: 'Dirección' },
+    { clave: 'provincia', etiqueta: 'Provincia' },
+    { clave: 'limite_palets', etiqueta: 'Límite palets' },
+    { clave: 'limite_hora_entrega', etiqueta: 'Límite hora entrega', formato: audHora },
+    { clave: 'supervisor', etiqueta: 'Supervisor/a' },
+    { clave: 'recogida_semanal_dia', etiqueta: 'Día de recogida', formato: audDia },
+    { clave: 'agencia_recogida', etiqueta: 'Agencia de recogida' },
+    { clave: 'transito_horas', etiqueta: 'Tránsito', formato: v => (v == null || v === '' ? null : `${v} h`) },
+    { clave: 'sabado_agencia_id', etiqueta: 'Agencia sábados', formato: audAgencia },
+    { clave: 'sabado_hora', etiqueta: 'Hora sábados', formato: audHora },
+    { clave: 'prueba_agencia_id', etiqueta: 'Agencia de prueba', formato: audAgencia },
+    { clave: 'prueba_hora', etiqueta: 'Hora de prueba', formato: audHora },
+    { clave: 'prueba_fechas', etiqueta: 'Fechas de prueba', formato: f => (Array.isArray(f) && f.length ? [...f].sort().map(fechaISOaCorta) : null) }
+  ];
+
   let editarTiendaId = null;
 
   function abrirModalEditarTienda(tiendaId) {
@@ -883,7 +907,7 @@
         return;
       }
 
-      const { error } = await sb.from('tiendas').update({
+      const datosNuevos = {
         numero_tienda: numeroTienda || null,
         nombre,
         hora_prevista: hora || null,
@@ -900,9 +924,14 @@
         prueba_agencia_id: prueba.prueba_agencia_id,
         prueba_hora: prueba.prueba_hora,
         prueba_fechas: prueba.prueba_fechas
-      }).eq('id', editarTiendaId);
+      };
+      const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Editar tienda', nombre);
+      if (typeof registrarAccion === 'function') {
+        const cambios = typeof auditoriaCalcularCambios === 'function'
+          ? auditoriaCalcularCambios(CAMPOS_AUDITORIA_TIENDA, tEditada, datosNuevos) : null;
+        registrarAccion('tiendas', 'Editar tienda', nombre, cambios);
+      }
       cerrarModalEditarTienda();
       if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${nombre}" modificada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
@@ -1817,7 +1846,13 @@
         .update({ horario_semana: Object.keys(mapa).length ? mapa : null })
         .eq('id', horarioSemanaTiendaId);
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Configurar horario semanal', t?.nombre || '');
+      if (typeof registrarAccion === 'function') {
+        const mapaAntes = t?.horario_semana || {};
+        const campos = DIAS_SEMANA_ISO.map(d => ({ clave: String(d.iso), etiqueta: d.label, formato: audHora }));
+        const cambios = typeof auditoriaCalcularCambios === 'function'
+          ? auditoriaCalcularCambios(campos, mapaAntes, mapa) : null;
+        registrarAccion('tiendas', 'Configurar horario semanal', t?.nombre || '', cambios);
+      }
       cerrarModalHorarioSemana();
       cargarAgenciasYTiendas();
     } catch (err) {
