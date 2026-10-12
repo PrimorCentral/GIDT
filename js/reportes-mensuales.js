@@ -51,7 +51,28 @@ let rmMes = new Date().getMonth(); // 0 = enero
 let rmInicializado = false;
 let rmLeyendaPintada = false;
 
-const rmFiltros = { agencias: new Set(), tiendas: new Set(), soloConIncidencias: false };
+// motivos = códigos del reporte (CODIGOS_INFORME[].codigo, p. ej. '7', 'F').
+const rmFiltros = { agencias: new Set(), tiendas: new Set(), motivos: new Set(), soloConIncidencias: false };
+
+// Filtro de Motivo: devuelve una copia de `celdas` en la que los días con
+// un código que NO está entre los elegidos quedan marcados como
+// ocultoPorMotivo (se pintan vacíos y no cuentan en el TOTAL). Sin
+// motivos elegidos devuelve `celdas` tal cual. Lo usan la pantalla y
+// Exportar (con "usar filtro activo"); el envío a agencias, nunca.
+function rmCeldasSegunMotivo(celdas) {
+  if (!rmFiltros.motivos.size) return celdas;
+  const res = {};
+  Object.keys(celdas || {}).forEach(tiendaId => {
+    const porDia = celdas[tiendaId] || {};
+    const copia = {};
+    Object.keys(porDia).forEach(dia => {
+      const c = porDia[dia];
+      copia[dia] = (c && !rmFiltros.motivos.has(String(c.codigo))) ? { ...c, ocultoPorMotivo: true } : c;
+    });
+    res[tiendaId] = copia;
+  });
+  return res;
+}
 
 const RM_NOMBRES_MES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
@@ -471,6 +492,17 @@ function rmConstruirPanelFiltros() {
     listaTd.dataset.built = '1';
   }
 
+  const listaMo = document.getElementById('rmFiltrosMotivosLista');
+  if (listaMo && !listaMo.dataset.built && typeof CODIGOS_INFORME !== 'undefined') {
+    listaMo.innerHTML = CODIGOS_INFORME.map(c => `
+      <label class="filtro-check">
+        <input type="checkbox" value="${escapeHtml(c.codigo)}" data-filtro="motivo">
+        <span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto}; text-align:center; min-width:24px; font-size:11.5px;">${escapeHtml(c.codigo)}</span>
+        <span>${escapeHtml(c.label)}</span>
+      </label>`).join('');
+    listaMo.dataset.built = '1';
+  }
+
   const panel = document.getElementById('rmFiltrosPanel');
   if (!panel.dataset.wired) {
     panel.addEventListener('change', (e) => {
@@ -483,8 +515,9 @@ function rmConstruirPanelFiltros() {
         return;
       }
       const grupo = cb.dataset.filtro;
-      const set = grupo === 'agencia' ? rmFiltros.agencias : rmFiltros.tiendas;
-      const val = Number(cb.value);
+      const set = rmSetDeGrupoFiltro(grupo);
+      if (!set) return;
+      const val = grupo === 'motivo' ? cb.value : Number(cb.value);
       if (cb.checked) set.add(val); else set.delete(val);
       rmActualizarBadgeFiltros();
       rmActualizarValoresSelects();
@@ -494,11 +527,36 @@ function rmConstruirPanelFiltros() {
   }
 }
 
+function rmSetDeGrupoFiltro(grupo) {
+  if (grupo === 'agencia') return rmFiltros.agencias;
+  if (grupo === 'tienda') return rmFiltros.tiendas;
+  if (grupo === 'motivo') return rmFiltros.motivos;
+  return null;
+}
+
 function rmActualizarValoresSelects() {
   document.querySelectorAll('#rmFiltrosPanel .filtro-select').forEach(sel => {
     const grupo = sel.dataset.grupo;
-    const set = grupo === 'agencia' ? rmFiltros.agencias : rmFiltros.tiendas;
+    const set = rmSetDeGrupoFiltro(grupo);
+    if (!set) return;
     const valor = sel.querySelector('.filtro-select-valor');
+    if (grupo === 'motivo') {
+      // Motivo: "Todos", o los códigos elegidos con su color (hasta 3);
+      // con más, "N motivos".
+      if (!set.size) {
+        valor.textContent = 'Todos';
+        sel.classList.remove('activo');
+      } else if (set.size <= 3 && typeof CODIGOS_INFORME !== 'undefined') {
+        valor.innerHTML = CODIGOS_INFORME.filter(c => set.has(String(c.codigo))).map(c =>
+          `<span style="display:inline-flex; align-items:center; gap:5px; margin-right:10px;"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto}; font-size:11px; text-align:center;">${escapeHtml(c.codigo)}</span>${escapeHtml(c.label)}</span>`
+        ).join('');
+        sel.classList.add('activo');
+      } else {
+        valor.textContent = `${set.size} motivos`;
+        sel.classList.add('activo');
+      }
+      return;
+    }
     if (set.size === 0) {
       valor.textContent = 'Todas';
       sel.classList.remove('activo');
@@ -514,7 +572,7 @@ function rmActualizarValoresSelects() {
 }
 
 function rmActualizarBadgeFiltros() {
-  const total = rmFiltros.agencias.size + rmFiltros.tiendas.size + (rmFiltros.soloConIncidencias ? 1 : 0);
+  const total = rmFiltros.agencias.size + rmFiltros.tiendas.size + rmFiltros.motivos.size + (rmFiltros.soloConIncidencias ? 1 : 0);
   const badge = document.getElementById('rmFiltrosCount');
   const btn = document.getElementById('btnRmFiltros');
   if (total > 0) {
@@ -577,6 +635,7 @@ function rmEngancharFiltros() {
   document.getElementById('btnRmLimpiarFiltros').addEventListener('click', () => {
     rmFiltros.agencias.clear();
     rmFiltros.tiendas.clear();
+    rmFiltros.motivos.clear();
     rmFiltros.soloConIncidencias = false;
     panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
     rmActualizarBadgeFiltros();
@@ -620,6 +679,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       }
       const c = celdasTienda[dia];
       if (!c) { partes.push(`<td class="rm-td-ok">OK</td>`); continue; }
+      if (c.ocultoPorMotivo) { partes.push(`<td title="Otro motivo (oculto por el filtro de Motivo)"></td>`); continue; }
       totalIncidencias++;
       partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
     }
@@ -681,6 +741,7 @@ function rmCeldasDeTramo(f, segmentosTienda, puntualPorDia, celdasTienda, diasEn
       if (dia < rmPrimerDiaTienda(f.tiendaId)) { partes.push(`<td class="rm-td-pendiente" title="La tienda aún no estaba dada de alta">–</td>`); continue; }
       partes.push(`<td class="rm-td-ok">OK</td>`); continue;
     }
+    if (c.ocultoPorMotivo) { partes.push(`<td title="Otro motivo (oculto por el filtro de Motivo)"></td>`); continue; }
     totalIncidencias++;
     partes.push(`<td title="${escapeHtml(c.label)}"><span class="rm-celda-codigo" style="background:${c.color}; color:${c.texto};" title="${escapeHtml(c.label)}">${escapeHtml(c.codigo)}</span></td>`);
   }
@@ -717,7 +778,8 @@ async function rmRender() {
 
   rmConstruirPanelFiltros();
 
-  const { celdas, diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda } = datos;
+  const { diasEnviados, totalDias, cambiosPorTienda, puntualAgenciaPorTienda } = datos;
+  const celdas = rmCeldasSegunMotivo(datos.celdas);
   const todasLasFilas = rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, totalDias);
   const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
   const filas = rmFilasSegunFiltros(todasLasFilas);
@@ -731,7 +793,9 @@ async function rmRender() {
     return { f, html, totalIncidencias };
   });
 
-  const filasVisibles = rmFiltros.soloConIncidencias
+  // Con "solo con incidencias" o con algún Motivo elegido, solo se quedan
+  // las filas que tengan al menos una incidencia (de esos motivos).
+  const filasVisibles = (rmFiltros.soloConIncidencias || rmFiltros.motivos.size)
     ? filasConDatos.filter(x => x.totalIncidencias > 0)
     : filasConDatos;
 

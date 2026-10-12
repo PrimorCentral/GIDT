@@ -601,6 +601,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       }
       const c = celdasTienda[dia];
       if (!c) { celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue; }
+      if (c.ocultoPorMotivo) { celdas.push({ content: '', styles: {} }); continue; } // filtro de Motivo (solo al exportar)
       totalIncidencias++;
       celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
     }
@@ -656,6 +657,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       if (dia < rmPrimerDiaTienda(f.tiendaId)) { celdas.push({ content: '', styles: {} }); continue; }
       celdas.push({ content: 'OK', styles: { textColor: [0, 0, 0] } }); continue;
     }
+    if (c.ocultoPorMotivo) { celdas.push({ content: '', styles: {} }); continue; } // filtro de Motivo (solo al exportar)
     totalIncidencias++;
     celdas.push({ content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold' } });
   }

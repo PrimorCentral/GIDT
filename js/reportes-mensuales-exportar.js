@@ -105,13 +105,14 @@ function rmxFechaISO(anio, mesIndex, dia) {
 // se exporta eligiendo agencia como siempre.
 // ---------------------------------------------------------------
 function rmxHayFiltroActivo() {
-  return !!(rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.soloConIncidencias);
+  return !!(rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.motivos.size || rmFiltros.soloConIncidencias);
 }
 
 function rmxResumenFiltroActivo() {
   const partes = [];
   if (rmFiltros.agencias.size) partes.push(`${rmFiltros.agencias.size} agencia${rmFiltros.agencias.size === 1 ? '' : 's'}`);
   if (rmFiltros.tiendas.size) partes.push(`${rmFiltros.tiendas.size} tienda${rmFiltros.tiendas.size === 1 ? '' : 's'}`);
+  if (rmFiltros.motivos.size) partes.push(`${rmFiltros.motivos.size} motivo${rmFiltros.motivos.size === 1 ? '' : 's'}`);
   if (rmFiltros.soloConIncidencias) partes.push('solo con incidencias');
   return partes.join(', ') || 'sin filtros';
 }
@@ -217,7 +218,10 @@ async function rmxDescargar() {
   btn.textContent = 'Generando PDF…';
 
   try {
-    const { celdas, diasEnviados, totalDias, todasLasFilas, puntualAgenciaPorTienda } = await rmeObtenerDatosMes();
+    const datosMes = await rmeObtenerDatosMes();
+    const { diasEnviados, totalDias, todasLasFilas, puntualAgenciaPorTienda } = datosMes;
+    // El filtro de Motivo solo se aplica al exportar con el filtro activo.
+    const celdas = usarFiltro ? rmCeldasSegunMotivo(datosMes.celdas) : datosMes.celdas;
     const segmentosPorTienda = rmSegmentosPorTienda(todasLasFilas);
 
     let nombreGrupo, filasGrupo;
@@ -229,7 +233,7 @@ async function rmxDescargar() {
         ? (agenciasCache.find(a => a.id === [...rmFiltros.agencias][0])?.nombre || 'Filtro activo')
         : 'Filtro activo';
       filasGrupo = rmFilasSegunFiltros(todasLasFilas);
-      if (rmFiltros.soloConIncidencias) {
+      if (rmFiltros.soloConIncidencias || rmFiltros.motivos.size) {
         filasGrupo = filasGrupo.filter(f => {
           const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
           const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
