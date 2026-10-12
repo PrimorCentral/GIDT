@@ -568,12 +568,17 @@ function rmeHexToRgb(hex) {
 // celdas para jsPDF-autotable en lugar de HTML. diaDesde/diaHasta (por
 // defecto todo el mes) recortan qué columnas de días se generan, para
 // poder exportar solo un rango de días dentro del mes.
-function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex) {
+// `textoTramo(prefijo, nombre, nDias)` (opcional) decide el texto de los
+// bloques "Antes:"/"Cambia a:" para que quepa en UNA sola línea y no
+// duplique el alto de la fila; sin él se usa el texto completo.
+function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex, textoTramo) {
   diaDesde = diaDesde || 1;
   diaHasta = diaHasta || totalDias;
   const celdas = [];
   let totalIncidencias = 0;
   const estiloCambio = { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'italic', fontSize: 6 * escala };
+  const textoBloque = (prefijo, nombre, nDias) =>
+    typeof textoTramo === 'function' ? textoTramo(prefijo, nombre, nDias) : `${prefijo} ${nombre}`;
   const estiloNaPuntual = { fillColor: [255, 255, 255], textColor: [255, 255, 255] };
 
   if (f.esPuntual) {
@@ -609,7 +614,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       const ini = Math.max(s.diaInicio, diaDesde);
       const fin = Math.min(s.diaFin, diaHasta);
       if (ini > fin) return;
-      celdas.push({ content: `Antes:\n${s.agenciaNombre}`, colSpan: fin - ini + 1, styles: estiloCambio });
+      celdas.push({ content: textoBloque('Antes:', s.agenciaNombre, fin - ini + 1), colSpan: fin - ini + 1, styles: estiloCambio });
     });
 
   // Días consecutivos de baja (sin incidencia registrada) → una sola celda
@@ -662,7 +667,7 @@ function rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, di
       const ini = Math.max(s.diaInicio, diaDesde);
       const fin = Math.min(s.diaFin, diaHasta);
       if (ini > fin) return;
-      celdas.push({ content: `Cambia a:\n${s.agenciaNombre}`, colSpan: fin - ini + 1, styles: estiloCambio });
+      celdas.push({ content: textoBloque('Cambia a:', s.agenciaNombre, fin - ini + 1), colSpan: fin - ini + 1, styles: estiloCambio });
     });
 
   return { celdas, totalIncidencias };
@@ -758,6 +763,21 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
   const anchoColAgencia = 55, anchoColTienda = 90, anchoColProvincia = 92, anchoColTotal = 32;
   const anchoFijoResto = anchoColAgencia + anchoColTienda + anchoColProvincia + anchoColTotal;
   const anchoColDia = (anchoUtil - anchoFijoResto) / cabeceraDias.length;
+  // Texto de los bloques "Antes:"/"Cambia a:" en UNA sola línea: si el
+  // tramo es ancho, "Cambia a: SEYLOTRANS"; si no cabe, solo el nombre de
+  // la agencia; y si tampoco, sus 3 primeras letras (como los sábados).
+  // Así la fila de la tienda no se hace el doble de alta que las demás.
+  const textoTramoUnaLinea = (prefijo, nombre, nDias) => {
+    const nombreAg = String(nombre || '').trim();
+    const anchoDisponible = anchoColDia * nDias - 4 * escala; // menos el relleno de la celda
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(6 * escala);
+    const cabe = (t) => doc.getTextWidth(t) <= anchoDisponible;
+    const completo = `${prefijo} ${nombreAg}`;
+    if (cabe(completo)) return completo;
+    if (cabe(nombreAg)) return nombreAg;
+    return nombreAg.slice(0, 3).toUpperCase();
+  };
   const columnStylesDias = {};
   cabeceraDias.forEach((_, i) => { columnStylesDias[3 + i] = { cellWidth: anchoColDia }; });
 
@@ -765,7 +785,7 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     const celdasTienda = celdas[f.tiendaId] || {};
     const segmentosTienda = segmentosPorTienda.get(f.tiendaId) || [f];
     const puntualPorDia = puntualAgenciaPorTienda.get(f.tiendaId);
-    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex);
+    const { celdas: celdasDias, totalIncidencias } = rmeCeldasDeTramoPdf(f, segmentosTienda, puntualPorDia, celdasTienda, diasEnviados, totalDias, escala, diaDesde, diaHasta, anio, mesIndex, textoTramoUnaLinea);
     // Tiendas de sábado: redondel amarillo con "S" a la izquierda del
     // nombre de la agencia (se dibuja en didDrawCell; aquí solo se deja
     // hueco a la izquierda para que no se monte sobre el texto).
