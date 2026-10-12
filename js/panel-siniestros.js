@@ -1989,12 +1989,16 @@ async function quitarAlbaranPanel() {
   const s = psSiniestroPorId(panelActivoId);
   const urlAEliminar = s?.albaran_url;
   try {
-    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, num_albaran: null, albaran_adjuntado_en: null, albaran_adjuntado_por: null, facturacion_omitida_en: null, facturacion_omitida_por: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
+    // Al quitar el albarán también se deshace el paso "Albarán enviado a
+    // facturación" del seguimiento (enviado u omitido): sin albarán ese paso
+    // vuelve a quedar pendiente, y al subir uno nuevo se volverá a pedir.
+    const { error } = await sb.from('panel_siniestros').update({ albaran_url: null, albaran_nombre: null, num_albaran: null, albaran_adjuntado_en: null, albaran_adjuntado_por: null, facturacion_omitida_en: null, facturacion_omitida_por: null, enviado_facturacion: false, facturacion_enviado_en: null, facturacion_enviado_por: null, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null }).eq('id', panelActivoId);
     if (error) throw error;
     if (s) {
       s.albaran_url = null; s.albaran_nombre = null; s.num_albaran = null;
       s.albaran_adjuntado_en = null; s.albaran_adjuntado_por = null;
       s.facturacion_omitida_en = null; s.facturacion_omitida_por = null;
+      s.enviado_facturacion = false; s.facturacion_enviado_en = null; s.facturacion_enviado_por = null;
     }
     pintarAlbaranModal(s);
     renderSeguimientoPanel(s);

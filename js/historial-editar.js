@@ -142,6 +142,43 @@ async function panelSiniestroDeIncidencia(incidenciaId) {
   return null;
 }
 
+// Si al editar el histórico cambia el tipo de una incidencia que YA tenía
+// siniestro (p. ej. tenía ROTURA y se le añade FALTAS), se actualiza el
+// tipo en el Panel siniestros y en la fila de "Siniestros del día" para
+// que no se queden con el tipo antiguo. Si pasa a llevar rotura y no
+// tenía fecha de recogida límite (era solo FALTAS), se le pone la de
+// fecha del informe + 15 días, igual que al darlo de alta.
+async function actualizarTipoSiniestroExistente(incidencia, informe) {
+  const tipoSin = tipoSiniestroDeMotivos(incidencia.motivo || []);
+  if (!tipoSin) return;
+  const tipoPanel = PS_TIPO_DESDE_SINIESTRO_HIST[tipoSin];
+
+  const { data: sinLigado } = await sb.from('siniestros').select('id, tipo').eq('incidencia_id', incidencia.id).maybeSingle();
+  if (sinLigado && sinLigado.tipo !== tipoSin) {
+    const { error } = await sb.from('siniestros').update({ tipo: tipoSin }).eq('id', sinLigado.id);
+    if (error) throw error;
+  }
+
+  const panelId = await panelSiniestroDeIncidencia(incidencia.id);
+  if (!panelId) return;
+  const { data: panel, error: eSel } = await sb.from('panel_siniestros').select('id, tipo, recogida_limite').eq('id', panelId).single();
+  if (eSel) throw eSel;
+  if (panel.tipo === tipoPanel) return;
+
+  const cambios = { tipo: tipoPanel, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
+  if (tipoSin !== 'FALTA' && !panel.recogida_limite) {
+    const limite = new Date(informe.fecha + 'T00:00:00');
+    limite.setDate(limite.getDate() + 15);
+    cambios.recogida_limite = fechaLocalISO(limite);
+  }
+  const { error } = await sb.from('panel_siniestros').update(cambios).eq('id', panelId);
+  if (error) throw error;
+  if (typeof registrarAccion === 'function') {
+    registrarAccion('siniestros', 'Cambio de tipo de siniestro desde el histórico',
+      `${incidencia.tienda_nombre || '—'} · ${panel.tipo} → ${tipoPanel}`);
+  }
+}
+
 // ---------------- "Terminar de editar": vuelca el borrador a BD ----------------
 
 async function finalizarEdicionHistorial() {
@@ -229,6 +266,11 @@ async function finalizarEdicionHistorial() {
 
       if (existente) Object.assign(existente, guardada);
       else historialTodasIncidencias.push(guardada);
+
+      // Siniestro ya existente (no es uno nuevo del borrador): actualizar su tipo.
+      if (existente && !historialSiniestrosDraft.has(clave)) {
+        await actualizarTipoSiniestroExistente(guardada, historialInformeActual);
+      }
     }
 
     // 2) Dar de alta en el Panel siniestros los siniestros nuevos del borrador.
