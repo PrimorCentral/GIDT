@@ -1654,11 +1654,58 @@
 <!-- Modal de actualización disponible (no se cierra clicando fuera: la actualización no es opcional) -->
 <div class="modal-overlay actualizacion-overlay" id="actualizacionModalOverlay">
   <div class="modal-box actualizacion-modal-box" role="alertdialog" aria-modal="true" aria-labelledby="actualizacionModalTitulo">
-    <div class="actualizacion-modal-icon">🔄</div>
-    <h3 class="modal-title" id="actualizacionModalTitulo">Actualización disponible</h3>
-    <p class="modal-message">Hay una nueva versión de GIDT disponible. La aplicación se va a actualizar ahora.</p>
-    <div class="modal-footer">
-      <button class="btn primary" id="btnActualizarAhora">🔄 Actualizar ahora</button>
+    <!-- Escena animada: un perro pasea por la calle llevando la nueva versión.
+         Todo es SVG/CSS propio (sin imágenes externas). La velocidad la marca
+         la variable --vel (1 = paseo, más alto = corre al actualizar). -->
+    <div class="act-escena" id="actEscena" aria-hidden="true">
+      <div class="act-sol"></div>
+      <div class="act-tira act-nubes">
+        <svg viewBox="0 0 440 40" height="40"><g fill="#fff" opacity=".85"><ellipse cx="60" cy="22" rx="28" ry="10"/><ellipse cx="78" cy="16" rx="18" ry="10"/><ellipse cx="250" cy="26" rx="22" ry="8"/><ellipse cx="264" cy="21" rx="14" ry="8"/><ellipse cx="380" cy="14" rx="20" ry="7"/></g></svg>
+        <svg viewBox="0 0 440 40" height="40"><g fill="#fff" opacity=".85"><ellipse cx="60" cy="22" rx="28" ry="10"/><ellipse cx="78" cy="16" rx="18" ry="10"/><ellipse cx="250" cy="26" rx="22" ry="8"/><ellipse cx="264" cy="21" rx="14" ry="8"/><ellipse cx="380" cy="14" rx="20" ry="7"/></g></svg>
+      </div>
+      <div class="act-tira act-ciudad">
+        <svg viewBox="0 0 440 70" height="70" preserveAspectRatio="none"><g fill="#F3C9A6"><rect x="0" y="30" width="36" height="40"/><rect x="40" y="12" width="28" height="58"/><rect x="72" y="38" width="40" height="32"/><rect x="120" y="22" width="30" height="48"/><rect x="154" y="44" width="46" height="26"/><rect x="206" y="8" width="24" height="62"/><rect x="234" y="34" width="38" height="36"/><rect x="278" y="20" width="32" height="50"/><rect x="314" y="40" width="44" height="30"/><rect x="362" y="16" width="26" height="54"/><rect x="392" y="32" width="48" height="38"/></g></svg>
+        <svg viewBox="0 0 440 70" height="70" preserveAspectRatio="none"><g fill="#F3C9A6"><rect x="0" y="30" width="36" height="40"/><rect x="40" y="12" width="28" height="58"/><rect x="72" y="38" width="40" height="32"/><rect x="120" y="22" width="30" height="48"/><rect x="154" y="44" width="46" height="26"/><rect x="206" y="8" width="24" height="62"/><rect x="234" y="34" width="38" height="36"/><rect x="278" y="20" width="32" height="50"/><rect x="314" y="40" width="44" height="30"/><rect x="362" y="16" width="26" height="54"/><rect x="392" y="32" width="48" height="38"/></g></svg>
+      </div>
+      <div class="act-tira act-arboles">
+        <svg viewBox="0 0 440 60" height="60"><g fill="#7DB86A"><circle cx="40" cy="22" r="16"/><circle cx="54" cy="28" r="12"/><circle cx="210" cy="24" r="14"/><circle cx="350" cy="20" r="17"/><circle cx="366" cy="28" r="11"/></g><g fill="#6B4A2E"><rect x="44" y="34" width="5" height="26"/><rect x="208" y="34" width="5" height="26"/><rect x="354" y="34" width="5" height="26"/></g><g fill="#5B6572"><rect x="128" y="10" width="3" height="50"/><rect x="128" y="8" width="16" height="3" rx="1.5"/><rect x="278" y="10" width="3" height="50"/><rect x="278" y="8" width="16" height="3" rx="1.5"/></g><g fill="#FFC46B"><circle cx="142" cy="13" r="3"/><circle cx="292" cy="13" r="3"/></g></svg>
+        <svg viewBox="0 0 440 60" height="60"><g fill="#7DB86A"><circle cx="40" cy="22" r="16"/><circle cx="54" cy="28" r="12"/><circle cx="210" cy="24" r="14"/><circle cx="350" cy="20" r="17"/><circle cx="366" cy="28" r="11"/></g><g fill="#6B4A2E"><rect x="44" y="34" width="5" height="26"/><rect x="208" y="34" width="5" height="26"/><rect x="354" y="34" width="5" height="26"/></g><g fill="#5B6572"><rect x="128" y="10" width="3" height="50"/><rect x="128" y="8" width="16" height="3" rx="1.5"/><rect x="278" y="10" width="3" height="50"/><rect x="278" y="8" width="16" height="3" rx="1.5"/></g><g fill="#FFC46B"><circle cx="142" cy="13" r="3"/><circle cx="292" cy="13" r="3"/></g></svg>
+      </div>
+      <div class="act-suelo"></div>
+      <svg class="act-perro" viewBox="0 0 150 90">
+        <ellipse class="act-sombra" cx="70" cy="86" rx="46" ry="4" fill="#000"/>
+        <g class="act-cuerpo">
+          <rect class="act-pata act-b" x="34" y="50" width="9" height="32" rx="4.5" fill="#A8703C"/>
+          <rect class="act-pata act-a" x="84" y="50" width="9" height="32" rx="4.5" fill="#A8703C"/>
+          <path class="act-cola" d="M18 44 C 8 38, 6 26, 12 18" stroke="#C98B4F" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <rect x="16" y="34" width="86" height="30" rx="15" fill="#C98B4F"/>
+          <ellipse cx="62" cy="58" rx="30" ry="6" fill="#E8B985"/>
+          <rect class="act-pata act-a" x="24" y="50" width="9" height="33" rx="4.5" fill="#C98B4F"/>
+          <rect class="act-pata act-b" x="92" y="50" width="9" height="33" rx="4.5" fill="#C98B4F"/>
+          <rect x="96" y="34" width="8" height="22" rx="3" fill="#FF7A1A"/>
+          <circle cx="102" cy="58" r="3.5" fill="#FFC46B"/>
+          <circle cx="114" cy="30" r="16" fill="#C98B4F"/>
+          <ellipse cx="130" cy="36" rx="12" ry="8.5" fill="#E8B985"/>
+          <circle cx="140" cy="33" r="3.6" fill="#2B1B10"/>
+          <circle cx="117" cy="25" r="2.6" fill="#2B1B10"/>
+          <circle cx="118" cy="24.2" r=".9" fill="#fff"/>
+          <path d="M128 42 q4 3 8 0" stroke="#2B1B10" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+          <path class="act-oreja" d="M104 16 C 96 18, 96 34, 102 40 C 108 36, 110 24, 108 16 Z" fill="#8A5A2B"/>
+        </g>
+      </svg>
+      <div class="act-chapa" id="actChapaVersion">Nueva versión</div>
+    </div>
+
+    <div class="act-contenido">
+      <div class="act-versiones" id="actVersiones" hidden>
+        <span class="act-v" id="actVersionActual"></span><span class="act-flecha">→</span><span class="act-v act-nueva" id="actVersionNueva"></span>
+      </div>
+      <h3 class="modal-title" id="actualizacionModalTitulo">¡Nueva versión en camino!</h3>
+      <p class="modal-message" id="actualizacionModalMensaje">Hay una nueva versión de GIDT disponible. La aplicación se va a actualizar ahora.</p>
+      <div class="modal-footer">
+        <button class="btn primary" id="btnActualizarAhora">🔄 Actualizar ahora</button>
+      </div>
+      <div class="act-barra"><i></i></div>
     </div>
   </div>
 </div>
