@@ -32,20 +32,38 @@
       if (!remota) return;
       if (remota !== versionActual) {
         modalMostrado = true;
-        mostrarAvisoActualizacion();
+        mostrarAvisoActualizacion(versionActual, remota);
       }
     }
 
     // Modal dedicado (no el genérico de modalAlert/modalConfirm): a propósito
     // no se puede cerrar haciendo click fuera ni con Escape, porque la
     // actualización no es opcional — solo se sale de aquí actualizando.
-    function mostrarAvisoActualizacion() {
+    // Lleva una escena animada (perro paseando con la nueva versión); al
+    // pulsar "Actualizar ahora" el perro echa a correr y sale una barra de
+    // progreso mientras se limpia la caché y se recarga.
+    function mostrarAvisoActualizacion(actual, nueva) {
       const overlay = document.getElementById('actualizacionModalOverlay');
       const btn = document.getElementById('btnActualizarAhora');
+      const caja = overlay.querySelector('.actualizacion-modal-box');
+      const escena = document.getElementById('actEscena');
+      const mensaje = document.getElementById('actualizacionModalMensaje');
+
+      if (actual && nueva) {
+        document.getElementById('actVersionActual').textContent = 'v' + actual;
+        document.getElementById('actVersionNueva').textContent = 'v' + nueva;
+        document.getElementById('actVersiones').hidden = false;
+        const chapa = document.getElementById('actChapaVersion');
+        if (chapa) chapa.textContent = 'v' + nueva;
+      }
+
       overlay.classList.add('show');
       btn.addEventListener('click', () => {
         btn.disabled = true;
         btn.textContent = 'Actualizando…';
+        if (caja) caja.classList.add('actualizando');
+        if (escena) escena.style.setProperty('--vel', '2.4');
+        if (mensaje) mensaje.textContent = 'Descargando la nueva versión… no cierres la aplicación.';
         forzarActualizacion();
       }, { once: true });
     }

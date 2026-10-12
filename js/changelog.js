@@ -10,6 +10,16 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.0',
+    fecha: '2026-10-12',
+    cambios: [
+      { tipo: 'mejora', texto: 'Seguridad mejorada: el almacenamiento de archivos de siniestros (fotos, facturas, albaranes y justificantes de recogida) pasa a ser privado; solo se puede consultar, subir o eliminar con una sesión autenticada en GIDT, y los enlaces directos ya no son accesibles desde fuera de la aplicación' },
+      { tipo: 'mejora', texto: 'Acceso a documentos mediante enlaces firmados temporales: cada vez que se abre una foto o un documento se genera un enlace de acceso con una validez de una hora' },
+      { tipo: 'mejora', texto: 'Los adjuntos de los correos a agencias y a facturación se obtienen de forma segura desde el servidor, sin depender de enlaces públicos' },
+      { tipo: 'nuevo',  texto: 'Nueva ventana de actualización animada, que muestra la versión instalada y la nueva junto con el progreso de la actualización' }
+    ]
+  },
+  {
     version: '1.7.9',
     fecha: '2026-10-12',
     cambios: [
