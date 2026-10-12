@@ -877,6 +877,29 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .modal-footer .btn.danger{ background:var(--grave); border-color:var(--grave); color:#fff; }
   .modal-footer .btn.danger:hover{ filter:brightness(1.08); }
 
+  /* ---------- Registro de auditoría: lupa y detalle de cambios ---------- */
+  .aud-col-lupa{ width:52px; text-align:center; }
+  .aud-btn-lupa{
+    width:32px; height:32px; padding:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:15px; line-height:1;
+    background:var(--panel); border:1.5px solid var(--accent); border-radius:8px;
+    transition:background .12s ease, transform .08s ease;
+  }
+  .aud-btn-lupa:hover{ background:#FFF4EC; }
+  .aud-btn-lupa:active{ transform:scale(.95); }
+  .modal-box.aud-detalle-box{ max-width:560px; }
+  .aud-detalle-cab{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .aud-detalle-cerrar{ background:none; border:0; font-size:22px; line-height:1; cursor:pointer; color:var(--ink-soft); padding:0 2px; }
+  .aud-detalle-sub{ margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .aud-detalle-tabla-wrap{ max-height:60vh; overflow:auto; margin-bottom:16px; }
+  .aud-detalle-tabla{ width:100%; border-collapse:collapse; font-size:13px; }
+  .aud-detalle-tabla th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft); padding:6px 8px; border-bottom:1px solid var(--border); }
+  .aud-detalle-tabla td{ padding:8px; border-bottom:1px solid var(--panel-muted); vertical-align:top; }
+  .aud-detalle-tabla td:first-child{ font-weight:600; color:var(--ink); }
+  .aud-valor-antes{ display:inline-block; background:var(--grave-bg); color:var(--grave); text-decoration:line-through; padding:2px 7px; border-radius:5px; }
+  .aud-valor-despues{ display:inline-block; background:var(--ok-bg); color:var(--ok); padding:2px 7px; border-radius:5px; }
+
   /* ---------- Modal de actualización disponible ---------- */
   .actualizacion-overlay{
     background:rgba(10,14,19,.72);
