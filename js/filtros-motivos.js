@@ -295,10 +295,12 @@
         if (eInc) throw eInc;
 
         if (typeof registrarCambioInformeSiEnviado === 'function') {
+          const tiendaLog = (typeof tiendaEfectivaHoyEntrega === 'function' ? tiendaEfectivaHoyEntrega(tiendaId, entrega) : null) || tiendasCache.find(t => t.id === tiendaId);
+          const agenciaLog = agenciasCache.find(a => a.id === (existente.agencia_id || tiendaLog?.agencia_id));
           registrarCambioInformeSiEnviado(informeHoyCache, {
             tiendaId,
-            tiendaNombre: existente.tienda_nombre,
-            agenciaNombre: existente.agencia_nombre,
+            tiendaNombre: existente.tienda_nombre || tiendaLog?.nombre,
+            agenciaNombre: existente.agencia_nombre || agenciaLog?.nombre,
             motivosAntes: existente.motivo || [],
             motivosDespues: [],
             observacionesAntes: existente.observaciones || '',

@@ -135,7 +135,7 @@
     try {
       const { data, error } = await sb
         .from('incidencias')
-        .select('id, tienda_id, entrega, marcada, tipo, motivo, observaciones, agencia_id, tienda_hora_prevista')
+        .select('id, tienda_id, entrega, marcada, tipo, motivo, observaciones, agencia_id, tienda_hora_prevista, tienda_nombre, agencia_nombre')
         .eq('informe_id', informeHoyCache.id);
       if (error) throw error;
       incidenciasHoyCache = data || [];
