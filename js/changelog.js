@@ -18,7 +18,9 @@ const CHANGELOG_GIDT = [
       { tipo: 'mejora',     texto: 'Una vez enviado el informe del día, el botón pasa a "Volver a enviar el informe"; al reenviarlo, la ventana indica a qué hora se envió la primera vez y el botón espera 10 segundos antes de poder pulsarse' },
       { tipo: 'correccion', texto: 'Las incidencias con un motivo pendiente de confirmar junto a otro motivo mantienen su color de "pendiente" en todas las pantallas' },
       { tipo: 'correccion', texto: 'Al quitar el albarán de un siniestro, el paso "Albarán enviado a facturación" del seguimiento vuelve a quedar pendiente' },
-      { tipo: 'correccion', texto: 'Al añadir o quitar Faltas o Rotura desde el Historial de informes diarios en una incidencia que ya tenía siniestro, el Panel siniestros actualiza su tipo' }
+      { tipo: 'correccion', texto: 'Al añadir o quitar Faltas o Rotura desde el Historial de informes diarios en una incidencia que ya tenía siniestro, el Panel siniestros actualiza su tipo' },
+      { tipo: 'nuevo',      texto: 'Nuevo filtro "Motivo" en Reportes mensuales, con cada código y su color: solo se muestran las tiendas con esos motivos y el total cuenta solo esos; también se aplica al exportar con el filtro activo (no al enviar a las agencias)' },
+      { tipo: 'correccion', texto: 'En el PDF del Reporte mensual, los avisos "Cambia a:" y "Antes:" de un cambio de agencia van en una sola línea y ya no hacen la fila de la tienda el doble de alta' }
     ]
   },
   {
