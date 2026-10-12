@@ -68,7 +68,13 @@
       }, { once: true });
     }
 
+    // Tiempo mínimo que se ve la animación de "Actualizando…" (el perro
+    // corriendo) antes de recargar: la limpieza de caché suele tardar
+    // menos de un segundo y, sin esto, la animación apenas se llegaba a ver.
+    const DURACION_MINIMA_ACTUALIZANDO_MS = 3500;
+
     async function forzarActualizacion() {
+      const inicio = Date.now();
       try {
         if ('serviceWorker' in navigator) {
           const registros = await navigator.serviceWorker.getRegistrations();
@@ -93,6 +99,8 @@
       } catch (err) {
         console.error('Error limpiando caché al actualizar:', err);
       } finally {
+        const restante = DURACION_MINIMA_ACTUALIZANDO_MS - (Date.now() - inicio);
+        if (restante > 0) await new Promise(r => setTimeout(r, restante));
         // Esta recarga es intencionada: se marca para que los avisos
         // "beforeunload" (auth.js, historial-editar.js,
         // config-gravedad-motivos.js) no muestren el cuadro del navegador
