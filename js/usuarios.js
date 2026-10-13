@@ -150,6 +150,12 @@
     ], antes, despues);
     if (pinCambiado) cambios.push({ campo: 'PIN', antes: '••••', despues: 'PIN cambiado' });
 
+    const externoAntes = !!antes?.permisos?.usuario_externo;
+    const externoDespues = !!despues?.permisos?.usuario_externo;
+    if (externoAntes !== externoDespues) {
+      cambios.push({ campo: 'Usuario externo', antes: externoAntes ? 'Sí' : 'No', despues: externoDespues ? 'Sí (añadido)' : 'No (quitado)' });
+    }
+
     // Permisos: solo tienen sentido para operadores (el administrador
     // lo puede todo), así que solo se comparan si queda como operador.
     if (despues.rol === 'operador') {
@@ -175,6 +181,18 @@
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (el) el.checked = !!(permisos && permisos[clave]);
     });
+    const externo = document.getElementById(`${prefijo}Externo`);
+    if (externo) externo.checked = !!(permisos && permisos.usuario_externo);
+  }
+
+  // Permisos a guardar: los del panel solo cuentan para operadores (admin
+  // lo puede todo, lectura no puede nada), pero "Usuario externo" vale
+  // para cualquier rol, así que se guarda siempre. Lo lee la Edge Function
+  // gidt-login para saltarse la restricción por IP del centro de trabajo.
+  function permisosAGuardar(prefijo, rol) {
+    const permisos = rol === 'operador' ? leerPermisosDeFormulario(prefijo) : {};
+    permisos.usuario_externo = !!document.getElementById(`${prefijo}Externo`)?.checked;
+    return permisos;
   }
 
   // ---------------- Nuevo usuario ----------------
@@ -222,7 +240,7 @@
 
     try {
       const pinHash = await sha256(pin);
-      const permisos = rol === 'operador' ? leerPermisosDeFormulario('nu') : {};
+      const permisos = permisosAGuardar('nu', rol);
       const { error } = await sb.from('usuarios').insert({
         nombre, usuario, pin_hash: pinHash, rol, permisos
       });
@@ -295,7 +313,7 @@
     try {
       const cambios = {
         nombre, usuario, rol, activo,
-        permisos: rol === 'operador' ? leerPermisosDeFormulario('eu') : {}
+        permisos: permisosAGuardar('eu', rol)
       };
       if (pin) cambios.pin_hash = await sha256(pin);
 
