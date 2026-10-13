@@ -985,9 +985,10 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .act-chapa::after{ content:""; position:absolute; left:6px; bottom:-5px; border:5px solid transparent; border-top-color:var(--accent); border-bottom:0; }
   @keyframes actChapa{ 0%,100%{ transform:translateY(0) rotate(-3deg); } 50%{ transform:translateY(-3px) rotate(2deg); } }
   @media (max-width:420px){ .act-contenido{ padding:20px 20px 24px; } .act-escena{ height:160px; } }
-  @media (prefers-reduced-motion: reduce){
-    .actualizacion-modal-box, .actualizacion-modal-box *{ animation:none !important; }
-  }
+  /* Nota: aquí NO se desactivan las animaciones con prefers-reduced-motion.
+     En los PCs del trabajo Windows tiene las animaciones del sistema
+     desactivadas y el perro se quedaba quieto (solo se movía la carretera).
+     Es una animación suave, sin destellos, y solo sale al actualizar. */
 
   /* ---------- Modal de instalación obligatoria (PWA) ---------- */
   .instalar-overlay{
