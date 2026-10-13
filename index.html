@@ -2099,6 +2099,13 @@
         <label class="ps-filtro-check" style="margin-top:4px;">
           <input type="checkbox" id="euActivo"> Activo
         </label>
+        <!-- Fuera del panel de permisos a propósito: ese panel solo se ve
+             para operadores, y esto tiene que poder marcarse en cualquier
+             rol (también admin y lectura). La comprueba gidt-login. -->
+        <label class="permiso-item permiso-externo">
+          <input type="checkbox" id="euExterno">
+          <span><b>🌍 Usuario externo</b><small>Puede iniciar sesión desde fuera del centro de trabajo (sin restricción de IP).</small></span>
+        </label>
       </div>
 
       <div class="permisos-panel" id="euPermisosPanel">
@@ -2222,6 +2229,10 @@
           </div>
           <input type="hidden" id="nuRol" value="operador">
         </div>
+        <label class="permiso-item permiso-externo">
+          <input type="checkbox" id="nuExterno">
+          <span><b>🌍 Usuario externo</b><small>Puede iniciar sesión desde fuera del centro de trabajo (sin restricción de IP).</small></span>
+        </label>
       </div>
 
       <div class="permisos-panel" id="nuPermisosPanel">

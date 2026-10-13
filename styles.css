@@ -2096,6 +2096,12 @@ body.rol-lectura input[type="file"]{
 .permiso-item input{ margin-top:3px; width:15px; height:15px; flex:0 0 auto; cursor:pointer; accent-color:var(--accent); }
 .permiso-item b{ display:block; font-size:12.5px; }
 .permiso-item small{ display:block; font-size:11px; color:var(--ink-soft); line-height:1.4; margin-top:1px; }
+/* "Usuario externo": va en la columna de datos (visible para cualquier rol) */
+.permiso-item.permiso-externo{
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:10px 12px; background:var(--panel-muted);
+}
+.permiso-item.permiso-externo:has(input:checked){ border-color:#FFD2AE; background:#FFF6EE; }
 
 @media (max-width: 780px){
   .usuario-modal-grid{ grid-template-columns:1fr; }
