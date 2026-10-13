@@ -317,7 +317,10 @@
       };
       if (pin) cambios.pin_hash = await sha256(pin);
 
-      const usuarioAntes = usuariosCache.find(x => x.id === usuarioEditandoId);
+      // El id llega del data-editar del botón (texto) y en la caché es un
+      // número: se comparan como texto, si no nunca se encontraba el
+      // usuario "antes" y la auditoría marcaba todos los campos como nuevos.
+      const usuarioAntes = usuariosCache.find(x => String(x.id) === String(usuarioEditandoId));
       const { error } = await sb.from('usuarios').update(cambios).eq('id', usuarioEditandoId);
       if (error) {
         if (error.code === '23505') throw new Error('Ese nombre de usuario ya existe.');
