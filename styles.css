@@ -547,6 +547,8 @@
   table.tabla-tiendas .celda-provincia,
   table.tabla-tiendas th.th-provincia{ width:130px; color:var(--ink-soft); }
   table.tabla-tiendas .celda-provincia input{ color:var(--ink); }
+  table.tabla-tiendas .celda-cp,
+  table.tabla-tiendas th.th-cp{ width:100px; color:var(--ink-soft); white-space:nowrap; }
   table.tabla-tiendas .celda-marca,
   table.tabla-tiendas th.th-marca{ width:140px; }
   table.tabla-tiendas th.th-acciones{ white-space:nowrap; }
@@ -2557,7 +2559,7 @@ header.top .app-name.abre-acerca-de:hover{ opacity:.85; }
 .tf-seccion-nota b{ color:var(--ink); font-weight:600; }
 
 /* ---------- Modales de tienda a dos columnas: datos (izq.) + "Entregas de otra agencia" (der.) ---------- */
-.tienda-modal-box.dos-col{ max-width:1180px; width:calc(100vw - 40px); }
+.tienda-modal-box.dos-col{ max-width:1280px; width:calc(100vw - 40px); }
 .tienda-modal-cols{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 370px; }
 .tienda-modal-cols > .tienda-modal-body{ min-height:0; overflow-y:auto; }
 .tienda-extra{
@@ -2662,15 +2664,17 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
 .tf-span-3{ grid-column:span 3; }
 .tf-span-4{ grid-column:span 4; }
 .tf-req{ color:var(--accent); font-weight:800; }
+/* Fila "Ubicación" de los modales de tienda: Dirección (3) + Provincia (1) + Código postal (1) */
+.tf-grid.tf-grid-5{ grid-template-columns:repeat(5, minmax(0,1fr)); }
 
 @media (max-width:680px){
-  .tf-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .tf-grid, .tf-grid.tf-grid-5{ grid-template-columns:repeat(2, minmax(0,1fr)); }
   .tf-span-1, .tf-span-2{ grid-column:span 1; }
   .tf-span-3, .tf-span-4{ grid-column:span 2; }
   .tienda-modal-head, .tienda-modal-body, .tienda-modal-foot{ padding-left:18px; padding-right:18px; }
 }
 @media (max-width:440px){
-  .tf-grid{ grid-template-columns:1fr; }
+  .tf-grid, .tf-grid.tf-grid-5{ grid-template-columns:1fr; }
   .tf-span-1, .tf-span-2, .tf-span-3, .tf-span-4{ grid-column:span 1; }
   .modal-overlay#nuevaTiendaModalOverlay, .modal-overlay#modalEditarTiendaOverlay{ padding:10px; }
   .tienda-modal-box{ max-height:calc(100dvh - 20px); }
