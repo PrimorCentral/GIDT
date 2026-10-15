@@ -160,6 +160,7 @@
     if (!qNormalizada) return true;
     return normalizarTextoBusqueda(t.nombre).includes(qNormalizada)
       || normalizarTextoBusqueda(t.provincia).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.codigo_postal).includes(qNormalizada)
       || normalizarTextoBusqueda(t.numero_tienda).includes(qNormalizada)
       || normalizarTextoBusqueda(t.direccion).includes(qNormalizada)
       || normalizarTextoBusqueda(t.supervisor).includes(qNormalizada)
@@ -173,7 +174,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
@@ -348,6 +349,7 @@
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
+              <td class="celda-cp">${t.codigo_postal ? escapeHtml(t.codigo_postal) : '—'}</td>
               <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
@@ -372,7 +374,7 @@
               </td>
             </tr>`;
           }).join('')
-        : `<tr><td colspan="13" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
+        : `<tr><td colspan="14" style="text-align:center; padding:16px; color:var(--ink-soft);">Sin tiendas en esta agencia.</td></tr>`;
 
       return `
         <div class="agencia-block">
@@ -391,6 +393,7 @@
                     <th class="th-hora">Hora entrega</th>
                     <th class="th-direccion">Dirección completa</th>
                     <th class="th-provincia">Provincia</th>
+                    <th class="th-cp">Código postal</th>
                     <th class="th-limite-palets">Límite palets</th>
                     <th class="th-limite-hora">Límite hora entrega</th>
                     <th class="th-supervisor">Supervisor/a</th>
@@ -512,6 +515,7 @@
     { clave: 'hora_prevista', etiqueta: 'Hora prevista', formato: audHora },
     { clave: 'direccion', etiqueta: 'Dirección' },
     { clave: 'provincia', etiqueta: 'Provincia' },
+    { clave: 'codigo_postal', etiqueta: 'Código postal' },
     { clave: 'limite_palets', etiqueta: 'Límite palets' },
     { clave: 'limite_hora_entrega', etiqueta: 'Límite hora entrega', formato: audHora },
     { clave: 'supervisor', etiqueta: 'Supervisor/a' },
@@ -527,6 +531,12 @@
 
   let editarTiendaId = null;
 
+  // Código postal: España (5 cifras, ej. 41010) o Portugal (4 cifras,
+  // opcionalmente con guion y 3 más, ej. 1000-001).
+  function codigoPostalValido(cp) {
+    return /^\d{5}$/.test(cp) || /^\d{4}(-\d{3})?$/.test(cp);
+  }
+
   function abrirModalEditarTienda(tiendaId) {
     const t = tiendasCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalEditarTiendaOverlay');
@@ -538,6 +548,7 @@
     document.getElementById('metHora').value = t.hora_prevista ? t.hora_prevista.slice(0, 5) : '';
     document.getElementById('metDireccion').value = t.direccion || '';
     document.getElementById('metProvincia').value = t.provincia || '';
+    document.getElementById('metCodigoPostal').value = t.codigo_postal || '';
     document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
     document.getElementById('metSupervisor').value = t.supervisor || '';
@@ -865,6 +876,7 @@
     const hora = document.getElementById('metHora').value;
     const direccion = document.getElementById('metDireccion').value.trim().toUpperCase();
     const provincia = document.getElementById('metProvincia').value.trim().toUpperCase();
+    const codigoPostal = document.getElementById('metCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
     const limitePaletsRaw = document.getElementById('metLimitePalets').value;
     const limiteHora = document.getElementById('metLimiteHora').value;
     const supervisor = document.getElementById('metSupervisor').value.trim().toUpperCase();
@@ -880,10 +892,16 @@
     if (!nombre) faltan.push('Nombre tienda');
     if (!supervisor) faltan.push('Supervisor/a');
     if (!provincia) faltan.push('Provincia');
+    if (!codigoPostal) faltan.push('Código postal');
     if (!hora) faltan.push('Hora prevista');
     if (limitePaletsRaw === '') faltan.push('Límite palets');
     if (faltan.length) {
       errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!codigoPostalValido(codigoPostal)) {
+      errEl.textContent = 'El código postal no es válido. Usa 5 cifras (España, ej. 41010) o el formato de Portugal (ej. 1000-001).';
       errEl.style.display = 'block';
       return;
     }
@@ -913,6 +931,7 @@
         hora_prevista: hora || null,
         direccion: direccion || null,
         provincia: provincia || null,
+        codigo_postal: codigoPostal || null,
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
         limite_hora_entrega: limiteHora || null,
         supervisor: supervisor || null,
@@ -1409,6 +1428,7 @@
     document.getElementById('ntHora').value = '';
     document.getElementById('ntDireccion').value = '';
     document.getElementById('ntProvincia').value = '';
+    document.getElementById('ntCodigoPostal').value = '';
     document.getElementById('ntLimitePalets').value = '';
     document.getElementById('ntLimiteHora').value = '';
     document.getElementById('ntSupervisor').value = '';
@@ -1437,6 +1457,7 @@
     const hora = document.getElementById('ntHora').value;
     const direccion = document.getElementById('ntDireccion').value.trim().toUpperCase();
     const provincia = document.getElementById('ntProvincia').value.trim().toUpperCase();
+    const codigoPostal = document.getElementById('ntCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
     const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
     const limiteHora = document.getElementById('ntLimiteHora').value;
     const supervisor = document.getElementById('ntSupervisor').value.trim().toUpperCase();
@@ -1454,10 +1475,16 @@
     if (!agenciaId) faltan.push('Agencia');
     if (!supervisor) faltan.push('Supervisor/a');
     if (!provincia) faltan.push('Provincia');
+    if (!codigoPostal) faltan.push('Código postal');
     if (!hora) faltan.push('Hora prevista');
     if (limitePaletsRaw === '') faltan.push('Límite palets');
     if (faltan.length) {
       errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!codigoPostalValido(codigoPostal)) {
+      errEl.textContent = 'El código postal no es válido. Usa 5 cifras (España, ej. 41010) o el formato de Portugal (ej. 1000-001).';
       errEl.style.display = 'block';
       return;
     }
@@ -1489,6 +1516,7 @@
         hora_prevista: hora || null,
         direccion: direccion || null,
         provincia: provincia || null,
+        codigo_postal: codigoPostal || null,
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
         limite_hora_entrega: limiteHora || null,
         supervisor: supervisor || null,
@@ -1733,8 +1761,8 @@
   async function exportarTiendasDetallado() {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
-    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'ENTREGAS OTRA AGENCIA'];
-    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 34 }];
+    const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'C. POSTAL', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'ENTREGAS OTRA AGENCIA'];
+    hoja.columns = [{ width: 14 }, { width: 8 }, { width: 24 }, { width: 42 }, { width: 16 }, { width: 11 }, { width: 10 }, { width: 12 }, { width: 12 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 34 }];
 
     const filaCab = hoja.addRow(COLS);
     COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
@@ -1747,14 +1775,15 @@
         tiendasExcelCelda(fila, 3, t.nombre || '', { bold: true });
         tiendasExcelCelda(fila, 4, t.direccion || '');
         tiendasExcelCelda(fila, 5, t.provincia || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 6, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 7, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 8, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 9, t.supervisor || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 10, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
-        tiendasExcelCelda(fila, 11, t.agencia_recogida || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 12, t.transito_horas != null ? t.transito_horas : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 13, textoEntregasExcel(t), { halign: 'center' });
+        tiendasExcelCelda(fila, 6, t.codigo_postal || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 7, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 8, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 9, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 10, t.supervisor || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 11, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
+        tiendasExcelCelda(fila, 12, t.agencia_recogida || '', { halign: 'center' });
+        tiendasExcelCelda(fila, 13, t.transito_horas != null ? t.transito_horas : '', { halign: 'center' });
+        tiendasExcelCelda(fila, 14, textoEntregasExcel(t), { halign: 'center' });
       });
     });
 
