@@ -3225,3 +3225,6 @@ body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:
 @media (max-width: 900px){
   #pageHeadTiendas > div:last-child{ justify-self:start; flex-wrap:wrap !important; }
 }
+/* Botón de pausa en tiendas en apertura: se ve (para no descolocar el
+   orden de los botones) pero muy transparente y sin poder pulsarse. */
+#view-config-tiendas .mini-btn.mini-btn-off{ opacity:.2 !important; cursor:not-allowed !important; pointer-events:none; }
