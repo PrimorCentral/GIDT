@@ -18,8 +18,16 @@
     return a.activo === false ? `${a.nombre} (de baja)` : a.nombre;
   }
   let tiendasCache = [];
+  // tiendasGestionCache: TODAS las fichas (también las tiendas en apertura),
+  // solo para esta pantalla. tiendasCache: las que ya existen de verdad (sin
+  // las de apertura); es la que usa el resto de la app (Informe del día,
+  // Historial, Reporte mensual, Panel siniestros...), así una tienda en
+  // apertura no sale en ningún sitio hasta que se activa.
+  let tiendasGestionCache = [];
   let agenciasTiendasAbiertas = new Set(); // ids de agencia desplegados en "Gestión de tiendas"
   let filtroTiendasTexto = '';
+  // Filtro (botón "Filtros"): agencias (ids), tránsitos ('24'…'144' o 'SIN') y tiendas (ids).
+  const filtroTiendas = { agencias: new Set(), transitos: new Set(), tiendas: new Set() };
   const MARCA_LABEL = { HABITUAL: 'Habitual', SABADO: 'Sábado', PRUEBA: 'Prueba', ESPECIAL: 'Especial' };
   const MARCA_CLASE = { HABITUAL: 'leve', SABADO: 'sabado', PRUEBA: 'prueba', ESPECIAL: 'especial' };
   const MARCA_BADGE_LETRA = { SABADO: 'S', ESPECIAL: 'E', PRUEBA: 'P' };
@@ -72,6 +80,33 @@
 
   function tiendaEnBajaHoy(tiendaId) {
     return tiendaEnBajaEnFecha(tiendaId, fechaLocalISO(new Date()));
+  }
+
+  // ---------------------------------------------------------------
+  // Tiendas en APERTURA (tiendas.en_apertura / apertura_prevista /
+  // fecha_apertura): se dan de alta antes de abrir para tener sus datos,
+  // pero no salen en el Informe del día, Historial, Reporte mensual ni
+  // Panel siniestros hasta que se activan con su fecha de apertura real.
+  // Al activarla, creado_en pasa a ser ese día: el resto de la app ya usa
+  // creado_en como "primer día en que existe la tienda". Si la fecha de
+  // apertura es futura, sigue contando como apertura hasta ese día.
+  // ---------------------------------------------------------------
+  function tiendaEnApertura(t) {
+    if (!t) return false;
+    if (t.en_apertura) return true;
+    return !!t.fecha_apertura && t.fecha_apertura > fechaLocalISO(new Date());
+  }
+
+  function badgeAperturaHtml(t) {
+    if (!tiendaEnApertura(t)) return '';
+    let texto;
+    if (!t.en_apertura) texto = `🚧 ABRE EL ${fechaISOaCorta(t.fecha_apertura).slice(0, 5)}`;
+    else if (t.apertura_prevista) texto = `🚧 APERTURA · prevista ${fechaISOaCorta(t.apertura_prevista).slice(0, 5)}`;
+    else texto = '🚧 APERTURA';
+    const titulo = t.en_apertura
+      ? 'Tienda en apertura: aún no sale en el Informe del día ni en el Reporte mensual'
+      : `Activada: empieza a contar el ${fechaISOaCorta(t.fecha_apertura)}`;
+    return `<span class="pill apertura" title="${escapeHtml(titulo)}">${escapeHtml(texto)}</span>`;
   }
 
   // Periodo de baja TEMPORAL "vigente" de una tienda: el que sigue abierto
@@ -174,13 +209,14 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
-    tiendasCache = tds || [];
+    tiendasGestionCache = tds || [];
+    tiendasCache = tiendasGestionCache.filter(t => !tiendaEnApertura(t));
 
     // rellenar el <select> de agencia del formulario de alta
     const sel = document.getElementById('ntAgencia');
@@ -204,14 +240,17 @@
   function renderTiendasContadores() {
     const cont = document.getElementById('tiendasContadores');
     if (!cont) return;
-    const activas = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id));
-    const numBajas = tiendasCache.filter(t => t.activo && tiendaEnBajaHoy(t.id)).length;
+    // Las tiendas en apertura no cuentan como tiendas: van en su propio contador.
+    const activas = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && !tiendaEnBajaHoy(t.id));
+    const numBajas = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && tiendaEnBajaHoy(t.id)).length;
+    const numAperturas = tiendasGestionCache.filter(t => t.activo && tiendaEnApertura(t)).length;
     const conSabado = activas.filter(t => t.marca === 'SABADO' || tiendaTieneEntregaSabado(t)).length;
     const enPrueba = activas.filter(t => fechasPruebaPendientes(t).length > 0).length;
     cont.innerHTML = `
       <span class="tiendas-contador"><b>${activas.length}</b><span>Tiendas</span></span>
       <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></button>
       <button type="button" class="tiendas-contador prueba pulsable" data-lista="prueba" title="Ver las tiendas con fechas de prueba pendientes"><b>${enPrueba}</b><span>En prueba</span></button>
+      <button type="button" class="tiendas-contador apertura pulsable" data-lista="aperturas" title="Ver las tiendas en apertura (aún no abiertas)"><b>${numAperturas}</b><span>Aperturas</span></button>
       ${numBajas ? `<button type="button" class="tiendas-contador baja pulsable" data-lista="baja" title="Ver las tiendas de baja ahora mismo"><b>${numBajas}</b><span>De baja</span></button>` : ''}
       <button type="button" class="tiendas-contador programado pulsable" data-lista="programados" title="Ver los cambios de agencia programados"><b>${programadosCache.length}</b><span>Cambios programados</span></button>
     `;
@@ -232,7 +271,7 @@
     let titulo = '', sub = '', cabecera = [], filas = [];
 
     if (tipo === 'sabado') {
-      const tds = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id) && (t.marca === 'SABADO' || tiendaTieneEntregaSabado(t))).sort(orden);
+      const tds = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && !tiendaEnBajaHoy(t.id) && (t.marca === 'SABADO' || tiendaTieneEntregaSabado(t))).sort(orden);
       titulo = `🟡 Con sábado (${tds.length})`;
       sub = 'Tiendas que los sábados reciben por otra agencia.';
       cabecera = ['Nº', 'Tienda', 'Agencia habitual', 'Agencia sábado', 'Hora sábado'];
@@ -242,7 +281,7 @@
         [hora(t.sabado_hora) || `${hora(t.hora_prevista) || '—'} (habitual)`, 'suave']
       ] }));
     } else if (tipo === 'prueba') {
-      const tds = tiendasCache.filter(t => t.activo && !tiendaEnBajaHoy(t.id) && fechasPruebaPendientes(t).length > 0).sort(orden);
+      const tds = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && !tiendaEnBajaHoy(t.id) && fechasPruebaPendientes(t).length > 0).sort(orden);
       titulo = `🟢 En prueba (${tds.length})`;
       sub = 'Tiendas con fechas de prueba pendientes: esos días reciben además por la agencia de prueba.';
       cabecera = ['Nº', 'Tienda', 'Agencia habitual', 'Agencia prueba', 'Hora', 'Próximas fechas'];
@@ -252,7 +291,7 @@
         [fechasPruebaPendientes(t).map(fechaCorta).join(', '), 'suave']
       ] }));
     } else if (tipo === 'baja') {
-      const tds = tiendasCache.filter(t => t.activo && tiendaEnBajaHoy(t.id)).sort(orden);
+      const tds = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && tiendaEnBajaHoy(t.id)).sort(orden);
       titulo = `⏸️ De baja (${tds.length})`;
       sub = 'Tiendas que ahora mismo no reciben mercancía.';
       cabecera = ['Nº', 'Tienda', 'Agencia', 'Desde', 'Vuelve', 'Motivo'];
@@ -265,6 +304,40 @@
           [p?.motivo || '—', 'suave']
         ] };
       });
+    } else if (tipo === 'aperturas') {
+      const tds = tiendasGestionCache.filter(t => t.activo && tiendaEnApertura(t)).sort(orden);
+      document.getElementById('listaContadorTitulo').textContent = `🚧 Aperturas (${tds.length})`;
+      document.getElementById('listaContadorSub').textContent = 'Tiendas dadas de alta que aún no han abierto. No salen en el Informe del día ni en el Reporte mensual.';
+      const cuerpo = document.getElementById('listaContadorCuerpo');
+      cuerpo.innerHTML = tds.length
+        ? `<table class="tabla-lista-contador">
+            <thead><tr><th>Nº</th><th>Tienda</th><th>Agencia</th><th>Provincia</th><th>Apertura</th><th></th></tr></thead>
+            <tbody>${tds.map(t => {
+              const fecha = t.en_apertura
+                ? (t.apertura_prevista ? `${fechaISOaCorta(t.apertura_prevista)} (prevista)` : 'Sin fecha')
+                : `${fechaISOaCorta(t.fecha_apertura)} (activada)`;
+              return `<tr data-tienda="${t.id}" title="Abrir la ficha de la tienda">
+                <td class="suave">${escapeHtml(t.numero_tienda || '—')}</td>
+                <td class="nombre">${escapeHtml(t.nombre)}</td>
+                <td>${escapeHtml(nomAg(t.agencia_id))}</td>
+                <td class="suave">${escapeHtml(t.provincia || '—')}</td>
+                <td class="${t.en_apertura && !t.apertura_prevista ? 'suave' : ''}">${escapeHtml(fecha)}</td>
+                <td style="text-align:right;">${t.en_apertura ? `<button type="button" class="mini-btn btn-activar" data-activar-tienda="${t.id}">🚀 Activar</button>` : ''}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>`
+        : '<div class="lista-contador-vacia">No hay ninguna tienda en apertura.</div>';
+      cuerpo.querySelectorAll('[data-activar-tienda]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cerrarListaContador();
+        abrirModalActivarTienda(Number(b.dataset.activarTienda));
+      }));
+      cuerpo.querySelectorAll('tr[data-tienda]').forEach(tr => tr.addEventListener('click', () => {
+        cerrarListaContador();
+        abrirModalEditarTienda(Number(tr.dataset.tienda));
+      }));
+      overlay.classList.add('show');
+      return;
     } else if (tipo === 'programados') {
       document.getElementById('listaContadorTitulo').textContent = `📅 Cambios de agencia programados (${programadosCache.length})`;
       document.getElementById('listaContadorSub').textContent = 'Se aplican solos el día indicado. Puedes cancelarlos antes.';
@@ -272,7 +345,7 @@
       const cuerpo = document.getElementById('listaContadorCuerpo');
       cuerpo.innerHTML = programadosCache.length
         ? `<div class="prog-lista">${programadosCache.map(c => {
-            const t = tiendasCache.find(x => x.id === c.tienda_id);
+            const t = tiendasGestionCache.find(x => x.id === c.tienda_id);
             const creado = c.creado_en ? fechaISOaCorta(fechaLocalISO(new Date(c.creado_en))) : '';
             return `
               <div class="prog-fila" data-tienda="${c.tienda_id}" title="Abrir la ficha de la tienda">
@@ -332,18 +405,23 @@
     const cont = document.getElementById('acordeonAgencias');
     const qNormalizada = normalizarTextoBusqueda(filtroTiendasTexto);
     const buscando = !!qNormalizada;
+    const filtrando = hayFiltroTiendas();
+    renderBarraFiltroTiendas();
 
     const bloques = agenciasActivas().map(ag => {
-      const tds = tiendasCache.filter(t => t.agencia_id === ag.id && t.activo && tiendaCoincideBusqueda(t, qNormalizada));
-      if (buscando && tds.length === 0) return ''; // oculta agencias sin coincidencias mientras se busca
-      const abierta = buscando ? true : agenciasTiendasAbiertas.has(ag.id);
-      const numDeBaja = tds.filter(t => tiendaEnBajaHoy(t.id)).length;
+      if (filtrando && filtroTiendas.agencias.size && !filtroTiendas.agencias.has(ag.id)) return '';
+      const tds = tiendasGestionCache.filter(t => t.agencia_id === ag.id && t.activo && tiendaCoincideBusqueda(t, qNormalizada) && tiendaPasaFiltro(t));
+      if ((buscando || filtrando) && tds.length === 0) return ''; // oculta agencias sin coincidencias mientras se busca/filtra
+      const abierta = (buscando || filtrando) ? true : agenciasTiendasAbiertas.has(ag.id);
+      const numApertura = tds.filter(t => tiendaEnApertura(t)).length;
+      const numDeBaja = tds.filter(t => !tiendaEnApertura(t) && tiendaEnBajaHoy(t.id)).length;
       const filas = tds.length
         ? tds.map(t => {
-          const pBaja = periodoBajaActualDeTienda(t.id);
-          const enBajaHoy = tiendaEnBajaHoy(t.id);
+          const enApertura = tiendaEnApertura(t);
+          const pBaja = enApertura ? null : periodoBajaActualDeTienda(t.id);
+          const enBajaHoy = !enApertura && tiendaEnBajaHoy(t.id);
           return `
-            <tr data-tienda="${t.id}" class="${enBajaHoy ? 'fila-en-baja' : ''}">
+            <tr data-tienda="${t.id}" class="${enApertura ? 'fila-apertura' : (enBajaHoy ? 'fila-en-baja' : '')}">
               <td class="celda-numero">${t.numero_tienda ? escapeHtml(t.numero_tienda) : '—'}</td>
               <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
@@ -356,7 +434,7 @@
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
               <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
-              <td class="celda-extra">${chipsEntregasHtml(t) || (pBaja || cambioProgramadoDeTienda(t.id) ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}${badgeProgramadoHtml(cambioProgramadoDeTienda(t.id))}</td>
+              <td class="celda-extra">${badgeAperturaHtml(t)}${chipsEntregasHtml(t) || (enApertura || pBaja || cambioProgramadoDeTienda(t.id) ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}${badgeProgramadoHtml(cambioProgramadoDeTienda(t.id))}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
                 <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
@@ -364,12 +442,16 @@
                 <button class="mini-btn" data-editar title="Editar">✏️</button>
                 <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
                 <span class="acciones-separador"></span>
-                <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
+                ${t.en_apertura
+                  ? `<button class="mini-btn btn-activar" data-activar title="Activar tienda (ya ha abierto)">🚀 Activar</button>`
+                  : enApertura
+                  ? `<button class="mini-btn" data-activar title="Cambiar la fecha de apertura">📅</button>`
+                  : `<button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 ${pBaja
                   ? `<button class="mini-btn" data-alta title="Dar de alta (vuelve a recibir mercancía)">▶️</button>`
-                  : `<button class="mini-btn" data-baja title="Dar de baja (deja de recibir mercancía por un tiempo)">⏸️</button>`}
+                  : `<button class="mini-btn" data-baja title="Dar de baja (deja de recibir mercancía por un tiempo)">⏸️</button>`}`}
                 <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
               </td>
             </tr>`;
@@ -381,7 +463,7 @@
           <div class="agencia-head ${abierta ? 'open' : ''}" data-agencia="${ag.id}">
             <span class="caret">▶</span>
             <b>${escapeHtml(ag.nombre)}</b>
-            <span class="count">${tds.length - numDeBaja} tienda${(tds.length - numDeBaja) === 1 ? '' : 's'}${numDeBaja ? ` · ${numDeBaja} de baja` : ''}</span>
+            <span class="count">${tds.length - numDeBaja - numApertura} tienda${(tds.length - numDeBaja - numApertura) === 1 ? '' : 's'}${numDeBaja ? ` · ${numDeBaja} de baja` : ''}${numApertura ? ` · ${numApertura} en apertura` : ''}</span>
           </div>
           <div class="agencia-body ${abierta ? 'open' : ''}">
             <div class="tabla-tiendas-scroll" data-scroll-agencia="${ag.id}">
@@ -428,8 +510,8 @@
     const altoPrevio = cont.offsetHeight;
     if (altoPrevio) cont.style.minHeight = altoPrevio + 'px';
 
-    cont.innerHTML = buscando && bloques.every(b => !b)
-      ? `<div class="card" style="text-align:center; padding:30px; color:var(--ink-soft);">Ninguna tienda coincide con "${escapeHtml(filtroTiendasTexto)}".</div>`
+    cont.innerHTML = (buscando || filtrando) && bloques.every(b => !b)
+      ? `<div class="card" style="text-align:center; padding:30px; color:var(--ink-soft);">${buscando ? `Ninguna tienda coincide con "${escapeHtml(filtroTiendasTexto)}"${filtrando ? ' con el filtro activo' : ''}.` : 'Ninguna tienda coincide con el filtro activo.'}</div>`
       : bloques.join('');
 
     cont.querySelectorAll('[data-scroll-agencia]').forEach(el => {
@@ -491,6 +573,13 @@
         abrirModalBajaTienda(Number(tr.dataset.tienda), 'alta');
       });
     });
+    cont.querySelectorAll('[data-activar]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        abrirModalActivarTienda(Number(tr.dataset.tienda));
+      });
+    });
     cont.querySelectorAll('[data-borrar]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -526,7 +615,9 @@
     { clave: 'sabado_hora', etiqueta: 'Hora sábados', formato: audHora },
     { clave: 'prueba_agencia_id', etiqueta: 'Agencia de prueba', formato: audAgencia },
     { clave: 'prueba_hora', etiqueta: 'Hora de prueba', formato: audHora },
-    { clave: 'prueba_fechas', etiqueta: 'Fechas de prueba', formato: f => (Array.isArray(f) && f.length ? [...f].sort().map(fechaISOaCorta) : null) }
+    { clave: 'prueba_fechas', etiqueta: 'Fechas de prueba', formato: f => (Array.isArray(f) && f.length ? [...f].sort().map(fechaISOaCorta) : null) },
+    { clave: 'agencia_id', etiqueta: 'Agencia', formato: audAgencia },
+    { clave: 'apertura_prevista', etiqueta: 'Apertura prevista', formato: f => (f ? fechaISOaCorta(f) : null) }
   ];
 
   let editarTiendaId = null;
@@ -537,8 +628,24 @@
     return /^\d{5}$/.test(cp) || /^\d{4}(-\d{3})?$/.test(cp);
   }
 
+  // Campos obligatorios de una ficha de tienda. Una tienda en apertura solo
+  // necesita Nº, nombre y agencia; el resto se exige al activarla.
+  function camposObligatoriosQueFaltan(d, enApertura) {
+    const faltan = [];
+    if (!d.numero_tienda) faltan.push('Nº tienda');
+    if (!d.nombre) faltan.push('Nombre tienda');
+    if (!d.agencia_id) faltan.push('Agencia');
+    if (enApertura) return faltan;
+    if (!d.supervisor) faltan.push('Supervisor/a');
+    if (!d.provincia) faltan.push('Provincia');
+    if (!d.codigo_postal) faltan.push('Código postal');
+    if (!d.hora_prevista) faltan.push('Hora prevista');
+    if (d.limite_palets === '' || d.limite_palets == null) faltan.push('Límite palets');
+    return faltan;
+  }
+
   function abrirModalEditarTienda(tiendaId) {
-    const t = tiendasCache.find(x => x.id === tiendaId);
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalEditarTiendaOverlay');
     if (!t || !overlay) return;
     editarTiendaId = tiendaId;
@@ -573,6 +680,23 @@
     // (con ?. por si el index.html publicado aún no tiene la sección: así
     // el modal se abre igualmente)
     rellenarTarjetasEntregas('met', t);
+    // Tienda en apertura: tarjeta con la fecha prevista y botón Activar, y
+    // la agencia se puede cambiar aquí mismo (aún no ha abierto).
+    const cardApe = document.getElementById('metCardApertura');
+    const cabApe = document.getElementById('metAperturaCabecera');
+    if (cardApe) cardApe.style.display = t.en_apertura ? '' : 'none';
+    if (cabApe) cabApe.style.display = t.en_apertura ? '' : 'none';
+    const fApe = document.getElementById('metAperturaPrevista');
+    if (fApe) fApe.value = t.apertura_prevista || '';
+    sincronizarTarjetaApertura('met');
+    const selAgApe = document.getElementById('metAgenciaApertura');
+    if (selAgApe && metAgInfo) {
+      selAgApe.innerHTML = agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
+      selAgApe.value = String(t.agencia_id);
+      selAgApe.style.display = t.en_apertura ? '' : 'none';
+      metAgInfo.style.display = t.en_apertura ? 'none' : '';
+    }
+    document.querySelectorAll('#modalEditarTiendaOverlay .tf-req-apertura').forEach(el => { el.style.visibility = t.en_apertura ? 'hidden' : ''; });
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
     errEl.textContent = '';
@@ -766,7 +890,7 @@
     const chk = document.getElementById(prefijo + 'SabadoOtra');
     // Sin la sección en pantalla (index.html antiguo): no se toca lo guardado.
     if (!chk) {
-      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      const actual = prefijo === 'met' ? tiendasGestionCache.find(x => x.id === editarTiendaId) : null;
       return { sabado_agencia_id: actual?.sabado_agencia_id ?? null, sabado_hora: actual?.sabado_hora ?? null };
     }
     if (!chk.checked) return { sabado_agencia_id: null, sabado_hora: null };
@@ -781,14 +905,14 @@
   function leerCamposPrueba(prefijo, agenciaHabitualId) {
     const chk = document.getElementById(prefijo + 'PruebaOtra');
     if (!chk) {
-      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      const actual = prefijo === 'met' ? tiendasGestionCache.find(x => x.id === editarTiendaId) : null;
       return { prueba_agencia_id: actual?.prueba_agencia_id ?? null, prueba_hora: actual?.prueba_hora ?? null, prueba_fechas: actual?.prueba_fechas ?? null };
     }
     const fechas = [...calPrueba[prefijo].fechas].sort();
     if (!chk.checked) {
       // Apagada: se quitan las fechas pendientes, pero se conservan las ya
       // pasadas (y su agencia) para que el Historial de esos días no cambie.
-      const actual = prefijo === 'met' ? tiendasCache.find(x => x.id === editarTiendaId) : null;
+      const actual = prefijo === 'met' ? tiendasGestionCache.find(x => x.id === editarTiendaId) : null;
       const hoyISO = fechaLocalISO(new Date());
       const pasadas = (actual?.prueba_fechas || []).filter(f => f < hoyISO).sort();
       return pasadas.length && actual?.prueba_agencia_id != null
@@ -854,7 +978,7 @@
     if (!buscado) return null;
     // Se consulta la BD (no solo la caché) por si otra persona creó una
     // tienda mientras esta pantalla estaba abierta.
-    let lista = tiendasCache;
+    let lista = tiendasGestionCache;
     try {
       const { data, error } = await sb.from('tiendas')
         .select('id, nombre, numero_tienda, activo')
@@ -886,29 +1010,32 @@
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
 
-    // Mismos campos obligatorios que al crear una tienda.
-    const faltan = [];
-    if (!numeroTienda) faltan.push('Nº tienda');
-    if (!nombre) faltan.push('Nombre tienda');
-    if (!supervisor) faltan.push('Supervisor/a');
-    if (!provincia) faltan.push('Provincia');
-    if (!codigoPostal) faltan.push('Código postal');
-    if (!hora) faltan.push('Hora prevista');
-    if (limitePaletsRaw === '') faltan.push('Límite palets');
+    // Mismos campos obligatorios que al crear una tienda (en apertura, solo
+    // Nº y nombre: el resto se exige al activarla).
+    const tAntes = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    const editandoApertura = !!tAntes?.en_apertura;
+    const faltan = camposObligatoriosQueFaltan({
+      numero_tienda: numeroTienda, nombre, agencia_id: tAntes?.agencia_id, supervisor, provincia,
+      codigo_postal: codigoPostal, hora_prevista: hora, limite_palets: limitePaletsRaw
+    }, editandoApertura);
     if (faltan.length) {
       errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
       errEl.style.display = 'block';
       return;
     }
-    if (!codigoPostalValido(codigoPostal)) {
+    if (codigoPostal && !codigoPostalValido(codigoPostal)) {
       errEl.textContent = 'El código postal no es válido. Usa 5 cifras (España, ej. 41010) o el formato de Portugal (ej. 1000-001).';
       errEl.style.display = 'block';
       return;
     }
 
-    const tEditada = tiendasCache.find(x => x.id === editarTiendaId);
-    const sabado = leerCamposSabado('met', tEditada?.agencia_id);
-    const prueba = sabado.error ? {} : leerCamposPrueba('met', tEditada?.agencia_id);
+    const tEditada = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    // En apertura la agencia se puede cambiar desde aquí (aún no hay
+    // historial que guardar: la tienda todavía no existe para los informes).
+    const agenciaApertura = editandoApertura ? (Number(document.getElementById('metAgenciaApertura')?.value) || tEditada?.agencia_id) : null;
+    const agenciaParaValidar = editandoApertura ? agenciaApertura : tEditada?.agencia_id;
+    const sabado = leerCamposSabado('met', agenciaParaValidar);
+    const prueba = sabado.error ? {} : leerCamposPrueba('met', agenciaParaValidar);
     if (sabado.error || prueba.error) {
       errEl.textContent = sabado.error || prueba.error;
       errEl.style.display = 'block';
@@ -944,6 +1071,13 @@
         prueba_hora: prueba.prueba_hora,
         prueba_fechas: prueba.prueba_fechas
       };
+      if (editandoApertura) {
+        datosNuevos.apertura_prevista = document.getElementById('metAperturaPrevista')?.value || null;
+        if (agenciaApertura && agenciaApertura !== tEditada?.agencia_id) {
+          datosNuevos.agencia_id = agenciaApertura;
+          datosNuevos.orden = Math.max(0, ...tiendasGestionCache.filter(x => x.agencia_id === agenciaApertura).map(x => x.orden)) + 1;
+        }
+      }
       const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') {
@@ -971,9 +1105,9 @@
   // un clic accidental.
 
   async function moverTienda(id, direccion) {
-    const t = tiendasCache.find(x => x.id === id);
+    const t = tiendasGestionCache.find(x => x.id === id);
     if (!t) return;
-    const hermanas = tiendasCache.filter(x => x.agencia_id === t.agencia_id && x.activo).sort((a,b) => a.orden - b.orden);
+    const hermanas = tiendasGestionCache.filter(x => x.agencia_id === t.agencia_id && x.activo).sort((a,b) => a.orden - b.orden);
     const idx = hermanas.findIndex(x => x.id === id);
     const idxDestino = direccion === 'up' ? idx - 1 : idx + 1;
     if (idxDestino < 0 || idxDestino >= hermanas.length) return;
@@ -1040,7 +1174,7 @@
   }
 
   async function cambiarAgenciaTienda(id) {
-    const t = tiendasCache.find(x => x.id === id);
+    const t = tiendasGestionCache.find(x => x.id === id);
     if (!t) return;
 
     const prog = cambioProgramadoDeTienda(id);
@@ -1085,7 +1219,7 @@
 
   function actualizarNotaMoverAgencia() {
     const nota = document.getElementById('mmaNota');
-    const t = tiendasCache.find(x => x.id === moverAgenciaTiendaId);
+    const t = tiendasGestionCache.find(x => x.id === moverAgenciaTiendaId);
     const fecha = document.getElementById('mmaFecha').value;
     const destinoId = Number(document.getElementById('mmaAgencia').value);
     const destino = agenciasCache.find(a => a.id === destinoId);
@@ -1100,7 +1234,7 @@
 
   async function guardarModalMoverAgencia() {
     const id = moverAgenciaTiendaId;
-    const t = tiendasCache.find(x => x.id === id);
+    const t = tiendasGestionCache.find(x => x.id === id);
     if (!t) return;
     const destinoId = Number(document.getElementById('mmaAgencia').value);
     const fecha = document.getElementById('mmaFecha').value;
@@ -1155,7 +1289,7 @@
   async function cancelarCambioProgramado(progId) {
     const c = programadosCache.find(x => x.id === progId);
     if (!c) return;
-    const t = tiendasCache.find(x => x.id === c.tienda_id);
+    const t = tiendasGestionCache.find(x => x.id === c.tienda_id);
     const ok = await modalConfirm(
       `¿Cancelar el cambio de "${t?.nombre || '—'}" de ${c.agencia_anterior_nombre || '—'} a ${c.agencia_nueva_nombre} del ${fechaISOaCorta(c.fecha_cambio)}?\n\nLa tienda seguirá en ${c.agencia_anterior_nombre || '—'}.`,
       { titulo: 'Cancelar cambio programado', danger: true, textoOk: 'Sí, cancelar', textoCancel: 'No' }
@@ -1189,7 +1323,7 @@
   async function moverTiendaDeAgenciaAhora(t, destinoId) {
     const id = t.id;
     try {
-      const hermanasDestino = tiendasCache.filter(x => x.agencia_id === destinoId && x.activo);
+      const hermanasDestino = tiendasGestionCache.filter(x => x.agencia_id === destinoId && x.activo);
       const nuevoOrden = hermanasDestino.length
         ? Math.max(...hermanasDestino.map(x => x.orden)) + 1
         : 1;
@@ -1226,7 +1360,7 @@
   }
 
   async function borrarTienda(id) {
-    const t = tiendasCache.find(x => x.id === id);
+    const t = tiendasGestionCache.find(x => x.id === id);
     if (!t) return;
     const ok = await modalConfirm(
       `¿Eliminar "${t.nombre}"?\n\nSe conserva todo su histórico (incidencias, análisis e informes anteriores). Desde hoy dejará de salir en el Informe del día y en el Reporte mensual no llevará más OK: ese mes quedará en gris hasta fin de mes y desaparecerá en los meses siguientes.\n\nSi solo es una parada temporal, usa mejor "Dar de baja" (⏸️), que se puede revertir.`,
@@ -1279,7 +1413,7 @@
   let bajaPeriodoId = null;   // periodo que se está dando de alta
 
   function abrirModalBajaTienda(tiendaId, modo) {
-    const t = tiendasCache.find(x => x.id === tiendaId);
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalBajaTiendaOverlay');
     if (!t || !overlay) return;
     bajaTiendaId = tiendaId;
@@ -1337,7 +1471,7 @@
 
   async function guardarModalBajaTienda() {
     if (bajaTiendaId == null) return;
-    const t = tiendasCache.find(x => x.id === bajaTiendaId);
+    const t = tiendasGestionCache.find(x => x.id === bajaTiendaId);
     const fecha = document.getElementById('mbtFecha').value;
     const motivo = document.getElementById('mbtMotivo').value.trim();
     const errEl = document.getElementById('mbtError');
@@ -1393,7 +1527,7 @@
 
   async function anularBajaTienda() {
     if (bajaTiendaId == null || bajaPeriodoId == null) return;
-    const t = tiendasCache.find(x => x.id === bajaTiendaId);
+    const t = tiendasGestionCache.find(x => x.id === bajaTiendaId);
     const p = bajasCache.find(b => b.id === bajaPeriodoId);
     if (!p) return;
     const ok = await modalConfirm(
@@ -1437,6 +1571,11 @@
     document.getElementById('ntTransito').value = '';
     document.getElementById('ntAgencia').value = '';
     rellenarTarjetasEntregas('nt', null);
+    const chkApe = document.getElementById('ntApertura');
+    if (chkApe) chkApe.checked = false;
+    const fApe = document.getElementById('ntAperturaPrevista');
+    if (fApe) fApe.value = '';
+    sincronizarTarjetaApertura('nt');
     document.getElementById('ntError').style.display = 'none';
   }
 
@@ -1465,25 +1604,24 @@
     const agenciaRecogida = document.getElementById('ntAgenciaRecogida').value.trim().toUpperCase();
     const transitoRaw = document.getElementById('ntTransito').value;
     const marca = 'HABITUAL'; // la marca ya no se elige: las entregas de otra agencia van en las tarjetas
+    // Tienda en apertura (aún no abierta): solo se guardan sus datos.
+    const enApertura = !!document.getElementById('ntApertura')?.checked;
+    const aperturaPrevista = enApertura ? (document.getElementById('ntAperturaPrevista')?.value || null) : null;
     const errEl = document.getElementById('ntError');
     errEl.style.display = 'none';
 
-    // Campos obligatorios al crear una tienda.
-    const faltan = [];
-    if (!numeroTienda) faltan.push('Nº tienda');
-    if (!nombre) faltan.push('Nombre tienda');
-    if (!agenciaId) faltan.push('Agencia');
-    if (!supervisor) faltan.push('Supervisor/a');
-    if (!provincia) faltan.push('Provincia');
-    if (!codigoPostal) faltan.push('Código postal');
-    if (!hora) faltan.push('Hora prevista');
-    if (limitePaletsRaw === '') faltan.push('Límite palets');
+    // Campos obligatorios al crear una tienda. En apertura solo Nº, nombre
+    // y agencia: el resto se puede completar antes de activarla.
+    const faltan = camposObligatoriosQueFaltan({
+      numero_tienda: numeroTienda, nombre, agencia_id: agenciaId, supervisor, provincia,
+      codigo_postal: codigoPostal, hora_prevista: hora, limite_palets: limitePaletsRaw
+    }, enApertura);
     if (faltan.length) {
       errEl.textContent = `Faltan campos obligatorios: ${faltan.join(', ')}.`;
       errEl.style.display = 'block';
       return;
     }
-    if (!codigoPostalValido(codigoPostal)) {
+    if (codigoPostal && !codigoPostalValido(codigoPostal)) {
       errEl.textContent = 'El código postal no es válido. Usa 5 cifras (España, ej. 41010) o el formato de Portugal (ej. 1000-001).';
       errEl.style.display = 'block';
       return;
@@ -1497,7 +1635,7 @@
       return;
     }
 
-    const maxOrden = Math.max(0, ...tiendasCache.filter(t => t.agencia_id === agenciaId).map(t => t.orden));
+    const maxOrden = Math.max(0, ...tiendasGestionCache.filter(t => t.agencia_id === agenciaId).map(t => t.orden));
 
     const btn = document.getElementById('btnGuardarTienda');
     botonGuardando(btn, true);
@@ -1529,12 +1667,14 @@
         prueba_agencia_id: prueba.prueba_agencia_id,
         prueba_hora: prueba.prueba_hora,
         prueba_fechas: prueba.prueba_fechas,
+        en_apertura: enApertura,
+        apertura_prevista: aperturaPrevista,
         orden: maxOrden + 1
       });
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Crear tienda', nombre);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', enApertura ? 'Crear tienda en apertura' : 'Crear tienda', nombre + (aperturaPrevista ? ` · prevista ${fechaISOaCorta(aperturaPrevista)}` : ''));
       cerrarModalNuevaTienda();
-      if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${nombre}" creada correctamente`, { posicion: 'abajo' });
+      if (typeof mostrarToast === 'function') mostrarToast(enApertura ? `Tienda "${nombre}" creada en apertura` : `Tienda "${nombre}" creada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error creando tienda:', err);
@@ -1578,9 +1718,10 @@
     return typeof window.ExcelJS !== 'undefined' && typeof window.ExcelJS.Workbook === 'function';
   }
 
-  function tiendasAgrupadasPorAgencia() {
+  // lista: tiendas a exportar (por defecto, todas las de la pantalla).
+  function tiendasAgrupadasPorAgencia(lista = tiendasGestionCache) {
     const porAgencia = new Map();
-    tiendasCache.forEach(t => {
+    lista.forEach(t => {
       if (!t.activo) return; // las eliminadas no se exportan
       if (!porAgencia.has(t.agencia_id)) porAgencia.set(t.agencia_id, []);
       porAgencia.get(t.agencia_id).push(t);
@@ -1652,7 +1793,8 @@
     // Solo tiendas con marca HABITUAL (sin Sábado, Prueba ni Especial);
     // las agencias que se quedan sin ninguna no salen.
     const grupos = tiendasAgrupadasPorAgencia()
-      .map(g => ({ ...g, tiendas: g.tiendas.filter(t => t.marca === 'HABITUAL') }))
+      // (las tiendas en apertura tampoco: aún no han abierto)
+      .map(g => ({ ...g, tiendas: g.tiendas.filter(t => t.marca === 'HABITUAL' && !tiendaEnApertura(t)) }))
       .filter(g => g.tiendas.length);
     const total = grupos.reduce((n, g) => n + g.tiendas.length, 0);
 
@@ -1758,7 +1900,9 @@
     return partes.join(' · ');
   }
 
-  async function exportarTiendasDetallado() {
+  // lista: tiendas a exportar (todas o solo las del filtro activo).
+  // Las tiendas en apertura salen con fondo gris y su estado en la última columna.
+  async function exportarTiendasDetallado(lista = tiendasGestionCache) {
     const workbook = new window.ExcelJS.Workbook();
     const hoja = workbook.addWorksheet('Tiendas (detallado)', { views: [{ showGridLines: false }] });
     const COLS = ['AGENCIA', 'Nº', 'TIENDA', 'DIRECCIÓN COMPLETA', 'PROVINCIA', 'C. POSTAL', 'HORA', 'LÍMITE HORA', 'LÍM. PALETS', 'SUPERVISOR/A', 'RECOGIDA SEMANAL', 'AGENCIA RECOGIDA', 'TRÁNSITO (H)', 'ENTREGAS OTRA AGENCIA'];
@@ -1767,23 +1911,32 @@
     const filaCab = hoja.addRow(COLS);
     COLS.forEach((_, i) => tiendasExcelCelda(filaCab, i + 1, COLS[i], { bold: true, halign: 'center', color: 'FFFFFFFF', fill: 'FF000000' }));
 
-    tiendasAgrupadasPorAgencia().forEach(g => {
+    tiendasAgrupadasPorAgencia(lista).forEach(g => {
       g.tiendas.forEach(t => {
         const fila = hoja.addRow([]);
-        tiendasExcelCelda(fila, 1, g.agencia.nombre);
-        tiendasExcelCelda(fila, 2, t.numero_tienda || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 3, t.nombre || '', { bold: true });
-        tiendasExcelCelda(fila, 4, t.direccion || '');
-        tiendasExcelCelda(fila, 5, t.provincia || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 6, t.codigo_postal || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 7, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 8, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 9, t.limite_palets != null ? t.limite_palets : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 10, t.supervisor || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 11, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center' });
-        tiendasExcelCelda(fila, 12, t.agencia_recogida || '', { halign: 'center' });
-        tiendasExcelCelda(fila, 13, t.transito_horas != null ? t.transito_horas : '', { halign: 'center' });
-        tiendasExcelCelda(fila, 14, textoEntregasExcel(t), { halign: 'center' });
+        const ape = tiendaEnApertura(t);
+        const fill = ape ? 'FFE4E4E4' : undefined;
+        let entregas = textoEntregasExcel(t);
+        if (ape) {
+          const estado = t.en_apertura
+            ? `EN APERTURA${t.apertura_prevista ? ' (prevista ' + fechaISOaCorta(t.apertura_prevista) + ')' : ''}`
+            : `ABRE EL ${fechaISOaCorta(t.fecha_apertura)}`;
+          entregas = entregas ? `${estado} · ${entregas}` : estado;
+        }
+        tiendasExcelCelda(fila, 1, g.agencia.nombre, { fill });
+        tiendasExcelCelda(fila, 2, t.numero_tienda || '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 3, t.nombre || '', { bold: true, fill });
+        tiendasExcelCelda(fila, 4, t.direccion || '', { fill });
+        tiendasExcelCelda(fila, 5, t.provincia || '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 6, t.codigo_postal || '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 7, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 8, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 9, t.limite_palets != null ? t.limite_palets : '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 10, t.supervisor || '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 11, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center', fill });
+        tiendasExcelCelda(fila, 12, t.agencia_recogida || '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 13, t.transito_horas != null ? t.transito_horas : '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 14, entregas, { halign: 'center', fill });
       });
     });
 
@@ -1808,6 +1961,7 @@
         return;
       }
       if (btn.dataset.modo === 'resumido') exportarTiendasResumido();
+      else if (hayFiltroTiendas()) abrirPreguntaExportarFiltro();
       else exportarTiendasDetallado();
     });
   });
@@ -1820,6 +1974,32 @@
   document.getElementById('btnRecargarTiendas')?.addEventListener('click', (e) =>
     recargarConGiro(e.currentTarget, cargarAgenciasYTiendas));
 
+  // Detallado con filtro activo: pregunta si exportar solo lo filtrado o todo.
+  function abrirPreguntaExportarFiltro() {
+    const overlay = document.getElementById('modalExportFiltroOverlay');
+    if (!overlay) { exportarTiendasDetallado(); return; }
+    const idsAgencias = new Set(agenciasActivas().map(a => a.id));
+    const todas = tiendasGestionCache.filter(t => t.activo && idsAgencias.has(t.agencia_id));
+    const filtradas = tiendasVisiblesConFiltro();
+    document.getElementById('mefResumen').innerHTML = textosFiltroTiendas().map(txt => `<span class="fchip">${escapeHtml(txt)}</span>`).join('')
+      + (filtroTiendasTexto.trim() ? `<span class="fchip">Búsqueda: "${escapeHtml(filtroTiendasTexto.trim())}"</span>` : '');
+    document.getElementById('mefNumFiltro').textContent = filtradas.length;
+    document.getElementById('mefNumTodas').textContent = todas.length;
+    overlay.classList.add('show');
+  }
+  function cerrarPreguntaExportarFiltro() {
+    document.getElementById('modalExportFiltroOverlay')?.classList.remove('show');
+  }
+  document.getElementById('mefBtnFiltro')?.addEventListener('click', () => {
+    cerrarPreguntaExportarFiltro();
+    exportarTiendasDetallado(tiendasVisiblesConFiltro());
+  });
+  document.getElementById('mefBtnTodas')?.addEventListener('click', () => {
+    cerrarPreguntaExportarFiltro();
+    exportarTiendasDetallado();
+  });
+  document.getElementById('mefBtnCancelar')?.addEventListener('click', cerrarPreguntaExportarFiltro);
+
   const buscadorTiendas = document.getElementById('buscadorTiendas');
   if (buscadorTiendas) {
     buscadorTiendas.addEventListener('input', () => {
@@ -1827,6 +2007,293 @@
       renderAcordeonTiendas();
     });
   }
+
+  // ---------------------------------------------------------------
+  // Filtro de Gestión de tiendas (botón "Filtros"): Agencias, Tránsito y
+  // Tiendas. Se combina con el buscador. Si está activo, al exportar el
+  // Detallado se pregunta si exportar con el filtro o todas las tiendas.
+  // ---------------------------------------------------------------
+  const TRANSITOS_FILTRO = [
+    { v: '24', label: '24 h (1 día)' }, { v: '48', label: '48 h (2 días)' }, { v: '72', label: '72 h (3 días)' },
+    { v: '96', label: '96 h (4 días)' }, { v: '120', label: '120 h (5 días)' }, { v: '144', label: '144 h (6 días)' }
+  ];
+
+  function hayFiltroTiendas() {
+    return filtroTiendas.agencias.size > 0 || filtroTiendas.transitos.size > 0 || filtroTiendas.tiendas.size > 0;
+  }
+
+  function claveTransito(t) {
+    return t.transito_horas == null ? 'SIN' : String(t.transito_horas);
+  }
+
+  function tiendaPasaFiltro(t) {
+    if (filtroTiendas.agencias.size && !filtroTiendas.agencias.has(t.agencia_id)) return false;
+    if (filtroTiendas.transitos.size && !filtroTiendas.transitos.has(claveTransito(t))) return false;
+    if (filtroTiendas.tiendas.size && !filtroTiendas.tiendas.has(t.id)) return false;
+    return true;
+  }
+
+  function etiquetaTransito(v) {
+    if (v === 'SIN') return 'Sin indicar';
+    return `${v} h`;
+  }
+
+  // Textos de los filtros puestos ("Agencias: SEYLOTRANS, DHL"…), para la
+  // franja de filtro activo y para la pregunta al exportar.
+  function textosFiltroTiendas() {
+    const partes = [];
+    const nombresLista = (nombres) => nombres.length <= 3 ? nombres.join(', ') : `${nombres.length} seleccionadas`;
+    if (filtroTiendas.agencias.size) {
+      const nombres = agenciasCache.filter(a => filtroTiendas.agencias.has(a.id)).map(a => a.nombre);
+      partes.push(`Agencias: ${nombresLista(nombres)}`);
+    }
+    if (filtroTiendas.transitos.size) {
+      const orden = [...TRANSITOS_FILTRO.map(o => o.v)];
+      const vals = [...filtroTiendas.transitos].sort((a, b) => (orden.indexOf(a) + 1 || 99) - (orden.indexOf(b) + 1 || 99));
+      partes.push(`Tránsito: ${vals.map(etiquetaTransito).join(', ')}`);
+    }
+    if (filtroTiendas.tiendas.size) {
+      const nombres = tiendasGestionCache.filter(t => filtroTiendas.tiendas.has(t.id)).map(t => t.nombre);
+      partes.push(`Tiendas: ${nombresLista(nombres)}`);
+    }
+    return partes;
+  }
+
+  // Tiendas que se ven ahora en pantalla (filtro + buscador) y total.
+  function tiendasVisiblesConFiltro() {
+    const q = normalizarTextoBusqueda(filtroTiendasTexto);
+    const idsAgencias = new Set(agenciasActivas().map(a => a.id));
+    return tiendasGestionCache.filter(t => t.activo && idsAgencias.has(t.agencia_id) && tiendaCoincideBusqueda(t, q) && tiendaPasaFiltro(t));
+  }
+
+  function renderBarraFiltroTiendas() {
+    const barra = document.getElementById('barraFiltroTiendas');
+    const badge = document.getElementById('filtrosTiendasCount');
+    const btn = document.getElementById('btnFiltrosTiendas');
+    const numGrupos = [filtroTiendas.agencias, filtroTiendas.transitos, filtroTiendas.tiendas].filter(s => s.size).length;
+    if (badge) { badge.textContent = numGrupos; badge.style.display = numGrupos ? '' : 'none'; }
+    btn?.classList.toggle('activo', numGrupos > 0);
+    if (!barra) return;
+    if (!numGrupos) { barra.hidden = true; barra.innerHTML = ''; return; }
+    const idsAgencias = new Set(agenciasActivas().map(a => a.id));
+    const total = tiendasGestionCache.filter(t => t.activo && idsAgencias.has(t.agencia_id)).length;
+    const visibles = tiendasVisiblesConFiltro().length;
+    barra.innerHTML = `
+      <span>Filtro activo · mostrando <b>${visibles}</b> de ${total} tiendas:</span>
+      ${textosFiltroTiendas().map(txt => `<span class="fchip">${escapeHtml(txt)}</span>`).join('')}
+      <button type="button" class="link-accion" id="btnQuitarFiltroTiendas">Quitar filtro</button>`;
+    barra.hidden = false;
+    document.getElementById('btnQuitarFiltroTiendas')?.addEventListener('click', limpiarFiltroTiendas);
+  }
+
+  // Rótulo de cada desplegable del panel (Todas / nombre / N seleccionadas).
+  function actualizarValoresFiltroTiendas() {
+    document.querySelectorAll('#filtrosTiendasPanel .filtro-select').forEach(sel => {
+      const grupo = sel.dataset.grupo;
+      const set = filtroTiendas[grupo];
+      const valor = sel.querySelector('.filtro-select-valor');
+      if (!set || !valor) return;
+      if (!set.size) {
+        valor.textContent = grupo === 'transitos' ? 'Todos' : 'Todas';
+        sel.classList.remove('activo');
+      } else if (set.size === 1) {
+        const cb = sel.querySelector('input[type="checkbox"]:checked');
+        valor.textContent = cb ? cb.closest('.filtro-check').textContent.trim() : '1 seleccionada';
+        sel.classList.add('activo');
+      } else {
+        const nombres = [...sel.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.closest('.filtro-check').textContent.trim());
+        valor.textContent = nombres.length <= 3 && grupo !== 'tiendas' ? nombres.join(', ') : `${set.size} seleccionad${grupo === 'transitos' ? 'os' : 'as'}`;
+        sel.classList.add('activo');
+      }
+    });
+  }
+
+  // Rellena las listas de opciones del panel (se hace al abrirlo, para que
+  // salgan las agencias y tiendas al día).
+  function rellenarListasFiltroTiendas() {
+    const fila = (grupo, valor, texto) => {
+      const marcado = filtroTiendas[grupo].has(grupo === 'transitos' ? valor : Number(valor));
+      return `<label class="filtro-check"><input type="checkbox" data-grupo="${grupo}" value="${escapeHtml(String(valor))}" ${marcado ? 'checked' : ''}><span>${escapeHtml(texto)}</span></label>`;
+    };
+    const lAg = document.getElementById('filtroTiendasAgenciasLista');
+    if (lAg) lAg.innerHTML = agenciasActivas().map(a => fila('agencias', a.id, a.nombre)).join('');
+
+    const lTr = document.getElementById('filtroTiendasTransitoLista');
+    if (lTr) {
+      // Además de las opciones fijas, cualquier valor raro que tenga alguna tienda (p. ej. 12 h).
+      const extra = [...new Set(tiendasGestionCache.filter(t => t.activo && t.transito_horas != null).map(t => String(t.transito_horas)))]
+        .filter(v => !TRANSITOS_FILTRO.some(o => o.v === v))
+        .sort((a, b) => Number(a) - Number(b));
+      lTr.innerHTML = [...TRANSITOS_FILTRO, ...extra.map(v => ({ v, label: `${v} h` })), { v: 'SIN', label: 'Sin indicar' }]
+        .map(o => fila('transitos', o.v, o.label)).join('');
+    }
+
+    const lTd = document.getElementById('filtroTiendasTiendasLista');
+    if (lTd) {
+      const tds = tiendasGestionCache.filter(t => t.activo)
+        .slice()
+        .sort((a, b) => (Number(normalizarNumeroTienda(a.numero_tienda)) || 1e9) - (Number(normalizarNumeroTienda(b.numero_tienda)) || 1e9) || a.nombre.localeCompare(b.nombre));
+      lTd.innerHTML = tds.map(t => fila('tiendas', t.id, `${t.numero_tienda ? t.numero_tienda + ' · ' : ''}${t.nombre}`)).join('');
+    }
+
+    document.querySelectorAll('#filtrosTiendasPanel .filtro-select-search input').forEach(inp => { inp.value = ''; });
+    document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const set = filtroTiendas[cb.dataset.grupo];
+        const v = cb.dataset.grupo === 'transitos' ? cb.value : Number(cb.value);
+        if (cb.checked) set.add(v); else set.delete(v);
+        actualizarValoresFiltroTiendas();
+        renderAcordeonTiendas();
+      });
+    });
+    actualizarValoresFiltroTiendas();
+  }
+
+  function limpiarFiltroTiendas() {
+    filtroTiendas.agencias.clear();
+    filtroTiendas.transitos.clear();
+    filtroTiendas.tiendas.clear();
+    document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    actualizarValoresFiltroTiendas();
+    renderAcordeonTiendas();
+  }
+
+  const btnFiltrosTiendas = document.getElementById('btnFiltrosTiendas');
+  const filtrosTiendasPanel = document.getElementById('filtrosTiendasPanel');
+  function cerrarFiltrosTiendasPanel() {
+    filtrosTiendasPanel?.classList.remove('show');
+    btnFiltrosTiendas?.classList.remove('open');
+    filtrosTiendasPanel?.querySelectorAll('.filtro-select.open').forEach(s => s.classList.remove('open'));
+  }
+  if (btnFiltrosTiendas && filtrosTiendasPanel) {
+    btnFiltrosTiendas.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (filtrosTiendasPanel.classList.contains('show')) { cerrarFiltrosTiendasPanel(); return; }
+      exportTiendasWrap?.classList.remove('open');
+      rellenarListasFiltroTiendas();
+      filtrosTiendasPanel.classList.add('show');
+      btnFiltrosTiendas.classList.add('open');
+    });
+    filtrosTiendasPanel.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', (e) => {
+      if (!filtrosTiendasPanel.contains(e.target) && !btnFiltrosTiendas.contains(e.target)) cerrarFiltrosTiendasPanel();
+    });
+    document.getElementById('btnCerrarFiltrosTiendas')?.addEventListener('click', cerrarFiltrosTiendasPanel);
+    document.getElementById('btnLimpiarFiltrosTiendas')?.addEventListener('click', limpiarFiltroTiendas);
+  }
+
+  // ---------------------------------------------------------------
+  // Activar una tienda en apertura: pide la fecha de apertura real. Desde
+  // ese día sale en el Informe del día y cuenta en el Reporte mensual
+  // (creado_en pasa a ser ese día, que es lo que mira el resto de la app).
+  // También sirve para cambiar la fecha si se activó con una fecha futura.
+  // ---------------------------------------------------------------
+  let activarTiendaId = null;
+
+  async function abrirModalActivarTienda(tiendaId) {
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
+    const overlay = document.getElementById('modalActivarTiendaOverlay');
+    if (!t || !overlay) return;
+    // Para activarla tiene que tener la ficha completa (hora, palets…), igual
+    // que cualquier tienda normal: si falta algo, se abre la ficha.
+    const faltan = t.en_apertura ? camposObligatoriosQueFaltan({
+      ...t, limite_palets: t.limite_palets != null ? String(t.limite_palets) : ''
+    }, false) : [];
+    if (faltan.length) {
+      await modalAlert(`Antes de activar "${t.nombre}" hay que completar su ficha.\nFalta: ${faltan.join(', ')}.`, { titulo: 'Ficha incompleta', icono: '📝' });
+      abrirModalEditarTienda(tiendaId);
+      return;
+    }
+    activarTiendaId = tiendaId;
+    const hoyISO = fechaLocalISO(new Date());
+    const prevista = t.en_apertura ? t.apertura_prevista : t.fecha_apertura;
+    document.getElementById('matTitulo').textContent = t.en_apertura ? '🚀 Activar tienda' : '📅 Cambiar fecha de apertura';
+    document.getElementById('matMensaje').textContent = t.en_apertura
+      ? `"${t.nombre}" está en apertura${t.apertura_prevista ? ` (prevista el ${fechaISOaCorta(t.apertura_prevista)})` : ''}. Indica el día que abre: desde esa fecha saldrá en el Informe del día y empezará a contar en el Reporte mensual.`
+      : `"${t.nombre}" se activó para abrir el ${fechaISOaCorta(t.fecha_apertura)}. Puedes cambiar ese día mientras no haya llegado.`;
+    document.getElementById('matFecha').value = prevista || hoyISO;
+    document.getElementById('matBtnGuardar').textContent = t.en_apertura ? '🚀 Activar tienda' : 'Guardar fecha';
+    const err = document.getElementById('matError');
+    err.style.display = 'none';
+    err.textContent = '';
+    overlay.classList.add('show');
+  }
+
+  function cerrarModalActivarTienda() {
+    document.getElementById('modalActivarTiendaOverlay')?.classList.remove('show');
+    activarTiendaId = null;
+  }
+
+  async function guardarModalActivarTienda() {
+    if (activarTiendaId == null) return;
+    const t = tiendasGestionCache.find(x => x.id === activarTiendaId);
+    const fecha = document.getElementById('matFecha').value;
+    const err = document.getElementById('matError');
+    if (!fecha) {
+      err.textContent = 'Indica la fecha de apertura.';
+      err.style.display = 'block';
+      return;
+    }
+    const eraApertura = !!t?.en_apertura;
+    const btn = document.getElementById('matBtnGuardar');
+    botonGuardando(btn, true);
+    try {
+      // creado_en a mediodía UTC de ese día: en hora de Madrid siempre cae
+      // en el mismo día (sea horario de verano o de invierno).
+      const { error } = await sb.from('tiendas').update({
+        en_apertura: false,
+        fecha_apertura: fecha,
+        creado_en: `${fecha}T12:00:00Z`
+      }).eq('id', activarTiendaId);
+      if (error) throw error;
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('tiendas', eraApertura ? 'Activar tienda (apertura)' : 'Cambiar fecha de apertura', `${t?.nombre || ''} · abre el ${fechaISOaCorta(fecha)}`);
+      }
+      cerrarModalActivarTienda();
+      if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${t?.nombre || ''}" activada desde el ${fechaISOaCorta(fecha)}`, { posicion: 'abajo' });
+      cargarAgenciasYTiendas();
+    } catch (e) {
+      console.error('Error activando la tienda:', e);
+      err.textContent = 'No se pudo activar la tienda.';
+      err.style.display = 'block';
+    } finally {
+      botonGuardando(btn, false);
+    }
+  }
+
+  document.getElementById('matBtnCancelar')?.addEventListener('click', cerrarModalActivarTienda);
+  document.getElementById('matBtnGuardar')?.addEventListener('click', guardarModalActivarTienda);
+  document.getElementById('metBtnActivar')?.addEventListener('click', () => {
+    const id = editarTiendaId;
+    cerrarModalEditarTienda();
+    abrirModalActivarTienda(id);
+  });
+
+  // Tarjeta "En apertura" de Nueva tienda: interruptor + fecha prevista.
+  function sincronizarTarjetaApertura(prefijo) {
+    const chk = document.getElementById(prefijo + 'Apertura');
+    const card = document.getElementById(prefijo + 'CardApertura');
+    const campos = document.getElementById(prefijo + 'AperturaCampos');
+    const res = document.getElementById(prefijo + 'AperturaResumen');
+    const fecha = document.getElementById(prefijo + 'AperturaPrevista')?.value;
+    if (!card) return;
+    const on = chk ? chk.checked : true;
+    card.classList.toggle('on', on);
+    if (campos) campos.style.display = on ? '' : 'none';
+    if (res) res.textContent = on ? (fecha ? `Prevista ${fechaISOaCorta(fecha)}` : 'Sin fecha prevista') : 'Desactivado';
+    if (prefijo === 'nt') {
+      const btn = document.getElementById('btnGuardarTienda');
+      if (btn && !btn.disabled) btn.innerHTML = on ? '💾 Crear tienda en apertura' : '💾 Crear tienda';
+      document.querySelectorAll('#nuevaTiendaModalOverlay .tf-req-apertura').forEach(el => { el.style.visibility = on ? 'hidden' : ''; });
+    }
+  }
+  document.getElementById('ntApertura')?.addEventListener('change', () => sincronizarTarjetaApertura('nt'));
+  ['ntAperturaPrevista', 'metAperturaPrevista'].forEach(id => {
+    const el = document.getElementById(id);
+    const prefijo = id.slice(0, id.indexOf('Apertura'));
+    el?.addEventListener('change', () => sincronizarTarjetaApertura(prefijo));
+    el?.addEventListener('input', () => sincronizarTarjetaApertura(prefijo));
+  });
 
   // ---------------------------------------------------------------
   // Modal "Horario semanal": permite poner, por tienda, una hora
@@ -1838,7 +2305,7 @@
   let horarioSemanaTiendaId = null;
 
   function abrirModalHorarioSemana(tiendaId) {
-    const t = tiendasCache.find(x => x.id === tiendaId);
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalHorarioOverlay');
     if (!t || !overlay) return;
     horarioSemanaTiendaId = tiendaId;
@@ -1865,7 +2332,7 @@
 
   async function guardarModalHorarioSemana() {
     if (horarioSemanaTiendaId == null) return;
-    const t = tiendasCache.find(x => x.id === horarioSemanaTiendaId);
+    const t = tiendasGestionCache.find(x => x.id === horarioSemanaTiendaId);
     const mapa = {};
     document.querySelectorAll('#modalHorarioDias .mh-hora').forEach(input => {
       if (input.value) mapa[input.dataset.dia] = input.value;

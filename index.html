@@ -855,7 +855,65 @@
         <div class="tiendas-contadores" id="tiendasContadores"></div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button class="ps-btn-icon btn-recargar" id="btnRecargarTiendas" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
-          <input type="text" id="buscadorTiendas" class="form-input" style="width:240px;" placeholder="🔎 Buscar tienda…">
+          <input type="text" id="buscadorTiendas" class="form-input" placeholder="🔎 Buscar tienda…">
+          <div class="filtros-wrap">
+            <button class="btn" id="btnFiltrosTiendas">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Filtros
+              <span class="filtros-count" id="filtrosTiendasCount" style="display:none;"></span>
+            </button>
+            <div class="filtros-modal-overlay" id="filtrosTiendasPanel">
+              <div class="filtros-modal-header">
+                <b>Filtrar tiendas</b>
+                <div class="filtros-modal-header-actions">
+                  <button class="link-accion" id="btnLimpiarFiltrosTiendas">Limpiar</button>
+                  <button class="filtros-modal-close" id="btnCerrarFiltrosTiendas" aria-label="Cerrar">✕</button>
+                </div>
+              </div>
+              <div class="filtros-modal-body">
+                <div class="filtros-grid">
+                  <div class="filtro-campo">
+                    <label>Agencias</label>
+                    <div class="filtro-select" data-grupo="agencias">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="Buscar agencia…"></div>
+                        <div class="filtro-select-lista" id="filtroTiendasAgenciasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
+                    <label>Tránsito</label>
+                    <div class="filtro-select" data-grupo="transitos">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todos</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-lista" id="filtroTiendasTransitoLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Tiendas</label>
+                    <div class="filtro-select" data-grupo="tiendas">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar tienda…"></div>
+                        <div class="filtro-select-lista" id="filtroTiendasTiendasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="export-tiendas-wrap" id="exportTiendasWrap">
             <button class="btn" id="btnExportarTiendas">⬇️ Exportar</button>
             <div class="export-tiendas-menu" id="exportTiendasMenu">
@@ -872,6 +930,9 @@
           <button class="btn primary" id="btnNuevaTienda">➕ Nueva tienda</button>
         </div>
       </div>
+
+      <!-- Franja de filtro activo (js/tiendas.js → renderBarraFiltroTiendas) -->
+      <div class="filtro-activo-barra" id="barraFiltroTiendas" hidden></div>
 
       <div id="acordeonAgencias"></div>
     </section>
@@ -1374,12 +1435,13 @@
               <input type="text" id="metNombre" class="form-input">
             </div>
             <div class="tf-campo tf-span-2">
-              <label class="form-label">Supervisor/a <span class="tf-req">*</span></label>
+              <label class="form-label">Supervisor/a <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="metSupervisor" class="form-input">
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Agencia</label>
               <input type="text" id="metAgenciaInfo" class="form-input tf-solo-lectura" readonly tabindex="-1" title="Para cambiar de agencia usa el movimiento de tienda">
+              <select id="metAgenciaApertura" class="form-input" style="display:none;" title="La tienda aún no ha abierto: la agencia se puede cambiar aquí"></select>
             </div>
           </div>
         </section>
@@ -1391,11 +1453,11 @@
               <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, Sevilla">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Provincia <span class="tf-req">*</span></label>
+              <label class="form-label">Provincia <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="metProvincia" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Código postal <span class="tf-req">*</span></label>
+              <label class="form-label">Código postal <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="metCodigoPostal" class="form-input" placeholder="Ej. 41010" inputmode="numeric" maxlength="8" autocomplete="off">
             </div>
           </div>
@@ -1404,7 +1466,7 @@
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span></h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Hora prevista <span class="tf-req">*</span></label>
+              <label class="form-label">Hora prevista <span class="tf-req tf-req-apertura">*</span></label>
               <input type="time" id="metHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
@@ -1412,7 +1474,7 @@
               <input type="time" id="metLimiteHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Límite palets <span class="tf-req">*</span></label>
+              <label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
               <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
             </div>
             <div class="tf-campo tf-span-1">
@@ -1453,6 +1515,22 @@
         </section>
     </div>
       <aside class="tienda-extra">
+        <div class="tienda-extra-head" id="metAperturaCabecera" style="display:none;">
+          <h4>🚧 Estado de la tienda</h4>
+          <p>Aún no ha abierto.</p>
+        </div>
+        <div class="ea-card ape on" id="metCardApertura" style="display:none;">
+          <div class="ea-toggle" style="cursor:default;">
+            <span class="marca-badge apertura">A</span><b>En apertura</b>
+            <span class="ea-res" id="metAperturaResumen"></span>
+          </div>
+          <div class="ea-body" id="metAperturaCampos">
+            <label class="form-label">Apertura prevista</label>
+            <input type="date" id="metAperturaPrevista" class="form-input">
+            <button type="button" class="btn btn-activar-tienda" id="metBtnActivar">🚀 Activar tienda</button>
+            <p class="ea-hint">Pulsa Activar cuando abra: pedirá la fecha de apertura real. Si has cambiado algo en la ficha, guárdalo antes.</p>
+          </div>
+        </div>
         <div class="tienda-extra-head">
           <h4>🔁 Entregas de otra agencia</h4>
           <p>Misma tienda: no hace falta crear otra ficha.</p>
@@ -1526,6 +1604,48 @@
 </div>
 
 <!-- Modal: dar de baja / dar de alta una tienda (Gestión de tiendas) -->
+<!-- Modal: activar una tienda en apertura (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalActivarTiendaOverlay">
+  <div class="modal-box" style="max-width:440px;" role="dialog" aria-modal="true" aria-labelledby="matTitulo">
+    <h3 class="modal-title" id="matTitulo">🚀 Activar tienda</h3>
+    <p class="modal-message" id="matMensaje"></p>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:6px;">
+      <div>
+        <label class="form-label" for="matFecha">Fecha de apertura</label>
+        <input type="date" id="matFecha" class="form-input">
+      </div>
+    </div>
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft); line-height:1.45;">Los días anteriores a la apertura no aparecerán en el Reporte mensual (ni en gris ni como BAJA): para el reporte, la tienda empieza a existir ese día.</p>
+    <p id="matError" style="display:none; color:var(--grave); font-size:12.5px; margin:10px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button type="button" class="btn" id="matBtnCancelar">Cancelar</button>
+      <button type="button" class="btn primary btn-activar-tienda" id="matBtnGuardar">🚀 Activar tienda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: exportar detallado con filtro activo (Gestión de tiendas) -->
+<div class="modal-overlay" id="modalExportFiltroOverlay">
+  <div class="modal-box" style="max-width:480px;" role="dialog" aria-modal="true" aria-labelledby="mefTitulo">
+    <h3 class="modal-title" id="mefTitulo">⬇️ Exportar detallado</h3>
+    <p class="modal-message" style="margin-bottom:10px;">Tienes un filtro activo. ¿Qué quieres exportar?</p>
+    <div class="export-filtro-resumen" id="mefResumen"></div>
+    <div class="export-pregunta">
+      <button type="button" class="recomendado" id="mefBtnFiltro">
+        <div class="ep-num"><span id="mefNumFiltro">0</span><small>tiendas</small></div>
+        <div><b>Con el filtro activo</b><span class="ep-txt">Solo las tiendas que se ven ahora en pantalla.</span></div>
+      </button>
+      <button type="button" id="mefBtnTodas">
+        <div class="ep-num"><span id="mefNumTodas">0</span><small>tiendas</small></div>
+        <div><b>Todas las tiendas</b><span class="ep-txt">Sin tener en cuenta el filtro.</span></div>
+      </button>
+    </div>
+    <div class="modal-footer" style="margin-top:16px;">
+      <button type="button" class="btn" id="mefBtnCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: mover tienda de agencia (ahora mismo o programado para una fecha) -->
 <div class="modal-overlay" id="modalMoverAgenciaOverlay">
   <div class="modal-box" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="mmaTitulo">
@@ -2398,7 +2518,7 @@
               <select id="ntAgencia" class="form-input"></select>
             </div>
             <div class="tf-campo tf-span-2">
-              <label class="form-label">Supervisor/a <span class="tf-req">*</span></label>
+              <label class="form-label">Supervisor/a <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
             </div>
           </div>
@@ -2411,11 +2531,11 @@
               <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, Sevilla">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Provincia <span class="tf-req">*</span></label>
+              <label class="form-label">Provincia <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="ntProvincia" class="form-input" placeholder="Ej. MÁLAGA">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Código postal <span class="tf-req">*</span></label>
+              <label class="form-label">Código postal <span class="tf-req tf-req-apertura">*</span></label>
               <input type="text" id="ntCodigoPostal" class="form-input" placeholder="Ej. 41010" inputmode="numeric" maxlength="8" autocomplete="off">
             </div>
           </div>
@@ -2424,7 +2544,7 @@
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span></h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Hora prevista <span class="tf-req">*</span></label>
+              <label class="form-label">Hora prevista <span class="tf-req tf-req-apertura">*</span></label>
               <input type="time" id="ntHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
@@ -2432,7 +2552,7 @@
               <input type="time" id="ntLimiteHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Límite palets <span class="tf-req">*</span></label>
+              <label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
               <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
             </div>
             <div class="tf-campo tf-span-1">
@@ -2473,6 +2593,22 @@
         </section>
     </div>
       <aside class="tienda-extra">
+        <div class="tienda-extra-head">
+          <h4>🚧 Estado de la tienda</h4>
+          <p>Para tiendas que aún no han abierto.</p>
+        </div>
+        <div class="ea-card ape" id="ntCardApertura">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch ape" id="ntApertura">
+            <span class="marca-badge apertura">A</span><b>En apertura</b>
+            <span class="ea-res" id="ntAperturaResumen">Desactivado</span>
+          </label>
+          <div class="ea-body" id="ntAperturaCampos" style="display:none;">
+            <label class="form-label">Apertura prevista</label>
+            <input type="date" id="ntAperturaPrevista" class="form-input">
+            <p class="ea-hint">La tienda aún no está abierta: se guardan sus datos, pero no sale en el Informe del día ni cuenta en el Reporte mensual hasta que se active con su fecha de apertura real. Solo son obligatorios Nº, nombre y agencia.</p>
+          </div>
+        </div>
         <div class="tienda-extra-head">
           <h4>🔁 Entregas de otra agencia</h4>
           <p>Misma tienda: no hace falta crear otra ficha.</p>
