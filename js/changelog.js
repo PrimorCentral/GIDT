@@ -10,6 +10,21 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.2',
+    fecha: '2026-10-16',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Las tiendas de GIDT se sincronizan solas con SALIDAS: al crear una tienda o cambiar su número, nombre, límite de palets o tránsito, el cambio llega a SALIDAS automáticamente, y al quitarla sale de sus rutas' },
+      { tipo: 'nuevo',  texto: 'En Editar tienda, la tarjeta de estado indica si la tienda está en SALIDAS y en cuántas rutas, con la opción "volver a comprobar"' },
+      { tipo: 'nuevo',  texto: 'Botón "📤 Volcar a SALIDAS" para mandar a SALIDAS una tienda en apertura sin activarla todavía en GIDT; "✕ Quitar de SALIDAS" solo aparece con la tienda en apertura o de baja' },
+      { tipo: 'mejora', texto: '"Horario por días" y "Cambiar agencia" pasan de la lista de tiendas al modal Editar tienda (en la sección Entrega y junto al campo Agencia); si hay cambios sin guardar, se avisa antes de abrirlos' },
+      { tipo: 'mejora', texto: 'En la lista de Gestión de tiendas solo quedan los botones de subir, bajar y editar; para dejar de servir una tienda se usa la baja temporal' },
+      { tipo: 'mejora', texto: 'El Nº de tienda no se puede modificar una vez grabado, porque es lo que enlaza la tienda con SALIDAS' },
+      { tipo: 'mejora', texto: 'Al crear una tienda nueva, la opción "En apertura" viene marcada por defecto' },
+      { tipo: 'mejora', texto: 'En Editar tienda y Nueva tienda, los botones de la cabecera llevan el icono arriba y el texto debajo' },
+      { tipo: 'mejora', texto: 'Los contadores de Gestión de tiendas pasan a llamarse "Tiendas activas" y "Reparto sábados"' }
+    ]
+  },
+  {
     version: '1.8.1',
     fecha: '2026-10-16',
     cambios: [
