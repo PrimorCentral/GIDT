@@ -1612,7 +1612,8 @@
     document.getElementById('ntAgencia').value = '';
     rellenarTarjetasEntregas('nt', null);
     const chkApe = document.getElementById('ntApertura');
-    if (chkApe) chkApe.checked = false;
+    // Por defecto, una tienda nueva se crea en apertura (se desmarca si ya está abierta).
+    if (chkApe) chkApe.checked = true;
     const fApe = document.getElementById('ntAperturaPrevista');
     if (fApe) fApe.value = '';
     sincronizarTarjetaApertura('nt');
