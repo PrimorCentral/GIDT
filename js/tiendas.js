@@ -2605,7 +2605,7 @@
     if (res) res.textContent = on ? (fecha ? `Prevista ${fechaISOaCorta(fecha)}` : 'Sin fecha prevista') : 'Desactivado';
     if (prefijo === 'nt') {
       const btn = document.getElementById('btnGuardarTienda');
-      if (btn && !btn.disabled) btn.innerHTML = on ? '💾 Crear tienda en apertura' : '💾 Crear tienda';
+      if (btn && !btn.disabled) btn.innerHTML = `<span class="btn-apilado-ico" aria-hidden="true">💾</span><span class="btn-apilado-txt">${on ? 'Crear en apertura' : 'Crear tienda'}</span>`;
       document.querySelectorAll('#nuevaTiendaModalOverlay .tf-req-apertura').forEach(el => { el.style.visibility = on ? 'hidden' : ''; });
     }
   }
