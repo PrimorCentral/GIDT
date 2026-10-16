@@ -3181,6 +3181,10 @@ table.tabla-tiendas tr.fila-apertura td.celda-nombre{ color:#5B2F91; }
 .btn.btn-activar-tienda{ background:#7C4DBD; border-color:#7C4DBD; color:#fff; }
 .btn.btn-activar-tienda:hover{ background:#6B3FA0; border-color:#6B3FA0; color:#fff; }
 #metCardApertura .btn-activar-tienda{ width:100%; margin-top:10px; justify-content:center; }
+/* Volcar a SALIDAS (tienda en apertura) */
+.btn.btn-volcar-salidas{ width:100%; margin-top:10px; justify-content:center; background:#fff; border-color:#1d3a5f; color:#1d3a5f; }
+.btn.btn-volcar-salidas:hover{ background:#eef4fb; }
+.btn.btn-volcar-salidas.volcada{ background:#e3f3ec; border-color:#2f8f6f; color:#2f8f6f; }
 .ea-card.on.ape{ border-color:#D3BEF3; box-shadow:inset 3px 0 0 #8B5CF6; }
 .ea-switch.ape:checked{ background:#7C4DBD; }
 .ea-card.ape .form-input{ height:38px; }
