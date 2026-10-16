@@ -1416,6 +1416,7 @@
         <p id="metError" class="err" style="display:none;"></p>
       </div>
       <div class="tienda-modal-head-acciones">
+        <button type="button" class="btn btn-historial-tienda" id="metBtnHistorial" title="Ver el historial de cambios de esta tienda" aria-label="Ver el historial de cambios de esta tienda">🕓</button>
         <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
         <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
       </div>
@@ -1571,6 +1572,22 @@
       </aside>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal: historial de cambios de una tienda (desde Editar tienda). Lee
+     registro_acciones (categoría tiendas) y lo puede ver cualquiera, sin
+     el permiso de Auditoría. -->
+<div class="modal-overlay" id="modalHistorialTiendaOverlay">
+  <div class="modal-box lista-contador-box historial-tienda-box" role="dialog" aria-modal="true" aria-labelledby="htTitulo">
+    <div class="tienda-modal-head">
+      <div>
+        <h3 class="modal-title" id="htTitulo">🕓 Historial de cambios</h3>
+        <p class="tienda-modal-sub" id="htSub"></p>
+      </div>
+      <button class="filtros-modal-close" id="btnCerrarHistorialTienda" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="lista-contador-body" id="htCuerpo"></div>
   </div>
 </div>
 
