@@ -442,10 +442,8 @@
                 <button class="mini-btn" data-editar title="Editar">✏️</button>
                 <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
                 <span class="acciones-separador"></span>
-                ${t.en_apertura
-                  ? `<button class="mini-btn btn-activar" data-activar title="Activar tienda (ya ha abierto)">🚀 Activar</button>`
-                  : enApertura
-                  ? `<button class="mini-btn" data-activar title="Cambiar la fecha de apertura">📅</button>`
+                ${enApertura
+                  ? '' /* en apertura: se activa desde Editar tienda */
                   : `<button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
@@ -573,13 +571,6 @@
         abrirModalBajaTienda(Number(tr.dataset.tienda), 'alta');
       });
     });
-    cont.querySelectorAll('[data-activar]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tr = btn.closest('tr');
-        abrirModalActivarTienda(Number(tr.dataset.tienda));
-      });
-    });
     cont.querySelectorAll('[data-borrar]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -684,11 +675,20 @@
     // la agencia se puede cambiar aquí mismo (aún no ha abierto).
     const cardApe = document.getElementById('metCardApertura');
     const cabApe = document.getElementById('metAperturaCabecera');
-    if (cardApe) cardApe.style.display = t.en_apertura ? '' : 'none';
-    if (cabApe) cabApe.style.display = t.en_apertura ? '' : 'none';
+    // (también si ya se activó con una fecha futura: ahí el botón sirve
+    // para cambiar esa fecha mientras no llegue)
+    const enAperturaAhora = tiendaEnApertura(t);
+    if (cardApe) cardApe.style.display = enAperturaAhora ? '' : 'none';
+    if (cabApe) cabApe.style.display = enAperturaAhora ? '' : 'none';
     const fApe = document.getElementById('metAperturaPrevista');
     if (fApe) fApe.value = t.apertura_prevista || '';
+    const wrapPrev = document.getElementById('metAperturaPrevistaWrap');
+    if (wrapPrev) wrapPrev.style.display = t.en_apertura ? '' : 'none';
+    const btnAct = document.getElementById('metBtnActivar');
+    if (btnAct) btnAct.textContent = t.en_apertura ? '🚀 Activar tienda' : '📅 Cambiar fecha de apertura';
     sincronizarTarjetaApertura('met');
+    const resApe = document.getElementById('metAperturaResumen');
+    if (resApe && enAperturaAhora && !t.en_apertura) resApe.textContent = `Abre el ${fechaISOaCorta(t.fecha_apertura)}`;
     const selAgApe = document.getElementById('metAgenciaApertura');
     if (selAgApe && metAgInfo) {
       selAgApe.innerHTML = agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
