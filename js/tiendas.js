@@ -2202,7 +2202,8 @@
   // ---------------------------------------------------------------
   let activarTiendaId = null;
 
-  async function abrirModalActivarTienda(tiendaId) {
+  // desdeEditar: se pulsó Activar dentro de Editar tienda (esa ventana sigue abierta debajo).
+  async function abrirModalActivarTienda(tiendaId, { desdeEditar = false } = {}) {
     const t = tiendasGestionCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalActivarTiendaOverlay');
     if (!t || !overlay) return;
@@ -2212,10 +2213,13 @@
       ...t, limite_palets: t.limite_palets != null ? String(t.limite_palets) : ''
     }, false) : [];
     if (faltan.length) {
-      await modalAlert(`Antes de activar "${t.nombre}" hay que completar su ficha.\nFalta: ${faltan.join(', ')}.`, { titulo: 'Ficha incompleta', icono: '📝' });
-      abrirModalEditarTienda(tiendaId);
+      // Aviso en rojo por encima (como el de "Sin permiso"), sin cerrar la
+      // ficha, para poder completarla directamente.
+      await modalAlert(`Antes de activar "${t.nombre}" hay que completar su ficha.\nFalta: ${faltan.join(', ')}.`, { titulo: 'Ficha incompleta', icono: '⛔', danger: true });
+      if (!desdeEditar) abrirModalEditarTienda(tiendaId);
       return;
     }
+    if (desdeEditar) cerrarModalEditarTienda();
     activarTiendaId = tiendaId;
     const hoyISO = fechaLocalISO(new Date());
     const prevista = t.en_apertura ? t.apertura_prevista : t.fecha_apertura;
@@ -2376,9 +2380,7 @@
   document.getElementById('matBtnCancelar')?.addEventListener('click', cerrarModalActivarTienda);
   document.getElementById('matBtnGuardar')?.addEventListener('click', guardarModalActivarTienda);
   document.getElementById('metBtnActivar')?.addEventListener('click', () => {
-    const id = editarTiendaId;
-    cerrarModalEditarTienda();
-    abrirModalActivarTienda(id);
+    if (editarTiendaId != null) abrirModalActivarTienda(editarTiendaId, { desdeEditar: true });
   });
 
   // Tarjeta "En apertura" de Nueva tienda: interruptor + fecha prevista.
