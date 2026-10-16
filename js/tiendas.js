@@ -696,6 +696,7 @@
     // Foto de los campos recién cargados: sirve para saber si hay cambios
     // sin guardar antes de abrir Cambiar agencia u Horario por días.
     fotoFormEditarTienda = estadoFormEditarTienda();
+    actualizarBotonGuardarEditarTienda();
 
     overlay.classList.add('show');
     setTimeout(() => document.getElementById('metNombre').focus(), 30);
@@ -705,6 +706,8 @@
     document.getElementById('modalEditarTiendaOverlay')?.classList.remove('show');
     editarTiendaId = null;
     fotoFormEditarTienda = null;
+    const btnG = document.getElementById('modalEditarTiendaBtnGuardar');
+    if (btnG) btnG.classList.add('sin-cambios');
   }
 
   // ---------------------------------------------------------------
@@ -732,6 +735,34 @@
 
   function hayCambiosSinGuardarEditarTienda() {
     return fotoFormEditarTienda != null && estadoFormEditarTienda() !== fotoFormEditarTienda;
+  }
+
+  // Guardar apagado (blanco, en gris y sin poder pulsarse) mientras no se
+  // haya cambiado nada; en cuanto se cambia algo, naranja y pulsable. Si se
+  // deshace el cambio a mano, se vuelve a apagar.
+  function actualizarBotonGuardarEditarTienda() {
+    const btn = document.getElementById('modalEditarTiendaBtnGuardar');
+    if (!btn || btn.classList.contains('btn-guardando') || btn.dataset.textoOriginal != null) return;
+    const hay = hayCambiosSinGuardarEditarTienda();
+    btn.disabled = !hay;
+    btn.classList.toggle('sin-cambios', !hay);
+  }
+  // Cualquier cambio dentro del modal (escribir, desplegables, interruptores,
+  // calendario de fechas de prueba…) recalcula el botón.
+  ['input', 'change', 'click'].forEach(ev => {
+    document.getElementById('modalEditarTiendaOverlay')?.addEventListener(ev, () => setTimeout(actualizarBotonGuardarEditarTienda, 0));
+  });
+
+  // Cancelar con cambios sin guardar: se avisa antes de perderlos.
+  async function cancelarModalEditarTienda() {
+    if (hayCambiosSinGuardarEditarTienda()) {
+      const salir = await modalConfirm(
+        'Hay cambios sin guardar en esta tienda. Si cancelas, se perderán.\n\nPara no perderlos, pulsa Volver y luego Guardar.',
+        { titulo: 'Cambios sin guardar', icono: '⚠️', danger: true, textoOk: 'Salir sin guardar', textoCancel: 'Volver' }
+      );
+      if (!salir) return;
+    }
+    cerrarModalEditarTienda();
   }
 
   // Resumen corto del horario por días: "L 08:30 · X 08:30" o "sin horas especiales".
@@ -1183,7 +1214,7 @@
     }
   }
 
-  document.getElementById('modalEditarTiendaBtnCancelar')?.addEventListener('click', cerrarModalEditarTienda);
+  document.getElementById('modalEditarTiendaBtnCancelar')?.addEventListener('click', cancelarModalEditarTienda);
   document.getElementById('modalEditarTiendaBtnGuardar')?.addEventListener('click', guardarModalEditarTienda);
   // Nota (2026-09-17): a petición de Jose, este modal ya NO se cierra al
   // clicar fuera — solo con Cancelar/Guardar, para no perder cambios por

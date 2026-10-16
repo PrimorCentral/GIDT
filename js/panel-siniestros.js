@@ -682,20 +682,16 @@ async function abrirModalPanelSiniestro(id) {
   const s = psSiniestroPorId(id);
   if (!s) return;
   panelActivoId = id;
-  ultimoGuardadoConError = false;
-  clearTimeout(guardadoPanelTimer);
-  guardadoPanelTimer = null;
-  const estadoEl = document.getElementById('psGuardadoEstado');
-  if (estadoEl) { estadoEl.textContent = ''; estadoEl.classList.remove('ok', 'error', 'guardando', 'visible'); }
+  // Quién/cuándo de Estado y Estado de la recogida tal y como están
+  // guardados: si se cancela un cambio sin guardar, se devuelven a esto.
+  psMetaGuardada = psCopiarMeta(s);
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
-  document.getElementById('psNumeroSiniestro').textContent = `Siniestro Nº ${s.id}`;
+  document.getElementById('psNumeroSiniestro').textContent = `Nº ${s.id}`;
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
 
-  document.getElementById('psActualizadoTexto').textContent = s.actualizado_por
-    ? `Actualizado por: ${s.actualizado_por} · ${psFormatearFechaHora(s.actualizado_en)}`
-    : 'Actualizado por: —';
+  document.getElementById('psActualizadoTexto').textContent = psTextoUltimaModificacion(s.actualizado_por, s.actualizado_en);
 
   rellenarSelectOrigen(s.origen);
   document.getElementById('psInformacion').value = s.informacion || '';
@@ -720,6 +716,8 @@ async function abrirModalPanelSiniestro(id) {
   pintarJustificanteModal(s);
   pintarBloqueEnvioAgencia(s);
   renderSeguimientoPanel(s);
+  psBaseForm = psCamposFormularioPanel();
+  actualizarBotonGuardarPanel();
 
   document.getElementById('psModalOverlay').classList.add('show');
 }
@@ -1190,145 +1188,142 @@ function modalDeslizarConfirmar(mensaje, { titulo = 'Confirmar', icono = '', tex
 }
 
 async function cerrarModalPanelSiniestro() {
-  if (guardadoPanelTimer) {
-    flushAutoguardadoPanel(); // hay un cambio reciente sin lanzar: lo intentamos ya
-  } else if (ultimoGuardadoConError) {
+  // Con cambios sin guardar (botón Guardar encendido) se avisa antes de cerrar.
+  if (hayCambiosSinGuardarPanel()) {
     const salir = await modalConfirm(
-      'El último cambio no se pudo guardar. ¿Salir igualmente y perderlo?',
-      { titulo: 'Cambios sin guardar', danger: true, textoOk: 'Salir sin guardar' }
+      'Hay cambios sin guardar en este siniestro. Si cierras, se perderán.\n\nPara no perderlos, pulsa Volver y luego Guardar.',
+      { titulo: 'Cambios sin guardar', icono: '⚠️', danger: true, textoOk: 'Salir sin guardar', textoCancel: 'Volver' }
     );
     if (!salir) return;
+    // Se descarta lo que no se guardó: quién/cuándo de Estado y Recogida
+    // vuelven a como estaban (los campos se rellenan de nuevo al reabrir).
+    const s = psSiniestroPorId(panelActivoId);
+    if (s && psMetaGuardada) Object.assign(s, psMetaGuardada);
   }
   document.getElementById('psModalOverlay').classList.remove('show');
   panelActivoId = null;
-  ultimoGuardadoConError = false;
+  psMetaGuardada = null;
+  psBaseForm = null;
 }
 
-// ---------------- Autoguardado de los campos del formulario ----------------
-// Cada campo se guarda solo, sin botón: los de texto/número con un pequeño
-// debounce (para no lanzar una petición por cada letra), los select/fecha
-// al cambiar. El aviso "Guardando… / ✓ Guardado" es solo un indicador
-// visual discreto.
+// ---------------- Guardado de los campos del formulario ----------------
+// Los campos (origen, información, Nº albarán, importe, Nº factura, estado,
+// recogida límite y estado de la recogida) ya NO se guardan solos: se
+// guardan con el botón 💾 Guardar de la barra de arriba, que está apagado
+// mientras no haya cambios y se enciende (naranja) en cuanto se cambia algo.
+// Al cerrar con cambios pendientes se avisa. Los archivos (fotos, factura,
+// albarán y justificante) se siguen subiendo al momento, como siempre.
 
-let guardadoPanelTimer = null;
-let ultimoGuardadoConError = false;
-
-function marcarGuardandoPanel() {
-  const el = document.getElementById('psGuardadoEstado');
-  if (!el) return;
-  clearTimeout(el._fadeTimer);
-  el.classList.remove('ok', 'error');
-  el.classList.add('guardando', 'visible');
-  el.textContent = '💾';
-  el.title = 'Guardando…';
+// Quién/cuándo de Estado (cobrado/anulado) y de Estado de la recogida tal
+// y como están guardados en la base de datos.
+let psMetaGuardada = null;
+const PS_CAMPOS_META = ['recogida_estado_en', 'recogida_estado_por', 'cobrado_en', 'cobrado_por', 'anulado_en', 'anulado_por'];
+function psCopiarMeta(s) {
+  const m = {};
+  PS_CAMPOS_META.forEach(k => { m[k] = s ? (s[k] ?? null) : null; });
+  return m;
 }
 
-function marcarGuardadoOkPanel() {
-  ultimoGuardadoConError = false;
-  const el = document.getElementById('psGuardadoEstado');
-  if (!el) return;
-  el.classList.remove('error', 'guardando');
-  el.classList.add('ok', 'visible');
-  el.textContent = '✅';
-  el.title = 'Guardado';
-  clearTimeout(el._fadeTimer);
-  el._fadeTimer = setTimeout(() => { el.classList.remove('visible', 'ok'); }, 1600);
+function psTextoUltimaModificacion(por, en) {
+  return por ? `Última modificación por: ${por} · ${psFormatearFechaHora(en)}` : 'Última modificación por: —';
 }
 
-function marcarErrorGuardadoPanel() {
-  ultimoGuardadoConError = true;
-  const el = document.getElementById('psGuardadoEstado');
-  if (!el) return;
-  clearTimeout(el._fadeTimer);
-  el.classList.remove('ok', 'guardando');
-  el.classList.add('error', 'visible');
-  el.textContent = '⚠️';
-  el.title = 'No se pudo guardar · pulsa para reintentar';
-}
+const psNumONull = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);
 
-document.getElementById('psGuardadoEstado')?.addEventListener('click', (e) => {
-  if (e.currentTarget.classList.contains('error')) guardarCamposPanelAhora();
-});
-
-function programarAutoguardadoPanel() {
-  if (!panelActivoId) return;
-  marcarGuardandoPanel();
-  clearTimeout(guardadoPanelTimer);
-  guardadoPanelTimer = setTimeout(guardarCamposPanelAhora, 600);
-}
-
-async function guardarCamposPanelAhora() {
-  if (!panelActivoId) return;
-  guardadoPanelTimer = null;
-
+// Valores del formulario, con el mismo formato con el que se guardan.
+function psCamposFormularioPanel() {
   const s = psSiniestroPorId(panelActivoId);
-  const valorTxt = document.getElementById('psValor').value;
-  const ahora = new Date().toISOString();
-  const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
-  const datos = {
+  return {
     origen: document.getElementById('psOrigen').value || null,
     informacion: document.getElementById('psInformacion').value.trim() || null,
     num_albaran: document.getElementById('psAlbaran').value.trim() || null,
     num_factura: document.getElementById('psFacturaNum').value.trim() || null,
-    valor: valorTxt ? Number(valorTxt) : null,
+    valor: psNumONull(document.getElementById('psValor').value),
     estado: document.getElementById('psEstado').value,
-    recogida_limite: (s?.tipo !== 'FALTAS')
-      ? (document.getElementById('psRecogida').value || null)
-      : null,
-    recogida_estado: document.getElementById('psRecogidaEstado').value || null,
-    // Quién y cuándo se marcó el estado de la recogida (para el paso
-    // "Recogida de la mercancía" del seguimiento) ya se anota al vuelo, en
-    // caliente, desde el propio listener de "change" del select — aquí solo
-    // se persiste lo que ya quedó anotado en la copia local (s).
-    recogida_estado_en: s?.recogida_estado_en || null,
-    recogida_estado_por: s?.recogida_estado_por || null,
-    // Igual que con recogida_estado_en/_por: quién y cuándo se marcó
-    // "COBRADO" (para el paso final "Cobrado" del seguimiento) ya se anota
-    // al vuelo desde el listener de "change" de Estado — aquí solo se
-    // persiste lo que ya quedó anotado en la copia local (s).
-    cobrado_en: s?.cobrado_en || null,
-    cobrado_por: s?.cobrado_por || null,
-    // Mismo patrón para "ANULADO": quién y cuándo se anotan al vuelo desde
-    // el listener de "change" de Estado, aquí solo se persisten.
-    anulado_en: s?.anulado_en || null,
-    anulado_por: s?.anulado_por || null,
+    recogida_limite: (s?.tipo !== 'FALTAS') ? (document.getElementById('psRecogida').value || null) : null,
+    recogida_estado: document.getElementById('psRecogidaEstado').value || null
+  };
+}
+
+
+// Foto de los campos tal y como se ven al abrir (o tras guardar). Se compara
+// con lo que se ve ahora, así un valor antiguo que no está en la lista de un
+// desplegable no cuenta como cambio nada más abrir.
+let psBaseForm = null;
+
+function hayCambiosSinGuardarPanel() {
+  if (!panelActivoId || !psBaseForm) return false;
+  return JSON.stringify(psCamposFormularioPanel()) !== JSON.stringify(psBaseForm);
+}
+
+// Cuando un archivo (factura / albarán) rellena o vacía Nº albarán, importe o
+// Nº factura, eso ya queda guardado: se actualiza la foto para que no cuente
+// como cambio pendiente.
+function psSincronizarBaseCampo(clave) {
+  if (!psBaseForm || !panelActivoId) return;
+  psBaseForm[clave] = psCamposFormularioPanel()[clave];
+}
+
+// Enciende / apaga el botón Guardar según haya o no cambios. Si se deshace
+// un cambio a mano (se vuelve a poner lo que había), se apaga solo.
+function actualizarBotonGuardarPanel() {
+  const btn = document.getElementById('btnGuardarPsModal');
+  if (!btn || btn.classList.contains('guardando')) return;
+  const hay = hayCambiosSinGuardarPanel();
+  btn.disabled = !hay;
+  btn.classList.toggle('sin-cambios', !hay);
+}
+
+async function guardarCamposPanelAhora() {
+  if (!panelActivoId || !hayCambiosSinGuardarPanel()) return;
+  const id = panelActivoId;
+  const s = psSiniestroPorId(id);
+  const btn = document.getElementById('btnGuardarPsModal');
+  const ahora = new Date().toISOString();
+  const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
+  const datos = {
+    ...psCamposFormularioPanel(),
+    // Quién y cuándo se marcó el estado de la recogida (paso "Recogida de
+    // la mercancía" del seguimiento) y COBRADO / ANULADO (paso final): se
+    // anotan al vuelo en la copia local (s) desde los listeners de "change"
+    // de esos desplegables; aquí solo se guardan.
+    ...psCopiarMeta(s),
     actualizado_por: usuarioActual
   };
 
+  if (btn) { btn.disabled = true; btn.classList.add('guardando'); }
   try {
-    const { error } = await sb.from('panel_siniestros').update(datos).eq('id', panelActivoId);
+    const { error } = await sb.from('panel_siniestros').update(datos).eq('id', id);
     if (error) throw error;
     if (s) {
       Object.assign(s, datos);
       s.actualizado_en = ahora;
-      document.getElementById('psActualizadoTexto').textContent = usuarioActual
-        ? `Actualizado por: ${usuarioActual} · ${psFormatearFechaHora(ahora)}`
-        : '';
-      renderSeguimientoPanel(s);
+      psMetaGuardada = psCopiarMeta(s);
+      if (panelActivoId === id) {
+        psBaseForm = psCamposFormularioPanel();
+        document.getElementById('psActualizadoTexto').textContent = psTextoUltimaModificacion(usuarioActual, ahora);
+        renderSeguimientoPanel(s);
+      }
     }
     renderPanelSiniestros();
     renderPanelKpis();
-    marcarGuardadoOkPanel();
+    if (typeof mostrarToast === 'function') mostrarToast(`Siniestro Nº ${id} guardado`, { posicion: 'abajo' });
   } catch (err) {
     console.error('Error guardando cambios del panel:', err);
-    marcarErrorGuardadoPanel();
+    await modalAlert('No se pudieron guardar los cambios. Inténtalo de nuevo.', { titulo: 'Error al guardar' });
+  } finally {
+    if (btn) btn.classList.remove('guardando');
+    actualizarBotonGuardarPanel();
   }
 }
 
-// Si se cierra el modal con un guardado pendiente (p.ej. recién escrito y
-// cerrado enseguida), lo lanzamos ya mismo en vez de perder el cambio.
-function flushAutoguardadoPanel() {
-  if (guardadoPanelTimer) {
-    clearTimeout(guardadoPanelTimer);
-    guardarCamposPanelAhora();
-  }
-}
+document.getElementById('btnGuardarPsModal')?.addEventListener('click', guardarCamposPanelAhora);
 
 ['psOrigen', 'psRecogida'].forEach(id => {
-  document.getElementById(id)?.addEventListener('change', programarAutoguardadoPanel);
+  document.getElementById(id)?.addEventListener('change', actualizarBotonGuardarPanel);
 });
-['psInformacion', 'psAlbaran', 'psFacturaNum', 'psValor'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', programarAutoguardadoPanel);
+['psInformacion', 'psAlbaran', 'psFacturaNum', 'psValor', 'psRecogida'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', actualizarBotonGuardarPanel);
 });
 
 // El campo "Información" siempre se escribe en mayúsculas (igual que se ve
@@ -1350,7 +1345,11 @@ document.getElementById('psEstado')?.addEventListener('change', (e) => {
   // campos, en el autoguardado de abajo. Solo se rellena el par que
   // corresponde al valor elegido; el otro se limpia.
   if (s) {
-    if (e.target.value === 'COBRADO') {
+    if (e.target.value === (s.estado || 'PDTE COBRO') && psMetaGuardada) {
+      // Se ha vuelto a dejar el estado que ya tenía guardado: quién/cuándo
+      // vuelven a ser los de entonces (no los de ahora).
+      ['cobrado_en', 'cobrado_por', 'anulado_en', 'anulado_por'].forEach(k => { s[k] = psMetaGuardada[k]; });
+    } else if (e.target.value === 'COBRADO') {
       s.cobrado_en = new Date().toISOString();
       s.cobrado_por = sesionActual?.nombre || sesionActual?.usuario || null;
       s.anulado_en = null;
@@ -1369,7 +1368,7 @@ document.getElementById('psEstado')?.addEventListener('change', (e) => {
     renderSeguimientoPanel(s);
   }
 
-  programarAutoguardadoPanel();
+  actualizarBotonGuardarPanel();
 });
 
 document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
@@ -1381,7 +1380,10 @@ document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
   // paso "Recogida de la mercancía" del seguimiento); se guarda de verdad
   // enseguida, con el resto de campos, en el autoguardado de abajo.
   if (s) {
-    if (e.target.value) {
+    if ((e.target.value || null) === (s.recogida_estado || null) && psMetaGuardada) {
+      s.recogida_estado_en = psMetaGuardada.recogida_estado_en;
+      s.recogida_estado_por = psMetaGuardada.recogida_estado_por;
+    } else if (e.target.value) {
       s.recogida_estado_en = new Date().toISOString();
       s.recogida_estado_por = sesionActual?.nombre || sesionActual?.usuario || null;
     } else {
@@ -1391,7 +1393,7 @@ document.getElementById('psRecogidaEstado')?.addEventListener('change', (e) => {
     renderSeguimientoPanel(s);
   }
 
-  programarAutoguardadoPanel();
+  actualizarBotonGuardarPanel();
   // Si se acaba de elegir "Recogido por agencia" y todavía no hay
   // justificante, abrimos directamente el selector de archivo.
   if (esRecogidoAgencia && s && !s.justificante_recogida_url) {
@@ -1421,11 +1423,10 @@ async function borrarDeStoragePorUrlGenerico(url) {
 }
 
 function cerrarModalPanelSiniestroForzado() {
-  clearTimeout(guardadoPanelTimer);
-  guardadoPanelTimer = null;
-  ultimoGuardadoConError = false;
   document.getElementById('psModalOverlay').classList.remove('show');
   panelActivoId = null;
+  psMetaGuardada = null;
+  psBaseForm = null;
 }
 
 // ---------------------------------------------------------------
@@ -1864,6 +1865,8 @@ function aplicarEstadoCampoAlbaran(s) {
   input.disabled = detectado || !s.albaran_url;
   wrap.classList.toggle('detectado', detectado);
   input.placeholder = s.albaran_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir el albarán';
+  psSincronizarBaseCampo('num_albaran');
+  actualizarBotonGuardarPanel();
 }
 
 // Igual que con el Nº Albarán: el campo Valor empieza BLOQUEADO hasta que
@@ -1879,6 +1882,8 @@ function aplicarEstadoCampoValor(s) {
   input.disabled = detectado || !s.factura_url;
   wrap.classList.toggle('detectado', detectado);
   input.placeholder = s.factura_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir la factura';
+  psSincronizarBaseCampo('valor');
+  actualizarBotonGuardarPanel();
 }
 
 // Igual que el Nº Albarán: el campo Nº Factura empieza BLOQUEADO hasta que
@@ -1893,6 +1898,8 @@ function aplicarEstadoCampoFactura(s) {
   input.disabled = detectado || !s.factura_url;
   wrap.classList.toggle('detectado', detectado);
   input.placeholder = s.factura_url ? 'No detectado · escríbelo a mano' : 'Se rellena al subir la factura';
+  psSincronizarBaseCampo('num_factura');
+  actualizarBotonGuardarPanel();
 }
 
 // Los tres botones-lápiz son fijos en el HTML (ya no se recrean cada vez
