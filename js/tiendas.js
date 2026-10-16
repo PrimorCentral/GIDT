@@ -614,6 +614,15 @@
     editarTiendaId = tiendaId;
 
     document.getElementById('metNumero').value = t.numero_tienda || '';
+    // Nº de tienda: una vez grabado ya no se puede cambiar (enlaza la tienda
+    // con SALIDAS, que la empareja por número). Solo se puede poner si la
+    // tienda aún no tiene número.
+    const metNum = document.getElementById('metNumero');
+    const numFijo = !!(t.numero_tienda && String(t.numero_tienda).trim());
+    metNum.readOnly = numFijo;
+    metNum.tabIndex = numFijo ? -1 : 0;
+    metNum.classList.toggle('tf-solo-lectura', numFijo);
+    metNum.title = numFijo ? 'El Nº de tienda no se puede cambiar una vez grabado (enlaza la tienda con SALIDAS)' : '';
     document.getElementById('metNombre').value = t.nombre || '';
     document.getElementById('metHora').value = t.hora_prevista ? t.hora_prevista.slice(0, 5) : '';
     document.getElementById('metDireccion').value = t.direccion || '';
@@ -1063,7 +1072,10 @@
 
   async function guardarModalEditarTienda() {
     if (editarTiendaId == null) return;
-    const numeroTienda = document.getElementById('metNumero').value.trim().toUpperCase();
+    // Nº grabado = fijo (aunque alguien quitara el bloqueo del campo a mano).
+    const tGrabada = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    const numeroGrabado = tGrabada?.numero_tienda && String(tGrabada.numero_tienda).trim() ? String(tGrabada.numero_tienda) : null;
+    const numeroTienda = numeroGrabado || document.getElementById('metNumero').value.trim().toUpperCase();
     const nombre = document.getElementById('metNombre').value.trim().toUpperCase();
     const hora = document.getElementById('metHora').value;
     const direccion = document.getElementById('metDireccion').value.trim().toUpperCase();
@@ -1113,7 +1125,7 @@
     const btnGuardar = document.getElementById('modalEditarTiendaBtnGuardar');
     botonGuardando(btnGuardar, true);
     try {
-      const repetidaEditar = await tiendaConMismoNumero(numeroTienda, editarTiendaId);
+      const repetidaEditar = numeroGrabado ? null : await tiendaConMismoNumero(numeroTienda, editarTiendaId);
       if (repetidaEditar) {
         botonGuardando(btnGuardar, false);
         await avisarNumeroRepetido(numeroTienda, repetidaEditar.nombre, { desdeNueva: false });
@@ -1121,7 +1133,7 @@
       }
 
       const datosNuevos = {
-        numero_tienda: numeroTienda || null,
+        ...(numeroGrabado ? {} : { numero_tienda: numeroTienda || null }),
         nombre,
         hora_prevista: hora || null,
         direccion: direccion || null,
