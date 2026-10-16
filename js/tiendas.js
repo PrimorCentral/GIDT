@@ -250,8 +250,8 @@
     const conSabado = activas.filter(t => t.marca === 'SABADO' || tiendaTieneEntregaSabado(t)).length;
     const enPrueba = activas.filter(t => fechasPruebaPendientes(t).length > 0).length;
     cont.innerHTML = `
-      <span class="tiendas-contador"><b>${activas.length}</b><span>Tiendas</span></span>
-      <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Con sábado</span></button>
+      <span class="tiendas-contador"><b>${activas.length}</b><span>Tiendas activas</span></span>
+      <button type="button" class="tiendas-contador sabado pulsable" data-lista="sabado" title="Ver las tiendas que los sábados reciben por otra agencia"><b>${conSabado}</b><span>Reparto sábados</span></button>
       <button type="button" class="tiendas-contador prueba pulsable" data-lista="prueba" title="Ver las tiendas con fechas de prueba pendientes"><b>${enPrueba}</b><span>En prueba</span></button>
       <button type="button" class="tiendas-contador apertura pulsable" data-lista="aperturas" title="Ver las tiendas en apertura (aún no abiertas)"><b>${numAperturas}</b><span>Aperturas</span></button>
       ${numBajas ? `<button type="button" class="tiendas-contador baja pulsable" data-lista="baja" title="Ver las tiendas de baja ahora mismo"><b>${numBajas}</b><span>De baja</span></button>` : ''}
@@ -261,7 +261,7 @@
   }
 
   // ---------------------------------------------------------------
-  // Ventana con la lista de tiendas de un contador (Con sábado / En prueba
+  // Ventana con la lista de tiendas de un contador (Reparto sábados / En prueba
   // / De baja). Pulsar una tienda abre su ficha (Editar tienda).
   // ---------------------------------------------------------------
   function abrirListaContador(tipo) {
@@ -275,7 +275,7 @@
 
     if (tipo === 'sabado') {
       const tds = tiendasGestionCache.filter(t => t.activo && !tiendaEnApertura(t) && !tiendaEnBajaHoy(t.id) && (t.marca === 'SABADO' || tiendaTieneEntregaSabado(t))).sort(orden);
-      titulo = `🟡 Con sábado (${tds.length})`;
+      titulo = `🟡 Reparto sábados (${tds.length})`;
       sub = 'Tiendas que los sábados reciben por otra agencia.';
       cabecera = ['Nº', 'Tienda', 'Agencia habitual', 'Agencia sábado', 'Hora sábado'];
       filas = tds.map(t => ({ id: t.id, celdas: [
