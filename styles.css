@@ -3228,3 +3228,7 @@ body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:
 /* Botón de pausa en tiendas en apertura: se ve (para no descolocar el
    orden de los botones) pero muy transparente y sin poder pulsarse. */
 #view-config-tiendas .mini-btn.mini-btn-off{ opacity:.2 !important; cursor:not-allowed !important; pointer-events:none; }
+/* Botón 🕓 (historial de cambios) en la cabecera de Editar tienda */
+.btn.btn-historial-tienda{ padding-left:12px; padding-right:12px; font-size:16px; line-height:1; }
+.historial-tienda-box{ max-width:960px; }
+table.tabla-historial-tienda tbody tr{ cursor:default; }
