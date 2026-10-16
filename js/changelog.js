@@ -10,6 +10,16 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.3',
+    fecha: '2026-10-16',
+    cambios: [
+      { tipo: 'mejora', texto: 'Detalle del siniestro: nueva barra de título arriba, como en Editar tienda, con el Nº del siniestro, la última modificación (quién y cuándo) y los botones Eliminar, PDF, Cerrar y Guardar' },
+      { tipo: 'mejora', texto: 'Detalle del siniestro: los campos ya no se guardan solos; se guardan con el botón Guardar, que está apagado mientras no hay cambios y se pone en naranja en cuanto se cambia algo. Fotos, factura, albarán y justificante se siguen guardando al momento al subirlos' },
+      { tipo: 'mejora', texto: 'Detalle del siniestro: al cerrar con cambios sin guardar se avisa antes de perderlos' },
+      { tipo: 'mejora', texto: 'Editar tienda: el botón Guardar está apagado mientras no hay cambios, y al pulsar Cancelar con cambios sin guardar se avisa antes de perderlos' }
+    ]
+  },
+  {
     version: '1.8.2',
     fecha: '2026-10-16',
     cambios: [
