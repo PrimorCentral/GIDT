@@ -3246,6 +3246,16 @@ body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:
 #view-config-tiendas .mini-btn.mini-btn-off{ opacity:.2 !important; cursor:not-allowed !important; pointer-events:none; }
 /* Botón 🕓 (historial de cambios) en la cabecera de Editar tienda */
 .btn.btn-historial-tienda{ padding-left:12px; padding-right:12px; font-size:16px; line-height:1; }
+/* Editar tienda: botones de la cabecera con el emoji arriba y el texto debajo */
+.tienda-modal-head-acciones .btn.btn-apilado{
+  min-width:84px; padding:7px 12px 6px;
+  display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; line-height:1;
+}
+.btn-apilado-ico{ font-size:19px; line-height:1; }
+.btn-apilado-txt{ font-size:11.5px; font-weight:600; letter-spacing:.2px; }
+.btn.btn-apilado.btn-guardando .btn-spinner{ margin:0; }
+.btn.primary.btn-apilado{ color:#fff; }
 .historial-tienda-box{ max-width:960px; }
 table.tabla-historial-tienda tbody tr{ cursor:default; }
 
