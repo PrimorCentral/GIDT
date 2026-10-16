@@ -23,7 +23,9 @@ const CATEGORIAS_AUDITORIA = {
 
 // cambios (opcional): lista [{ campo, antes, despues }] con lo que se
 // modificó exactamente. Se muestra al pulsar la lupa en el registro.
-async function registrarAccion(categoria, accion, detalle, cambios) {
+// extra (opcional): { tiendaId } — id de la tienda afectada, para poder ver
+// su historial completo aunque luego cambie de nombre (botón 🕓 de Editar tienda).
+async function registrarAccion(categoria, accion, detalle, cambios, extra) {
   try {
     const usuario = (typeof sesionActual !== 'undefined' && sesionActual) ? (sesionActual.nombre || sesionActual.usuario) : null;
     const fila = {
@@ -34,6 +36,7 @@ async function registrarAccion(categoria, accion, detalle, cambios) {
       creado_en: new Date().toISOString()
     };
     if (Array.isArray(cambios) && cambios.length) fila.cambios = cambios;
+    if (extra && extra.tiendaId != null) fila.tienda_id = extra.tiendaId;
     const { error } = await sb.from('registro_acciones').insert(fila);
     if (error) throw error;
   } catch (err) {

@@ -1083,7 +1083,7 @@
       if (typeof registrarAccion === 'function') {
         const cambios = typeof auditoriaCalcularCambios === 'function'
           ? auditoriaCalcularCambios(CAMPOS_AUDITORIA_TIENDA, tEditada, datosNuevos) : null;
-        registrarAccion('tiendas', 'Editar tienda', nombre, cambios);
+        registrarAccion('tiendas', 'Editar tienda', nombre, cambios, { tiendaId: editarTiendaId });
       }
       cerrarModalEditarTienda();
       if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${nombre}" modificada correctamente`, { posicion: 'abajo' });
@@ -1278,7 +1278,7 @@
         if (error.code === '23505') { fallo('Esta tienda ya tiene un cambio de agencia programado.'); return; }
         throw error;
       }
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Programar cambio de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'} el ${fechaISOaCorta(fecha)}`);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Programar cambio de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'} el ${fechaISOaCorta(fecha)}`, null, { tiendaId: t.id });
       cerrarModalMoverAgencia();
       await cargarAgenciasYTiendas();
       if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
@@ -1306,7 +1306,7 @@
         resuelto_en: new Date().toISOString()
       }).eq('id', progId).eq('estado', 'PENDIENTE');
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Cancelar cambio de agencia programado', `${t?.nombre || '—'}: ${c.agencia_anterior_nombre || '—'} → ${c.agencia_nueva_nombre} el ${fechaISOaCorta(c.fecha_cambio)}`);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Cancelar cambio de agencia programado', `${t?.nombre || '—'}: ${c.agencia_anterior_nombre || '—'} → ${c.agencia_nueva_nombre} el ${fechaISOaCorta(c.fecha_cambio)}`, null, { tiendaId: c.tienda_id });
       await cargarAgenciasYTiendas();
       if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
       abrirListaContador('programados');
@@ -1356,7 +1356,7 @@
         creado_por: sesionActual?.nombre || sesionActual?.usuario || null
       });
       if (eHist) console.error('No se pudo registrar el historial de cambio de agencia:', eHist);
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Mover tienda de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'}`);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Mover tienda de agencia', `${t.nombre}: ${agenciaAnterior?.nombre || '—'} → ${agenciaNueva?.nombre || '—'}`, null, { tiendaId: id });
 
       cargarAgenciasYTiendas();
     } catch (err) {
@@ -1398,7 +1398,7 @@
         console.error('No se pudo registrar la fecha de eliminación de la tienda:', eBaja);
       }
 
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Eliminar tienda', t.nombre);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Eliminar tienda', t.nombre, null, { tiendaId: id });
       cargarAgenciasYTiendas();
     } catch (err) {
       console.error('Error eliminando tienda:', err);
@@ -1506,7 +1506,7 @@
           creado_por: sesionActual?.nombre || sesionActual?.usuario || null
         });
         if (error) throw error;
-        if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Dar de baja tienda', `${t?.nombre || ''} desde ${fechaISOaCorta(fecha)}${motivo ? ' · ' + motivo : ''}`);
+        if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Dar de baja tienda', `${t?.nombre || ''} desde ${fechaISOaCorta(fecha)}${motivo ? ' · ' + motivo : ''}`, null, { tiendaId: bajaTiendaId });
       } else {
         const p = bajasCache.find(b => b.id === bajaPeriodoId);
         if (!p) throw new Error('Baja no encontrada');
@@ -1519,7 +1519,7 @@
           reactivada_por: sesionActual?.nombre || sesionActual?.usuario || null
         }).eq('id', p.id);
         if (error) throw error;
-        if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Dar de alta tienda', `${t?.nombre || ''} desde ${fechaISOaCorta(fecha)}`);
+        if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Dar de alta tienda', `${t?.nombre || ''} desde ${fechaISOaCorta(fecha)}`, null, { tiendaId: bajaTiendaId });
       }
       cerrarModalBajaTienda();
       cargarAgenciasYTiendas();
@@ -1544,7 +1544,7 @@
     try {
       const { error } = await sb.from('tienda_bajas').delete().eq('id', p.id);
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Anular baja de tienda', `${t?.nombre || ''} (desde ${fechaISOaCorta(p.fecha_desde)})`);
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Anular baja de tienda', `${t?.nombre || ''} (desde ${fechaISOaCorta(p.fecha_desde)})`, null, { tiendaId: bajaTiendaId });
       cerrarModalBajaTienda();
       cargarAgenciasYTiendas();
     } catch (err) {
@@ -1653,7 +1653,7 @@
         return;
       }
 
-      const { error } = await sb.from('tiendas').insert({
+      const { data: creada, error } = await sb.from('tiendas').insert({
         numero_tienda: numeroTienda || null,
         nombre,
         agencia_id: agenciaId,
@@ -1676,9 +1676,10 @@
         en_apertura: enApertura,
         apertura_prevista: aperturaPrevista,
         orden: maxOrden + 1
-      });
+      }).select('id').single();
       if (error) throw error;
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', enApertura ? 'Crear tienda en apertura' : 'Crear tienda', nombre + (aperturaPrevista ? ` · prevista ${fechaISOaCorta(aperturaPrevista)}` : ''));
+      const nuevaId = creada?.id ?? null;
+      if (typeof registrarAccion === 'function') registrarAccion('tiendas', enApertura ? 'Crear tienda en apertura' : 'Crear tienda', nombre + (aperturaPrevista ? ` · prevista ${fechaISOaCorta(aperturaPrevista)}` : ''), null, { tiendaId: nuevaId });
       cerrarModalNuevaTienda();
       if (typeof mostrarToast === 'function') mostrarToast(enApertura ? `Tienda "${nombre}" creada en apertura` : `Tienda "${nombre}" creada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
@@ -2253,7 +2254,7 @@
       }).eq('id', activarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') {
-        registrarAccion('tiendas', eraApertura ? 'Activar tienda (apertura)' : 'Cambiar fecha de apertura', `${t?.nombre || ''} · abre el ${fechaISOaCorta(fecha)}`);
+        registrarAccion('tiendas', eraApertura ? 'Activar tienda (apertura)' : 'Cambiar fecha de apertura', `${t?.nombre || ''} · abre el ${fechaISOaCorta(fecha)}`, null, { tiendaId: activarTiendaId });
       }
       cerrarModalActivarTienda();
       if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${t?.nombre || ''}" activada desde el ${fechaISOaCorta(fecha)}`, { posicion: 'abajo' });
@@ -2266,6 +2267,106 @@
       botonGuardando(btn, false);
     }
   }
+
+  // ---------------------------------------------------------------
+  // Historial de cambios de una tienda (botón 🕓 de Editar tienda): las
+  // acciones de Auditoría (categoría "tiendas") de esa tienda, con la misma
+  // lupa Antes/Después. Visible para todos, sin el permiso de Auditoría.
+  // Se buscan por registro_acciones.tienda_id (desde octubre de 2026 cada
+  // acción de tiendas guarda el id; las antiguas se rellenaron a partir del
+  // nombre y de los renombrados). Lo que pudiera quedar sin id se busca por
+  // el nombre actual al principio del detalle ("NOMBRE", "NOMBRE: A → B"…).
+  // ---------------------------------------------------------------
+  let historialTiendaCache = [];
+
+  function detalleEsDeTienda(detalle, nombre) {
+    if (!detalle || !nombre) return false;
+    const d = detalle.toUpperCase(), n = nombre.toUpperCase();
+    if (d === n) return true;
+    if (!d.startsWith(n)) return false;
+    return /^(:| ·| desde | \(| en | abre )/i.test(d.slice(n.length));
+  }
+
+  async function abrirHistorialTienda(tiendaId) {
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
+    const overlay = document.getElementById('modalHistorialTiendaOverlay');
+    if (!t || !overlay) return;
+    const cuerpo = document.getElementById('htCuerpo');
+    document.getElementById('htTitulo').textContent = `🕓 Historial de cambios · ${t.nombre}`;
+    document.getElementById('htSub').textContent = 'Altas, ediciones, bajas y cambios de agencia de esta tienda, de más reciente a más antiguo.';
+    cuerpo.innerHTML = '<div class="lista-contador-vacia">Cargando…</div>';
+    overlay.classList.add('show');
+    try {
+      // 1) Todo lo registrado con el id de la tienda (aunque luego cambiara
+      //    de nombre). 2) Por si queda algún registro antiguo sin id, los de
+      //    su nombre actual sin id. % _ y * son comodines en ilike: se cambian
+      //    por "_" y luego detalleEsDeTienda() compara el nombre exacto.
+      const nombreSeguro = t.nombre.replace(/[%_*]/g, '_');
+      const campos = 'id, usuario, categoria, accion, detalle, cambios, creado_en';
+      const [porId, porNombre] = await Promise.all([
+        sb.from('registro_acciones').select(campos)
+          .eq('categoria', 'tiendas').eq('tienda_id', t.id)
+          .order('creado_en', { ascending: false }).limit(500),
+        sb.from('registro_acciones').select(campos)
+          .eq('categoria', 'tiendas').is('tienda_id', null).ilike('detalle', `${nombreSeguro}%`)
+          .order('creado_en', { ascending: false }).limit(300)
+      ]);
+      if (porId.error) throw porId.error;
+      if (porNombre.error) throw porNombre.error;
+      const vistos = new Set();
+      historialTiendaCache = [...(porId.data || []), ...(porNombre.data || []).filter(a => detalleEsDeTienda(a.detalle, t.nombre))]
+        .filter(a => !vistos.has(a.id) && vistos.add(a.id))
+        .sort((x, y) => (x.creado_en < y.creado_en ? 1 : -1));
+      const fecha = (iso) => typeof formatearFechaHoraCorta === 'function'
+        ? formatearFechaHoraCorta(new Date(iso)) : new Date(iso).toLocaleString('es-ES');
+      cuerpo.innerHTML = historialTiendaCache.length
+        ? `<table class="tabla-lista-contador tabla-historial-tienda">
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th></th></tr></thead>
+            <tbody>${historialTiendaCache.map(a => `
+              <tr>
+                <td class="suave" style="white-space:nowrap;">${escapeHtml(fecha(a.creado_en))}</td>
+                <td class="nombre">${escapeHtml(a.usuario || '—')}</td>
+                <td>${escapeHtml(a.accion || '—')}</td>
+                <td class="suave">${escapeHtml(a.detalle || '—')}</td>
+                <td style="text-align:right;">${Array.isArray(a.cambios) && a.cambios.length
+                  ? `<button type="button" class="aud-btn-lupa" data-ht-id="${a.id}" title="Ver qué se modificó" aria-label="Ver qué se modificó">&#128269;</button>` : ''}</td>
+              </tr>`).join('')}</tbody>
+          </table>`
+        : '<div class="lista-contador-vacia">No hay cambios registrados para esta tienda.</div>';
+    } catch (err) {
+      console.error('Error cargando el historial de la tienda:', err);
+      cuerpo.innerHTML = '<div class="lista-contador-vacia" style="color:var(--grave);">No se pudo cargar el historial.</div>';
+    }
+  }
+
+  // Lupa: misma ventana Campo / Antes / Después que Auditoría.
+  function abrirDetalleHistorialTienda(id) {
+    const a = historialTiendaCache.find(x => String(x.id) === String(id));
+    if (!a || typeof asegurarModalDetalleAuditoria !== 'function') return;
+    const overlay = asegurarModalDetalleAuditoria();
+    // Que quede por encima de la ventana de historial.
+    document.body.appendChild(overlay);
+    overlay.querySelector('#audDetalleTitulo').textContent = `${a.accion || 'Detalle'}${a.detalle ? ' · ' + a.detalle : ''}`;
+    overlay.querySelector('#audDetalleSub').textContent =
+      `${a.usuario || '—'} · ${typeof formatearFechaHoraCorta === 'function' ? formatearFechaHoraCorta(new Date(a.creado_en)) : a.creado_en}`;
+    overlay.querySelector('#audDetalleBody').innerHTML = a.cambios.map(c => `
+      <tr>
+        <td>${escapeHtml(c.campo || '—')}</td>
+        <td><span class="aud-valor-antes">${escapeHtml(c.antes ?? '—')}</span></td>
+        <td><span class="aud-valor-despues">${escapeHtml(c.despues ?? '—')}</span></td>
+      </tr>`).join('');
+    overlay.classList.add('show');
+  }
+
+  document.getElementById('metBtnHistorial')?.addEventListener('click', () => {
+    if (editarTiendaId != null) abrirHistorialTienda(editarTiendaId);
+  });
+  document.getElementById('btnCerrarHistorialTienda')?.addEventListener('click', () =>
+    document.getElementById('modalHistorialTiendaOverlay')?.classList.remove('show'));
+  document.getElementById('htCuerpo')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ht-id]');
+    if (btn) abrirDetalleHistorialTienda(btn.dataset.htId);
+  });
 
   document.getElementById('matBtnCancelar')?.addEventListener('click', cerrarModalActivarTienda);
   document.getElementById('matBtnGuardar')?.addEventListener('click', guardarModalActivarTienda);
@@ -2353,7 +2454,7 @@
         const campos = DIAS_SEMANA_ISO.map(d => ({ clave: String(d.iso), etiqueta: d.label, formato: audHora }));
         const cambios = typeof auditoriaCalcularCambios === 'function'
           ? auditoriaCalcularCambios(campos, mapaAntes, mapa) : null;
-        registrarAccion('tiendas', 'Configurar horario semanal', t?.nombre || '', cambios);
+        registrarAccion('tiendas', 'Configurar horario semanal', t?.nombre || '', cambios, { tiendaId: horarioSemanaTiendaId });
       }
       cerrarModalHorarioSemana();
       cargarAgenciasYTiendas();
