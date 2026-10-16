@@ -190,7 +190,7 @@
   #pageHeadTiendas > div:last-child{ justify-self:end; flex-wrap:nowrap !important; }
   #buscadorTiendas{ width:200px; }
   .tiendas-contadores{
-    display:flex; align-items:stretch; gap:10px; flex-wrap:nowrap; justify-self:start;
+    display:flex; align-items:stretch; gap:10px; flex-wrap:nowrap; justify-self:center;
   }
   .tiendas-contador{
     display:flex; flex-direction:column; align-items:center; gap:2px;
