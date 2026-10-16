@@ -1082,7 +1082,12 @@
       if (error) throw error;
       if (typeof registrarAccion === 'function') {
         const cambios = typeof auditoriaCalcularCambios === 'function'
-          ? auditoriaCalcularCambios(CAMPOS_AUDITORIA_TIENDA, tEditada, datosNuevos) : null;
+          ? auditoriaCalcularCambios(
+            // Solo los campos que se guardan en esta edición: la agencia y la
+            // apertura prevista solo van cuando se tocan (tienda en apertura),
+            // y si no, se compararían con "vacío" como si se hubieran borrado.
+            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosNuevos, c.clave)),
+            tEditada, datosNuevos) : null;
         registrarAccion('tiendas', 'Editar tienda', nombre, cambios, { tiendaId: editarTiendaId });
       }
       cerrarModalEditarTienda();
