@@ -235,6 +235,9 @@
     });
 
     renderAcordeonTiendas();
+    // Si se movió la tienda o se cambió su horario por días con el modal
+    // Editar tienda abierto detrás, este se actualiza solo.
+    if (editarTiendaId != null) refrescarAccionesModalEditar();
   }
 
   function renderTiendasContadores() {
@@ -440,13 +443,7 @@
                 <button class="mini-btn" data-mover="down" title="Bajar">▼</button>
                 <span class="acciones-separador"></span>
                 <button class="mini-btn" data-editar title="Editar">✏️</button>
-                <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
-                <span class="acciones-separador"></span>
-                <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                ${'' /* Baja/alta temporal: ahora dentro del modal Editar tienda (tarjeta "Estado de la tienda"). */}
-                <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
+                ${'' /* Horario por días, mover a otra agencia y baja/alta temporal: ahora dentro del modal Editar tienda. Eliminar tienda se quitó: para sacar una tienda se usa la baja temporal. */}
               </td>
             </tr>`;
           }).join('')
@@ -539,20 +536,6 @@
         abrirModalEditarTienda(Number(tr.dataset.tienda));
       });
     });
-    cont.querySelectorAll('[data-horario-semana]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tr = btn.closest('tr');
-        abrirModalHorarioSemana(Number(tr.dataset.tienda));
-      });
-    });
-    cont.querySelectorAll('[data-cambiar-agencia]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tr = btn.closest('tr');
-        cambiarAgenciaTienda(Number(tr.dataset.tienda));
-      });
-    });
     cont.querySelectorAll('[data-baja]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -565,13 +548,6 @@
         e.stopPropagation();
         const tr = btn.closest('tr');
         abrirModalBajaTienda(Number(tr.dataset.tienda), 'alta');
-      });
-    });
-    cont.querySelectorAll('[data-borrar]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tr = btn.closest('tr');
-        borrarTienda(Number(tr.dataset.tienda));
       });
     });
   }
@@ -707,6 +683,11 @@
     errEl.style.display = 'none';
     errEl.textContent = '';
 
+    refrescarAccionesModalEditar();
+    // Foto de los campos recién cargados: sirve para saber si hay cambios
+    // sin guardar antes de abrir Cambiar agencia u Horario por días.
+    fotoFormEditarTienda = estadoFormEditarTienda();
+
     overlay.classList.add('show');
     setTimeout(() => document.getElementById('metNombre').focus(), 30);
   }
@@ -714,7 +695,88 @@
   function cerrarModalEditarTienda() {
     document.getElementById('modalEditarTiendaOverlay')?.classList.remove('show');
     editarTiendaId = null;
+    fotoFormEditarTienda = null;
   }
+
+  // ---------------------------------------------------------------
+  // Cambiar agencia y Horario por días, dentro del modal Editar tienda
+  // (antes eran ⇄ y 🗓️ en la fila de la lista).
+  // ---------------------------------------------------------------
+  let fotoFormEditarTienda = null;
+
+  // Valores de todos los campos editables del modal (incluidas las
+  // entregas de otra agencia y las fechas de prueba del calendario).
+  // Los campos de solo lectura y el bloque SALIDAS no cuentan.
+  function estadoFormEditarTienda() {
+    const overlay = document.getElementById('modalEditarTiendaOverlay');
+    if (!overlay) return '';
+    const valores = [];
+    overlay.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.readOnly || el.closest('#metSalidasBloque')) return;
+      if (el.type === 'button' || el.type === 'submit') return;
+      const clave = el.id || el.name || '';
+      valores.push(clave + '=' + ((el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? '1' : '0') : el.value));
+    });
+    valores.push('pruebaFechas=' + [...calPrueba.met.fechas].sort().join(','));
+    return valores.join('|');
+  }
+
+  function hayCambiosSinGuardarEditarTienda() {
+    return fotoFormEditarTienda != null && estadoFormEditarTienda() !== fotoFormEditarTienda;
+  }
+
+  // Resumen corto del horario por días: "L 08:30 · X 08:30" o "sin horas especiales".
+  const LETRA_DIA_ISO = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' };
+  function resumenHorarioSemana(t) {
+    const mapa = t?.horario_semana || {};
+    const dias = Object.keys(mapa).map(Number).filter(d => LETRA_DIA_ISO[d]).sort((a, b) => a - b);
+    if (!dias.length) return 'sin horas especiales';
+    return dias.map(d => `${LETRA_DIA_ISO[d]} ${String(mapa[String(d)]).slice(0, 5)}`).join(' · ');
+  }
+
+  // Pinta lo que cambian estas dos acciones (agencia y horario por días)
+  // sin tocar los campos editables, para no pisar lo que se esté escribiendo.
+  function refrescarAccionesModalEditar() {
+    if (editarTiendaId == null) return;
+    const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    if (!t) return;
+    const metAgInfo = document.getElementById('metAgenciaInfo');
+    if (metAgInfo) metAgInfo.value = agenciasCache.find(a => a.id === t.agencia_id)?.nombre || '—';
+    // En apertura la agencia se cambia con el desplegable del propio modal.
+    const btnAg = document.getElementById('metBtnCambiarAgencia');
+    if (btnAg) btnAg.style.display = t.en_apertura ? 'none' : '';
+    const filaAg = btnAg?.closest('.tf-agencia-fila');
+    if (filaAg) filaAg.style.display = t.en_apertura ? 'none' : '';
+    const notaProg = document.getElementById('metAgenciaProgramado');
+    const prog = cambioProgramadoDeTienda(t.id);
+    if (notaProg) {
+      notaProg.style.display = prog && !t.en_apertura ? '' : 'none';
+      notaProg.textContent = prog ? `📅 Pasa a ${prog.agencia_nueva_nombre} el ${fechaISOaCorta(prog.fecha_cambio)}` : '';
+    }
+    const resumen = document.getElementById('metHorarioResumen');
+    if (resumen) resumen.textContent = '· ' + resumenHorarioSemana(t);
+    document.getElementById('metBtnHorarioSemana')?.classList.toggle('con-horario', !!Object.keys(t.horario_semana || {}).length);
+  }
+
+  // Antes de abrir otro modal desde Editar tienda: si hay cambios sin
+  // guardar, avisa. Si se sigue, esos cambios se descartan (la ficha
+  // vuelve a como está guardada) y luego se abre la acción.
+  async function accionDesdeEditarTienda(abrirAccion) {
+    if (editarTiendaId == null) return;
+    const id = editarTiendaId;
+    if (hayCambiosSinGuardarEditarTienda()) {
+      const seguir = await modalConfirm(
+        'Has cambiado datos de esta tienda que aún no están guardados. Si sigues, esos cambios se pierden.\n\nPara no perderlos, pulsa Volver y luego Guardar.',
+        { titulo: 'Cambios sin guardar', icono: '⚠️', textoOk: 'Seguir sin guardar', textoCancel: 'Volver' }
+      );
+      if (!seguir || editarTiendaId !== id) return;
+      abrirModalEditarTienda(id);
+    }
+    abrirAccion(id);
+  }
+
+  document.getElementById('metBtnCambiarAgencia')?.addEventListener('click', () => accionDesdeEditarTienda(cambiarAgenciaTienda));
+  document.getElementById('metBtnHorarioSemana')?.addEventListener('click', () => accionDesdeEditarTienda(abrirModalHorarioSemana));
 
   // Nº de tienda único: no puede haber dos tiendas ACTIVAS con el mismo
   // número (las eliminadas —activo=false— no cuentan, para poder reutilizar
@@ -1373,47 +1435,6 @@
     } catch (err) {
       console.error('Error moviendo tienda de agencia:', err);
       await modalAlert('No se pudo mover la tienda a la otra agencia.', { titulo: 'Error' });
-    }
-  }
-
-  async function borrarTienda(id) {
-    const t = tiendasGestionCache.find(x => x.id === id);
-    if (!t) return;
-    const ok = await modalConfirm(
-      `¿Eliminar "${t.nombre}"?\n\nSe conserva todo su histórico (incidencias, análisis e informes anteriores). Desde hoy dejará de salir en el Informe del día y en el Reporte mensual no llevará más OK: ese mes quedará en gris hasta fin de mes y desaparecerá en los meses siguientes.\n\nSi solo es una parada temporal, usa mejor "Dar de baja" (⏸️), que se puede revertir.`,
-      { titulo: 'Eliminar tienda', danger: true, textoOk: 'Eliminar' }
-    );
-    if (!ok) return;
-    try {
-      const { error } = await sb.from('tiendas').update({ activo: false }).eq('id', id);
-      if (error) throw error;
-
-      // Deja constancia de la fecha de eliminación (la usa el Reporte
-      // mensual). Si ya tenía una baja abierta, esa baja pasa a ser la
-      // eliminación (conserva su fecha de inicio); si no, empieza hoy.
-      try {
-        const abierta = bajasCache.find(b => b.tienda_id === id && b.tipo === 'BAJA' && !b.fecha_reactivacion);
-        if (abierta) {
-          const { error: eB } = await sb.from('tienda_bajas').update({ tipo: 'ELIMINADA' }).eq('id', abierta.id);
-          if (eB) throw eB;
-        } else {
-          const { error: eB } = await sb.from('tienda_bajas').insert({
-            tienda_id: id,
-            tipo: 'ELIMINADA',
-            fecha_desde: fechaLocalISO(new Date()),
-            creado_por: sesionActual?.nombre || sesionActual?.usuario || null
-          });
-          if (eB) throw eB;
-        }
-      } catch (eBaja) {
-        console.error('No se pudo registrar la fecha de eliminación de la tienda:', eBaja);
-      }
-
-      if (typeof registrarAccion === 'function') registrarAccion('tiendas', 'Eliminar tienda', t.nombre, null, { tiendaId: id });
-      cargarAgenciasYTiendas();
-    } catch (err) {
-      console.error('Error eliminando tienda:', err);
-      await modalAlert('No se pudo eliminar la tienda.', { titulo: 'Error' });
     }
   }
 

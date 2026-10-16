@@ -43,6 +43,8 @@ const BOTONES_CON_PERMISO = [
   ['[data-cancelar-programado]', 'config_tiendas'],
   ['[data-activar-tienda]', 'config_tiendas'],
   ['#metBtnActivar', 'config_tiendas'],
+  ['#metBtnCambiarAgencia', 'config_tiendas'],
+  ['#metBtnHorarioSemana', 'config_tiendas'],
   ['#matBtnGuardar', 'config_tiendas'],
   ['#mmaBtnGuardar', 'config_tiendas'],
   ['#btnNuevaAgencia', 'config_emails'],
@@ -60,7 +62,6 @@ const BOTONES_CON_PERMISO = [
   ['#contenidoGravedadMotivos [data-cambiar-nivel]', 'config_gravedad_motivos'],
   ['#btnGuardarGravedadMotivos', 'config_gravedad_motivos'],
   ['#btnBorrarPanelSiniestro', 'borrar'],
-  ['.agencia-body [data-borrar]', 'borrar'],
   ['.ps-foto-quitar', 'borrar'],
   ['#btnQuitarFactura', 'borrar'],
   ['#btnQuitarAlbaran', 'borrar']
