@@ -1441,8 +1441,12 @@
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Agencia</label>
-              <input type="text" id="metAgenciaInfo" class="form-input tf-solo-lectura" readonly tabindex="-1" title="Para cambiar de agencia usa el movimiento de tienda">
+              <div class="tf-agencia-fila">
+                <input type="text" id="metAgenciaInfo" class="form-input tf-solo-lectura" readonly tabindex="-1" title="Para cambiar de agencia pulsa Cambiar">
+                <button type="button" class="btn tf-btn-cambiar-agencia" id="metBtnCambiarAgencia" title="Mover la tienda a otra agencia (ahora o programado)">⇄ Cambiar</button>
+              </div>
               <select id="metAgenciaApertura" class="form-input" style="display:none;" title="La tienda aún no ha abierto: la agencia se puede cambiar aquí"></select>
+              <p class="tf-campo-nota" id="metAgenciaProgramado" style="display:none;"></p>
             </div>
           </div>
         </section>
@@ -1464,7 +1468,9 @@
           </div>
         </section>
         <section class="tf-seccion">
-          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span></h4>
+          <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">🚚</span>Entrega<span class="tf-seccion-nota">· Horas siempre en <b>horario peninsular</b> (hora de Madrid) para todas las tiendas, incluidas Canarias y Portugal.</span>
+            <button type="button" class="btn tf-btn-horario" id="metBtnHorarioSemana" title="Hora de entrega distinta para días concretos de la semana">🗓️ Horario por días<span class="tf-btn-horario-resumen" id="metHorarioResumen"></span></button>
+          </h4>
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
               <label class="form-label">Hora prevista <span class="tf-req tf-req-apertura">*</span></label>

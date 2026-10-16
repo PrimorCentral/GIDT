@@ -526,18 +526,11 @@
     padding:5px 6px; color:var(--ink-soft); border-radius:6px;
   }
   .mini-btn:hover{ background:var(--panel-muted); color:var(--ink); }
-  /* El botón de eliminar avisa en rojo solo al pasar el ratón, para no
-     destacar una acción destructiva con el mismo peso que el resto. */
-  .mini-btn[data-borrar]:hover{ background:var(--grave-bg); color:var(--grave); }
   /* Quitar factura / Quitar albarán en el Panel siniestros: sí destaca en
      rojo desde el principio (no solo al pasar el ratón), para que se note
      que es una acción destructiva sobre un archivo ya guardado. */
   .mini-btn-danger{ background:var(--grave-bg); color:var(--grave); }
   .mini-btn-danger:hover{ background:var(--grave); color:#fff; }
-  /* El de horario semanal se distingue un poco (tono de marca) del resto
-     de iconos "neutros" de la fila. */
-  .mini-btn[data-horario-semana]{ color:var(--accent-ink); }
-  .mini-btn[data-horario-semana]:hover{ background:#FFEEDF; }
   .acciones-separador{
     display:inline-block; width:1px; height:16px; background:var(--border);
     margin:0 4px; vertical-align:middle;
@@ -1902,7 +1895,6 @@ body.rol-operador:not(.perm-ver_log_cambios_informes) .perm-gated-log-cambios{ d
    Igual que el resto: visible pero atenuado y pulsable, avisa al
    pulsar en vez de desaparecer (permisos-aviso.js). */
 body:not(.perm-borrar) #btnBorrarPanelSiniestro,
-body:not(.perm-borrar) .agencia-body [data-borrar],
 body:not(.perm-borrar) .ps-foto-quitar,
 body:not(.perm-borrar) #btnQuitarFactura,
 body:not(.perm-borrar) #btnQuitarAlbaran{
@@ -2703,6 +2695,28 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
   border-color:var(--border);
 }
 
+/* Editar tienda: botón "⇄ Cambiar" pegado al campo Agencia (solo lectura) */
+.tf-agencia-fila{ display:flex; gap:8px; align-items:stretch; }
+.tf-agencia-fila .form-input{ flex:1 1 auto; min-width:0; }
+.btn.tf-btn-cambiar-agencia{
+  flex:0 0 auto; height:40px; padding:0 14px; white-space:nowrap;
+  background:#FFF1E6; border-color:#FFD2B0; color:var(--accent-ink); font-weight:600;
+}
+.btn.tf-btn-cambiar-agencia:hover{ background:#FFE4CC; }
+.tf-campo-nota{ margin:5px 0 0; font-size:11.5px; color:var(--accent-ink); }
+
+/* Editar tienda: botón "🗓️ Horario por días" en la cabecera de la sección Entrega */
+.tf-seccion-titulo:has(.tf-btn-horario){ flex-wrap:wrap; }
+.tf-seccion-titulo:has(.tf-btn-horario) .tf-seccion-nota{ flex:1 1 260px; min-width:0; }
+.btn.tf-btn-horario{
+  margin-left:auto; padding:5px 12px; font-size:12.5px; font-weight:600;
+  background:var(--moderado-bg); border-color:#C9DCFB; color:var(--moderado);
+  white-space:nowrap; letter-spacing:0;
+}
+.btn.tf-btn-horario:hover{ background:#D6E6FD; }
+.tf-btn-horario-resumen{ margin-left:6px; font-weight:400; color:var(--ink-soft); }
+.btn.tf-btn-horario.con-horario .tf-btn-horario-resumen{ color:var(--moderado); font-weight:600; }
+
 /* ========== Cambios de agencia programados (tiendas.js) ========== */
 .tiendas-contador.programado{ background:var(--moderado-bg); color:var(--moderado); }
 .pill.programado{ background:var(--moderado-bg); color:var(--moderado); margin-left:6px; white-space:nowrap; }
@@ -3221,6 +3235,8 @@ table.tabla-tiendas tr.fila-apertura td.celda-nombre{ color:#5B2F91; }
   .tiendas-contadores{ flex-wrap:wrap; }
 }
 body:not(.perm-config_tiendas) #metBtnActivar,
+body:not(.perm-config_tiendas) #metBtnCambiarAgencia,
+body:not(.perm-config_tiendas) #metBtnHorarioSemana,
 body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:.6; }
 @media (max-width: 900px){
   #pageHeadTiendas > div:last-child{ justify-self:start; flex-wrap:wrap !important; }
