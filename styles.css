@@ -3181,10 +3181,6 @@ table.tabla-tiendas tr.fila-apertura td.celda-nombre{ color:#5B2F91; }
 .btn.btn-activar-tienda{ background:#7C4DBD; border-color:#7C4DBD; color:#fff; }
 .btn.btn-activar-tienda:hover{ background:#6B3FA0; border-color:#6B3FA0; color:#fff; }
 #metCardApertura .btn-activar-tienda{ width:100%; margin-top:10px; justify-content:center; }
-/* Volcar a SALIDAS (tienda en apertura) */
-.btn.btn-volcar-salidas{ width:100%; margin-top:10px; justify-content:center; background:#fff; border-color:#1d3a5f; color:#1d3a5f; }
-.btn.btn-volcar-salidas:hover{ background:#eef4fb; }
-.btn.btn-volcar-salidas.volcada{ background:#e3f3ec; border-color:#2f8f6f; color:#2f8f6f; }
 .ea-card.on.ape{ border-color:#D3BEF3; box-shadow:inset 3px 0 0 #8B5CF6; }
 .ea-switch.ape:checked{ background:#7C4DBD; }
 .ea-card.ape .form-input{ height:38px; }
@@ -3234,11 +3230,27 @@ body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:
 #view-config-tiendas .mini-btn.mini-btn-off{ opacity:.2 !important; cursor:not-allowed !important; pointer-events:none; }
 /* Botón 🕓 (historial de cambios) en la cabecera de Editar tienda */
 .btn.btn-historial-tienda{ padding-left:12px; padding-right:12px; font-size:16px; line-height:1; }
-/* Icono "SALIDAS ✓/✗" (¿está la tienda cargada en SALIDAS?) */
-.btn.btn-estado-salidas{ padding-left:10px; padding-right:10px; font-size:11px; font-weight:700; letter-spacing:.3px; color:#6b7280; gap:5px; }
-.btn.btn-estado-salidas .es-ico{ font-size:13px; }
-.btn.btn-estado-salidas.ok{ background:#e3f3ec; border-color:#2f8f6f; color:#2f8f6f; }
-.btn.btn-estado-salidas.no{ background:#f3f4f6; border-color:#d1d5db; color:#9ca3af; }
-.btn.btn-estado-salidas.err{ background:#fef3c7; border-color:#d97706; color:#b45309; }
 .historial-tienda-box{ max-width:960px; }
 table.tabla-historial-tienda tbody tr{ cursor:default; }
+
+/* Editar tienda · tarjeta "Estado de la tienda" de una tienda abierta (Activa / De baja) */
+#metCardActiva.act{ border-color:#9fd8c3; box-shadow:inset 3px 0 0 #2f8f6f; }
+#metCardActiva.bj{ border-color:#f3b4b4; box-shadow:inset 3px 0 0 #d92d20; }
+.marca-badge.marca-activa{ background:#d1fae5; color:#065f46; }
+.marca-badge.marca-baja{ background:#fde2e2; color:#9b1c1c; }
+#metCardActiva .btn, #metSalidasBloque .btn{ width:100%; margin-top:10px; justify-content:center; }
+.btn.btn-baja-tienda{ background:#fff; border-color:#d92d20; color:#b42318; }
+.btn.btn-baja-tienda:hover{ background:#fef3f2; }
+.btn.btn-alta-tienda{ background:#2f8f6f; border-color:#2f8f6f; color:#fff; }
+.btn.btn-alta-tienda:hover{ background:#25735a; border-color:#25735a; color:#fff; }
+/* Bloque SALIDAS (dentro de la tarjeta de estado): línea con el estado real + botón */
+#metSalidasBloque{ margin-top:12px; padding-top:10px; border-top:1px dashed #e5e7eb; }
+.salidas-estado{ margin:0; font-weight:600; }
+.salidas-estado.ok{ color:#2f8f6f; }
+.salidas-estado.no{ color:#6b7280; }
+.salidas-estado.err{ color:#b45309; }
+.salidas-estado a{ color:inherit; font-weight:400; }
+.btn.btn-volcar-salidas{ background:#fff; border-color:#1d3a5f; color:#1d3a5f; }
+.btn.btn-volcar-salidas:hover{ background:#eef4fb; }
+.btn.btn-volcar-salidas.quitar{ background:#fff; border-color:#d92d20; color:#b42318; }
+.btn.btn-volcar-salidas.quitar:hover{ background:#fef3f2; }

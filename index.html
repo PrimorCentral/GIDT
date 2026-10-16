@@ -1416,7 +1416,6 @@
         <p id="metError" class="err" style="display:none;"></p>
       </div>
       <div class="tienda-modal-head-acciones">
-        <button type="button" class="btn btn-estado-salidas" id="metEstadoSalidas" title="Comprobando si está en SALIDAS…" aria-label="Estado en SALIDAS">SALIDAS <span class="es-ico">…</span></button>
         <button type="button" class="btn btn-historial-tienda" id="metBtnHistorial" title="Ver el historial de cambios de esta tienda" aria-label="Ver el historial de cambios de esta tienda">🕓</button>
         <button type="button" class="btn" id="modalEditarTiendaBtnCancelar">Cancelar</button>
         <button type="button" class="btn primary" id="modalEditarTiendaBtnGuardar">Guardar</button>
@@ -1518,8 +1517,8 @@
     </div>
       <aside class="tienda-extra">
         <div class="tienda-extra-head" id="metAperturaCabecera" style="display:none;">
-          <h4>🚧 Estado de la tienda</h4>
-          <p>Aún no ha abierto.</p>
+          <h4 id="metEstadoTitulo">🚧 Estado de la tienda</h4>
+          <p id="metEstadoSub">Aún no ha abierto.</p>
         </div>
         <div class="ea-card ape on" id="metCardApertura" style="display:none;">
           <div class="ea-toggle" style="cursor:default;">
@@ -1533,9 +1532,25 @@
             </div>
             <button type="button" class="btn btn-activar-tienda" id="metBtnActivar">🚀 Activar tienda</button>
             <p class="ea-hint">Pulsa Activar cuando abra: pedirá la fecha de apertura real. Si has cambiado algo en la ficha, guárdalo antes.</p>
-            <button type="button" class="btn btn-volcar-salidas" id="metBtnVolcarSalidas">📤 Volcar a SALIDAS</button>
-            <p class="ea-hint" id="metVolcarSalidasHint">Mientras está en apertura no sale en SALIDAS. Vuélcala si ya hay que preparar sus salidas de mercancía.</p>
           </div>
+        </div>
+        <!-- Tienda abierta (o de baja temporal): mismo estilo que la de apertura. -->
+        <div class="ea-card act on" id="metCardActiva" style="display:none;">
+          <div class="ea-toggle" style="cursor:default;">
+            <span class="marca-badge" id="metActivaBadge">✓</span><b id="metActivaTitulo">Activa</b>
+            <span class="ea-res" id="metActivaResumen"></span>
+          </div>
+          <div class="ea-body" id="metActivaCuerpo">
+            <p class="ea-hint" id="metBajaInfo" style="display:none; margin-top:0;"></p>
+            <button type="button" class="btn btn-baja-tienda" id="metBtnBaja">⏸️ Dar de baja temporal</button>
+            <p class="ea-hint" id="metBajaHint">Deja de recibir mercancía por un tiempo (obras, cierre temporal…).</p>
+          </div>
+        </div>
+        <!-- Bloque SALIDAS: se coloca (por JS) dentro de la tarjeta visible,
+             la de apertura o la de tienda abierta. -->
+        <div id="metSalidasBloque">
+          <p class="ea-hint salidas-estado" id="metSalidasEstado">Comprobando SALIDAS…</p>
+          <button type="button" class="btn btn-volcar-salidas" id="metBtnVolcarSalidas">📤 Volcar a SALIDAS</button>
         </div>
         <div class="tienda-extra-head">
           <h4>🔁 Entregas de otra agencia</h4>
