@@ -3278,10 +3278,10 @@ body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:
   background:var(--panel-muted); color:var(--ink); font-size:12.5px; font-weight:700; vertical-align:middle;
 }
 .ps-num-chip:empty{ display:none; }
-.ps-fila{ flex:1 1 auto; min-height:0; display:flex; align-items:stretch; overflow-y:auto; overflow-x:hidden; }
+.ps-modal-fila{ flex:1 1 auto; min-height:0; display:flex; align-items:stretch; overflow-y:auto; overflow-x:hidden; }
 .ps-modal-conjunto.con-cabecera .ps-modal-cabecera{ padding-right:0; }
 @media (max-width: 960px){
-  .ps-fila{ flex-direction:column; }
+  .ps-modal-fila{ flex-direction:column; }
   .ps-cab{ flex-wrap:wrap; }
 }
 @media (max-width:680px){
