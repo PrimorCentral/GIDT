@@ -10,6 +10,20 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.1',
+    fecha: '2026-10-16',
+    cambios: [
+      { tipo: 'nuevo',      texto: 'Tiendas en apertura: en Gestión de tiendas se puede dar de alta una tienda que aún no ha abierto (tarjeta "En apertura", con fecha prevista opcional), para tener sus datos; no sale en el Informe del día, el Historial, el Reporte mensual ni el Panel siniestros hasta que se activa' },
+      { tipo: 'nuevo',      texto: 'Botón "Activar tienda" en la ficha de la tienda y en la lista de Aperturas: pide la fecha de apertura real y desde ese día la tienda empieza a contar como activa; para activarla la ficha tiene que estar completa' },
+      { tipo: 'nuevo',      texto: 'Nuevo contador "Aperturas" en Gestión de tiendas, con la lista de las tiendas que aún no han abierto' },
+      { tipo: 'nuevo',      texto: 'Nuevo botón "Filtros" en Gestión de tiendas para filtrar por agencias, tránsito y tiendas; con el filtro activo se indica cuántas tiendas se muestran de cuántas' },
+      { tipo: 'mejora',     texto: 'Al exportar el Excel detallado con un filtro activo, se pregunta si exportar solo las tiendas filtradas o todas; las tiendas en apertura salen en el detallado con fondo gris y no salen en el resumido' },
+      { tipo: 'nuevo',      texto: 'Botón 🕓 en Editar tienda con el historial de cambios de esa tienda (quién la creó, ediciones con el detalle de antes y después, bajas, cambios de agencia…), visible para todos sin necesidad del permiso de Auditoría' },
+      { tipo: 'mejora',     texto: 'Los cambios de cada tienda quedan registrados con la propia tienda, así que su historial se mantiene completo aunque cambie de nombre' },
+      { tipo: 'mejora',     texto: 'La cabecera de Gestión de tiendas cabe en una sola línea, con los contadores centrados' }
+    ]
+  },
+  {
     version: '1.8.0',
     fecha: '2026-10-12',
     cambios: [
