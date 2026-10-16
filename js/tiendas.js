@@ -442,14 +442,14 @@
                 <button class="mini-btn" data-editar title="Editar">✏️</button>
                 <button class="mini-btn" data-horario-semana title="Horario por días de la semana">🗓️</button>
                 <span class="acciones-separador"></span>
-                ${enApertura
-                  ? '' /* en apertura: se activa desde Editar tienda */
-                  : `<button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
+                <button class="mini-btn" data-cambiar-agencia title="Mover a otra agencia">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8h13M17 8l-4-4M17 8l-4 4M20 16H7M7 16l4-4M7 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
-                ${pBaja
+                ${enApertura
+                  ? `<button class="mini-btn mini-btn-off" disabled tabindex="-1" title="No disponible: la tienda aún no ha abierto">⏸️</button>`
+                  : pBaja
                   ? `<button class="mini-btn" data-alta title="Dar de alta (vuelve a recibir mercancía)">▶️</button>`
-                  : `<button class="mini-btn" data-baja title="Dar de baja (deja de recibir mercancía por un tiempo)">⏸️</button>`}`}
+                  : `<button class="mini-btn" data-baja title="Dar de baja (deja de recibir mercancía por un tiempo)">⏸️</button>`}
                 <button class="mini-btn" data-borrar title="Eliminar">🗑️</button>
               </td>
             </tr>`;
@@ -1196,6 +1196,10 @@
       + agenciasActivas().filter(a => a.id !== t.agencia_id)
         .map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
     sel.value = '';
+    // Tienda en apertura: solo "Ahora mismo" (aún no ha abierto, no hace
+    // falta programar nada ni dejar historial de cambio de agencia).
+    const segCuando = document.getElementById('mmaCuando');
+    if (segCuando?.parentElement) segCuando.parentElement.style.display = tiendaEnApertura(t) ? 'none' : '';
     const fecha = document.getElementById('mmaFecha');
     fecha.min = sumarDiasISO(fechaLocalISO(new Date()), 1);
     fecha.value = '';
@@ -1340,7 +1344,9 @@
         .eq('id', id);
       if (error) throw error;
 
-      const { error: eHist } = await sb.from('tienda_agencia_historial').insert({
+      // Tienda en apertura: aún no existe para informes/reportes, así que
+      // no se deja historial de cambio de agencia (solo se cambia la ficha).
+      const { error: eHist } = tiendaEnApertura(t) ? { error: null } : await sb.from('tienda_agencia_historial').insert({
         tienda_id: id,
         agencia_anterior_id: t.agencia_id,
         agencia_anterior_nombre: agenciaAnterior?.nombre || null,
