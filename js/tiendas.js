@@ -209,7 +209,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
@@ -687,6 +687,7 @@
     const btnAct = document.getElementById('metBtnActivar');
     if (btnAct) btnAct.textContent = t.en_apertura ? '🚀 Activar tienda' : '📅 Cambiar fecha de apertura';
     sincronizarTarjetaApertura('met');
+    pintarBotonVolcarSalidas(t);
     const resApe = document.getElementById('metAperturaResumen');
     if (resApe && enAperturaAhora && !t.en_apertura) resApe.textContent = `Abre el ${fechaISOaCorta(t.fecha_apertura)}`;
     const selAgApe = document.getElementById('metAgenciaApertura');
@@ -2381,6 +2382,57 @@
   document.getElementById('matBtnGuardar')?.addEventListener('click', guardarModalActivarTienda);
   document.getElementById('metBtnActivar')?.addEventListener('click', () => {
     if (editarTiendaId != null) abrirModalActivarTienda(editarTiendaId, { desdeEditar: true });
+  });
+
+  // "Volcar a SALIDAS": una tienda en apertura normalmente no se manda a
+  // SALIDAS hasta que se activa. Con volcar_salidas = true se manda ya (la
+  // base de datos de GIDT la envía sola al guardar, ver _salidas_trg_tiendas).
+  // Solo tiene sentido mientras está en apertura: al activarla ya va sola.
+  function pintarBotonVolcarSalidas(t) {
+    const btn = document.getElementById('metBtnVolcarSalidas');
+    const hint = document.getElementById('metVolcarSalidasHint');
+    if (!btn) return;
+    const visible = !!t?.en_apertura;
+    btn.style.display = visible ? '' : 'none';
+    if (hint) hint.style.display = visible ? '' : 'none';
+    if (!visible) return;
+    btn.classList.toggle('volcada', !!t.volcar_salidas);
+    btn.textContent = t.volcar_salidas ? '✓ Ya está en SALIDAS · quitar' : '📤 Volcar a SALIDAS';
+    if (hint) hint.textContent = t.volcar_salidas
+      ? 'Ya se ha mandado a SALIDAS aunque siga en apertura. Si la quitas, desaparecerá de SALIDAS salvo que ya esté puesta en alguna ruta.'
+      : 'Mientras está en apertura no sale en SALIDAS. Vuélcala si ya hay que preparar sus salidas de mercancía.';
+  }
+
+  document.getElementById('metBtnVolcarSalidas')?.addEventListener('click', async () => {
+    if (editarTiendaId == null) return;
+    const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    if (!t) return;
+    const nuevo = !t.volcar_salidas;
+    if (nuevo && (!t.numero_tienda || !String(t.numero_tienda).trim())) {
+      const err = document.getElementById('metError');
+      if (err) { err.textContent = 'Para volcarla a SALIDAS la tienda necesita número de tienda (guárdalo antes).'; err.style.display = 'block'; }
+      return;
+    }
+    const btn = document.getElementById('metBtnVolcarSalidas');
+    btn.disabled = true;
+    try {
+      const { error } = await sb.from('tiendas').update({ volcar_salidas: nuevo }).eq('id', t.id);
+      if (error) throw error;
+      t.volcar_salidas = nuevo;
+      pintarBotonVolcarSalidas(t);
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('tiendas', nuevo ? 'Volcar tienda a SALIDAS (en apertura)' : 'Quitar tienda de SALIDAS (en apertura)', t.nombre, null, { tiendaId: t.id });
+      }
+      if (typeof mostrarToast === 'function') {
+        mostrarToast(nuevo ? `"${t.nombre}" volcada a SALIDAS` : `"${t.nombre}" ya no se manda a SALIDAS`, { posicion: 'abajo' });
+      }
+    } catch (e) {
+      console.error('Error al volcar la tienda a SALIDAS:', e);
+      const err = document.getElementById('metError');
+      if (err) { err.textContent = 'No se pudo cambiar el volcado a SALIDAS.'; err.style.display = 'block'; }
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // Tarjeta "En apertura" de Nueva tienda: interruptor + fecha prevista.
