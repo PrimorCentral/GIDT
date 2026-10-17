@@ -502,7 +502,7 @@
 
   table.tabla-tiendas{ width:100%; min-width:1300px; border-collapse:collapse; font-size:13px; }
   table.tabla-tiendas thead th{
-    position:sticky; top:0; z-index:1; text-align:left; padding:9px 16px;
+    position:sticky; top:0; z-index:1; text-align:center; vertical-align:middle; padding:9px 16px;
     background:var(--panel-muted); color:var(--ink-soft); font-size:10.5px;
     text-transform:uppercase; letter-spacing:.4px; font-weight:700;
     border-bottom:1px solid var(--border);
