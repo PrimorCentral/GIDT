@@ -1933,12 +1933,17 @@ body:not(.perm-informe_dia) td.col-motivo .filtro-check{
    y el buscador de tienda quedan siempre activos; solo se bloquean
    los campos de edición y los botones de aplicar/quitar. */
 body:not(.perm-informe_dia) #utilNuevaHora,
-body:not(.perm-informe_dia) #utilNuevaAgencia{
+body:not(.perm-informe_dia) #utilNuevaAgencia,
+body:not(.perm-informe_dia) #utilEspecialAgencia,
+body:not(.perm-informe_dia) #utilEspecialHora{
   pointer-events:none !important; opacity:.6;
 }
 body:not(.perm-informe_dia) #utilBtnGuardarAjuste,
 body:not(.perm-informe_dia) #utilBtnQuitarAjuste,
-body:not(.perm-informe_dia) .util-btn-quitar{
+body:not(.perm-informe_dia) .util-btn-quitar,
+body:not(.perm-informe_dia) #utilBtnGuardarEspecial,
+body:not(.perm-informe_dia) #utilBtnQuitarEspecial,
+body:not(.perm-informe_dia) .util-btn-quitar-especial{
   opacity:.6;
 }
 
