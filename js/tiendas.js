@@ -325,17 +325,22 @@
                 <td>${escapeHtml(nomAg(t.agencia_id))}</td>
                 <td class="suave">${escapeHtml(t.provincia || '—')}</td>
                 <td class="${t.en_apertura && !t.apertura_prevista ? 'suave' : ''}">${escapeHtml(fecha)}</td>
-                <td style="text-align:right;">${t.en_apertura ? `<button type="button" class="mini-btn btn-activar" data-activar-tienda="${t.id}">🚀 Activar</button>` : ''}</td>
+                <td style="text-align:right;white-space:nowrap;">${t.en_apertura ? `${botonCamionSalidasHtml(t)}<button type="button" class="mini-btn btn-activar" data-activar-tienda="${t.id}">🚀 Activar</button>` : ''}</td>
               </tr>`;
             }).join('')}</tbody>
           </table>`
         : '<div class="lista-contador-vacia">No hay ninguna tienda en apertura.</div>';
+      cuerpo.querySelectorAll('[data-salidas-tienda]').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        alternarSalidasDesdeLista(Number(b.dataset.salidasTienda), b);
+      }));
       cuerpo.querySelectorAll('[data-activar-tienda]').forEach(b => b.addEventListener('click', (e) => {
         e.stopPropagation();
         cerrarListaContador();
         abrirModalActivarTienda(Number(b.dataset.activarTienda));
       }));
       cuerpo.querySelectorAll('tr[data-tienda]').forEach(tr => tr.addEventListener('click', () => {
+        if (sinPermisoEditarTienda()) return;
         cerrarListaContador();
         abrirModalEditarTienda(Number(tr.dataset.tienda));
       }));
@@ -367,6 +372,7 @@
         cancelarCambioProgramado(Number(b.dataset.cancelarProgramado));
       }));
       cuerpo.querySelectorAll('.prog-fila[data-tienda]').forEach(f => f.addEventListener('click', () => {
+        if (sinPermisoEditarTienda()) return;
         cerrarListaContador();
         abrirModalEditarTienda(Number(f.dataset.tienda));
       }));
@@ -384,11 +390,68 @@
         </table>`
       : '<div class="lista-contador-vacia">No hay ninguna tienda.</div>';
     cuerpo.querySelectorAll('tr[data-tienda]').forEach(tr => tr.addEventListener('click', () => {
+      if (sinPermisoEditarTienda()) return;
       cerrarListaContador();
       abrirModalEditarTienda(Number(tr.dataset.tienda));
     }));
     overlay.classList.add('show');
   }
+  // ---------------------------------------------------------------
+  // Camión 🚚 de la lista "Aperturas": vuelca o quita la tienda en
+  // apertura de los conteos de SALIDAS sin entrar en Editar tienda.
+  // Hace lo mismo que "📤 Volcar a SALIDAS" de Editar tienda (campo
+  // tiendas.volcar_salidas + reenvío), pero lo puede usar cualquiera,
+  // aunque no tenga el permiso config_tiendas. Pide confirmación tanto
+  // para volcar como para quitar.
+  function botonCamionSalidasHtml(t) {
+    const on = !!t.volcar_salidas;
+    const titulo = on
+      ? 'En los conteos de SALIDAS · pulsa para quitarla'
+      : 'Fuera de los conteos de SALIDAS · pulsa para volcarla';
+    return `<button type="button" class="mini-btn btn-salidas-camion ${on ? 'en-conteo' : 'sin-conteo'}" data-salidas-tienda="${t.id}" title="${titulo}" aria-label="${titulo}"><span class="ico" aria-hidden="true">🚚</span></button>`;
+  }
+
+  async function alternarSalidasDesdeLista(tiendaId, btn) {
+    const t = tiendasGestionCache.find(x => x.id === tiendaId);
+    if (!t || !t.en_apertura) return;
+    const quitar = !!t.volcar_salidas;
+    if (!quitar && (!t.numero_tienda || !String(t.numero_tienda).trim())) {
+      await modalAlert(`"${t.nombre}" no tiene número de tienda, así que no se puede volcar a SALIDAS.`, { titulo: 'Sin número de tienda', icono: '⛔', danger: true });
+      return;
+    }
+    const ok = quitar
+      ? await modalConfirm(
+          `¿Quitar "${t.nombre}" de los conteos de SALIDAS? Saldrá de todas sus rutas y de Configuración tiendas de SALIDAS (los conteos ya hechos no se pierden). Si más adelante se vuelca otra vez, habrá que volver a añadirla a sus rutas en SALIDAS.`,
+          { titulo: 'Quitar de SALIDAS', icono: '🚚', danger: true, textoOk: 'Quitar de SALIDAS' })
+      : await modalConfirm(
+          `¿Volcar "${t.nombre}" a SALIDAS? Entrará en los conteos de SALIDAS aunque todavía esté en apertura en GIDT.`,
+          { titulo: 'Volcar a SALIDAS', icono: '🚚', textoOk: 'Volcar a SALIDAS' });
+    if (!ok) return;
+    const cambios = { volcar_salidas: !quitar };
+    if (btn) btn.disabled = true;
+    try {
+      const { error } = await sb.from('tiendas').update(cambios).eq('id', t.id);
+      if (error) throw error;
+      Object.assign(t, cambios);
+      // Reenvío por si el campo ya tenía ese valor (no habría "cambio" que avisar).
+      try { await sb.rpc('salidas_reenviar_tienda', { p_id: t.id }); } catch (e2) { console.warn('Reenvío a SALIDAS:', e2); }
+      if (btn && btn.isConnected) btn.outerHTML = botonCamionSalidasHtml(t);
+      const nuevo = document.querySelector(`#listaContadorCuerpo [data-salidas-tienda="${t.id}"]`);
+      nuevo?.addEventListener('click', (e) => { e.stopPropagation(); alternarSalidasDesdeLista(t.id, nuevo); });
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('tiendas', quitar ? 'Quitar tienda de SALIDAS' : 'Volcar tienda a SALIDAS', t.nombre, null, { tiendaId: t.id });
+      }
+      if (typeof mostrarToast === 'function') {
+        mostrarToast(quitar ? `"${t.nombre}" quitada de SALIDAS` : `"${t.nombre}" volcada a SALIDAS`, { posicion: 'abajo' });
+      }
+    } catch (e) {
+      console.error('Error al volcar/quitar la tienda en SALIDAS:', e);
+      await modalAlert('No se pudo cambiar la tienda en SALIDAS.', { titulo: 'Error', icono: '⚠️', danger: true });
+    } finally {
+      if (btn && btn.isConnected) btn.disabled = false;
+    }
+  }
+
   function cerrarListaContador() {
     document.getElementById('modalListaContadorOverlay')?.classList.remove('show');
   }
@@ -607,7 +670,19 @@
     return faltan;
   }
 
+  // Editar tienda exige el permiso config_tiendas venga de donde venga
+  // (lápiz de la tabla, filas de las listas de los contadores, etc.).
+  // Devuelve true si NO hay permiso (y ya ha mostrado el aviso).
+  function sinPermisoEditarTienda() {
+    if (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas')) {
+      if (typeof mostrarModalSinPermiso === 'function') mostrarModalSinPermiso();
+      return true;
+    }
+    return false;
+  }
+
   function abrirModalEditarTienda(tiendaId) {
+    if (sinPermisoEditarTienda()) return;
     const t = tiendasGestionCache.find(x => x.id === tiendaId);
     const overlay = document.getElementById('modalEditarTiendaOverlay');
     if (!t || !overlay) return;
