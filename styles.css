@@ -3244,6 +3244,14 @@ body:not(.perm-config_tiendas) #metBtnActivar,
 body:not(.perm-config_tiendas) #metBtnCambiarAgencia,
 body:not(.perm-config_tiendas) #metBtnHorarioSemana,
 body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:.6; }
+/* Camión 🚚 de la lista Aperturas: en / fuera de los conteos de SALIDAS.
+   No se atenúa sin permiso config_tiendas (lo puede usar cualquiera). */
+.mini-btn.btn-salidas-camion{ font-size:15px; line-height:1; padding:4px 8px; border-radius:7px; margin-right:6px; vertical-align:middle; }
+.mini-btn.btn-salidas-camion.en-conteo{ background:#eef4fb; border:1px solid #1d3a5f; }
+.mini-btn.btn-salidas-camion.en-conteo:hover{ background:#dce9f7; }
+.mini-btn.btn-salidas-camion.sin-conteo{ background:#fff; border:1px dashed #b4b2a9; }
+.mini-btn.btn-salidas-camion.sin-conteo .ico{ filter:grayscale(1); opacity:.4; }
+.mini-btn.btn-salidas-camion.sin-conteo:hover{ border-color:#1d3a5f; }
 @media (max-width: 900px){
   #pageHeadTiendas > div:last-child{ justify-self:start; flex-wrap:wrap !important; }
 }
