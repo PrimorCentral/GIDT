@@ -526,7 +526,7 @@
                   <tr>
                     <th class="th-numero">Nº Tienda</th>
                     <th class="th-nombre">Nombre tienda</th>
-                    <th class="th-direccion">Dirección completa</th>
+                    <th class="th-direccion">Dirección</th>
                     <th class="th-provincia">Provincia</th>
                     <th class="th-cp">C.P</th>
                     <th class="th-hora">Hora entrega</th>
