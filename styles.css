@@ -1955,9 +1955,10 @@ body:not(.perm-enviar_reporte_mensual) #btnRmeEnviarTodas{ display:none !importa
    botón "Añadir siniestro" y los botones del modal se ven igual que
    "Nueva tienda": visibles pero atenuados, pulsables (avisan al
    pulsar en vez de desaparecer). Los campos del formulario del modal
-   se quedan solo atenuados y sin poder tocarse. */
+   se quedan solo atenuados y sin poder tocarse. Cerrar y PDF quedan
+   libres: solo sirven para ver/imprimir, no modifican nada. */
 body:not(.perm-panel_siniestros) #btnNuevoPanelSiniestroManual,
-body:not(.perm-panel_siniestros) #psModalOverlay .btn,
+body:not(.perm-panel_siniestros) #psModalOverlay .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro),
 body:not(.perm-panel_siniestros) #psModalOverlay .cvd-editar{
   opacity:.6;
 }
@@ -2043,8 +2044,8 @@ body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row input{
    quedan pulsables (permisos-aviso.js avisa al pulsar); los campos de
    formulario siguen bloqueados sin más (un aviso por cada campo sería
    spam navegando/leyendo). */
-body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]),
-body.rol-lectura .btn,
+body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]):not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro),
+body.rol-lectura .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro),
 body.rol-lectura .link-accion,
 body.rol-lectura .mini-btn{
   opacity:.45 !important; cursor:not-allowed !important;
