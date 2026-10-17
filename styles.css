@@ -508,7 +508,7 @@
     border-bottom:1px solid var(--border);
   }
   table.tabla-tiendas thead th.th-acciones{ text-align:right; }
-  table.tabla-tiendas td{ padding:10px 16px; border-bottom:1px solid var(--panel-muted); vertical-align:middle; }
+  table.tabla-tiendas td{ padding:10px 16px; border-bottom:1px solid var(--panel-muted); vertical-align:middle; text-align:center; }
   table.tabla-tiendas tbody tr:hover{ background:var(--panel-muted); }
   table.tabla-tiendas tr:last-child td{ border-bottom:0; }
   table.tabla-tiendas td.celda-nombre{ font-weight:600; }
