@@ -34,7 +34,8 @@ const BOTONES_CON_PERMISO = [
   ['#utilBtnQuitarAjuste', 'informe_dia'],
   ['.util-btn-quitar', 'informe_dia'],
   ['#btnNuevoPanelSiniestroManual', 'panel_siniestros'],
-  ['#psModalOverlay .btn', 'panel_siniestros'],
+  // Cerrar y PDF del detalle quedan libres (no modifican nada).
+  ['#psModalOverlay .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro)', 'panel_siniestros'],
   ['#psModalOverlay .cvd-editar', 'panel_siniestros'],
   ['#btnEnviarSiniestro', 'siniestros_dia'],
   ['[id^="btnEnviarFacturacion"]', 'enviar_facturacion'],
@@ -70,7 +71,7 @@ const BOTONES_CON_PERMISO = [
 // Modo LECTURA: mismo selector de botones de acción que ya usa
 // styles.css para atenuarlos (ver regla "body.rol-lectura button...").
 const SELECTOR_BOTONES_LECTURA =
-  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]), .btn, .link-accion, .mini-btn';
+  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]):not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro), .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro), .link-accion, .mini-btn';
 
 // Páginas del menú que antes se ocultaban del todo para operadores sin
 // el permiso (Gestión de usuarios, Registro de auditoría): ahora se ven
