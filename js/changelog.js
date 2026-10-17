@@ -10,6 +10,19 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.4',
+    fecha: '2026-10-17',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Informe del día: cuando no hay ninguna incidencia, el botón pasa a "✅ Cerrar sin incidencias". El informe queda como CERRADO SIN INCIDENCIAS, no se envía ningún correo a las agencias y el Reporte mensual cuenta ese día como OK' },
+      { tipo: 'mejora', texto: 'Si después de cerrar el informe sin incidencias se registra alguna, vuelve el botón "Enviar informe" y se avisa en Tareas pendientes' },
+      { tipo: 'nuevo',  texto: 'Gestión de tiendas, lista Aperturas: botón 🚚 junto a Activar para volcar o quitar la tienda de los conteos de SALIDAS, con confirmación; se puede usar sin el permiso de editar tiendas' },
+      { tipo: 'mejora', texto: 'Las confirmaciones de eliminar, quitar o anular se muestran en el cuadro rojo' },
+      { tipo: 'correccion', texto: 'Desde las listas de los contadores de Gestión de tiendas ya no se puede abrir Editar tienda sin el permiso correspondiente' },
+      { tipo: 'correccion', texto: 'Detalle del siniestro: los botones Cerrar y PDF se pueden usar sin permiso de Panel siniestros, ya que solo sirven para ver o imprimir' },
+      { tipo: 'correccion', texto: 'Utilidades del informe del día: las entregas especiales también respetan el permiso de editar el informe' }
+    ]
+  },
+  {
     version: '1.8.3',
     fecha: '2026-10-16',
     cambios: [
