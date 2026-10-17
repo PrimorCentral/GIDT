@@ -490,16 +490,16 @@
             <tr data-tienda="${t.id}" class="${enApertura ? 'fila-apertura' : (enBajaHoy ? 'fila-en-baja' : '')}">
               <td class="celda-numero">${t.numero_tienda ? escapeHtml(t.numero_tienda) : '—'}</td>
               <td class="celda-nombre">${escapeHtml(t.nombre)}</td>
-              <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
               <td class="celda-cp">${t.codigo_postal ? escapeHtml(t.codigo_postal) : '—'}</td>
-              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
+              <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
+              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
+              <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
               <td class="celda-agencia-recogida">${t.agencia_recogida ? escapeHtml(t.agencia_recogida) : '—'}</td>
-              <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
               <td class="celda-extra">${badgeAperturaHtml(t)}${chipsEntregasHtml(t) || (enApertura || pBaja || cambioProgramadoDeTienda(t.id) ? '' : '<span style="color:var(--ink-soft);">—</span>')}${badgeBajaHtml(pBaja)}${badgeProgramadoHtml(cambioProgramadoDeTienda(t.id))}</td>
               <td class="acciones">
                 <button class="mini-btn" data-mover="up" title="Subir">▲</button>
@@ -526,16 +526,16 @@
                   <tr>
                     <th class="th-numero">Nº Tienda</th>
                     <th class="th-nombre">Nombre tienda</th>
-                    <th class="th-hora">Hora entrega</th>
                     <th class="th-direccion">Dirección completa</th>
                     <th class="th-provincia">Provincia</th>
-                    <th class="th-cp">Código postal</th>
+                    <th class="th-cp">C.P</th>
+                    <th class="th-hora">Hora entrega</th>
+                    <th class="th-limite-hora">Hora límite</th>
                     <th class="th-limite-palets">Límite palets</th>
-                    <th class="th-limite-hora">Límite hora entrega</th>
+                    <th class="th-transito">Tránsito</th>
                     <th class="th-supervisor">Supervisor/a</th>
                     <th class="th-recogida-dia">Recogida semanal</th>
                     <th class="th-agencia-recogida">Agencia recogida</th>
-                    <th class="th-transito">Tránsito</th>
                     <th class="th-extra">Entregas de otra agencia</th>
                     <th class="th-acciones"></th>
                   </tr>
