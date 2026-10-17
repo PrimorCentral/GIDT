@@ -33,6 +33,9 @@ const BOTONES_CON_PERMISO = [
   ['#utilBtnGuardarAjuste', 'informe_dia'],
   ['#utilBtnQuitarAjuste', 'informe_dia'],
   ['.util-btn-quitar', 'informe_dia'],
+  ['#utilBtnGuardarEspecial', 'informe_dia'],
+  ['#utilBtnQuitarEspecial', 'informe_dia'],
+  ['.util-btn-quitar-especial', 'informe_dia'],
   ['#btnNuevoPanelSiniestroManual', 'panel_siniestros'],
   // Cerrar y PDF del detalle quedan libres (no modifican nada).
   ['#psModalOverlay .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro)', 'panel_siniestros'],
