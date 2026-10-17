@@ -48,6 +48,9 @@
       modalIconEl.style.display = icono ? '' : 'none';
       modalIconEl.textContent = icono;
       modalTitleEl.textContent = titulo;
+      // Con danger (eliminar, quitar, anular…): el mismo cuadro rojo que modalAlert.
+      modalTitleEl.classList.toggle('modal-title-danger', danger);
+      modalOverlay.querySelector('.modal-box')?.classList.toggle('modal-box-danger', danger);
       modalMessageEl.textContent = mensaje;
       modalInputEl.style.display = 'none';
       modalBtnCancel.style.display = '';
@@ -60,6 +63,8 @@
       const onCancel = () => { limpiar(); resolve(false); };
       function limpiar() {
         _cerrarModal();
+        modalTitleEl.classList.remove('modal-title-danger');
+        modalOverlay.querySelector('.modal-box')?.classList.remove('modal-box-danger');
         modalBtnOk.removeEventListener('click', onOk);
         modalBtnCancel.removeEventListener('click', onCancel);
       }
