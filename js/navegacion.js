@@ -238,7 +238,7 @@ async function recargarConGiro(btn, ...cargas) {
       // Se calcula aquí la fecha de hoy: al abrir la app esta función puede
       // ejecutarse antes de que informe-hoy.js haya definido fechaHoyISO.
       const { data: informe } = await sb.from('informes_diarios')
-        .select('id, informe_enviado')
+        .select('id, informe_enviado, estado')
         .eq('fecha', fechaLocalISO(new Date()))
         .maybeSingle();
 
@@ -248,7 +248,10 @@ async function recargarConGiro(btn, ...cargas) {
           .eq('informe_id', informe.id);
         const marcadas = (incs || []).filter(i => i.marcada);
 
-        if (!informe.informe_enviado && marcadas.length > 0) {
+        // Cerrado sin incidencias y con alguna registrada después: también
+        // queda pendiente de enviar.
+        const sinEnviar = !informe.informe_enviado || informe.estado === 'CERRADO SIN INCIDENCIAS';
+        if (sinEnviar && marcadas.length > 0) {
           items.push({
             icono: '📨',
             texto: `El informe de hoy tiene ${marcadas.length} incidencia${marcadas.length === 1 ? '' : 's'} sin enviar a las agencias`,

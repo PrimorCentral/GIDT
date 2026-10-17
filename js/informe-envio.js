@@ -502,13 +502,19 @@ function renderBotonEnviarInforme() {
   const btnLog = document.getElementById('btnLogCambiosHoy');
 
   const enviado = !!informeHoyCache?.informe_enviado;
+  const cerradoSinInc = informeCerradoSinIncidencias(informeHoyCache);
+  const hayIncidencias = (incidenciasHoyCache || []).some(i => i.marcada);
   if (btnLog) btnLog.style.display = enviado ? '' : 'none';
 
+  const hora = informeHoyCache?.informe_enviado_en
+    ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    : '';
+
   if (badge) {
-    if (enviado) {
-      const hora = informeHoyCache.informe_enviado_en
-        ? new Date(informeHoyCache.informe_enviado_en).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        : '';
+    if (cerradoSinInc && !hayIncidencias) {
+      badge.textContent = `✅ Cerrado sin incidencias${hora ? ' a las ' + hora : ''}`;
+      badge.style.display = '';
+    } else if (enviado && !cerradoSinInc) {
       badge.textContent = `✅ Enviado${hora ? ' a las ' + hora : ''}`;
       badge.style.display = '';
     } else {
@@ -516,8 +522,54 @@ function renderBotonEnviarInforme() {
     }
   }
 
-  if (btn) btn.classList.toggle('primary', !enviado);
-  if (btn) btn.textContent = enviado ? '🔁 Volver a enviar el informe' : '📧 Enviar informe';
+  if (!btn) return;
+  // Cerrado sin incidencias y sigue sin ninguna: no hay nada más que hacer.
+  btn.style.display = (cerradoSinInc && !hayIncidencias) ? 'none' : '';
+  if (!enviado && !hayIncidencias) {
+    btn.classList.add('primary');
+    btn.textContent = '✅ Cerrar sin incidencias';
+  } else if (cerradoSinInc) {
+    // Se cerró sin incidencias y luego se registró alguna: pendiente de enviar.
+    btn.classList.add('primary');
+    btn.textContent = '📧 Enviar informe';
+  } else {
+    btn.classList.toggle('primary', !enviado);
+    btn.textContent = enviado ? '🔁 Volver a enviar el informe' : '📧 Enviar informe';
+  }
+}
+
+// Cierra el informe de hoy SIN enviar ningún correo, cuando no tiene
+// ninguna incidencia. Se marca como resuelto (informe_enviado = true) para
+// que el Reporte mensual pinte OK ese día, con estado propio para
+// distinguirlo de un envío normal.
+async function cerrarInformeSinIncidencias() {
+  const ok = await modalConfirm(
+    'El informe de hoy no tiene ninguna incidencia. Se cerrará como CERRADO SIN INCIDENCIAS y no se enviará ningún correo a las agencias.\n\nSi después se registra alguna incidencia, se podrá enviar con "Enviar informe".',
+    { titulo: 'Cerrar informe sin incidencias', icono: '✅', textoOk: 'Cerrar informe' }
+  );
+  if (!ok) return;
+
+  try {
+    const { data, error } = await sb.from('informes_diarios').update({
+      estado: ESTADO_CERRADO_SIN_INC,
+      informe_enviado: true,
+      informe_enviado_en: new Date().toISOString(),
+      informe_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+    }).eq('id', informeHoyCache.id).select().single();
+    if (error) throw error;
+    informeHoyCache = data;
+  } catch (err) {
+    console.error('Error cerrando informe sin incidencias:', err);
+    await modalAlert(`No se pudo cerrar el informe: ${err.message || 'error desconocido'}`, { titulo: 'Error', danger: true });
+    return;
+  }
+
+  if (typeof registrarAccion === 'function') {
+    registrarAccion('informes', 'Cerrar informe sin incidencias', fechaEs(informeHoyCache.fecha) || '');
+  }
+  if (typeof mostrarToast === 'function') mostrarToast('Informe cerrado sin incidencias');
+  renderBotonEnviarInforme();
+  if (typeof renderCardEstadoInforme === 'function') renderCardEstadoInforme();
 }
 
 // Handler principal: agrupa, confirma y envía el informe de hoy a todas las agencias con incidencias.
@@ -529,7 +581,11 @@ async function enviarInformeDelDia() {
 
   const grupos = construirGruposInformeHoy();
   if (!grupos.length) {
-    await modalAlert('No hay incidencias registradas hoy que enviar.', { titulo: 'Nada que enviar' });
+    if (informeHoyCache.informe_enviado) {
+      await modalAlert('No hay incidencias registradas hoy que enviar.', { titulo: 'Nada que enviar' });
+    } else {
+      await cerrarInformeSinIncidencias();
+    }
     return;
   }
 
@@ -562,7 +618,7 @@ async function enviarInformeDelDia() {
   const ok = await mostrarModalEnvioInforme({
     conEmails,
     sinEmails,
-    reenvio: !!informeHoyCache.informe_enviado,
+    reenvio: !!informeHoyCache.informe_enviado && !informeCerradoSinIncidencias(informeHoyCache),
     sinRevisar: listarIncidenciasSinRevisar(conEmails)
   });
   if (!ok) return;

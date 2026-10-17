@@ -359,7 +359,7 @@ function renderAcordeonHistorialEditable() {
   const informe = historialInformeActual;
   const fechaInforme = new Date(informe.fecha + 'T00:00:00');
   const fechaTexto = `${dias[fechaInforme.getDay()]}, ${formatearFechaCorta(fechaInforme)}`;
-  const estadoTexto = informe.informe_enviado ? 'ENVIADO' : informe.estado;
+  const estadoTexto = textoEstadoInforme(informe);
 
   const f = (document.getElementById('buscarTiendaHistorial')?.value || '').trim().toUpperCase();
 

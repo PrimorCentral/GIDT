@@ -5,6 +5,20 @@
   let informeHoyCache = null; // null = aún no comprobado / no existe
   let incidenciasHoyCache = []; // filas de la tabla `incidencias` del informe de hoy
 
+  // Informe cerrado SIN incidencias: no se manda ningún correo, pero se marca
+  // como resuelto (informe_enviado = true) para que el Reporte mensual pinte
+  // OK ese día. Se distingue de un envío normal por el estado.
+  const ESTADO_CERRADO_SIN_INC = 'CERRADO SIN INCIDENCIAS';
+  function informeCerradoSinIncidencias(informe) {
+    return !!informe?.informe_enviado && informe?.estado === ESTADO_CERRADO_SIN_INC;
+  }
+  // Texto de estado de un informe (Inicio, Historial…).
+  function textoEstadoInforme(informe) {
+    if (!informe) return '';
+    if (informeCerradoSinIncidencias(informe)) return ESTADO_CERRADO_SIN_INC;
+    return informe.informe_enviado ? 'ENVIADO' : (informe.estado || 'ABIERTO');
+  }
+
   async function cargarInformeHoy() {
     mostrarCargandoGlobal();
     try {
@@ -54,6 +68,7 @@
       return;
     }
 
+    const cerradoSinInc = informeCerradoSinIncidencias(informeHoyCache);
     const enviado = !!informeHoyCache.informe_enviado;
     const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + 'h' : null;
     const marcadas = (incidenciasHoyCache || []).filter(i => i.marcada);
@@ -67,17 +82,21 @@
       ? [informeHoyCache.informe_enviado_por, horaDe(informeHoyCache.informe_enviado_en)]
       : [informeHoyCache.creado_por, horaDe(informeHoyCache.creado_en)];
     const detalle = [...quien.filter(Boolean), informeHoyCache.total_palets ? `${informeHoyCache.total_palets} palets previstos` : null].filter(Boolean).join(' · ');
-    const estadoTexto = enviado ? 'ENVIADO' : (informeHoyCache.estado || 'ABIERTO');
+    const estadoTexto = textoEstadoInforme(informeHoyCache);
+    // Cerrado sin incidencias pero con alguna registrada después: queda
+    // pendiente de enviar (naranja), igual que un informe abierto.
+    const pendienteTrasCierre = cerradoSinInc && marcadas.length > 0;
+    const verde = enviado && !pendienteTrasCierre;
     const pl = (n, s, p) => `${n} ${n === 1 ? s : p}`;
 
     card.innerHTML = `${cabecera(true)}
       <div class="inicio-informe">
-        <span class="inicio-informe-icono ${enviado ? 'verde' : 'naranja'}">${enviado ? '✅' : '📝'}</span>
+        <span class="inicio-informe-icono ${verde ? 'verde' : 'naranja'}">${verde ? '✅' : '📝'}</span>
         <div class="inicio-informe-txt">
-          <b>${enviado ? 'Enviado a las agencias' : (marcadas.length ? `Abierto · ${pl(marcadas.length, 'incidencia', 'incidencias')} sin enviar` : 'Abierto · sin incidencias todavía')}</b>
+          <b>${pendienteTrasCierre ? `Cerrado sin incidencias · ${pl(marcadas.length, 'incidencia', 'incidencias')} sin enviar` : cerradoSinInc ? 'Cerrado sin incidencias · no se envió ningún correo' : enviado ? 'Enviado a las agencias' : (marcadas.length ? `Abierto · ${pl(marcadas.length, 'incidencia', 'incidencias')} sin enviar` : 'Abierto · sin incidencias todavía')}</b>
           <span>${escapeHtml(detalle || '—')}</span>
         </div>
-        <span class="inicio-estado ${enviado ? 'verde' : 'naranja'}">${escapeHtml(estadoTexto)}</span>
+        <span class="inicio-estado ${verde ? 'verde' : 'naranja'}">${escapeHtml(estadoTexto)}</span>
       </div>
       <div class="inicio-progreso${sinRevisar ? ' pendiente' : ''}" title="${revisadas} de ${marcadas.length} incidencias revisadas"><i style="width:${pct}%"></i></div>
       <div class="inicio-informe-datos">
@@ -125,6 +144,9 @@
       : '0';
     // Comparación con el informe anterior en la tarjeta de Inicio
     if (typeof inicioActualizarKpiIncidencias === 'function') inicioActualizarKpiIncidencias();
+    // El botón cambia entre "Cerrar sin incidencias" y "Enviar informe"
+    // según haya o no incidencias marcadas.
+    if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
   }
 
   // ---------------------------------------------------------------
@@ -287,7 +309,7 @@
     const cont = document.getElementById('contenidoHistorial');
     const fechaInforme = new Date(informe.fecha + 'T00:00:00');
     const fechaTexto = `${dias[fechaInforme.getDay()]}, ${formatearFechaCorta(fechaInforme)}`;
-    const estadoTexto = informe.informe_enviado ? 'ENVIADO' : informe.estado;
+    const estadoTexto = textoEstadoInforme(informe);
 
     if (!historialIncidenciasActual.length) {
       cont.innerHTML = `

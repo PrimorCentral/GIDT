@@ -223,7 +223,7 @@
     // Si el informe de hoy ya se envió, al entrar en esta vista se activa
     // por defecto el filtro "Solo con incidencias": una vez enviado, lo que
     // interesa ver de un vistazo es lo que se mandó, no todas las tiendas.
-    if (informeHoyCache?.informe_enviado) {
+    if (informeHoyCache?.informe_enviado && !informeCerradoSinIncidencias(informeHoyCache)) {
       filtrosIncidencias.soloConIncidencias = true;
       const cbSolo = document.getElementById('filtroSoloConIncidencias');
       if (cbSolo) cbSolo.checked = true;
