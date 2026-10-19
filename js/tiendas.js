@@ -26,8 +26,10 @@
   let tiendasGestionCache = [];
   let agenciasTiendasAbiertas = new Set(); // ids de agencia desplegados en "Gestión de tiendas"
   let filtroTiendasTexto = '';
-  // Filtro (botón "Filtros"): agencias (ids), tránsitos ('24'…'144' o 'SIN') y tiendas (ids).
-  const filtroTiendas = { agencias: new Set(), transitos: new Set(), tiendas: new Set() };
+  // Filtro (botón "Filtros"): agencias (ids), tránsitos ('24'…'144' o 'SIN'),
+  // supervisores y provincias (texto, o SIN_VALOR_FILTRO si no tienen) y tiendas (ids).
+  const filtroTiendas = { agencias: new Set(), transitos: new Set(), supervisores: new Set(), provincias: new Set(), tiendas: new Set() };
+  const SIN_VALOR_FILTRO = '__SIN__';
   const MARCA_LABEL = { HABITUAL: 'Habitual', SABADO: 'Sábado', PRUEBA: 'Prueba', ESPECIAL: 'Especial' };
   const MARCA_CLASE = { HABITUAL: 'leve', SABADO: 'sabado', PRUEBA: 'prueba', ESPECIAL: 'especial' };
   const MARCA_BADGE_LETRA = { SABADO: 'S', ESPECIAL: 'E', PRUEBA: 'P' };
@@ -2169,8 +2171,8 @@
   }
 
   // ---------------------------------------------------------------
-  // Filtro de Gestión de tiendas (botón "Filtros"): Agencias, Tránsito y
-  // Tiendas. Se combina con el buscador. Si está activo, al exportar el
+  // Filtro de Gestión de tiendas (botón "Filtros"): Agencias, Tránsito,
+  // Supervisor/a, Provincia y Tiendas. Se combina con el buscador. Si está activo, al exportar el
   // Detallado se pregunta si exportar con el filtro o todas las tiendas.
   // ---------------------------------------------------------------
   const TRANSITOS_FILTRO = [
@@ -2179,7 +2181,18 @@
   ];
 
   function hayFiltroTiendas() {
-    return filtroTiendas.agencias.size > 0 || filtroTiendas.transitos.size > 0 || filtroTiendas.tiendas.size > 0;
+    return Object.values(filtroTiendas).some(set => set.size > 0);
+  }
+
+  // Grupos cuyo valor es un id numérico (el resto son texto).
+  function grupoFiltroNumerico(grupo) {
+    return grupo === 'agencias' || grupo === 'tiendas';
+  }
+
+  // Clave de supervisor/provincia de una tienda para el filtro.
+  function claveTextoFiltro(valor) {
+    const v = (valor || '').trim().toUpperCase();
+    return v || SIN_VALOR_FILTRO;
   }
 
   function claveTransito(t) {
@@ -2189,6 +2202,8 @@
   function tiendaPasaFiltro(t) {
     if (filtroTiendas.agencias.size && !filtroTiendas.agencias.has(t.agencia_id)) return false;
     if (filtroTiendas.transitos.size && !filtroTiendas.transitos.has(claveTransito(t))) return false;
+    if (filtroTiendas.supervisores.size && !filtroTiendas.supervisores.has(claveTextoFiltro(t.supervisor))) return false;
+    if (filtroTiendas.provincias.size && !filtroTiendas.provincias.has(claveTextoFiltro(t.provincia))) return false;
     if (filtroTiendas.tiendas.size && !filtroTiendas.tiendas.has(t.id)) return false;
     return true;
   }
@@ -2212,6 +2227,13 @@
       const vals = [...filtroTiendas.transitos].sort((a, b) => (orden.indexOf(a) + 1 || 99) - (orden.indexOf(b) + 1 || 99));
       partes.push(`Tránsito: ${vals.map(etiquetaTransito).join(', ')}`);
     }
+    const etiquetaTexto = (v) => v === SIN_VALOR_FILTRO ? 'Sin indicar' : v;
+    if (filtroTiendas.supervisores.size) {
+      partes.push(`Supervisor/a: ${nombresLista([...filtroTiendas.supervisores].map(etiquetaTexto))}`);
+    }
+    if (filtroTiendas.provincias.size) {
+      partes.push(`Provincia: ${nombresLista([...filtroTiendas.provincias].map(etiquetaTexto))}`);
+    }
     if (filtroTiendas.tiendas.size) {
       const nombres = tiendasGestionCache.filter(t => filtroTiendas.tiendas.has(t.id)).map(t => t.nombre);
       partes.push(`Tiendas: ${nombresLista(nombres)}`);
@@ -2230,7 +2252,7 @@
     const barra = document.getElementById('barraFiltroTiendas');
     const badge = document.getElementById('filtrosTiendasCount');
     const btn = document.getElementById('btnFiltrosTiendas');
-    const numGrupos = [filtroTiendas.agencias, filtroTiendas.transitos, filtroTiendas.tiendas].filter(s => s.size).length;
+    const numGrupos = Object.values(filtroTiendas).filter(s => s.size).length;
     if (badge) { badge.textContent = numGrupos; badge.style.display = numGrupos ? '' : 'none'; }
     btn?.classList.toggle('activo', numGrupos > 0);
     if (!barra) return;
@@ -2254,7 +2276,7 @@
       const valor = sel.querySelector('.filtro-select-valor');
       if (!set || !valor) return;
       if (!set.size) {
-        valor.textContent = grupo === 'transitos' ? 'Todos' : 'Todas';
+        valor.textContent = grupo === 'transitos' || grupo === 'supervisores' ? 'Todos' : 'Todas';
         sel.classList.remove('activo');
       } else if (set.size === 1) {
         const cb = sel.querySelector('input[type="checkbox"]:checked');
@@ -2262,7 +2284,7 @@
         sel.classList.add('activo');
       } else {
         const nombres = [...sel.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.closest('.filtro-check').textContent.trim());
-        valor.textContent = nombres.length <= 3 && grupo !== 'tiendas' ? nombres.join(', ') : `${set.size} seleccionad${grupo === 'transitos' ? 'os' : 'as'}`;
+        valor.textContent = nombres.length <= 3 && grupo !== 'tiendas' ? nombres.join(', ') : `${set.size} seleccionad${grupo === 'transitos' || grupo === 'supervisores' ? 'os' : 'as'}`;
         sel.classList.add('activo');
       }
     });
@@ -2272,7 +2294,7 @@
   // salgan las agencias y tiendas al día).
   function rellenarListasFiltroTiendas() {
     const fila = (grupo, valor, texto) => {
-      const marcado = filtroTiendas[grupo].has(grupo === 'transitos' ? valor : Number(valor));
+      const marcado = filtroTiendas[grupo].has(grupoFiltroNumerico(grupo) ? Number(valor) : valor);
       return `<label class="filtro-check"><input type="checkbox" data-grupo="${grupo}" value="${escapeHtml(String(valor))}" ${marcado ? 'checked' : ''}><span>${escapeHtml(texto)}</span></label>`;
     };
     const lAg = document.getElementById('filtroTiendasAgenciasLista');
@@ -2288,6 +2310,19 @@
         .map(o => fila('transitos', o.v, o.label)).join('');
     }
 
+    // Supervisor/a y Provincia: los valores que tienen las tiendas activas,
+    // por orden alfabético, y al final "Sin indicar" si alguna no lo tiene.
+    const listaTexto = (campo) => {
+      const claves = new Set(tiendasGestionCache.filter(t => t.activo).map(t => claveTextoFiltro(t[campo])));
+      const vals = [...claves].filter(v => v !== SIN_VALOR_FILTRO).sort((a, b) => a.localeCompare(b, 'es'));
+      if (claves.has(SIN_VALOR_FILTRO)) vals.push(SIN_VALOR_FILTRO);
+      return vals;
+    };
+    const lSup = document.getElementById('filtroTiendasSupervisorLista');
+    if (lSup) lSup.innerHTML = listaTexto('supervisor').map(v => fila('supervisores', v, v === SIN_VALOR_FILTRO ? 'Sin indicar' : v)).join('');
+    const lProv = document.getElementById('filtroTiendasProvinciaLista');
+    if (lProv) lProv.innerHTML = listaTexto('provincia').map(v => fila('provincias', v, v === SIN_VALOR_FILTRO ? 'Sin indicar' : v)).join('');
+
     const lTd = document.getElementById('filtroTiendasTiendasLista');
     if (lTd) {
       const tds = tiendasGestionCache.filter(t => t.activo)
@@ -2300,7 +2335,7 @@
     document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => {
       cb.addEventListener('change', () => {
         const set = filtroTiendas[cb.dataset.grupo];
-        const v = cb.dataset.grupo === 'transitos' ? cb.value : Number(cb.value);
+        const v = grupoFiltroNumerico(cb.dataset.grupo) ? Number(cb.value) : cb.value;
         if (cb.checked) set.add(v); else set.delete(v);
         actualizarValoresFiltroTiendas();
         renderAcordeonTiendas();
@@ -2310,9 +2345,7 @@
   }
 
   function limpiarFiltroTiendas() {
-    filtroTiendas.agencias.clear();
-    filtroTiendas.transitos.clear();
-    filtroTiendas.tiendas.clear();
+    Object.values(filtroTiendas).forEach(set => set.clear());
     document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => { cb.checked = false; });
     actualizarValoresFiltroTiendas();
     renderAcordeonTiendas();
