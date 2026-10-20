@@ -73,9 +73,20 @@
         fecha_limite: fechaLimiteISO
       }));
 
-      const { data: creados, error: e3 } = await sb.from('siniestros').insert(nuevos).select('id, incidencia_id, tipo, estado, fotos, fecha_limite');
+      // Esta función se lanza desde varios sitios a la vez al cargar. Si dos
+      // llamadas coinciden, ambas ven que falta el siniestro e intentan
+      // crearlo: el índice único de siniestros.incidencia_id lo impide y
+      // ignoreDuplicates hace que la segunda no dé error (simplemente no
+      // inserta). Después se releen los de esas incidencias para quedarse
+      // con el que existe de verdad, lo haya creado esta llamada u otra.
+      const { error: e3 } = await sb.from('siniestros')
+        .upsert(nuevos, { onConflict: 'incidencia_id', ignoreDuplicates: true });
       if (e3) throw e3;
-      creados.forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
+      const { data: creados, error: e4 } = await sb.from('siniestros')
+        .select('id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por')
+        .in('incidencia_id', faltantes.map(i => i.id));
+      if (e4) throw e4;
+      (creados || []).forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
     }
 
     // 3.5. Si los motivos de una incidencia cambiaron después de crear su siniestro
@@ -254,12 +265,14 @@
       } else if (!existente) {
         const fechaLimite = new Date(informeHoyCache.fecha + 'T00:00:00');
         fechaLimite.setDate(fechaLimite.getDate() + 15);
-        const { error: eIns } = await sb.from('siniestros').insert({
+        // upsert + ignoreDuplicates: si otra llamada lo acaba de crear a la
+        // vez, el índice único de incidencia_id evita el duplicado sin error.
+        const { error: eIns } = await sb.from('siniestros').upsert({
           incidencia_id: incidenciaId,
           tipo,
           estado: 'PENDIENTE',
           fecha_limite: fechaLocalISO(fechaLimite)
-        });
+        }, { onConflict: 'incidencia_id', ignoreDuplicates: true });
         if (eIns) throw eIns;
       } else if (existente.estado === 'PENDIENTE' && existente.tipo !== tipo) {
         const { error: eUpd } = await sb.from('siniestros').update({ tipo }).eq('id', existente.id);
