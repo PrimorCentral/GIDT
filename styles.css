@@ -413,6 +413,10 @@
     width:17px; height:17px; color:#8a93a1; pointer-events:none; transition:color .15s;
   }
   .login-card .input-wrap:focus-within .input-icon{ color:var(--accent); }
+  /* PIN del login: campo de texto que se ve con puntos (ver auth.js) */
+  .campo-oculto{ -webkit-text-security:disc; text-security:disc; }
+  .campo-oculto.mostrar{ -webkit-text-security:none; text-security:none; }
+  .campo-oculto::placeholder{ -webkit-text-security:none; }
   .login-card .toggle-pin{
     position:absolute; right:6px; top:50%; transform:translateY(-50%);
     background:none; border:none; padding:7px; color:var(--ink-soft); display:flex; cursor:pointer;
