@@ -10,6 +10,17 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.5',
+    fecha: '2026-10-20',
+    cambios: [
+      { tipo: 'mejora', texto: 'Nueva pantalla de inicio de sesión, con el mismo diseño que SALIDAS: foto a pantalla completa con animación, resumen de lo que hace la app y formulario en un panel blanco. La animación se ve en todos los equipos, también en los que tienen desactivados los efectos de Windows' },
+      { tipo: 'mejora', texto: 'Inicio de sesión: el campo PIN pasa a llamarse Contraseña. El navegador ya no recuerda el usuario ni avisa de "contraseña no segura"' },
+      { tipo: 'nuevo',  texto: 'Gestión de tiendas: nuevos filtros por Supervisor/a y por Provincia, que se pueden combinar con los de Agencias, Tránsito y Tiendas' },
+      { tipo: 'mejora', texto: 'Gestión de tiendas: nuevo orden de columnas (Nº, Nombre, Dirección, Provincia, C.P, Hora entrega, Hora límite, Límite palets, Tránsito, Supervisor/a…) y textos centrados en la tabla' },
+      { tipo: 'correccion', texto: 'Se ha corregido un problema en el registro de siniestros del día que podía hacer que los contadores de pendientes no coincidieran' }
+    ]
+  },
+  {
     version: '1.8.4',
     fecha: '2026-10-17',
     cambios: [
