@@ -168,7 +168,7 @@ const ACERCA_DE_GIDT = {
     });
 
     // El logo del login y el logo + nombre de la cabecera abren la ventana.
-    ['#loginScreen .login-card .mark', 'header.top .mark', 'header.top .app-name'].forEach(function (selector) {
+    ['#loginScreen .login-logo', 'header.top .mark', 'header.top .app-name'].forEach(function (selector) {
       const el = document.querySelector(selector);
       if (!el) return;
       el.classList.add('abre-acerca-de');
