@@ -62,10 +62,18 @@
 
     const pinField = document.getElementById('loginPin');
     const btnTogglePin = document.getElementById('btnTogglePin');
-    if (pinField) pinField.type = 'password';
+    if (pinField) {
+      if (pinField.dataset.modoTipo === '1') pinField.type = 'password';
+      else pinField.classList.remove('mostrar');
+    }
+    // Vuelven a solo lectura para que el navegador no los rellene solo.
+    ['loginUsuario', 'loginPin'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && document.activeElement !== el) el.setAttribute('readonly', '');
+    });
     if (btnTogglePin) {
       btnTogglePin.classList.remove('is-visible');
-      btnTogglePin.setAttribute('aria-label', 'Mostrar PIN');
+      btnTogglePin.setAttribute('aria-label', 'Mostrar contraseña');
     }
   }
 
@@ -105,7 +113,7 @@
       });
 
       if (loginError || !loginData?.ok || !loginData?.session) {
-        let detalle = 'Usuario o PIN incorrecto.';
+        let detalle = 'Usuario o contraseña incorrectos.';
         try {
           const cuerpo = await loginError?.context?.json?.();
           if (cuerpo?.error) detalle = cuerpo.error;
@@ -162,6 +170,26 @@
     }
   }
 
+  /* Campos del login sin autorrelleno ni aviso de "contraseña no segura"
+     (igual que SALIDAS):
+     - Los dos campos empiezan en solo lectura y se desbloquean al entrar en
+       ellos: así el navegador no los rellena solo al cargar la página.
+     - El PIN es un campo de texto que se ve con puntos por CSS. Si el
+       navegador no admite esos puntos (muy raro), vuelve a type="password"
+       para que nunca se vea en claro. */
+  ['loginUsuario', 'loginPin'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const desbloquear = () => el.removeAttribute('readonly');
+    el.addEventListener('focus', desbloquear);
+    el.addEventListener('pointerdown', desbloquear);
+    if (document.activeElement === el) desbloquear();
+  });
+  const pinLogin = document.getElementById('loginPin');
+  const admitePuntos = window.CSS && CSS.supports &&
+    (CSS.supports('-webkit-text-security', 'disc') || CSS.supports('text-security', 'disc'));
+  if (pinLogin && !admitePuntos) { pinLogin.type = 'password'; pinLogin.dataset.modoTipo = '1'; }
+
   // Polvo flotando sobre la foto del login (solo decoración, igual que SALIDAS).
   const polvoLogin = document.getElementById('loginPolvo');
   if (polvoLogin) {
@@ -186,9 +214,16 @@
   if (btnTogglePin) {
     btnTogglePin.addEventListener('click', () => {
       const pinField = document.getElementById('loginPin');
-      const mostrando = pinField.type === 'text';
-      pinField.type = mostrando ? 'password' : 'text';
+      let mostrando;
+      if (pinField.dataset.modoTipo === '1') {
+        // Navegador sin puntos por CSS: se cambia el tipo como siempre.
+        mostrando = pinField.type === 'text';
+        pinField.type = mostrando ? 'password' : 'text';
+      } else {
+        mostrando = pinField.classList.contains('mostrar');
+        pinField.classList.toggle('mostrar', !mostrando);
+      }
       btnTogglePin.classList.toggle('is-visible', !mostrando);
-      btnTogglePin.setAttribute('aria-label', mostrando ? 'Mostrar PIN' : 'Ocultar PIN');
+      btnTogglePin.setAttribute('aria-label', mostrando ? 'Mostrar contraseña' : 'Ocultar contraseña');
     });
   }
