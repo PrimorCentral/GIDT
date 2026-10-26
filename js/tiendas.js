@@ -1268,6 +1268,24 @@
       }
       const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
       if (error) throw error;
+      // Entrega de sábado activada, desactivada o cambiada de agencia: se deja
+      // constancia con la fecha de hoy (tienda_sabado_historial), que es lo
+      // que usa el Reporte mensual para no aplicarla a sábados anteriores.
+      const sabAntes = tEditada?.sabado_agencia_id ?? null;
+      const sabDespues = datosNuevos.sabado_agencia_id ?? null;
+      if (!editandoApertura && String(sabAntes) !== String(sabDespues)) {
+        const nomAgSab = id => (id == null ? null : (agenciasCache.find(a => a.id === Number(id))?.nombre || null));
+        const { error: eSab } = await sb.from('tienda_sabado_historial').insert({
+          tienda_id: editarTiendaId,
+          agencia_anterior_id: sabAntes,
+          agencia_anterior_nombre: nomAgSab(sabAntes),
+          agencia_nueva_id: sabDespues,
+          agencia_nueva_nombre: nomAgSab(sabDespues),
+          fecha_cambio: fechaLocalISO(new Date()),
+          creado_por: sesionActual?.nombre || sesionActual?.usuario || null
+        });
+        if (eSab) console.error('No se pudo registrar el historial de entrega de sábado:', eSab);
+      }
       if (typeof registrarAccion === 'function') {
         const cambios = typeof auditoriaCalcularCambios === 'function'
           ? auditoriaCalcularCambios(

@@ -99,7 +99,7 @@ async function haCargarDatos() {
 
   const hoy = fechaLocalISO(new Date());
 
-  const [informes, historial, programados, incidencias] = await Promise.all([
+  const [informes, historial, programados, incidencias, histSabado] = await Promise.all([
     haCargarTodo(() => sb.from('informes_diarios').select('id, fecha, informe_enviado, ajustes_puntuales').order('fecha')),
     haCargarTodo(() => sb.from('tienda_agencia_historial')
       .select('id, tienda_id, agencia_anterior_id, agencia_anterior_nombre, agencia_nueva_id, agencia_nueva_nombre, fecha_cambio, creado_por, creado_en')
@@ -109,8 +109,31 @@ async function haCargarDatos() {
       .eq('estado', 'PENDIENTE').order('fecha_cambio')),
     haCargarTodo(() => sb.from('incidencias')
       .select('id, informe_id, tienda_id, motivo')
-      .eq('marcada', true).eq('entrega', 'HABITUAL').order('id'))
+      .eq('marcada', true).eq('entrega', 'HABITUAL').order('id')),
+    // Desde qué fecha se activó/cambió/quitó la entrega de sábado de cada tienda.
+    haCargarTodo(() => sb.from('tienda_sabado_historial')
+      .select('id, tienda_id, agencia_anterior_id, agencia_nueva_id, fecha_cambio, creado_en')
+      .order('fecha_cambio').order('creado_en').order('id'))
   ]);
+
+  const histSabadoPorTienda = new Map();
+  (histSabado || []).forEach(h => {
+    if (!histSabadoPorTienda.has(h.tienda_id)) histSabadoPorTienda.set(h.tienda_id, []);
+    histSabadoPorTienda.get(h.tienda_id).push(h);
+  });
+  // ¿Ese sábado (fecha ISO) recibía la tienda por otra agencia? Tiendas sin
+  // historial (ya la tenían antes de existir la tabla): según su ficha.
+  const sabadoOtraEnFecha = (t, fechaISO) => {
+    const hist = histSabadoPorTienda.get(t.id);
+    let agId;
+    if (!hist || !hist.length) agId = t.sabado_agencia_id;
+    else {
+      let vigente = null;
+      for (const h of hist) { if (h.fecha_cambio <= fechaISO) vigente = h; else break; }
+      agId = vigente ? vigente.agencia_nueva_id : hist[0].agencia_anterior_id;
+    }
+    return agId != null && agId !== t.agencia_id;
+  };
 
   const datosDesde = informes.length ? informes[0].fecha : hoy;
 
@@ -155,12 +178,11 @@ async function haCargarDatos() {
 
       // Días en que recibió por otra agencia (no cuentan en su tramo).
       const otraAgencia = new Set(puntualPorTienda.get(t.id) || []);
-      const sabadoOtra = t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id;
       (incPorTienda.get(t.id) || []).forEach(fecha => {
         const tramo = tramos.find(tr => fecha >= tr.desde && fecha <= tr.hasta);
         if (!tramo) return;
         const esSabado = new Date(fecha + 'T00:00:00').getDay() === 6;
-        if (otraAgencia.has(fecha) || (sabadoOtra && esSabado)) tramo.incOtra++;
+        if (otraAgencia.has(fecha) || (esSabado && sabadoOtraEnFecha(t, fecha))) tramo.incOtra++;
         else tramo.inc++;
       });
 

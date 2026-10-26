@@ -240,16 +240,45 @@ async function rmCargarDatosMes(anio, mesIndex) {
   // a la agencia de sábado (marcado esSabado). No se añade si ese sábado ya
   // tiene un cambio puntual real, si la tienda estaba de baja o si aún no
   // estaba dada de alta (esos días se pintan como siempre en su fila).
+  // La agencia de sábado de cada sábado sale de tienda_sabado_historial
+  // (desde qué fecha se activó, cambió o quitó), así que activarla o
+  // quitarla hoy no cambia los sábados anteriores. Tiendas sin historial
+  // (las que ya la tenían antes de existir la tabla): la de su ficha.
+  const { data: histSabado, error: eSab } = await sb
+    .from('tienda_sabado_historial')
+    .select('tienda_id, agencia_anterior_id, agencia_anterior_nombre, agencia_nueva_id, agencia_nueva_nombre, fecha_cambio, creado_en')
+    .order('fecha_cambio', { ascending: true })
+    .order('creado_en', { ascending: true });
+  if (eSab) console.error('No se pudo cargar el historial de entrega de sábado:', eSab);
+  const histSabadoPorTienda = new Map();
+  (histSabado || []).forEach(h => {
+    if (!histSabadoPorTienda.has(h.tienda_id)) histSabadoPorTienda.set(h.tienda_id, []);
+    histSabadoPorTienda.get(h.tienda_id).push(h);
+  });
+  // Agencia de sábado que tenía la tienda en la fecha ISO dada ({id, nombre} o null).
+  const sabadoAgenciaEnFecha = (t, fechaISO) => {
+    const hist = histSabadoPorTienda.get(t.id);
+    if (!hist || !hist.length) return { id: t.sabado_agencia_id ?? null, nombre: null };
+    let vigente = null;
+    for (const h of hist) { if (h.fecha_cambio <= fechaISO) vigente = h; else break; }
+    return vigente
+      ? { id: vigente.agencia_nueva_id ?? null, nombre: vigente.agencia_nueva_nombre }
+      : { id: hist[0].agencia_anterior_id ?? null, nombre: hist[0].agencia_anterior_nombre };
+  };
+
   tiendasCache.forEach(t => {
-    if (!rmTieneEntregaSabado(t)) return;
-    const ag = agenciasCache.find(a => a.id === t.sabado_agencia_id);
+    if (!rmTieneEntregaSabado(t) && !histSabadoPorTienda.has(t.id)) return;
     for (let dia = 1; dia <= totalDias; dia++) {
       if (new Date(anio, mesIndex, dia).getDay() !== 6) continue;
       if (rmDiaEnBaja(t.id, dia) || dia < rmPrimerDiaTienda(t.id)) continue;
+      const fechaISO = `${anio}-${String(mesIndex + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+      const sab = sabadoAgenciaEnFecha(t, fechaISO);
+      if (sab.id == null || sab.id === t.agencia_id) continue;
       if (!puntualAgenciaPorTienda.has(t.id)) puntualAgenciaPorTienda.set(t.id, {});
       const mapa = puntualAgenciaPorTienda.get(t.id);
       if (mapa[dia]) continue;
-      mapa[dia] = { agenciaId: t.sabado_agencia_id, agenciaNombre: ag ? ag.nombre : '—', esSabado: true };
+      const ag = agenciasCache.find(a => a.id === sab.id);
+      mapa[dia] = { agenciaId: sab.id, agenciaNombre: ag ? ag.nombre : (sab.nombre || '—'), esSabado: true };
     }
   });
 
