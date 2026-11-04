@@ -685,6 +685,7 @@ async function abrirModalPanelSiniestro(id) {
   // Quién/cuándo de Estado y Estado de la recogida tal y como están
   // guardados: si se cancela un cambio sin guardar, se devuelven a esto.
   psMetaGuardada = psCopiarMeta(s);
+  psBaseDb = psCopiarCamposDb(s);
 
   document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
   document.getElementById('psNumeroSiniestro').textContent = `Nº ${s.id}`;
@@ -1204,6 +1205,7 @@ async function cerrarModalPanelSiniestro() {
   panelActivoId = null;
   psMetaGuardada = null;
   psBaseForm = null;
+  psBaseDb = null;
 }
 
 // ---------------- Guardado de los campos del formulario ----------------
@@ -1262,6 +1264,8 @@ function hayCambiosSinGuardarPanel() {
 function psSincronizarBaseCampo(clave) {
   if (!psBaseForm || !panelActivoId) return;
   psBaseForm[clave] = psCamposFormularioPanel()[clave];
+  const s = psSiniestroPorId(panelActivoId);
+  if (psBaseDb && s) psBaseDb[clave] = s[clave] ?? null;
 }
 
 // Enciende / apaga el botón Guardar según haya o no cambios. Si se deshace
@@ -1274,6 +1278,61 @@ function actualizarBotonGuardarPanel() {
   btn.classList.toggle('sin-cambios', !hay);
 }
 
+// ---------------- Cambios de otro usuario mientras está abierto ----------------
+// Antes, Guardar mandaba TODOS los campos tal y como se veían en pantalla:
+// si un compañero tenía el siniestro abierto desde antes, al guardar pisaba
+// lo que otro ya había guardado (los campos le salían vacíos). Ahora:
+//  1) Al abrir se apunta cómo estaban los campos en la base de datos
+//     (psBaseDb). Los cambios propios (guardar, adjuntar/quitar archivos)
+//     la mantienen al día.
+//  2) Al guardar se vuelven a leer de la base de datos. Si alguno no
+//     coincide con lo apuntado, es que otro lo ha guardado por detrás: NO
+//     se deja guardar, se avisa y se recarga el siniestro.
+//  3) Si no hay conflicto, solo se guardan los campos que se han cambiado.
+const PS_CAMPOS_CONFLICTO = ['origen', 'informacion', 'num_albaran', 'num_factura', 'valor', 'estado', 'recogida_limite', 'recogida_estado'];
+let psBaseDb = null;
+
+function psCopiarCamposDb(s) {
+  const m = {};
+  PS_CAMPOS_CONFLICTO.forEach(k => { m[k] = s ? (s[k] ?? null) : null; });
+  return m;
+}
+
+// Mismo formato para comparar (el importe puede llegar como texto o número,
+// y '' / null / undefined cuentan igual).
+function psNormCampo(clave, v) {
+  if (clave === 'valor') return psNumONull(v);
+  if (v === null || v === undefined) return null;
+  const t = String(v).trim();
+  return t === '' ? null : t;
+}
+
+function psTextoCuandoOtro(isoStr) {
+  if (!isoStr) return '';
+  const f = new Date(isoStr);
+  const hora = f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const hoy = new Date();
+  const mismoDia = f.toDateString() === hoy.toDateString();
+  return mismoDia ? ` a las ${hora}` : ` el ${formatearFechaCorta(f)} a las ${hora}`;
+}
+
+// Vuelve a leer el siniestro de la base de datos y lo pinta de nuevo en el
+// modal (se pierden los cambios sin guardar de esta pantalla).
+async function psRecargarSiniestroAbierto(id) {
+  const { data, error } = await sb.from('panel_siniestros').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  const idx = panelCache.findIndex(x => x.id === id);
+  if (!data) {
+    if (idx !== -1) panelCache.splice(idx, 1);
+    cerrarModalPanelSiniestroForzado();
+  } else {
+    if (idx !== -1) panelCache[idx] = data; else panelCache.unshift(data);
+    if (panelActivoId === id) await abrirModalPanelSiniestro(id);
+  }
+  renderPanelSiniestros();
+  renderPanelKpis();
+}
+
 async function guardarCamposPanelAhora() {
   if (!panelActivoId || !hayCambiosSinGuardarPanel()) return;
   const id = panelActivoId;
@@ -1281,24 +1340,55 @@ async function guardarCamposPanelAhora() {
   const btn = document.getElementById('btnGuardarPsModal');
   const ahora = new Date().toISOString();
   const usuarioActual = sesionActual?.nombre || sesionActual?.usuario || null;
-  const datos = {
-    ...psCamposFormularioPanel(),
-    // Quién y cuándo se marcó el estado de la recogida (paso "Recogida de
-    // la mercancía" del seguimiento) y COBRADO / ANULADO (paso final): se
-    // anotan al vuelo en la copia local (s) desde los listeners de "change"
-    // de esos desplegables; aquí solo se guardan.
-    ...psCopiarMeta(s),
-    actualizado_por: usuarioActual
-  };
+  // Solo los campos que se han cambiado en esta pantalla.
+  const formulario = psCamposFormularioPanel();
+  const cambiados = Object.keys(formulario).filter(k => JSON.stringify(formulario[k]) !== JSON.stringify(psBaseForm?.[k]));
+  const datos = { actualizado_por: usuarioActual };
+  cambiados.forEach(k => { datos[k] = formulario[k]; });
+  // Quién y cuándo se marcó el estado de la recogida (paso "Recogida de
+  // la mercancía" del seguimiento) y COBRADO / ANULADO (paso final): se
+  // anotan al vuelo en la copia local (s) desde los listeners de "change"
+  // de esos desplegables; aquí solo se guardan, y solo si ese desplegable
+  // se ha cambiado.
+  const meta = psCopiarMeta(s);
+  if (cambiados.includes('recogida_estado')) {
+    datos.recogida_estado_en = meta.recogida_estado_en;
+    datos.recogida_estado_por = meta.recogida_estado_por;
+  }
+  if (cambiados.includes('estado')) {
+    datos.cobrado_en = meta.cobrado_en; datos.cobrado_por = meta.cobrado_por;
+    datos.anulado_en = meta.anulado_en; datos.anulado_por = meta.anulado_por;
+  }
 
   if (btn) { btn.disabled = true; btn.classList.add('guardando'); }
   try {
+    // ¿Lo ha guardado otro usuario mientras estaba abierto?
+    const { data: actual, error: eAct } = await sb.from('panel_siniestros')
+      .select(PS_CAMPOS_CONFLICTO.join(', ') + ', actualizado_por, actualizado_en')
+      .eq('id', id).maybeSingle();
+    if (eAct) throw eAct;
+    if (!actual) {
+      await modalAlert(`El siniestro Nº ${id} ya no existe: lo ha borrado otro usuario.`, { titulo: 'Siniestro borrado', icono: '⚠️', danger: true });
+      await psRecargarSiniestroAbierto(id);
+      return;
+    }
+    const modificadoPorOtro = psBaseDb && PS_CAMPOS_CONFLICTO.some(k => psNormCampo(k, actual[k]) !== psNormCampo(k, psBaseDb[k]));
+    if (modificadoPorOtro) {
+      await modalAlert(
+        `${actual.actualizado_por || 'Otro usuario'} guardó cambios en el siniestro Nº ${id}${psTextoCuandoOtro(actual.actualizado_en)}, mientras lo tenías abierto.\n\nPara no borrar lo que ha guardado, tus cambios no se han guardado. Pulsa «Cargar cambios» para ver la versión actual y, si hace falta, vuelve a hacer tu cambio.`,
+        { titulo: 'Siniestro modificado por otro usuario', icono: '⚠️', danger: true, textoOk: 'Cargar cambios' }
+      );
+      await psRecargarSiniestroAbierto(id);
+      return;
+    }
+
     const { error } = await sb.from('panel_siniestros').update(datos).eq('id', id);
     if (error) throw error;
     if (s) {
       Object.assign(s, datos);
       s.actualizado_en = ahora;
       psMetaGuardada = psCopiarMeta(s);
+      if (psBaseDb) cambiados.forEach(k => { psBaseDb[k] = datos[k]; });
       if (panelActivoId === id) {
         psBaseForm = psCamposFormularioPanel();
         document.getElementById('psActualizadoTexto').textContent = psTextoUltimaModificacion(usuarioActual, ahora);
@@ -1427,6 +1517,7 @@ function cerrarModalPanelSiniestroForzado() {
   panelActivoId = null;
   psMetaGuardada = null;
   psBaseForm = null;
+  psBaseDb = null;
 }
 
 // ---------------------------------------------------------------
