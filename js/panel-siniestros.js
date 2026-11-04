@@ -1546,6 +1546,13 @@ function imprimirResumenPanelSiniestro() {
 
 document.getElementById('btnImprimirPanelSiniestro')?.addEventListener('click', imprimirResumenPanelSiniestro);
 
+// Detalle para el registro de auditoría: "Nº 123 · TIENDA" (el nº de
+// siniestro delante, para saber exactamente de cuál se trata).
+function psDetalleAuditoria(s) {
+  const lugar = s?.tienda_nombre || s?.agencia_nombre || '—';
+  return s?.id ? `Nº ${s.id} · ${lugar}` : lugar;
+}
+
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
   const s = psSiniestroPorId(panelActivoId);
@@ -1591,7 +1598,7 @@ async function eliminarPanelSiniestro() {
     if (error) throw error;
 
     if (typeof registrarAccion === 'function') {
-      registrarAccion('siniestros', 'Borrar siniestro', `${s?.tienda_nombre || s?.agencia_nombre || '—'}${s?.fecha ? ' — ' + psFormatearFecha(s.fecha) : ''}`);
+      registrarAccion('siniestros', 'Borrar siniestro', `${psDetalleAuditoria(s)}${s?.fecha ? ' — ' + psFormatearFecha(s.fecha) : ''}`);
     }
 
     cerrarModalPanelSiniestroForzado();
@@ -1727,7 +1734,7 @@ async function quitarFotoPanel(idx) {
     await sincronizarFotosConSiniestroOriginal(s);
     await borrarDeStoragePorUrl(BUCKET_FOTOS_PANEL, urlAEliminar);
     if (typeof registrarAccion === 'function') {
-      registrarAccion('siniestros', 'Borrar foto de siniestro', `${s?.tienda_nombre || s?.agencia_nombre || '—'}`);
+      registrarAccion('siniestros', 'Borrar foto de siniestro', psDetalleAuditoria(s));
     }
   } catch (err) {
     console.error('Error quitando foto:', err);
@@ -1842,7 +1849,7 @@ async function quitarFacturaPanel() {
     renderPanelKpis();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
     if (typeof registrarAccion === 'function') {
-      registrarAccion('siniestros', 'Quitar factura de siniestro', `${s?.tienda_nombre || s?.agencia_nombre || '—'}`);
+      registrarAccion('siniestros', 'Quitar factura de siniestro', psDetalleAuditoria(s));
     }
   } catch (err) {
     console.error('Error quitando factura:', err);
@@ -2028,7 +2035,7 @@ async function quitarAlbaranPanel() {
     renderPanelSiniestros();
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
     if (typeof registrarAccion === 'function') {
-      registrarAccion('siniestros', 'Quitar albarán de siniestro', `${s?.tienda_nombre || s?.agencia_nombre || '—'}`);
+      registrarAccion('siniestros', 'Quitar albarán de siniestro', psDetalleAuditoria(s));
     }
   } catch (err) {
     console.error('Error quitando el albarán:', err);
@@ -2102,7 +2109,7 @@ async function quitarJustificantePanel() {
     pintarJustificanteModal(s);
     await borrarDeStoragePorUrl(BUCKET_FACTURAS_PANEL, urlAEliminar);
     if (typeof registrarAccion === 'function') {
-      registrarAccion('siniestros', 'Quitar justificante de recogida', `${s?.tienda_nombre || s?.agencia_nombre || '—'}`);
+      registrarAccion('siniestros', 'Quitar justificante de recogida', psDetalleAuditoria(s));
     }
   } catch (err) {
     console.error('Error quitando el justificante:', err);
