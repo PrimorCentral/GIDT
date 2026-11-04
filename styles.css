@@ -899,6 +899,8 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   /* Modal "Nuevo motivo" */
   .nm-campos{ display:flex; flex-direction:column; gap:14px; }
   .nm-fila{ display:grid; grid-template-columns:110px 1fr; gap:12px; }
+  .nm-campos .gm-otro.sel input{ box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+  #btnGuardarNuevoMotivo:disabled{ opacity:.45; cursor:not-allowed; }
   .nm-codigo-auto{ background:var(--panel-muted); color:var(--ink-soft); cursor:default; font-weight:700; }
   .nm-pal{ grid-template-columns:repeat(12, 22px); gap:8px; }
   .nm-preview{ display:flex; align-items:center; gap:10px; background:var(--panel-muted); border-radius:10px; padding:10px 12px; font-size:12.5px; }
