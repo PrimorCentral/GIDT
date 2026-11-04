@@ -502,14 +502,13 @@ function cerrarModalNuevoMotivo() {
 async function guardarNuevoMotivo() {
   const nombre = document.getElementById('nmNombre').value.trim().toUpperCase().replace(/\s+/g, ' ');
   const label = (document.getElementById('nmLabel').value.trim() || nombre).toUpperCase().replace(/\s+/g, ' ');
-  const codigo = document.getElementById('nmCodigo').value.trim().toUpperCase();
+  // El código no se escribe: lo pone la app (siguiente número libre).
+  const codigo = siguienteCodigoLibre();
   const errEl = document.getElementById('nmError');
   const fallo = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
   errEl.style.display = 'none';
 
   if (!nombre) return fallo('Escribe el nombre del motivo.');
-  if (!codigo) return fallo('Escribe el código del Reporte mensual.');
-  if (codigo.length > 3) return fallo('El código puede tener como mucho 3 caracteres.');
   const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
   const existe = (typeof MOTIVOS !== 'undefined' && MOTIVOS.some(m => m.v === nombre))
     || (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).some(f => f.motivo === nombre)
@@ -563,6 +562,6 @@ document.getElementById('btnNuevoMotivo')?.addEventListener('click', abrirModalN
 document.getElementById('btnCerrarNuevoMotivo')?.addEventListener('click', cerrarModalNuevoMotivo);
 document.getElementById('btnCancelarNuevoMotivo')?.addEventListener('click', cerrarModalNuevoMotivo);
 document.getElementById('btnGuardarNuevoMotivo')?.addEventListener('click', guardarNuevoMotivo);
-['nmNombre', 'nmLabel', 'nmCodigo'].forEach(id => document.getElementById(id)?.addEventListener('input', pintarVistaPreviaNuevoMotivo));
+['nmNombre', 'nmLabel'].forEach(id => document.getElementById(id)?.addEventListener('input', pintarVistaPreviaNuevoMotivo));
 document.getElementById('nmColorOtro')?.addEventListener('input', (e) => { nmColor = e.target.value; pintarVistaPreviaNuevoMotivo(); });
 document.querySelectorAll('#nmNivelToggle .toggle-seg-btn').forEach(b => b.addEventListener('click', () => { nmNivel = b.dataset.nivel; pintarVistaPreviaNuevoMotivo(); }));
