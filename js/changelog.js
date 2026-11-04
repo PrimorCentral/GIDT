@@ -10,6 +10,21 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.6',
+    fecha: '2026-11-04',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Nuevo motivo de incidencia: Palet remontado, también en el Reporte mensual y en los PDF' },
+      { tipo: 'nuevo',  texto: 'Gravedad de motivos: se pueden añadir motivos nuevos y cambiar el color de cada código del Reporte mensual' },
+      { tipo: 'nuevo',  texto: 'Panel siniestros: se pueden añadir siniestros sin tienda, por ejemplo de una agencia ocasional' },
+      { tipo: 'nuevo',  texto: 'Nueva ventana "Mi usuario" al pulsar el usuario de la cabecera, para consultar los datos propios y cambiar la contraseña' },
+      { tipo: 'mejora', texto: 'Panel siniestros: si otro usuario modifica un siniestro mientras se tiene abierto, se avisa al guardar y no se pierden sus cambios' },
+      { tipo: 'mejora', texto: 'Registro de auditoría: las acciones sobre siniestros indican el Nº de siniestro' },
+      { tipo: 'mejora', texto: 'Nuevo diseño de la cabecera, de la lista de usuarios y de las ventanas de usuario' },
+      { tipo: 'mejora', texto: 'Ajustes en la pantalla de inicio de sesión' },
+      { tipo: 'correccion', texto: 'Se ha corregido un problema en el texto de algunos correos de siniestros' }
+    ]
+  },
+  {
     version: '1.8.5',
     fecha: '2026-10-20',
     cambios: [
