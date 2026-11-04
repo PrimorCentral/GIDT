@@ -3493,3 +3493,4 @@ table.tabla-historial-tienda tbody tr{ cursor:default; }
 .btn.btn-volcar-salidas:hover{ background:#eef4fb; }
 .btn.btn-volcar-salidas.quitar{ background:#fff; border-color:#d92d20; color:#b42318; }
 .btn.btn-volcar-salidas.quitar:hover{ background:#fef3f2; }
+  .ps-sin-tienda{ color:var(--ink-soft); font-style:italic; }
