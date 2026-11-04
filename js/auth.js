@@ -48,7 +48,10 @@
     sesionActual = usuario;
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
-    document.getElementById('userChipName').textContent = usuario.nombre || usuario.usuario;
+    // En la cabecera sale el número de usuario (como en SALIDAS); el nombre
+    // completo, al pasar el ratón por encima.
+    document.getElementById('userChipName').textContent = usuario.usuario || usuario.nombre || '—';
+    document.getElementById('userChipUsuario').title = usuario.nombre || usuario.usuario || '';
     if (typeof aplicarPermisosPorRol === 'function') aplicarPermisosPorRol(usuario.rol);
   }
 

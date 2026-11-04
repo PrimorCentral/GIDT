@@ -155,7 +155,7 @@
     }
   });
 
-  document.getElementById('userChip').addEventListener('click', async () => {
+  document.getElementById('btnSalir').addEventListener('click', async () => {
     if (typeof confirmarDescartarEdicionHistorial === 'function' && !(await confirmarDescartarEdicionHistorial())) return;
     if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
     if (!(await modalConfirm('¿Cerrar sesión?', { titulo: 'Cerrar sesión' }))) return;
