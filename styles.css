@@ -307,12 +307,6 @@
   @keyframes login-camara{ from{ transform:scale(1) translate(0,0); } to{ transform:scale(1.13) translate(-2.5%,1.5%); } }
   .login-hero, .login-panel{ position:relative; z-index:2; }
   .login-luz, .login-polvo{ position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
-  .login-luz::before{
-    content:''; position:absolute; top:-20%; bottom:-20%; width:22%; left:-30%;
-    background:linear-gradient(90deg, transparent, rgba(255,190,140,.10), rgba(255,225,200,.18), rgba(255,190,140,.10), transparent);
-    transform:skewX(-18deg); animation:login-barrido 9s ease-in-out 2s infinite;
-  }
-  @keyframes login-barrido{ 0%{ left:-30%; } 55%,100%{ left:120%; } }
   .login-polvo span{
     position:absolute; bottom:-10px; border-radius:50%; background:rgba(255,210,170,.55);
     animation:login-sube linear infinite;
@@ -436,12 +430,6 @@
   }
   .login-card button#btnLogin:hover:not(:disabled){ background:#222c38; }
   .login-card button#btnLogin:disabled{ opacity:.75; cursor:default; }
-  .login-card button#btnLogin::after{
-    content:''; position:absolute; top:0; bottom:0; width:40%; left:-60%; pointer-events:none;
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
-    transform:skewX(-20deg); animation:login-brillo 5s ease-in-out 3s infinite;
-  }
-  @keyframes login-brillo{ 0%{ left:-60%; } 30%,100%{ left:130%; } }
   .login-card .login-flecha{ width:18px; height:18px; color:var(--accent); transition:transform .2s; }
   .login-card button#btnLogin:hover .login-flecha{ transform:translateX(4px); }
   .login-card button#btnLogin.loading .login-flecha{ display:none; }
