@@ -1056,12 +1056,14 @@
           <p>Clasificación y orden de los motivos de incidencia, usados en Análisis y en el Reporte mensual.</p>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn" id="btnNuevoMotivo">➕ Nuevo motivo</button>
           <button class="btn primary" id="btnGuardarGravedadMotivos">💾 Guardar</button>
           <span id="gravedadGuardadoOk" class="gravedad-guardado-ok" style="display:none;">Guardado ✓</span>
         </div>
       </div>
       <div class="gravedad-explicacion">
-        ℹ️ El nivel manda por encima del orden: una incidencia <b>Grave</b> siempre gana a una <b>Moderada</b>, y una <b>Moderada</b> siempre gana a una <b>Leve</b>, sin importar la posición de las flechas. El orden (▲▼) solo decide el empate cuando dos motivos <b>del mismo nivel</b> se marcan el mismo día.
+        ℹ️ El nivel manda por encima del orden: una incidencia <b>Grave</b> siempre gana a una <b>Moderada</b>, y una <b>Moderada</b> siempre gana a una <b>Leve</b>, sin importar la posición de las flechas. El orden (▲▼) solo decide el empate cuando dos motivos <b>del mismo nivel</b> se marcan el mismo día.<br>
+        🎨 Pulsa el <b>código de color</b> de un motivo para cambiar su color en el Reporte mensual y en los PDF.
       </div>
       <div id="contenidoGravedadMotivos"></div>
     </section>
@@ -2444,6 +2446,53 @@
     <div class="modal-footer" style="margin-top:18px;">
       <button class="btn" id="btnCancelarEditarUsuario">Cancelar</button>
       <button class="btn primary" id="btnGuardarEditarUsuario">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo motivo (Configuración → Gravedad de motivos) — js/config-gravedad-motivos.js -->
+<div class="modal-overlay" id="nuevoMotivoModalOverlay">
+  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:480px;">
+    <button class="filtros-modal-close" id="btnCerrarNuevoMotivo" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" style="margin-bottom:18px;">➕ Nuevo motivo</h3>
+    <div class="nm-campos">
+      <div>
+        <label class="form-label" for="nmNombre">Nombre del motivo</label>
+        <input type="text" id="nmNombre" class="form-input" placeholder="P. ej. PALET SIN FILM" autocomplete="off" style="text-transform:uppercase;">
+      </div>
+      <div>
+        <label class="form-label">Gravedad</label>
+        <div class="toggle-seg" id="nmNivelToggle">
+          <button type="button" class="toggle-seg-btn" data-nivel="leve">Leve</button>
+          <button type="button" class="toggle-seg-btn" data-nivel="moderado">Moderado</button>
+          <button type="button" class="toggle-seg-btn" data-nivel="grave">Grave</button>
+        </div>
+      </div>
+      <div class="nm-fila">
+        <div>
+          <label class="form-label" for="nmCodigo">Código</label>
+          <input type="text" id="nmCodigo" class="form-input" maxlength="3" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+        <div>
+          <label class="form-label" for="nmLabel">Texto en la leyenda</label>
+          <input type="text" id="nmLabel" class="form-input" placeholder="Igual que el nombre" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Color del código</label>
+        <div class="gm-pal nm-pal" id="nmPaleta"></div>
+        <label class="gm-otro"><input type="color" id="nmColorOtro" value="#5B2C6F"> Otro color…</label>
+      </div>
+      <div class="nm-preview">
+        <span>Así se verá:</span>
+        <span class="rm-celda-codigo" id="nmPreviewCodigo">21</span>
+        <b id="nmPreviewLabel"></b>
+      </div>
+    </div>
+    <p class="err" id="nmError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarNuevoMotivo">Cancelar</button>
+      <button class="btn primary" id="btnGuardarNuevoMotivo">💾 Añadir motivo</button>
     </div>
   </div>
 </div>

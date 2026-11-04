@@ -881,6 +881,29 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   .gravedad-btn:disabled{ opacity:.3; cursor:default; }
   .gravedad-guardado-ok{ color:var(--moderado); font-size:13px; font-weight:600; }
 
+  /* Códigos del Reporte mensual en cada motivo (pulsar = cambiar color) */
+  .gm-nombre{ display:flex; align-items:center; gap:8px; }
+  .gm-chips{ display:inline-flex; flex-wrap:wrap; gap:3px; flex:0 0 auto; }
+  .gm-chip{ border:0; cursor:pointer; min-width:24px; text-align:center; font-size:11px; font-family:inherit; line-height:1.4; }
+  .gm-chip.sel{ box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+  .gm-pop{
+    position:absolute; z-index:60; width:max-content; max-width:260px; padding:12px;
+    background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow);
+  }
+  .gm-pop h4{ margin:0 0 8px; font-size:12.5px; color:var(--ink); }
+  .gm-pal{ display:grid; grid-template-columns:repeat(8, 22px); gap:5px; margin-bottom:10px; }
+  .gm-color{ width:22px; height:22px; padding:0; border-radius:6px; border:1px solid rgba(0,0,0,.12); cursor:pointer; }
+  .gm-color.sel{ box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+  .gm-otro{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); cursor:pointer; }
+  .gm-otro input{ width:34px; height:26px; padding:0; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+  /* Modal "Nuevo motivo" */
+  .nm-campos{ display:flex; flex-direction:column; gap:14px; }
+  .nm-fila{ display:grid; grid-template-columns:110px 1fr; gap:12px; }
+  .nm-pal{ grid-template-columns:repeat(12, 22px); gap:8px; }
+  .nm-preview{ display:flex; align-items:center; gap:10px; background:var(--panel-muted); border-radius:10px; padding:10px 12px; font-size:12.5px; }
+  .nm-preview > span:first-child{ color:var(--ink-soft); }
+  body:not(.perm-config_gravedad_motivos) #btnNuevoMotivo{ opacity:.5; }
+
   /* Sin permiso de "Gravedad de motivos": página visible para todos
      (se puede entrar y consultar), pero sin poder mover/reclasificar
      ni guardar. */
