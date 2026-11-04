@@ -203,6 +203,68 @@
     return permisos;
   }
 
+  // ---------------- Botón Guardar de los modales de usuario ----------------
+  // Igual que en el detalle del siniestro: Guardar arriba, apagado mientras
+  // no haya nada que guardar. En Editar se compara con cómo estaba al abrir;
+  // en Nuevo, se enciende al rellenar nombre, usuario y PIN.
+  const baseFormUsuario = { eu: null };
+
+  function fotoFormularioUsuario(prefijo) {
+    const valor = id => (document.getElementById(id)?.value || '').trim();
+    return JSON.stringify({
+      nombre: valor(`${prefijo}Nombre`),
+      usuario: valor(`${prefijo}Usuario`),
+      pin: valor(`${prefijo}Pin`),
+      rol: valor(`${prefijo}Rol`),
+      activo: !!document.getElementById(`${prefijo}Activo`)?.checked,
+      externo: !!document.getElementById(`${prefijo}Externo`)?.checked,
+      permisos: leerPermisosDeFormulario(prefijo)
+    });
+  }
+
+  function formularioUsuarioListo(prefijo) {
+    if (prefijo === 'eu') return !!baseFormUsuario.eu && fotoFormularioUsuario('eu') !== baseFormUsuario.eu;
+    return ['nuNombre', 'nuUsuario', 'nuPin'].every(id => document.getElementById(id).value.trim());
+  }
+
+  function actualizarBotonGuardarUsuario(prefijo) {
+    const btn = document.getElementById(prefijo === 'eu' ? 'btnGuardarEditarUsuario' : 'btnGuardarUsuario');
+    if (!btn || btn.classList.contains('guardando')) return;
+    const listo = formularioUsuarioListo(prefijo);
+    btn.disabled = !listo;
+    btn.classList.toggle('sin-cambios', !listo);
+    const sub = document.getElementById(`${prefijo}Sub`);
+    if (sub) {
+      sub.textContent = prefijo === 'eu'
+        ? (listo ? 'Hay cambios sin guardar.' : 'Modifica los datos y pulsa Guardar.')
+        : 'Rellena nombre, usuario y PIN, marca sus permisos y pulsa Guardar.';
+    }
+  }
+
+  // ¿Hay algo escrito/cambiado que se perdería al cerrar?
+  function hayCambiosSinGuardarUsuario(prefijo) {
+    if (prefijo === 'eu') return formularioUsuarioListo('eu');
+    const vacio = fotoFormularioUsuario('nu');
+    return !!baseFormUsuario.nu && vacio !== baseFormUsuario.nu;
+  }
+
+  async function cerrarModalUsuarioConAviso(prefijo, cerrar) {
+    if (hayCambiosSinGuardarUsuario(prefijo)) {
+      const ok = await modalConfirm('Tienes cambios sin guardar. ¿Descartarlos?', { titulo: 'Descartar cambios', danger: true, textoOk: 'Descartar' });
+      if (!ok) return;
+    }
+    cerrar();
+  }
+
+  // Cualquier cambio dentro del modal (escribir, marcar, elegir rol)
+  // vuelve a comprobar el botón. El rol se cambia con un clic en el
+  // selector, por eso también se escucha "click" (después de aplicarse).
+  [['eu', 'editarUsuarioModalOverlay'], ['nu', 'nuevoUsuarioModalOverlay']].forEach(([prefijo, idOverlay]) => {
+    const overlay = document.getElementById(idOverlay);
+    if (!overlay) return;
+    ['input', 'change', 'click'].forEach(ev => overlay.addEventListener(ev, () => setTimeout(() => actualizarBotonGuardarUsuario(prefijo), 0)));
+  });
+
   // ---------------- Nuevo usuario ----------------
 
   function abrirModalNuevoUsuario() {
@@ -212,6 +274,8 @@
     fijarRolEnFormulario('nu', 'operador');
     fijarPermisosEnFormulario('nu', {});
     document.getElementById('nuError').style.display = 'none';
+    baseFormUsuario.nu = fotoFormularioUsuario('nu');
+    actualizarBotonGuardarUsuario('nu');
     document.getElementById('nuevoUsuarioModalOverlay').classList.add('show');
   }
 
@@ -220,8 +284,7 @@
   }
 
   document.getElementById('btnNuevoUsuario').addEventListener('click', abrirModalNuevoUsuario);
-  document.getElementById('btnCerrarNuevoUsuario').addEventListener('click', cerrarModalNuevoUsuario);
-  document.getElementById('btnCancelarUsuario').addEventListener('click', cerrarModalNuevoUsuario);
+  document.getElementById('btnCerrarNuevoUsuario').addEventListener('click', () => cerrarModalUsuarioConAviso('nu', cerrarModalNuevoUsuario));
 
   document.getElementById('btnGuardarUsuario').addEventListener('click', async () => {
     const nombre = document.getElementById('nuNombre').value.trim();
@@ -244,7 +307,7 @@
     }
 
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.classList.add('guardando');
 
     try {
       const pinHash = await sha256(pin);
@@ -265,8 +328,8 @@
       errEl.textContent = err.message || 'No se pudo crear el usuario.';
       errEl.style.display = 'block';
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Guardar usuario';
+      btn.classList.remove('guardando');
+      actualizarBotonGuardarUsuario('nu');
     }
   });
 
@@ -286,6 +349,8 @@
     fijarRolEnFormulario('eu', u.rol || 'operador');
     fijarPermisosEnFormulario('eu', u.permisos || {});
     document.getElementById('euError').style.display = 'none';
+    baseFormUsuario.eu = fotoFormularioUsuario('eu');
+    actualizarBotonGuardarUsuario('eu');
 
     document.getElementById('editarUsuarioModalOverlay').classList.add('show');
   }
@@ -293,6 +358,7 @@
   function cerrarModalEditarUsuario() {
     document.getElementById('editarUsuarioModalOverlay').classList.remove('show');
     usuarioEditandoId = null;
+    baseFormUsuario.eu = null;
   }
 
   async function guardarEdicionUsuario() {
@@ -345,12 +411,11 @@
       errEl.textContent = err.message || 'No se pudo guardar el usuario.';
       errEl.style.display = 'block';
     } finally {
-      btn.disabled = false;
+      actualizarBotonGuardarUsuario('eu');
     }
   }
 
-  document.getElementById('btnCerrarEditarUsuario')?.addEventListener('click', cerrarModalEditarUsuario);
-  document.getElementById('btnCancelarEditarUsuario')?.addEventListener('click', cerrarModalEditarUsuario);
+  document.getElementById('btnCerrarEditarUsuario')?.addEventListener('click', () => cerrarModalUsuarioConAviso('eu', cerrarModalEditarUsuario));
   document.getElementById('btnGuardarEditarUsuario')?.addEventListener('click', guardarEdicionUsuario);
 
   // ---------------- Borrar usuario ----------------
