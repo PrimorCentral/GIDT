@@ -379,6 +379,34 @@
 </div>`;
   }
 
+  // ---------------------------------------------------------------
+  // Siniestros SIN TIENDA (p. ej. una agencia ocasional como MRW, con un
+  // envío que no va a ninguna tienda en concreto): las plantillas de
+  // arriba están redactadas para una tienda, así que aquí se adaptan:
+  // fuera la etiqueta "Tienda:", "en nuestra tienda de X" pasa a "en un
+  // envío de mercancía", y se añade lo escrito en Información como detalle.
+  function adaptarHtmlSinTienda(html, informacion) {
+    let h = html;
+    // Etiqueta "Tienda: —" de la cabecera (todas las variantes).
+    h = h.replace(/<td style="padding: 4px;">\s*<table[^>]*>\s*<tr>\s*<td[^>]*>\s*Tienda:[^<]*<\/td>\s*<\/tr>\s*<\/table>\s*<\/td>/g, '');
+    const detalle = informacion
+      ? `<br><br><b style="color: #000000;">Detalle:</b> ${escapeHtml(informacion)}`
+      : '';
+    h = h.replace(/la mercancía recibida en nuestra tienda de <b[^>]*>[^<]*<\/b> \(ver fecha de recepción arriba\)([^<]*)/g,
+      (m, resto) => `un envío de mercancía (ver fecha arriba)${resto}${detalle}`);
+    h = h.replace(/arreglar un palet de nuestra tienda <b[^>]*>[^<]*<\/b>,([^<]*)/g,
+      (m, resto) => `arreglar un palet nuestro,${resto}${detalle}`);
+    h = h.replace(/Tras haber revisado la mercancia en nuestra tienda,/g, 'Tras haber revisado la mercancía,');
+    h = h.replace(/se deberá recoger en nuestra tienda en los próximos 15 días/g, 'se deberá recoger en nuestras instalaciones en los próximos 15 días');
+    h = h.replace(/en el normal funcionamiento de la tienda\./g, 'en el normal funcionamiento de nuestro negocio.');
+    return h;
+  }
+
+  // Quita " – —" / " - —" (la tienda vacía) de un asunto.
+  function asuntoSinTienda(asunto) {
+    return asunto.replace(/ [–-] — [–-] /g, ' – ').replace(/ [–-] —$/, '');
+  }
+
   // Genera { subject, html, text } para el siniestro dado (ROTURA, FALTA o MIXTO),
   // usando la plantilla correspondiente.
   function plantillaSiniestro(s, fechaInformeISO) {
@@ -401,6 +429,13 @@
       html = plantillaHtmlFalta(tienda, fechaInformeStr);
       subject = `FALTAS EN EL ENVIO – ${tienda.toUpperCase()} – ${fechaInformeStr}`;
       text = `Se han detectado faltas en la mercancía recibida en la tienda ${tienda} (recepción ${fechaInformeStr}).`;
+    }
+
+    if (!t.nombre) {
+      html = adaptarHtmlSinTienda(html, s.informacion);
+      subject = asuntoSinTienda(subject);
+      text = text.replace(/en la mercancía recibida en la tienda — \(recepción/, 'en un envío de mercancía (fecha')
+        + (s.informacion ? ` Detalle: ${s.informacion}` : '');
     }
 
     return { subject, html, text };
@@ -464,7 +499,7 @@
                 Mis compañeros en los próximos días os pasará el cargo correspondiente.
               </p>
               <p style="margin-top: 16px; color: #1e293b; font-size: 15px; line-height: 1.6; font-weight: 600;">
-                Es vital que tengáis especial cuidado con nuestra mercancía puesto que es muy frágil y costosa. <br><br>El hecho de que se produzcan estas incidencias nos afecta en las ventas y en el normal funcionamiento de la tienda.><br><br>La mercancia dañada la podreis recoger en nuestro almacen de Calle Escritora Carmen Martin Gaite Nº10, preguntando por Jose Luis Franco.
+                Es vital que tengáis especial cuidado con nuestra mercancía puesto que es muy frágil y costosa. <br><br>El hecho de que se produzcan estas incidencias nos afecta en las ventas y en el normal funcionamiento de la tienda.<br><br>La mercancia dañada la podreis recoger en nuestro almacen de Calle Escritora Carmen Martin Gaite Nº10, preguntando por Jose Luis Franco.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                 <tr>
@@ -674,7 +709,7 @@
                 Mis compañeros en los próximos días os pasará el cargo correspondiente.
               </p>
               <p style="margin-top: 16px; color: #1e293b; font-size: 15px; line-height: 1.6; font-weight: 600;">
-                Es vital que tengáis especial cuidado con nuestra mercancía puesto que es muy frágil y costosa. <br><br>El hecho de que se produzcan estas incidencias nos afecta en las ventas y en el normal funcionamiento de la tienda.><br><br>La mercancia dañada la podreis recoger en nuestro almacen de Calle Escritora Carmen Martin Gaite Nº10, preguntando por Jose Luis Franco.
+                Es vital que tengáis especial cuidado con nuestra mercancía puesto que es muy frágil y costosa. <br><br>El hecho de que se produzcan estas incidencias nos afecta en las ventas y en el normal funcionamiento de la tienda.<br><br>La mercancia dañada la podreis recoger en nuestro almacen de Calle Escritora Carmen Martin Gaite Nº10, preguntando por Jose Luis Franco.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                 <tr>
@@ -777,6 +812,12 @@
       text = `Falta detectada en el almacén de ${agenciaNombre} al reparar un palet de la tienda ${tienda} (fecha ${fechaInformeStr}).`;
     }
 
+    if (!t.nombre) {
+      html = adaptarHtmlSinTienda(html, s.informacion);
+      subject = asuntoSinTienda(subject);
+      text = text.replace(/ de la tienda —/, '') + (s.informacion ? ` Detalle: ${s.informacion}` : '');
+    }
+
     return { subject, html, text };
   }
 
@@ -798,7 +839,7 @@
   // siniestro y nombre comercial de la agencia (si se pasa).
   function psAsuntoFacturacion(tipo, tienda, fecha, agenciaNombre, nombreComercial) {
     const t = tienda.toUpperCase();
-    const partes = [t];
+    const partes = t ? [t] : []; // sin tienda: no se pone
     if (agenciaNombre) partes.push(agenciaNombre.toUpperCase());
     partes.push(fecha);
     if (nombreComercial) partes.push(nombreComercial.toUpperCase());
@@ -820,19 +861,26 @@
 
     // En los siniestros mixtos (rotura + falta) se aclara qué es cada cosa,
     // ya que en las fotos/albarán lo subrayado en amarillo marca las FALTAS.
+    // Sin tienda: "en la tienda de X" pasa a "en un envío de mercancía" y
+    // se añade lo escrito en Información como detalle.
+    const sinTienda = !tienda;
+    const lineaFinal = sinTienda
+      ? linea.replace(/ en la tienda de $/, ' en un envío de mercancía').replace(/ de la tienda de $/, '')
+      : linea;
+    const detalleInfo = sinTienda && s.informacion ? `Detalle: ${s.informacion}` : '';
     const aclaracionFaltas = s.tipo === 'FALTAS Y ROTURAS'
       ? 'Aclaramos que lo subrayado en amarillo son las FALTAS'
       : '';
 
     const html = `
       <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
-        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
+        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${lineaFinal}</p>${detalleInfo ? `<p style="margin:0 0 14px;">${escapeHtml(detalleInfo)}</p>` : ''}
         <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
         ${aclaracionFaltas ? `<p style="margin:0 0 14px;">${aclaracionFaltas}</p>` : ''}
         <p style="margin:0;">Gracias, un saludo.</p>
       </div>`;
 
-    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
+    const text = `Buenas, aquí adjuntamos ${lineaFinal}${detalleInfo ? `\n${detalleInfo}` : ''}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
 
     return { subject, html, text };
   }
@@ -860,7 +908,7 @@
   function psAsuntoFacturacionAgencia(tipo, tienda, fecha, agenciaNombre, nombreComercial) {
     const ag = (agenciaNombre || '').toUpperCase();
     const t = tienda.toUpperCase();
-    let base = [ag, t, fecha].join(' - ');
+    let base = [ag, t, fecha].filter(Boolean).join(' - ');
     if (nombreComercial) base += ` // ${nombreComercial.toUpperCase()}`;
     const motivo = PS_MOTIVO_FACTURACION_AGENCIA[tipo] || 'ROTURA Y FALTA';
     return `INCIDENCIA POR ${motivo} EN ALMACÉN ${base}`;
@@ -879,19 +927,26 @@
 
     const linea = (PS_TIPO_CUERPO_FACTURACION_AGENCIA[s.tipo] || ((t) => `toda la documentación del pallet arreglado en vuestro almacén de Málaga de la tienda de ${t}`))(tienda);
 
+    // Sin tienda: "en la tienda de X" pasa a "en un envío de mercancía" y
+    // se añade lo escrito en Información como detalle.
+    const sinTienda = !tienda;
+    const lineaFinal = sinTienda
+      ? linea.replace(/ en la tienda de $/, ' en un envío de mercancía').replace(/ de la tienda de $/, '')
+      : linea;
+    const detalleInfo = sinTienda && s.informacion ? `Detalle: ${s.informacion}` : '';
     const aclaracionFaltas = s.tipo === 'FALTAS Y ROTURAS'
       ? 'Aclaramos que lo subrayado en amarillo son las FALTAS'
       : '';
 
     const html = `
       <div style="font-family:Arial, sans-serif; font-size:14px; color:#1e293b; line-height:1.5;">
-        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${linea}</p>
+        <p style="margin:0 0 14px;">Buenas, aquí adjuntamos ${lineaFinal}</p>${detalleInfo ? `<p style="margin:0 0 14px;">${escapeHtml(detalleInfo)}</p>` : ''}
         <p style="margin:0 0 14px;">De la agencia ${escapeHtml(s.agencia_nombre || '')}, el día: ${fecha}</p>
         ${aclaracionFaltas ? `<p style="margin:0 0 14px;">${aclaracionFaltas}</p>` : ''}
         <p style="margin:0;">Gracias, un saludo.</p>
       </div>`;
 
-    const text = `Buenas, aquí adjuntamos ${linea}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
+    const text = `Buenas, aquí adjuntamos ${lineaFinal}${detalleInfo ? `\n${detalleInfo}` : ''}\nDe la agencia ${s.agencia_nombre || ''}, el día: ${fecha}${aclaracionFaltas ? `\n\n${aclaracionFaltas}` : ''}\n\nGracias, un saludo.`;
 
     return { subject, html, text };
   }

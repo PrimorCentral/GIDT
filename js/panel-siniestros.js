@@ -326,7 +326,7 @@ function renderPanelSiniestros() {
         <td class="ps-col-num"><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
-        <td>${escapeHtml(s.tienda_nombre || '—')}</td>
+        <td>${s.tienda_nombre ? escapeHtml(s.tienda_nombre) : '<span class="ps-sin-tienda">Sin tienda</span>'}</td>
         <td>${escapeHtml(s.origen || '—')}</td>
         <td>${psPillTipo(s.tipo)}${psEnvioAgenciaResuelto(s) ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
@@ -544,10 +544,16 @@ document.getElementById('psVerAnulados')?.addEventListener('click', () => {
 
 // ---------------- Alta manual (para lo que no viene del envío automático) ----------------
 
+const PS_SIN_TIENDA = 'SIN_TIENDA';
+
 function rellenarSelectTiendasPsn(agenciaId) {
   const sel = document.getElementById('psnTienda');
   const tds = tiendasCache.filter(t => !agenciaId || String(t.agencia_id) === String(agenciaId));
+  // "Sin tienda": para siniestros que no van a ninguna tienda en concreto
+  // (p. ej. un envío de una agencia ocasional). Los correos se adaptan
+  // solos (ver adaptarHtmlSinTienda en email-plantillas.js).
   sel.innerHTML = `<option value="">— Selecciona tienda —</option>` +
+    `<option value="${PS_SIN_TIENDA}">— Sin tienda (no vinculado a una tienda) —</option>` +
     tds.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
 }
 
@@ -589,13 +595,14 @@ async function guardarNuevoPanelSiniestro() {
   const informacion = document.getElementById('psnInformacion').value.trim();
 
   if (!fecha || !agenciaId || !tiendaId) {
-    errEl.textContent = 'Rellena al menos la fecha, la agencia y la tienda.';
+    errEl.textContent = 'Rellena al menos la fecha, la agencia y la tienda (o elige «Sin tienda»).';
     errEl.style.display = 'block';
     return;
   }
 
   const agencia = agenciasCache.find(a => String(a.id) === String(agenciaId));
-  const tienda = tiendasCache.find(t => String(t.id) === String(tiendaId));
+  const sinTienda = tiendaId === PS_SIN_TIENDA;
+  const tienda = sinTienda ? null : tiendasCache.find(t => String(t.id) === String(tiendaId));
 
   // Misma regla que el flujo automático: fecha de recepción + 15 días.
   // Una FALTA pura no tiene nada físico que recoger, así que no aplica.
@@ -614,7 +621,7 @@ async function guardarNuevoPanelSiniestro() {
       tipo,
       agencia_id: Number(agenciaId),
       agencia_nombre: agencia?.nombre || null,
-      tienda_id: Number(tiendaId),
+      tienda_id: sinTienda ? null : Number(tiendaId),
       tienda_nombre: tienda?.nombre || null,
       informacion: informacion || null,
       estado: 'PDTE COBRO',
@@ -687,7 +694,7 @@ async function abrirModalPanelSiniestro(id) {
   psMetaGuardada = psCopiarMeta(s);
   psBaseDb = psCopiarCamposDb(s);
 
-  document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || '—'}`;
+  document.getElementById('psAgenciaTienda').textContent = `${s.agencia_nombre || 'Sin agencia'} · ${s.tienda_nombre || 'Sin tienda'}`;
   document.getElementById('psNumeroSiniestro').textContent = `Nº ${s.id}`;
   document.getElementById('psFechaTexto').textContent = `Fecha de siniestro: ${psFormatearFecha(s.fecha)}`;
   document.getElementById('psTipoPill').innerHTML = psPillTipo(s.tipo);
@@ -1026,7 +1033,8 @@ async function enviarCorreoAgenciaDesdePanel() {
     const sParaPlantilla = {
       tipo: PS_TIPO_A_PLANTILLA[s.tipo] || 'ROTURA',
       fecha_limite: s.recogida_limite,
-      incidencia: { tiendas: { nombre: s.tienda_nombre } }
+      incidencia: { tiendas: { nombre: s.tienda_nombre } },
+      informacion: s.informacion || null // solo se usa si no hay tienda (detalle del envío)
     };
     // Si el origen es "AGENCIA" (rotura/falta detectada al reparar un
     // palet en el propio almacén de la agencia, tras avisarnos ellos),
@@ -1590,7 +1598,7 @@ function imprimirResumenPanelSiniestro() {
   doc.text(`Nº SINIESTRO ${s.id}`, anchoPag - margen - 14, margen + 20, { align: 'right' });
 
   const agencia = (s.agencia_nombre || 'SIN AGENCIA').toUpperCase();
-  const tienda = (s.tienda_nombre || '—').toUpperCase();
+  const tienda = (s.tienda_nombre || 'SIN TIENDA').toUpperCase();
   const fechaSiniestro = psFormatearFecha(s.fecha);
   const aplicaRecogida = s.tipo !== 'FALTAS';
   const recogidaLimite = aplicaRecogida ? psFormatearFecha(s.recogida_limite) : 'NO APLICA';
