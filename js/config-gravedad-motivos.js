@@ -473,7 +473,7 @@ function pintarVistaPreviaNuevoMotivo() {
   chip.textContent = cod;
   chip.style.background = nmColor || '#E1E4E8';
   chip.style.color = nmColor ? textoParaFondo(nmColor) : '#5A6473';
-  document.getElementById('nmPreviewLabel').textContent = (leyenda || 'Texto en la leyenda').toUpperCase();
+  document.getElementById('nmPreviewLabel').textContent = (leyenda || 'Texto en los informes').toUpperCase();
   document.getElementById('nmPreviewLabel').style.opacity = leyenda ? '' : '.45';
   document.querySelectorAll('#nmPaleta .gm-color').forEach(b => b.classList.toggle('sel', !!nmColor && b.dataset.color.toUpperCase() === nmColor.toUpperCase()));
   document.querySelector('#nmColorOtro')?.closest('.gm-otro')?.classList.toggle('sel', !!nmColor && !PALETA_CODIGOS.some(c => c.toUpperCase() === nmColor.toUpperCase()));
@@ -514,7 +514,7 @@ async function guardarNuevoMotivo() {
   errEl.style.display = 'none';
 
   if (!nombre) return fallo('Escribe el nombre del motivo.');
-  if (!label) return fallo('Escribe el texto de la leyenda.');
+  if (!label) return fallo('Escribe el texto en los informes.');
   if (!nmNivel) return fallo('Elige la gravedad.');
   if (!nmColor) return fallo('Elige el color del código.');
   const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
