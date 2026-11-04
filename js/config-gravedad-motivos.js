@@ -78,7 +78,135 @@ async function cargarGravedadMotivos() {
   } catch (err) {
     console.error('Error cargando la gravedad de motivos (se usa el respaldo):', err);
   }
+  // Códigos del Reporte mensual (número, texto de la leyenda y color):
+  // desde 2026-11 están en la tabla `config_codigos_informe`, editables
+  // aquí. Si no cargan, se queda la lista fija de codigos-informe.js.
+  try {
+    const { data, error } = await sb.from('config_codigos_informe').select('*').order('orden');
+    if (error) throw error;
+    aplicarCodigosInforme(data);
+  } catch (err) {
+    console.error('Error cargando los códigos del reporte (se usa el respaldo):', err);
+  }
+  sincronizarMotivosDinamicos();
 }
+
+// ---------------------------------------------------------------
+// Motivos nuevos y colores de los códigos (desde 2026-11)
+// ---------------------------------------------------------------
+// Los motivos que se añaden desde esta pantalla viven solo en las tablas
+// (config_gravedad_motivos + config_codigos_informe). Al cargar, se meten
+// en la lista MOTIVOS de filtros-motivos.js (al final de su nivel) y sus
+// códigos en CODIGOS_INFORME (codigos-informe.js), así salen en todos los
+// sitios igual que los de siempre: desplegable del informe, filtros,
+// Reporte mensual, leyenda del PDF y Análisis.
+
+// Reemplaza el contenido de CODIGOS_INFORME (mismo array, para que el
+// resto de archivos que lo usan vean los cambios).
+function aplicarCodigosInforme(filas) {
+  const arr = window.CODIGOS_INFORME;
+  if (!arr || !filas || !filas.length) return;
+  arr.length = 0;
+  filas.slice().sort((a, b) => a.orden - b.orden).forEach(f => {
+    const c = { codigo: f.codigo, label: f.label, color: f.color, texto: f.texto, motivo: f.motivo };
+    if (f.submotivo) c.submotivo = f.submotivo;
+    arr.push(c);
+  });
+}
+
+function sincronizarMotivosDinamicos() {
+  if (typeof MOTIVOS === 'undefined') return;
+  const fuente = (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).slice()
+    .sort((a, b) => NIVELES_GRAVEDAD.indexOf(a.nivel) - NIVELES_GRAVEDAD.indexOf(b.nivel) || a.orden - b.orden);
+  let anadidos = false;
+  fuente.forEach(f => {
+    if (MOTIVOS.some(m => m.v === f.motivo)) return;
+    // Al final de los de su mismo nivel (o, si no hay ninguno, tras los
+    // de los niveles anteriores).
+    const nivelesHasta = NIVELES_GRAVEDAD.slice(0, NIVELES_GRAVEDAD.indexOf(f.nivel) + 1);
+    let pos = -1;
+    MOTIVOS.forEach((m, i) => { if (m.clase === 'pendiente' || nivelesHasta.includes(m.clase)) pos = i; });
+    MOTIVOS.splice(pos + 1, 0, { v: f.motivo, clase: f.nivel });
+    anadidos = true;
+  });
+  // Las listas de los filtros se construyen una sola vez: si ha entrado un
+  // motivo nuevo, se marcan para que se vuelvan a construir.
+  if (anadidos) {
+    ['filtrosMotivosLista', 'analisisFiltrosMotivosLista', 'rmFiltrosMotivosLista'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) delete el.dataset.built;
+    });
+  }
+}
+
+// Texto del código en blanco o negro según lo oscuro que sea el fondo.
+function textoParaFondo(hex) {
+  const h = String(hex || '#FFFFFF').replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? '#12181F' : '#FFFFFF';
+}
+
+const PALETA_CODIGOS = [
+  '#E6E1D8', '#FFF200', '#FF0000', '#00B050', '#00B0F0', '#7030A0', '#FFA500', '#A6A6A6',
+  '#92D050', '#C00000', '#BDD7EE', '#8EA9DB', '#F4B183', '#ED7D31', '#000000', '#808080',
+  '#C71585', '#008080', '#1B6DE0', '#FFD966', '#C6E0B4', '#BFBFBF', '#5B2C6F', '#2E7D32'
+];
+
+// Copia de trabajo de los códigos mientras se cambian colores (se guarda
+// con el mismo botón 💾 Guardar que la gravedad).
+let codigosEdicion = null;
+
+function codigosBase() {
+  return (window.CODIGOS_INFORME || []).map(c => ({ ...c }));
+}
+
+function hayCambiosColoresCodigos() {
+  if (!codigosEdicion) return false;
+  const base = {};
+  codigosBase().forEach(c => { base[c.codigo] = c; });
+  return codigosEdicion.some(c => !base[c.codigo] || base[c.codigo].color !== c.color);
+}
+
+function cerrarPaletaCodigo() {
+  document.querySelector('.gm-pop')?.remove();
+  document.querySelectorAll('.gm-chip.sel').forEach(el => el.classList.remove('sel'));
+}
+
+function abrirPaletaCodigo(chip) {
+  if (!tienePermiso('config_gravedad_motivos')) { mostrarModalSinPermiso(); return; }
+  const yaAbierta = chip.classList.contains('sel');
+  cerrarPaletaCodigo();
+  if (yaAbierta) return;
+  const c = codigosEdicion.find(x => x.codigo === chip.dataset.codigo);
+  if (!c) return;
+  chip.classList.add('sel');
+
+  const pop = document.createElement('div');
+  pop.className = 'gm-pop';
+  const nombre = c.label.charAt(0) + c.label.slice(1).toLowerCase();
+  pop.innerHTML = `
+    <h4>Color del código ${escapeHtml(c.codigo)} · ${escapeHtml(nombre)}</h4>
+    <div class="gm-pal">${PALETA_CODIGOS.map(col => `<button type="button" class="gm-color${col.toUpperCase() === c.color.toUpperCase() ? ' sel' : ''}" data-color="${col}" style="background:${col}" title="${col}"></button>`).join('')}</div>
+    <label class="gm-otro"><input type="color" value="${escapeHtml(c.color)}"> Otro color…</label>`;
+  document.body.appendChild(pop);
+  const r = chip.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.left + window.scrollX)) + 'px';
+  pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+
+  const aplicar = (col) => {
+    c.color = col.toUpperCase();
+    c.texto = textoParaFondo(c.color);
+    pintarGravedadMotivos();
+  };
+  pop.querySelectorAll('.gm-color').forEach(b => b.addEventListener('click', () => aplicar(b.dataset.color)));
+  pop.querySelector('input[type="color"]').addEventListener('change', (e) => aplicar(e.target.value));
+  pop.addEventListener('click', (e) => e.stopPropagation());
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.gm-pop') && !e.target.closest('.gm-chip')) cerrarPaletaCodigo();
+});
 
 // ---------------------------------------------------------------
 // Pantalla: Configuración → Gravedad de motivos
@@ -95,6 +223,7 @@ async function renderVistaGravedadMotivos() {
 
   if (!gravedadMotivosCache) await cargarGravedadMotivos();
   gravedadMotivosEdicion = (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).map(f => ({ ...f }));
+  codigosEdicion = codigosBase();
 
   pintarGravedadMotivos();
 }
@@ -105,6 +234,7 @@ async function renderVistaGravedadMotivos() {
 // (se vuelve a dejar como estaba) no cuenta como pendiente.
 function hayCambiosSinGuardarGravedadMotivos() {
   if (!gravedadMotivosEdicion) return false;
+  if (hayCambiosColoresCodigos()) return true;
   const base = gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO;
   if (gravedadMotivosEdicion.length !== base.length) return true;
   const baseMapa = {};
@@ -125,6 +255,7 @@ async function confirmarDescartarEdicionGravedadMotivos() {
   // Descarta de verdad el borrador: si no, la próxima vez se seguiría
   // detectando el mismo cambio como pendiente y volvería a preguntar.
   gravedadMotivosEdicion = (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).map(f => ({ ...f }));
+  codigosEdicion = codigosBase();
   return true;
 }
 
@@ -139,6 +270,7 @@ window.addEventListener('beforeunload', (e) => {
 function pintarGravedadMotivos() {
   const cont = document.getElementById('contenidoGravedadMotivos');
   if (!cont) return;
+  cerrarPaletaCodigo();
 
   cont.innerHTML = `
     <div class="gravedad-columnas">
@@ -151,7 +283,7 @@ function pintarGravedadMotivos() {
               .sort((a, b) => a.orden - b.orden)
               .map((f, idx, arr) => `
                 <div class="gravedad-fila" data-motivo="${escapeHtml(f.motivo)}">
-                  <span class="gravedad-fila-nombre">${escapeHtml(f.motivo.charAt(0) + f.motivo.slice(1).toLowerCase())}</span>
+                  <span class="gravedad-fila-nombre gm-nombre"><span class="gm-chips">${(codigosEdicion || []).filter(c => c.motivo === f.motivo).map(c => `<button type="button" class="rm-celda-codigo gm-chip" data-codigo="${escapeHtml(c.codigo)}" title="${escapeHtml(c.label)} · pulsa para cambiar el color" style="background:${escapeHtml(c.color)}; color:${escapeHtml(c.texto)};">${escapeHtml(c.codigo)}</button>`).join('')}</span>${escapeHtml(f.motivo.charAt(0) + f.motivo.slice(1).toLowerCase())}</span>
                   <div class="gravedad-fila-acciones">
                     <button type="button" class="gravedad-btn" data-mover="arriba" title="Subir" ${idx === 0 ? 'disabled' : ''}>▲</button>
                     <button type="button" class="gravedad-btn" data-mover="abajo" title="Bajar" ${idx === arr.length - 1 ? 'disabled' : ''}>▼</button>
@@ -169,6 +301,10 @@ function pintarGravedadMotivos() {
       const fila = btn.closest('.gravedad-fila');
       moverMotivo(fila.dataset.motivo, btn.dataset.mover);
     });
+  });
+
+  cont.querySelectorAll('.gm-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => { e.stopPropagation(); abrirPaletaCodigo(chip); });
   });
 
   cont.querySelectorAll('[data-cambiar-nivel]').forEach(btn => {
@@ -266,11 +402,27 @@ async function guardarGravedadMotivos() {
       .upsert(gravedadMotivosEdicion.map(f => ({ motivo: f.motivo, nivel: f.nivel, orden: f.orden })), { onConflict: 'motivo' });
     if (error) throw error;
 
-    if (typeof registrarAccion === 'function') {
-      registrarAccion('gravedad_motivos', 'Cambiar gravedad de motivos', resumenCambiosGravedadMotivos(antesDeGuardar, gravedadMotivosEdicion));
+    // Colores de los códigos que se hayan cambiado.
+    const baseCodigos = {};
+    codigosBase().forEach(c => { baseCodigos[c.codigo] = c; });
+    const coloresCambiados = (codigosEdicion || []).filter(c => baseCodigos[c.codigo] && baseCodigos[c.codigo].color !== c.color);
+    for (const c of coloresCambiados) {
+      const { error: eCol } = await sb.from('config_codigos_informe').update({ color: c.color, texto: c.texto }).eq('codigo', c.codigo);
+      if (eCol) throw eCol;
+    }
+    coloresCambiados.forEach(c => {
+      const enUso = (window.CODIGOS_INFORME || []).find(x => x.codigo === c.codigo);
+      if (enUso) { enUso.color = c.color; enUso.texto = c.texto; }
+    });
+
+    const resumenGravedad = resumenCambiosGravedadMotivos(antesDeGuardar, gravedadMotivosEdicion);
+    const resumenColores = coloresCambiados.length ? `Color cambiado: ${coloresCambiados.map(c => `código ${c.codigo}`).join(', ')}` : '';
+    if (typeof registrarAccion === 'function' && (resumenGravedad || resumenColores)) {
+      registrarAccion('gravedad_motivos', 'Cambiar gravedad de motivos', [resumenGravedad, resumenColores].filter(Boolean).join(' · '));
     }
 
     gravedadMotivosCache = gravedadMotivosEdicion.map(f => ({ ...f }));
+    codigosEdicion = codigosBase();
     pintarGravedadMotivos();
     const ok = document.getElementById('gravedadGuardadoOk');
     if (ok) {
@@ -296,3 +448,121 @@ document.querySelectorAll('[data-view="config-gravedad-motivos"]').forEach(el =>
 
 const btnGuardarGravedadMotivosEl = document.getElementById('btnGuardarGravedadMotivos');
 if (btnGuardarGravedadMotivosEl) btnGuardarGravedadMotivosEl.addEventListener('click', guardarGravedadMotivos);
+
+
+// ---------------- ➕ Nuevo motivo ----------------
+// Se guarda al momento (no espera al botón 💾 Guardar): crea la fila de
+// gravedad (al final de su nivel) y su código del Reporte mensual. No se
+// pueden quitar motivos desde aquí: hay incidencias guardadas con ellos.
+
+let nmNivel = 'moderado';
+let nmColor = '#5B2C6F';
+
+function siguienteCodigoLibre() {
+  const nums = (window.CODIGOS_INFORME || []).map(c => parseInt(c.codigo, 10)).filter(n => !isNaN(n));
+  return String((nums.length ? Math.max(...nums) : 0) + 1);
+}
+
+function pintarVistaPreviaNuevoMotivo() {
+  const cod = document.getElementById('nmCodigo').value.trim() || '?';
+  const label = (document.getElementById('nmLabel').value.trim() || document.getElementById('nmNombre').value.trim() || 'NUEVO MOTIVO').toUpperCase();
+  const chip = document.getElementById('nmPreviewCodigo');
+  chip.textContent = cod;
+  chip.style.background = nmColor;
+  chip.style.color = textoParaFondo(nmColor);
+  document.getElementById('nmPreviewLabel').textContent = label;
+  document.querySelectorAll('#nmPaleta .gm-color').forEach(b => b.classList.toggle('sel', b.dataset.color.toUpperCase() === nmColor.toUpperCase()));
+  document.querySelectorAll('#nmNivelToggle .toggle-seg-btn').forEach(b => b.classList.toggle('activo', b.dataset.nivel === nmNivel));
+}
+
+function abrirModalNuevoMotivo() {
+  if (!tienePermiso('config_gravedad_motivos')) { mostrarModalSinPermiso(); return; }
+  nmNivel = 'moderado';
+  const usados = new Set((window.CODIGOS_INFORME || []).map(c => String(c.color).toUpperCase()));
+  nmColor = PALETA_CODIGOS.find(c => !usados.has(c.toUpperCase())) || '#5B2C6F';
+  document.getElementById('nmNombre').value = '';
+  document.getElementById('nmLabel').value = '';
+  document.getElementById('nmCodigo').value = siguienteCodigoLibre();
+  document.getElementById('nmColorOtro').value = nmColor;
+  document.getElementById('nmError').style.display = 'none';
+  document.getElementById('nmPaleta').innerHTML = PALETA_CODIGOS.map(col =>
+    `<button type="button" class="gm-color" data-color="${col}" style="background:${col}" title="${col}"></button>`).join('');
+  document.querySelectorAll('#nmPaleta .gm-color').forEach(b => b.addEventListener('click', () => {
+    nmColor = b.dataset.color; document.getElementById('nmColorOtro').value = nmColor; pintarVistaPreviaNuevoMotivo();
+  }));
+  pintarVistaPreviaNuevoMotivo();
+  document.getElementById('nuevoMotivoModalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('nmNombre').focus(), 50);
+}
+
+function cerrarModalNuevoMotivo() {
+  document.getElementById('nuevoMotivoModalOverlay').classList.remove('show');
+}
+
+async function guardarNuevoMotivo() {
+  const nombre = document.getElementById('nmNombre').value.trim().toUpperCase().replace(/\s+/g, ' ');
+  const label = (document.getElementById('nmLabel').value.trim() || nombre).toUpperCase().replace(/\s+/g, ' ');
+  const codigo = document.getElementById('nmCodigo').value.trim().toUpperCase();
+  const errEl = document.getElementById('nmError');
+  const fallo = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+
+  if (!nombre) return fallo('Escribe el nombre del motivo.');
+  if (!codigo) return fallo('Escribe el código del Reporte mensual.');
+  if (codigo.length > 3) return fallo('El código puede tener como mucho 3 caracteres.');
+  const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
+  const existe = (typeof MOTIVOS !== 'undefined' && MOTIVOS.some(m => m.v === nombre))
+    || (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).some(f => f.motivo === nombre)
+    || todosLosSubmotivos.includes(nombre);
+  if (existe) return fallo('Ya existe un motivo con ese nombre.');
+  if ((window.CODIGOS_INFORME || []).some(c => String(c.codigo).toUpperCase() === codigo)) return fallo(`El código ${codigo} ya lo usa otro motivo.`);
+
+  const btn = document.getElementById('btnGuardarNuevoMotivo');
+  btn.disabled = true;
+  try {
+    // Gravedad: al final de su nivel (según lo guardado).
+    const guardados = gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO;
+    const orden = Math.max(0, ...guardados.filter(f => f.nivel === nmNivel).map(f => f.orden)) + 1;
+    const { error: eG } = await sb.from('config_gravedad_motivos').insert({ motivo: nombre, nivel: nmNivel, orden });
+    if (eG) throw eG;
+
+    const ordenCodigo = (window.CODIGOS_INFORME || []).length + 1;
+    const filaCodigo = { codigo, label, color: nmColor.toUpperCase(), texto: textoParaFondo(nmColor), motivo: nombre, submotivo: null, orden: ordenCodigo };
+    const { error: eC } = await sb.from('config_codigos_informe').insert(filaCodigo);
+    if (eC) {
+      // Sin código no vale: se deshace la fila de gravedad.
+      await sb.from('config_gravedad_motivos').delete().eq('motivo', nombre);
+      throw eC;
+    }
+
+    if (typeof registrarAccion === 'function') {
+      registrarAccion('gravedad_motivos', 'Añadir motivo', `${nombre} (${ETIQUETA_NIVEL[nmNivel]}, código ${codigo})`);
+    }
+
+    // Al día en esta sesión, sin perder lo que hubiera sin guardar en pantalla.
+    const nuevaGravedad = { motivo: nombre, nivel: nmNivel, orden };
+    gravedadMotivosCache = [...(gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO.map(f => ({ ...f }))), nuevaGravedad];
+    if (gravedadMotivosEdicion) gravedadMotivosEdicion.push({ ...nuevaGravedad });
+    const c = { codigo, label, color: filaCodigo.color, texto: filaCodigo.texto, motivo: nombre };
+    (window.CODIGOS_INFORME || []).push(c);
+    if (codigosEdicion) codigosEdicion.push({ ...c });
+    sincronizarMotivosDinamicos();
+
+    cerrarModalNuevoMotivo();
+    pintarGravedadMotivos();
+    if (typeof mostrarToast === 'function') mostrarToast(`Motivo "${nombre}" añadido`);
+  } catch (err) {
+    console.error('Error añadiendo el motivo:', err);
+    fallo(err.message || 'No se pudo añadir el motivo.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('btnNuevoMotivo')?.addEventListener('click', abrirModalNuevoMotivo);
+document.getElementById('btnCerrarNuevoMotivo')?.addEventListener('click', cerrarModalNuevoMotivo);
+document.getElementById('btnCancelarNuevoMotivo')?.addEventListener('click', cerrarModalNuevoMotivo);
+document.getElementById('btnGuardarNuevoMotivo')?.addEventListener('click', guardarNuevoMotivo);
+['nmNombre', 'nmLabel', 'nmCodigo'].forEach(id => document.getElementById(id)?.addEventListener('input', pintarVistaPreviaNuevoMotivo));
+document.getElementById('nmColorOtro')?.addEventListener('input', (e) => { nmColor = e.target.value; pintarVistaPreviaNuevoMotivo(); });
+document.querySelectorAll('#nmNivelToggle .toggle-seg-btn').forEach(b => b.addEventListener('click', () => { nmNivel = b.dataset.nivel; pintarVistaPreviaNuevoMotivo(); }));
