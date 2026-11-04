@@ -160,9 +160,17 @@
       <span class="auto-refresh-indicator" id="autoRefreshIndicator" title="Actualización automática del informe del día">
         <span class="hourglass" id="autoRefreshHourglass">⏳</span><span id="autoRefreshCountdown">20</span>s
       </span>
-      <i></i><span id="statusText" style="display:none;">Conectando…</span>
+      <span id="statusText" style="display:none;">Conectando…</span>
     </div>
-    <div class="user-chip" id="userChip" title="Cerrar sesión">👤 <span id="userChipName">—</span> · Salir</div>
+    <div class="user-chip" id="userChip">
+      <span class="user-chip-usuario" id="userChipUsuario">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="userChipName">—</span>
+      </span>
+      <button type="button" class="btn-salir" id="btnSalir" title="Salir" aria-label="Salir">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
+      </button>
+    </div>
   </header>
 
   <!-- Banner fijo: informes enviados con incidencias sin revisar (js/informe-envio.js) -->
