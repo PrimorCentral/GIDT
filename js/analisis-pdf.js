@@ -89,7 +89,8 @@ const RPDF_MOTIVO_TEXTO = {
   'FALTAS':                       { s: 'falta',                        p: 'faltas' },
   'NO ENTREGAN':                  { s: 'no entrega',                   p: 'no entregas' },
   'PALET PERDIDO':                { s: 'palet perdido',                p: 'palets perdidos' },
-  'PALET MANIPULADO':             { s: 'palet manipulado',             p: 'palets manipulados' }
+  'PALET MANIPULADO':             { s: 'palet manipulado',             p: 'palets manipulados' },
+  'PALET REMONTADO':              { s: 'palet remontado',              p: 'palets remontados' }
 };
 
 function rpdfTextoMotivo(motivo, cantidad) {

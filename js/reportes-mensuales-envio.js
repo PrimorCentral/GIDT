@@ -559,6 +559,21 @@ async function rmeEnviarTodosPendientes(grupos) {
 // Construcción del PDF (mismo formato que el Excel manual: título,
 // leyenda de códigos y tabla Agencia/Tienda/Provincia/días/Total).
 // ---------------------------------------------------------------
+// Rayas diagonales grises (45º) que llenan una casilla vacía de la
+// leyenda, recortadas a sus bordes; luego se repasa el borde negro.
+function rmeRayarCasilla(doc, x, y, w, h, escala) {
+  const paso = Math.max(2, 4 * escala);
+  doc.setDrawColor(150, 150, 150);
+  doc.setLineWidth(Math.max(0.15, 0.4 * escala));
+  for (let k = paso; k < w + h; k += paso) {
+    const x1 = Math.max(0, k - h), y1 = k - x1;
+    const x2 = Math.min(w, k), y2 = k - x2;
+    doc.line(x + x1, y + h - y1, x + x2, y + h - y2);
+  }
+  doc.setDrawColor(0, 0, 0);
+  doc.rect(x, y, w, h);
+}
+
 function rmeHexToRgb(hex) {
   const h = (hex || '#FFFFFF').replace('#', '');
   return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
@@ -711,8 +726,10 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
     for (let col = 0; col < 3; col++) {
       const c = CODIGOS_INFORME[i + col * tercio];
       fila.push(
-        c ? { content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold', halign: 'center' } } : '',
-        c ? { content: c.label, styles: { halign: 'left' } } : ''
+        // Casillas sin código (cuando los códigos no llenan la última
+        // columna): van rayadas, para que se vea que están vacías.
+        c ? { content: c.codigo, styles: { fillColor: rmeHexToRgb(c.color), textColor: rmeHexToRgb(c.texto), fontStyle: 'bold', halign: 'center' } } : { content: '', rayado: true },
+        c ? { content: c.label, styles: { halign: 'left' } } : { content: '', rayado: true }
       );
     }
     filasLeyenda.push(fila);
@@ -731,7 +748,12 @@ function rmeDibujarContenidoPdf(doc, grupoNombre, anio, mesIndex, filasGrupo, se
       2: { cellWidth: anchoCodigo }, 3: { cellWidth: anchoLabel },
       4: { cellWidth: anchoCodigo }, 5: { cellWidth: anchoLabel }
     },
-    body: filasLeyenda
+    body: filasLeyenda,
+    didDrawCell: (d) => {
+      if (d.section === 'body' && d.cell.raw && d.cell.raw.rayado) {
+        rmeRayarCasilla(doc, d.cell.x, d.cell.y, d.cell.width, d.cell.height, escala);
+      }
+    }
   });
   const finalYLeyenda = doc.lastAutoTable.finalY;
   const altoLeyenda = finalYLeyenda - margen;

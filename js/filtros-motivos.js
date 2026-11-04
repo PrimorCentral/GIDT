@@ -481,6 +481,7 @@
     { v: 'ROTURA CONFIRMADA',            clase: 'moderado' },
     { v: 'PALETS SIN VIGILANCIA',        clase: 'moderado' },
     { v: 'MEZCLAN FECHAS',               clase: 'moderado' },
+    { v: 'PALET REMONTADO',              clase: 'moderado' },
     { v: 'RETRASO IMPORTANTE',           clase: 'moderado' },
     { v: 'ADELANTAN ENTREGA',            clase: 'moderado' },
     { v: 'INCOMPLETO',                   clase: 'moderado' },

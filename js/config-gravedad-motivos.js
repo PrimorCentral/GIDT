@@ -40,6 +40,7 @@ const GRAVEDAD_MOTIVOS_RESPALDO = [
   { motivo: 'RETRASO IMPORTANTE',     nivel: 'moderado', orden: 4 },
   { motivo: 'ADELANTAN ENTREGA',      nivel: 'moderado', orden: 5 },
   { motivo: 'INCOMPLETO',             nivel: 'moderado', orden: 6 },
+  { motivo: 'PALET REMONTADO',        nivel: 'moderado', orden: 7 },
   { motivo: 'FALTAS',                 nivel: 'grave',    orden: 1 },
   { motivo: 'NO ENTREGAN',            nivel: 'grave',    orden: 2 },
   { motivo: 'PALET PERDIDO',          nivel: 'grave',    orden: 3 },

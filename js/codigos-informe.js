@@ -39,7 +39,8 @@
     { codigo: '16', label: 'MEZCLAN FECHAS DE PALETS',       color: '#BFBFBF', texto: '#12181F', motivo: 'MEZCLAN FECHAS' },
     { codigo: '17', label: 'PALET MANIPULADO',               color: '#000000', texto: '#FFFFFF', motivo: 'PALET MANIPULADO' },
     { codigo: '18', label: 'PALETS NO RECOGIDOS',            color: '#808080', texto: '#FFFFFF', motivo: 'PALETS NO RETIRADOS' },
-    { codigo: '19', label: 'PALET PERDIDO',                  color: '#C71585', texto: '#FFFFFF', motivo: 'PALET PERDIDO' }
+    { codigo: '19', label: 'PALET PERDIDO',                  color: '#C71585', texto: '#FFFFFF', motivo: 'PALET PERDIDO' },
+    { codigo: '20', label: 'PALET REMONTADO',                color: '#008080', texto: '#FFFFFF', motivo: 'PALET REMONTADO' }
   ];
 
   // Motivos "principales" que tienen más de un código posible: al marcarlos
