@@ -455,8 +455,10 @@ if (btnGuardarGravedadMotivosEl) btnGuardarGravedadMotivosEl.addEventListener('c
 // gravedad (al final de su nivel) y su código del Reporte mensual. No se
 // pueden quitar motivos desde aquí: hay incidencias guardadas con ellos.
 
-let nmNivel = 'moderado';
-let nmColor = '#5B2C6F';
+// Sin nada elegido al abrir: el botón "Añadir motivo" no se enciende
+// hasta tener nombre, texto de la leyenda, gravedad y color.
+let nmNivel = null;
+let nmColor = null;
 
 function siguienteCodigoLibre() {
   const nums = (window.CODIGOS_INFORME || []).map(c => parseInt(c.codigo, 10)).filter(n => !isNaN(n));
@@ -465,25 +467,28 @@ function siguienteCodigoLibre() {
 
 function pintarVistaPreviaNuevoMotivo() {
   const cod = document.getElementById('nmCodigo').value.trim() || '?';
-  const label = (document.getElementById('nmLabel').value.trim() || document.getElementById('nmNombre').value.trim() || 'NUEVO MOTIVO').toUpperCase();
+  const nombre = document.getElementById('nmNombre').value.trim();
+  const leyenda = document.getElementById('nmLabel').value.trim();
   const chip = document.getElementById('nmPreviewCodigo');
   chip.textContent = cod;
-  chip.style.background = nmColor;
-  chip.style.color = textoParaFondo(nmColor);
-  document.getElementById('nmPreviewLabel').textContent = label;
-  document.querySelectorAll('#nmPaleta .gm-color').forEach(b => b.classList.toggle('sel', b.dataset.color.toUpperCase() === nmColor.toUpperCase()));
+  chip.style.background = nmColor || '#E1E4E8';
+  chip.style.color = nmColor ? textoParaFondo(nmColor) : '#5A6473';
+  document.getElementById('nmPreviewLabel').textContent = (leyenda || 'Texto en la leyenda').toUpperCase();
+  document.getElementById('nmPreviewLabel').style.opacity = leyenda ? '' : '.45';
+  document.querySelectorAll('#nmPaleta .gm-color').forEach(b => b.classList.toggle('sel', !!nmColor && b.dataset.color.toUpperCase() === nmColor.toUpperCase()));
+  document.querySelector('#nmColorOtro')?.closest('.gm-otro')?.classList.toggle('sel', !!nmColor && !PALETA_CODIGOS.some(c => c.toUpperCase() === nmColor.toUpperCase()));
   document.querySelectorAll('#nmNivelToggle .toggle-seg-btn').forEach(b => b.classList.toggle('activo', b.dataset.nivel === nmNivel));
+  document.getElementById('btnGuardarNuevoMotivo').disabled = !(nombre && leyenda && nmNivel && nmColor);
 }
 
 function abrirModalNuevoMotivo() {
   if (!tienePermiso('config_gravedad_motivos')) { mostrarModalSinPermiso(); return; }
-  nmNivel = 'moderado';
-  const usados = new Set((window.CODIGOS_INFORME || []).map(c => String(c.color).toUpperCase()));
-  nmColor = PALETA_CODIGOS.find(c => !usados.has(c.toUpperCase())) || '#5B2C6F';
+  nmNivel = null;
+  nmColor = null;
   document.getElementById('nmNombre').value = '';
   document.getElementById('nmLabel').value = '';
   document.getElementById('nmCodigo').value = siguienteCodigoLibre();
-  document.getElementById('nmColorOtro').value = nmColor;
+  document.getElementById('nmColorOtro').value = '#808080';
   document.getElementById('nmError').style.display = 'none';
   document.getElementById('nmPaleta').innerHTML = PALETA_CODIGOS.map(col =>
     `<button type="button" class="gm-color" data-color="${col}" style="background:${col}" title="${col}"></button>`).join('');
@@ -501,7 +506,7 @@ function cerrarModalNuevoMotivo() {
 
 async function guardarNuevoMotivo() {
   const nombre = document.getElementById('nmNombre').value.trim().toUpperCase().replace(/\s+/g, ' ');
-  const label = (document.getElementById('nmLabel').value.trim() || nombre).toUpperCase().replace(/\s+/g, ' ');
+  const label = document.getElementById('nmLabel').value.trim().toUpperCase().replace(/\s+/g, ' ');
   // El código no se escribe: lo pone la app (siguiente número libre).
   const codigo = siguienteCodigoLibre();
   const errEl = document.getElementById('nmError');
@@ -509,6 +514,9 @@ async function guardarNuevoMotivo() {
   errEl.style.display = 'none';
 
   if (!nombre) return fallo('Escribe el nombre del motivo.');
+  if (!label) return fallo('Escribe el texto de la leyenda.');
+  if (!nmNivel) return fallo('Elige la gravedad.');
+  if (!nmColor) return fallo('Elige el color del código.');
   const todosLosSubmotivos = window.SUBMOTIVOS_POR_MOTIVO ? Object.values(window.SUBMOTIVOS_POR_MOTIVO).flat() : [];
   const existe = (typeof MOTIVOS !== 'undefined' && MOTIVOS.some(m => m.v === nombre))
     || (gravedadMotivosCache || GRAVEDAD_MOTIVOS_RESPALDO).some(f => f.motivo === nombre)
@@ -554,7 +562,7 @@ async function guardarNuevoMotivo() {
     console.error('Error añadiendo el motivo:', err);
     fallo(err.message || 'No se pudo añadir el motivo.');
   } finally {
-    btn.disabled = false;
+    pintarVistaPreviaNuevoMotivo();
   }
 }
 
