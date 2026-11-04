@@ -163,10 +163,10 @@
       <span id="statusText" style="display:none;">Conectando…</span>
     </div>
     <div class="user-chip" id="userChip">
-      <span class="user-chip-usuario" id="userChipUsuario">
+      <button type="button" class="user-chip-usuario" id="userChipUsuario" title="Mi usuario">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span id="userChipName">—</span>
-      </span>
+      </button>
       <button type="button" class="btn-salir" id="btnSalir" title="Salir" aria-label="Salir">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
       </button>
@@ -2444,6 +2444,57 @@
     <div class="modal-footer" style="margin-top:18px;">
       <button class="btn" id="btnCancelarEditarUsuario">Cancelar</button>
       <button class="btn primary" id="btnGuardarEditarUsuario">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Mi usuario (al pulsar el usuario de la cabecera) — js/usuarios.js -->
+<div class="modal-overlay" id="miUsuarioModalOverlay">
+  <div class="modal-box ps-modal-box mi-usuario-box" role="dialog" aria-modal="true">
+    <button class="filtros-modal-close" id="btnCerrarMiUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" style="margin-bottom:18px;">👤 Mi usuario</h3>
+
+    <div class="mi-usuario-campos">
+      <div>
+        <label class="form-label">Nombre completo</label>
+        <input type="text" id="muNombre" class="form-input" readonly>
+      </div>
+      <div class="mi-usuario-fila">
+        <div>
+          <label class="form-label">Usuario</label>
+          <input type="text" id="muUsuario" class="form-input" readonly>
+        </div>
+        <div>
+          <label class="form-label">Rol</label>
+          <input type="text" id="muRol" class="form-input" readonly>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Permisos</label>
+        <div class="mi-usuario-permisos" id="muPermisos"></div>
+      </div>
+
+      <hr class="mi-usuario-separador">
+
+      <div>
+        <label class="form-label" for="muPinActual">Contraseña actual</label>
+        <input type="text" id="muPinActual" class="form-input campo-oculto" inputmode="numeric" maxlength="10" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-form-type="other">
+      </div>
+      <div>
+        <label class="form-label" for="muPinNuevo">Contraseña nueva</label>
+        <input type="text" id="muPinNuevo" class="form-input campo-oculto" inputmode="numeric" maxlength="10" placeholder="Mínimo 4 dígitos" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-form-type="other">
+      </div>
+      <div>
+        <label class="form-label" for="muPinRepetir">Repetir contraseña nueva</label>
+        <input type="text" id="muPinRepetir" class="form-input campo-oculto" inputmode="numeric" maxlength="10" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-form-type="other">
+      </div>
+    </div>
+
+    <p class="err" id="muError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarMiUsuario">Cerrar</button>
+      <button class="btn primary" id="btnGuardarMiUsuario">🔑 Cambiar contraseña</button>
     </div>
   </div>
 </div>

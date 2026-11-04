@@ -486,9 +486,11 @@
   }
   .user-chip-usuario{
     display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:8px;
+    background:none; border:none; font-family:inherit; cursor:pointer;
     font-size:12.5px; font-weight:600; color:rgba(255,255,255,.8);
-    font-variant-numeric:tabular-nums; letter-spacing:.4px; white-space:nowrap; cursor:default;
+    font-variant-numeric:tabular-nums; letter-spacing:.4px; white-space:nowrap;
   }
+  .user-chip-usuario:hover{ background:rgba(255,255,255,.12); color:#fff; }
   .user-chip-usuario svg{ flex:0 0 auto; }
   .user-chip .btn-salir{
     width:32px; height:32px; padding:0; border-radius:50%; cursor:pointer;
@@ -500,6 +502,19 @@
   @media (max-width:700px){
     .user-chip{ border-left:none; padding-left:0; margin-left:8px; }
   }
+
+  /* Modal "Mi usuario" */
+  .mi-usuario-box{ max-width:460px; }
+  .mi-usuario-campos{ display:flex; flex-direction:column; gap:14px; }
+  .mi-usuario-fila{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .mi-usuario-campos .form-input[readonly]{ background:var(--panel-muted); color:var(--ink-soft); cursor:default; }
+  .mi-usuario-permisos{ display:flex; flex-wrap:wrap; gap:6px; }
+  .mi-usuario-permisos .mu-pill{
+    font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px;
+    background:#FDECD8; color:#A2530B;
+  }
+  .mi-usuario-permisos .mu-vacio{ font-size:12.5px; color:var(--ink-soft); }
+  .mi-usuario-separador{ border:0; border-top:1px solid var(--border); margin:4px 0; }
 
   /* ---------- Formularios ---------- */
   .form-label{
