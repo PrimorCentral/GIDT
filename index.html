@@ -2319,7 +2319,7 @@
 
 <!-- Modal: editar usuario -->
 <div class="modal-overlay" id="editarUsuarioModalOverlay">
-  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
+  <div class="modal-box ps-modal-box usuario-modal-box" role="dialog" aria-modal="true">
     <button class="filtros-modal-close" id="btnCerrarEditarUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
     <h3 class="modal-title" style="margin-bottom:18px;">✏️ Editar usuario</h3>
 
@@ -2368,73 +2368,73 @@
             <h4>Gestión general</h4>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_informe_dia">
-              <span><b>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
+              <span><b><i class="perm-ico">📋</i>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_enviar_informe">
-              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a las agencias.</small></span>
+              <span><b><i class="perm-ico">📤</i>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a las agencias.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_editar_informes_pasados">
-              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial.</small></span>
+              <span><b><i class="perm-ico">✏️</i>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_panel_siniestros">
-              <span><b>Panel siniestros</b><small>Crear y modificar siniestros y enviar el correo del siniestro a a la agencia.</small></span>
+              <span><b><i class="perm-ico">📦</i>Panel siniestros</b><small>Crear y modificar siniestros y enviar el correo del siniestro a la agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_siniestros_dia">
-              <span><b>Enviar siniestros</b><small>Enviar siniestros a las agencias desde siniestros del dia.</small></span>
+              <span><b><i class="perm-ico">🚚</i>Enviar siniestros</b><small>Enviar siniestros a las agencias desde siniestros del dia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_enviar_facturacion">
-              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+              <span><b><i class="perm-ico">🧾</i>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
             </label>
           </div>
           <div class="permisos-col">
             <h4>Configuración</h4>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_tiendas">
-              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+              <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_emails">
-              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+              <span><b><i class="perm-ico">✉️</i>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_facturacion">
-              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+              <span><b><i class="perm-ico">💶</i>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_cc_transporte">
-              <span><b>Destinatarios para CC</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+              <span><b><i class="perm-ico">📧</i>Destinatarios para CC</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_gravedad_motivos">
-              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+              <span><b><i class="perm-ico">⚖️</i>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
             </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_gestion_usuarios">
-              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+              <span><b><i class="perm-ico">👤</i>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_borrar">
-              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+              <span><b><i class="perm-ico">🗑️</i>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_enviar_reporte_mensual">
-              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+              <span><b><i class="perm-ico">🗓️</i>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_ver_auditoria">
-              <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
+              <span><b><i class="perm-ico">🕵️</i>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_ver_log_cambios_informes">
-              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+              <span><b><i class="perm-ico">📝</i>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
             </label>
           </div>
         </div>
@@ -2550,7 +2550,7 @@
 
 <!-- Modal: nuevo usuario -->
 <div class="modal-overlay" id="nuevoUsuarioModalOverlay">
-  <div class="modal-box ps-modal-box" role="dialog" aria-modal="true" style="max-width:960px;">
+  <div class="modal-box ps-modal-box usuario-modal-box" role="dialog" aria-modal="true">
     <button class="filtros-modal-close" id="btnCerrarNuevoUsuario" style="position:absolute; right:16px; top:16px;">✕</button>
     <h3 class="modal-title" style="margin-bottom:18px;">➕ Nuevo usuario</h3>
 
@@ -2593,73 +2593,73 @@
             <h4>Gestión general</h4>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_informe_dia">
-              <span><b>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
+              <span><b><i class="perm-ico">📋</i>Informe del día</b><small>Marcar y editar incidencias por tienda, y generar el informe diario.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_enviar_informe">
-              <span><b>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a cada agencia.</small></span>
+              <span><b><i class="perm-ico">📤</i>Enviar informe a agencias</b><small>Enviar el informe de incidencias del día a cada agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_editar_informes_pasados">
-              <span><b>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial, sin enviar nada a agencias.</small></span>
+              <span><b><i class="perm-ico">✏️</i>Editar informes pasados</b><small>Corregir o completar incidencias de días anteriores desde el Historial, sin enviar nada a agencias.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_panel_siniestros">
-              <span><b>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
+              <span><b><i class="perm-ico">📦</i>Panel siniestros</b><small>Crear, completar y editar siniestros: nº albarán, factura, valor, cobro y recogida.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_siniestros_dia">
-              <span><b>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
+              <span><b><i class="perm-ico">🚚</i>Siniestros del día</b><small>Marcar siniestros como enviados o anularlos, y adjuntar fotos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_enviar_facturacion">
-              <span><b>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
+              <span><b><i class="perm-ico">🧾</i>Enviar a Facturación</b><small>Adjuntar el albarán y enviarlo al equipo de Facturación.</small></span>
             </label>
           </div>
           <div class="permisos-col">
             <h4>Configuración</h4>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_tiendas">
-              <span><b>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+              <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_emails">
-              <span><b>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+              <span><b><i class="perm-ico">✉️</i>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_facturacion">
-              <span><b>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
+              <span><b><i class="perm-ico">💶</i>Destinatarios de Facturación</b><small>Añadir o quitar a quién se envía el correo de Facturación.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_cc_transporte">
-              <span><b>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
+              <span><b><i class="perm-ico">📧</i>CC Transporte</b><small>Añadir o quitar las direcciones que van en copia (CC) en todos los correos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_gravedad_motivos">
-              <span><b>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos de incidencia.</small></span>
+              <span><b><i class="perm-ico">⚖️</i>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
             </label>
           </div>
           <div class="permisos-col">
             <h4>Administración</h4>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_gestion_usuarios">
-              <span><b>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
+              <span><b><i class="perm-ico">👤</i>Gestión de usuarios</b><small>Crear, editar, desactivar y borrar otros usuarios.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_borrar">
-              <span><b>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
+              <span><b><i class="perm-ico">🗑️</i>Borrar registros</b><small>Eliminar siniestros y otros registros de forma definitiva.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_enviar_reporte_mensual">
-              <span><b>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
+              <span><b><i class="perm-ico">🗓️</i>Enviar resumen mensual a agencias</b><small>Enviar por correo el PDF de "Reportes mensuales" a cada agencia.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_ver_auditoria">
-              <span><b>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
+              <span><b><i class="perm-ico">🕵️</i>Registro de auditoría</b><small>Ver el historial de acciones realizadas por los usuarios en la app.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_ver_log_cambios_informes">
-              <span><b>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
+              <span><b><i class="perm-ico">📝</i>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
             </label>
           </div>
         </div>

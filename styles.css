@@ -504,7 +504,7 @@
   }
 
   /* Modal "Mi usuario" */
-  .mi-usuario-box{ max-width:460px; }
+  .modal-box.mi-usuario-box{ max-width:460px; }
   .mi-usuario-campos{ display:flex; flex-direction:column; gap:14px; }
   .mi-usuario-fila{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .mi-usuario-campos .form-input[readonly]{ background:var(--panel-muted); color:var(--ink-soft); cursor:default; }
@@ -569,6 +569,21 @@
     font-weight:700; cursor:pointer; padding:4px 6px;
   }
   .link-accion.danger{ color:var(--grave); }
+  /* Acciones de la tabla de usuarios: botones con icono */
+  .usr-acciones{ display:inline-flex; gap:6px; }
+  .usr-ico{
+    width:32px; height:32px; border-radius:8px; padding:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--border); background:#fff;
+  }
+  .usr-ico.editar{ color:var(--moderado); }
+  .usr-ico.editar:hover{ background:var(--moderado-bg); border-color:#BBD3FA; }
+  .usr-ico.desactivar{ color:#B45309; }
+  .usr-ico.desactivar:hover{ background:#FEF3C7; border-color:#FCD34D; }
+  .usr-ico.activar{ color:var(--ok); }
+  .usr-ico.activar:hover{ background:var(--ok-bg); border-color:#A8D5B5; }
+  .usr-ico.borrar{ color:var(--grave); }
+  .usr-ico.borrar:hover{ background:var(--grave-bg); border-color:#F5B7A9; }
 
   /* ---------- Acordeón de agencias (Gestión de tiendas) ---------- */
   .agencia-block{
@@ -2174,6 +2189,7 @@ body:not(.perm-config_cc_transporte) #listaEmailsCC .email-add-row input{
 body.rol-lectura button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]):not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro),
 body.rol-lectura .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro),
 body.rol-lectura .link-accion,
+body.rol-lectura .usr-ico,
 body.rol-lectura .mini-btn{
   opacity:.45 !important; cursor:not-allowed !important;
 }
@@ -2194,34 +2210,39 @@ body.rol-lectura input[type="file"]{
 }
 
 /* ========== Modal de usuario con panel de permisos ========== */
+.usuario-modal-box{ max-width:1240px; padding:30px 32px 24px; }
 .usuario-modal-grid{
-  display:grid; grid-template-columns:220px 1fr; gap:28px; align-items:start;
+  display:grid; grid-template-columns:250px 1fr; gap:36px; align-items:start;
 }
-.usuario-modal-campos{ display:flex; flex-direction:column; gap:14px; }
+.usuario-modal-campos{ display:flex; flex-direction:column; gap:16px; }
 
 .permisos-panel{ min-width:0; }
 .permisos-cabecera{ margin-bottom:12px; }
 .permisos-cabecera b{ font-size:14px; }
 .permisos-cabecera span{ display:block; font-size:12px; color:var(--ink-soft); margin-top:2px; }
 .permisos-columnas{
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;
 }
 .permisos-col{
   background:var(--panel-muted); border:1px solid var(--border); border-radius:var(--radius);
-  padding:12px 14px;
+  padding:14px 18px;
 }
 .permisos-col h4{
   margin:0 0 8px; font-size:11px; font-weight:800; text-transform:uppercase;
   letter-spacing:.4px; color:var(--ink-soft);
 }
 .permiso-item{
-  display:flex; align-items:flex-start; gap:8px; padding:8px 0;
+  display:flex; align-items:flex-start; gap:10px; padding:10px 0;
   border-top:1px solid var(--border); cursor:pointer;
 }
 .permiso-item:first-of-type{ border-top:0; }
 .permiso-item input{ margin-top:3px; width:15px; height:15px; flex:0 0 auto; cursor:pointer; accent-color:var(--accent); }
 .permiso-item b{ display:block; font-size:12.5px; }
 .permiso-item small{ display:block; font-size:11px; color:var(--ink-soft); line-height:1.4; margin-top:1px; }
+/* Icono delante del nombre de cada permiso */
+.permiso-item b:has(.perm-ico){ display:flex; align-items:center; gap:6px; }
+.perm-ico{ font-style:normal; font-size:14px; width:20px; text-align:center; flex:0 0 auto; }
+.permiso-item b:has(.perm-ico) + small{ padding-left:26px; }
 /* "Usuario externo": va en la columna de datos (visible para cualquier rol) */
 .permiso-item.permiso-externo{
   border:1px solid var(--border); border-radius:var(--radius);
