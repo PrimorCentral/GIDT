@@ -374,3 +374,91 @@
     recargarConGiro(e.currentTarget, cargarUsuarios));
 
   // ---------------------------------------------------------------
+
+
+  // ---------------- Mi usuario (cabecera) ----------------
+  // Al pulsar el número de usuario de la cabecera (igual que en SALIDAS):
+  // datos de la sesión en solo lectura y cambio de la propia contraseña
+  // (PIN), pidiendo la actual.
+
+  function abrirModalMiUsuario() {
+    const s = getSesion();
+    if (!s) return;
+    const nombresRol = { admin: 'Administrador', operador: 'Operador', lectura: 'Lectura' };
+    document.getElementById('muNombre').value = s.nombre || '';
+    document.getElementById('muUsuario').value = s.usuario || '';
+    document.getElementById('muRol').value = nombresRol[s.rol] || s.rol || '';
+
+    // Las etiquetas de los permisos se sacan del formulario de "Editar
+    // usuario", así no hay que mantener otra lista con los mismos textos.
+    const cont = document.getElementById('muPermisos');
+    if (s.rol === 'admin') {
+      cont.innerHTML = '<span class="mu-pill">Acceso a todo (Administrador)</span>';
+    } else {
+      const permisos = s.permisos || {};
+      const etiquetas = CLAVES_PERMISOS.filter(c => permisos[c]).map(c => {
+        const b = document.getElementById('euPerm_' + c)?.closest('label')?.querySelector('b');
+        return b ? b.textContent.trim() : c;
+      });
+      cont.innerHTML = etiquetas.length
+        ? etiquetas.map(e => `<span class="mu-pill">${escapeHtml(e)}</span>`).join('')
+        : '<span class="mu-vacio">Sin permisos adicionales asignados.</span>';
+    }
+
+    ['muPinActual', 'muPinNuevo', 'muPinRepetir'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('muError').style.display = 'none';
+    document.getElementById('btnGuardarMiUsuario').disabled = false;
+    document.getElementById('miUsuarioModalOverlay').classList.add('show');
+  }
+
+  function cerrarModalMiUsuario() {
+    document.getElementById('miUsuarioModalOverlay').classList.remove('show');
+  }
+
+  async function guardarMiPin() {
+    const s = getSesion();
+    if (!s) return;
+    const actual = document.getElementById('muPinActual').value.trim();
+    const nuevo = document.getElementById('muPinNuevo').value.trim();
+    const repetir = document.getElementById('muPinRepetir').value.trim();
+    const errEl = document.getElementById('muError');
+    const fallo = (msg, idFoco) => {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+      if (idFoco) document.getElementById(idFoco).focus();
+    };
+    errEl.style.display = 'none';
+
+    if (!actual) return fallo('Escribe tu contraseña actual.', 'muPinActual');
+    if (!nuevo || nuevo.length < 4) return fallo('La contraseña nueva debe tener al menos 4 dígitos.', 'muPinNuevo');
+    if (nuevo !== repetir) return fallo('Las dos contraseñas nuevas no coinciden.', 'muPinRepetir');
+    if (nuevo === actual) return fallo('La contraseña nueva es igual que la actual.', 'muPinNuevo');
+
+    const btn = document.getElementById('btnGuardarMiUsuario');
+    btn.disabled = true;
+    try {
+      const { data, error } = await sb.from('usuarios').select('pin_hash').eq('id', s.id).maybeSingle();
+      if (error) throw error;
+      if (!data || data.pin_hash !== await sha256(actual)) {
+        return fallo('La contraseña actual no es correcta.', 'muPinActual');
+      }
+      const { error: errUpd } = await sb.from('usuarios').update({ pin_hash: await sha256(nuevo) }).eq('id', s.id);
+      if (errUpd) throw errUpd;
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('usuarios', 'Cambiar su contraseña', s.nombre || s.usuario);
+      }
+      cerrarModalMiUsuario();
+      mostrarToast('Contraseña actualizada');
+    } catch (err) {
+      console.error('Error cambiando la contraseña:', err);
+      fallo(err.message || 'No se pudo cambiar la contraseña.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('userChipUsuario')?.addEventListener('click', abrirModalMiUsuario);
+  document.getElementById('btnCerrarMiUsuario')?.addEventListener('click', cerrarModalMiUsuario);
+  document.getElementById('btnCancelarMiUsuario')?.addEventListener('click', cerrarModalMiUsuario);
+  document.getElementById('btnGuardarMiUsuario')?.addEventListener('click', guardarMiPin);
+  document.getElementById('muPinRepetir')?.addEventListener('keydown', e => { if (e.key === 'Enter') guardarMiPin(); });
