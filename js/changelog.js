@@ -10,6 +10,21 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.7',
+    fecha: '2026-11-05',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Nueva pantalla Análisis → Incidencias por comunidad: total anual por comunidad y por tienda, mes a mes, con descarga en Excel' },
+      { tipo: 'nuevo',  texto: 'Reporte mensual: nuevo botón "Informe anual" para descargar el Excel del año por comunidades y tiendas' },
+      { tipo: 'nuevo',  texto: 'Se han incorporado las incidencias de 2025 y de 2026 anteriores a GIDT, para poder consultarlas por comunidad' },
+      { tipo: 'nuevo',  texto: 'Gestión de tiendas: nuevo campo obligatorio Comunidad, con su filtro' },
+      { tipo: 'nuevo',  texto: 'Gestión de tiendas: nueva sección Campos especiales con Entrega LXV, y filtro "Solo tiendas con entrega LXV"' },
+      { tipo: 'mejora', texto: 'Reporte mensual: filtro por comunidad, también al exportar a PDF' },
+      { tipo: 'mejora', texto: 'Reporte mensual: la ventana de filtros muestra dos filtros por línea' },
+      { tipo: 'mejora', texto: 'Editar tienda: nueva distribución de los campos de ubicación' },
+      { tipo: 'mejora', texto: 'Siniestros del día: la ventana del siniestro ya no se cierra al pulsar fuera de ella' }
+    ]
+  },
+  {
     version: '1.8.6',
     fecha: '2026-11-04',
     cambios: [
