@@ -1012,7 +1012,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="filtro-campo filtros-span2">
+                  <div class="filtro-campo">
                     <label>Tiendas</label>
                     <div class="filtro-select" data-grupo="tiendas">
                       <button type="button" class="filtro-select-btn">
@@ -1024,6 +1024,12 @@
                         <div class="filtro-select-lista" id="filtroTiendasTiendasLista"></div>
                       </div>
                     </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label class="filtro-check" style="padding:2px 0;">
+                      <input type="checkbox" id="filtroTiendasLxv">
+                      <span>Solo tiendas con entrega LXV</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1732,6 +1738,17 @@
             <div class="ea-fchips" id="metPruebaChips"></div>
             <p class="ea-hint">Además de la habitual: esos días la tienda sale también en la agencia de prueba. Cuando pasa la última fecha, se quita sola.</p>
           </div>
+        </div>
+        <div class="tienda-extra-head">
+          <h4>⭐ Campos especiales</h4>
+          <p>Datos particulares de esta tienda.</p>
+        </div>
+        <div class="ea-card lxv" id="metCardLxv">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="metEntregaLxv">
+            <span class="marca-badge lxv">LXV</span><b>Entrega LXV</b>
+            <span class="ea-res" id="metLxvResumen">No</span>
+          </label>
         </div>
       </aside>
     </div>
@@ -2943,6 +2960,17 @@
             <div class="ea-fchips" id="ntPruebaChips"></div>
             <p class="ea-hint">Además de la habitual: esos días la tienda sale también en la agencia de prueba. Cuando pasa la última fecha, se quita sola.</p>
           </div>
+        </div>
+        <div class="tienda-extra-head">
+          <h4>⭐ Campos especiales</h4>
+          <p>Datos particulares de esta tienda.</p>
+        </div>
+        <div class="ea-card lxv" id="ntCardLxv">
+          <label class="ea-toggle">
+            <input type="checkbox" class="ea-switch" id="ntEntregaLxv">
+            <span class="marca-badge lxv">LXV</span><b>Entrega LXV</b>
+            <span class="ea-res" id="ntLxvResumen">No</span>
+          </label>
         </div>
       </aside>
     </div>

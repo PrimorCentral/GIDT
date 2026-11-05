@@ -3539,3 +3539,7 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
   #acLateral{ flex:0 0 auto; width:auto; overflow:visible; }
   .ac-lista{ max-height:60vh; }
 }
+
+/* Campos especiales (Editar / Nueva tienda): Entrega LXV. */
+.marca-badge.lxv{ width:auto; padding:0 6px; border-radius:999px; background:#DCE7FF; color:#1E40AF; font-size:10px; letter-spacing:.3px; }
+.ea-card.on.lxv{ border-color:#B6CBF7; box-shadow:inset 3px 0 0 #3B6FE0; }

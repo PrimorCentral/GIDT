@@ -30,6 +30,8 @@
   // supervisores, comunidades y provincias (texto, o SIN_VALOR_FILTRO si no tienen) y tiendas (ids).
   const filtroTiendas = { agencias: new Set(), transitos: new Set(), supervisores: new Set(), comunidades: new Set(), provincias: new Set(), tiendas: new Set() };
   const SIN_VALOR_FILTRO = '__SIN__';
+  // Casilla "Solo tiendas con entrega LXV" del panel de filtros.
+  let filtroTiendasSoloLxv = false;
   // Comunidad de cada tienda (campo obligatorio). Lista fija: las 17
   // comunidades autónomas + Ceuta y Melilla y, fuera de España, el país.
   // Para un país nuevo, añadirlo al final de la lista.
@@ -232,7 +234,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
@@ -667,7 +669,8 @@
     { clave: 'prueba_hora', etiqueta: 'Hora de prueba', formato: audHora },
     { clave: 'prueba_fechas', etiqueta: 'Fechas de prueba', formato: f => (Array.isArray(f) && f.length ? [...f].sort().map(fechaISOaCorta) : null) },
     { clave: 'agencia_id', etiqueta: 'Agencia', formato: audAgencia },
-    { clave: 'apertura_prevista', etiqueta: 'Apertura prevista', formato: f => (f ? fechaISOaCorta(f) : null) }
+    { clave: 'apertura_prevista', etiqueta: 'Apertura prevista', formato: f => (f ? fechaISOaCorta(f) : null) },
+    { clave: 'entrega_lxv', etiqueta: 'Entrega LXV', formato: v => (v ? 'Sí' : 'No') }
   ];
 
   let editarTiendaId = null;
@@ -1047,6 +1050,14 @@
       const pend = [...calPrueba[prefijo].fechas].filter(f => f >= hoyISO).length;
       resP.textContent = chkP.checked ? `${ag || 'Elige agencia'} · ${pend} fecha${pend === 1 ? '' : 's'}` : 'Desactivado';
     }
+    // Campos especiales: Entrega LXV (sí/no, solo informativo).
+    const chkL = document.getElementById(prefijo + 'EntregaLxv');
+    const cardL = document.getElementById(prefijo + 'CardLxv');
+    const resL = document.getElementById(prefijo + 'LxvResumen');
+    if (chkL && cardL && resL) {
+      cardL.classList.toggle('on', chkL.checked);
+      resL.textContent = chkL.checked ? 'Sí' : 'No';
+    }
   }
 
   // Muestra/oculta el cuerpo de cada tarjeta según su interruptor.
@@ -1060,6 +1071,7 @@
     actualizarResumenesTarjetas(prefijo);
   }
   ['nt', 'met'].forEach(prefijo => {
+    document.getElementById(prefijo + 'EntregaLxv')?.addEventListener('change', () => actualizarResumenesTarjetas(prefijo));
     ['Sabado', 'Prueba'].forEach(tipo => {
       document.getElementById(prefijo + tipo + 'Otra')?.addEventListener('change', () => {
         sincronizarCamposSabado(prefijo);
@@ -1087,6 +1099,7 @@
     set('PruebaAgencia', tienePrueba ? String(t.prueba_agencia_id) : '');
     set('PruebaHora', tienePrueba && t.prueba_hora ? t.prueba_hora.slice(0, 5) : '');
     calPrueba[prefijo].fechas = new Set(tienePrueba ? (t.prueba_fechas || []) : []);
+    set('EntregaLxv', !!t?.entrega_lxv);
     // El calendario se abre en el mes de la próxima fecha pendiente (o en el actual).
     const prox = tienePrueba ? fechasPruebaPendientes(t)[0] : null;
     const base = prox ? new Date(prox + 'T00:00:00') : new Date();
@@ -1283,7 +1296,9 @@
         sabado_hora: sabado.sabado_hora,
         prueba_agencia_id: prueba.prueba_agencia_id,
         prueba_hora: prueba.prueba_hora,
-        prueba_fechas: prueba.prueba_fechas
+        prueba_fechas: prueba.prueba_fechas,
+        // Sin la tarjeta en pantalla (index.html antiguo) no se toca lo guardado.
+        ...(document.getElementById('metEntregaLxv') ? { entrega_lxv: document.getElementById('metEntregaLxv').checked } : {})
       };
       if (editandoApertura) {
         datosNuevos.apertura_prevista = document.getElementById('metAperturaPrevista')?.value || null;
@@ -1875,6 +1890,7 @@
         prueba_agencia_id: prueba.prueba_agencia_id,
         prueba_hora: prueba.prueba_hora,
         prueba_fechas: prueba.prueba_fechas,
+        entrega_lxv: !!document.getElementById('ntEntregaLxv')?.checked,
         en_apertura: enApertura,
         apertura_prevista: aperturaPrevista,
         orden: maxOrden + 1
@@ -2228,7 +2244,7 @@
   ];
 
   function hayFiltroTiendas() {
-    return Object.values(filtroTiendas).some(set => set.size > 0);
+    return filtroTiendasSoloLxv || Object.values(filtroTiendas).some(set => set.size > 0);
   }
 
   // Grupos cuyo valor es un id numérico (el resto son texto).
@@ -2253,6 +2269,7 @@
     if (filtroTiendas.comunidades.size && !filtroTiendas.comunidades.has(claveTextoFiltro(t.comunidad))) return false;
     if (filtroTiendas.provincias.size && !filtroTiendas.provincias.has(claveTextoFiltro(t.provincia))) return false;
     if (filtroTiendas.tiendas.size && !filtroTiendas.tiendas.has(t.id)) return false;
+    if (filtroTiendasSoloLxv && !t.entrega_lxv) return false;
     return true;
   }
 
@@ -2289,6 +2306,7 @@
       const nombres = tiendasGestionCache.filter(t => filtroTiendas.tiendas.has(t.id)).map(t => t.nombre);
       partes.push(`Tiendas: ${nombresLista(nombres)}`);
     }
+    if (filtroTiendasSoloLxv) partes.push('Con entrega LXV');
     return partes;
   }
 
@@ -2303,7 +2321,7 @@
     const barra = document.getElementById('barraFiltroTiendas');
     const badge = document.getElementById('filtrosTiendasCount');
     const btn = document.getElementById('btnFiltrosTiendas');
-    const numGrupos = Object.values(filtroTiendas).filter(s => s.size).length;
+    const numGrupos = Object.values(filtroTiendas).filter(s => s.size).length + (filtroTiendasSoloLxv ? 1 : 0);
     if (badge) { badge.textContent = numGrupos; badge.style.display = numGrupos ? '' : 'none'; }
     btn?.classList.toggle('activo', numGrupos > 0);
     if (!barra) return;
@@ -2399,6 +2417,9 @@
 
   function limpiarFiltroTiendas() {
     Object.values(filtroTiendas).forEach(set => set.clear());
+    filtroTiendasSoloLxv = false;
+    const chkLxv = document.getElementById('filtroTiendasLxv');
+    if (chkLxv) chkLxv.checked = false;
     document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => { cb.checked = false; });
     actualizarValoresFiltroTiendas();
     renderAcordeonTiendas();
@@ -2426,6 +2447,10 @@
     });
     document.getElementById('btnCerrarFiltrosTiendas')?.addEventListener('click', cerrarFiltrosTiendasPanel);
     document.getElementById('btnLimpiarFiltrosTiendas')?.addEventListener('click', limpiarFiltroTiendas);
+    document.getElementById('filtroTiendasLxv')?.addEventListener('change', (e) => {
+      filtroTiendasSoloLxv = e.target.checked;
+      renderAcordeonTiendas();
+    });
   }
 
   // ---------------------------------------------------------------
