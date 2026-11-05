@@ -150,6 +150,7 @@
       <div class="dropdown" id="analisisDropdown">
         <button data-view="analisis-ranking">🏆 Ranking de incidencias</button>
         <button data-view="analisis-reportes-mensuales">🗓️ Reportes mensuales</button>
+        <button data-view="analisis-comunidades">🗺️ Incidencias por comunidad</button>
         <button data-view="analisis-historico-agencias">🔀 Histórico de agencias</button>
       </div>
     </nav>
@@ -873,6 +874,28 @@
       <div class="ps-paginacion" id="psPaginacion"></div>
     </section>
 
+    <!-- ============ ANÁLISIS: INCIDENCIAS POR COMUNIDAD ============ -->
+    <section class="view" id="view-analisis-comunidades">
+      <div class="page-head" style="align-items:center;">
+        <div>
+          <h1>🗺️ Incidencias por comunidad</h1>
+          <p>Total anual por comunidad y tienda, con el mismo criterio que el Reporte mensual.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button class="ps-btn-icon btn-recargar" id="acBtnRecargar" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn" id="acBtnAnterior">◀</button>
+          <b id="acAnioTexto" style="min-width:60px; text-align:center;">—</b>
+          <button class="btn" id="acBtnSiguiente">▶</button>
+          <button class="btn" id="acBtnActual">Año actual</button>
+          <button class="btn primary" id="acBtnExcel">⬇️ Descargar Excel</button>
+        </div>
+      </div>
+      <div class="rm-layout">
+        <div class="rm-tabla-col" id="acTabla"></div>
+        <aside class="rm-sidebar" id="acLateral"></aside>
+      </div>
+    </section>
+
     <!-- ============ ANÁLISIS: HISTÓRICO DE AGENCIAS ============ -->
     <section class="view" id="view-analisis-historico-agencias">
       <div class="page-head">
@@ -1357,6 +1380,8 @@
               </div>
             </div>
           </div>
+
+          <button class="btn" id="btnRmInformeAnual" title="Excel del año con los totales por comunidad y por tienda">📊 Informe anual</button>
 
           <div class="filtros-wrap">
             <button class="btn" id="btnRmExportar" title="Exportar a PDF el resumen de una agencia">
@@ -2997,6 +3022,7 @@
 <script src="js/informe-pdf.js"></script>
 <script src="js/reportes-mensuales-envio.js"></script>
 <script src="js/reportes-mensuales-exportar.js"></script>
+<script src="js/analisis-comunidades.js"></script>
 <script src="js/informe-autorefresh.js"></script>
 <script src="js/analisis.js"></script>
 <script src="js/historico-agencias.js"></script>

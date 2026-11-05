@@ -3495,3 +3495,41 @@ table.tabla-historial-tienda tbody tr{ cursor:default; }
 .btn.btn-volcar-salidas.quitar{ background:#fff; border-color:#d92d20; color:#b42318; }
 .btn.btn-volcar-salidas.quitar:hover{ background:#fef3f2; }
   .ps-sin-tienda{ color:var(--ink-soft); font-style:italic; }
+
+/* Análisis → Incidencias por comunidad: misma caja de altura fija que el
+   Reporte mensual (tabla con su scroll y barra lateral a la derecha). */
+#view-analisis-comunidades.active{ display:flex; flex-direction:column; height:100%; min-height:0; }
+#view-analisis-comunidades .page-head{ flex:0 0 auto; }
+main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
+#acTabla{ min-height:0; }
+#acTabla .ac-card-tabla{ flex:1 1 auto; min-height:0; overflow:auto; padding:0; }
+.ac-tabla{ width:100%; }
+.ac-tabla td{ font-variant-numeric:tabular-nums; }
+.ac-tabla th:nth-child(n), .ac-tabla td:nth-child(n){ min-width:0; padding:4px 8px; }
+.ac-tabla th:first-child, .ac-tabla td:first-child{ min-width:190px; text-align:left; }
+.ac-tabla th.ac-excel{ background:#E6DFFF; color:#4B3BA8; }
+.ac-tabla th.ac-mixto{ background:linear-gradient(90deg, #E6DFFF 50%, var(--panel-muted) 50%); color:#4B3BA8; }
+.ac-tabla td.ac-importado{ background:#FAF8FF; }
+.ac-tabla tr.ac-fila-com{ cursor:pointer; }
+.ac-tabla tr.ac-fila-com:hover td{ background:var(--panel-muted); }
+.ac-tabla tr.ac-fila-total td{ background:var(--panel-muted); font-weight:800; }
+.ac-tabla tr.ac-fila-general td{ background:#FFEEDF; color:#7A3A00; }
+.ac-tabla tr.ac-fila-sel td{ background:#FFF3E8; box-shadow:inset 0 2px 0 -1px var(--accent), inset 0 -2px 0 -1px var(--accent); }
+.ac-pct{ text-align:left !important; min-width:110px !important; }
+.ac-barra{ display:inline-block; width:56px; height:6px; background:var(--panel-muted); border-radius:4px; margin-right:6px; vertical-align:middle; overflow:hidden; }
+.ac-barra i{ display:block; height:100%; background:var(--accent); border-radius:4px; }
+.ac-nota{ font-size:11.5px; color:var(--ink-soft); margin:8px 2px 0; flex:0 0 auto; }
+.ac-chip{ display:inline-block; width:10px; height:10px; border-radius:3px; background:#E6DFFF; border:1px solid #B9A9F5; vertical-align:-1px; margin-right:4px; }
+#acLateral{ min-height:0; overflow-y:auto; }
+.ac-lista-card{ display:flex; flex-direction:column; min-height:0; }
+.ac-tienda{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+.ac-tienda:last-child{ border-bottom:none; }
+.ac-pos{ width:22px; font-weight:800; color:var(--ink-soft); font-size:12px; text-align:right; flex:none; }
+.ac-tn{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.2; }
+.ac-tn b{ font-size:12.5px; }
+.ac-tn small{ font-size:11px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ac-num{ font-weight:800; flex:none; }
+@media (max-width: 900px){
+  .rm-layout:has(#acTabla){ flex-direction:column; }
+  #acLateral{ flex:0 0 auto; width:auto; }
+}
