@@ -964,6 +964,19 @@
                     </div>
                   </div>
                   <div class="filtro-campo">
+                    <label>Comunidad</label>
+                    <div class="filtro-select" data-grupo="comunidades">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="Buscar comunidad…"></div>
+                        <div class="filtro-select-lista" id="filtroTiendasComunidadLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo">
                     <label>Provincia</label>
                     <div class="filtro-select" data-grupo="provincias">
                       <button type="button" class="filtro-select-btn">
@@ -1363,11 +1376,15 @@
                 </p>
                 <label class="ps-filtro-check" id="rmxUsarFiltroWrap" style="display:none; white-space:normal; align-items:flex-start; margin-bottom:14px;">
                   <input type="checkbox" id="rmxUsarFiltroActivo" style="margin-top:2px;">
-                  <span>Exportar solo lo que cumple el filtro activo de la pantalla (<span id="rmxFiltroResumen"></span>), en vez de elegir una agencia abajo.</span>
+                  <span>Exportar solo lo que cumple el filtro activo de la pantalla (<span id="rmxFiltroResumen"></span>), en vez de elegir agencia y comunidad abajo.</span>
                 </label>
                 <div class="filtro-campo filtros-span2" id="rmxAgenciaCampo">
                   <label>Agencia</label>
                   <select class="form-input" id="rmxAgenciaSelect"><option value="">Cargando…</option></select>
+                </div>
+                <div class="filtro-campo filtros-span2" id="rmxComunidadCampo" style="margin-top:14px;">
+                  <label>Comunidad</label>
+                  <select class="form-input" id="rmxComunidadSelect"><option value="">Todas las comunidades</option></select>
                 </div>
                 <div class="filtros-grid" style="margin-top:14px;">
                   <div class="filtro-campo">
@@ -1425,6 +1442,19 @@
                       <div class="filtro-select-dropdown">
                         <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar tienda…"></div>
                         <div class="filtro-select-lista" id="rmFiltrosTiendasLista"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filtro-campo filtros-span2">
+                    <label>Comunidad</label>
+                    <div class="filtro-select" data-grupo="comunidad">
+                      <button type="button" class="filtro-select-btn">
+                        <span class="filtro-select-valor">Todas</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <div class="filtro-select-dropdown">
+                        <div class="filtro-select-search"><input type="text" placeholder="🔎 Buscar comunidad…"></div>
+                        <div class="filtro-select-lista" id="rmFiltrosComunidadesLista"></div>
                       </div>
                     </div>
                   </div>
@@ -1534,9 +1564,13 @@
         <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
           <div class="tf-grid tf-grid-5">
-            <div class="tf-campo tf-span-3">
+            <div class="tf-campo tf-span-2">
               <label class="form-label">Dirección completa</label>
               <input type="text" id="metDireccion" class="form-input" placeholder="Ej. Calle Betis 12, Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Comunidad <span class="tf-req tf-req-apertura">*</span></label>
+              <select id="metComunidad" class="form-input"></select>
             </div>
             <div class="tf-campo tf-span-1">
               <label class="form-label">Provincia <span class="tf-req tf-req-apertura">*</span></label>
@@ -2763,9 +2797,13 @@
         <section class="tf-seccion">
           <h4 class="tf-seccion-titulo"><span class="tf-seccion-icono">📍</span>Ubicación</h4>
           <div class="tf-grid tf-grid-5">
-            <div class="tf-campo tf-span-3">
+            <div class="tf-campo tf-span-2">
               <label class="form-label">Dirección completa</label>
               <input type="text" id="ntDireccion" class="form-input" placeholder="Ej. Calle Betis 12, Sevilla">
+            </div>
+            <div class="tf-campo tf-span-1">
+              <label class="form-label">Comunidad <span class="tf-req tf-req-apertura">*</span></label>
+              <select id="ntComunidad" class="form-input"></select>
             </div>
             <div class="tf-campo tf-span-1">
               <label class="form-label">Provincia <span class="tf-req tf-req-apertura">*</span></label>

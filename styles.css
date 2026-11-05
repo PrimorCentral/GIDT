@@ -2429,7 +2429,8 @@ main:has(#view-config-usuarios.active){ padding-bottom:14px; }
 .tabla-reporte-mensual .marca-badge{ width:16px; height:16px; font-size:10px; margin:-4px 6px -4px 0; }
 .tabla-reporte-mensual th:nth-child(1), .tabla-reporte-mensual td:nth-child(1){ min-width:140px; }
 .tabla-reporte-mensual th:nth-child(2), .tabla-reporte-mensual td:nth-child(2){ min-width:170px; }
-.tabla-reporte-mensual th:nth-child(3), .tabla-reporte-mensual td:nth-child(3){ min-width:120px; }
+.tabla-reporte-mensual th:nth-child(3), .tabla-reporte-mensual td:nth-child(3){ min-width:150px; }
+.tabla-reporte-mensual th:nth-child(4), .tabla-reporte-mensual td:nth-child(4){ min-width:120px; }
 .tabla-reporte-mensual td.rm-td-ok{ color:var(--ink-soft); font-weight:600; }
 .tabla-reporte-mensual td.rm-td-pendiente{ color:var(--ink-soft); opacity:.4; }
 .tabla-reporte-mensual td.rm-td-cambio{
