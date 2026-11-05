@@ -3519,8 +3519,13 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .ac-barra i{ display:block; height:100%; background:var(--accent); border-radius:4px; }
 .ac-nota{ font-size:11.5px; color:var(--ink-soft); margin:8px 2px 0; flex:0 0 auto; }
 .ac-chip{ display:inline-block; width:10px; height:10px; border-radius:3px; background:#E6DFFF; border:1px solid #B9A9F5; vertical-align:-1px; margin-right:4px; }
-#acLateral{ min-height:0; overflow-y:auto; }
-.ac-lista-card{ display:flex; flex-direction:column; min-height:0; }
+/* La barra lateral no hace scroll entera: la tarjeta de KPIs queda fija y
+   la tarjeta de la lista ocupa el resto del alto, con el scroll DENTRO de
+   ella (si no, la lista se salía por debajo del fondo blanco de la tarjeta). */
+#acLateral{ min-height:0; overflow:hidden; }
+#acLateral > .rm-sidebar-card{ flex:0 0 auto; }
+#acLateral > .ac-lista-card{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.ac-lista{ flex:1 1 auto; min-height:0; overflow-y:auto; margin-right:-6px; padding-right:6px; }
 .ac-tienda{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
 .ac-tienda:last-child{ border-bottom:none; }
 .ac-pos{ width:22px; font-weight:800; color:var(--ink-soft); font-size:12px; text-align:right; flex:none; }
@@ -3530,5 +3535,6 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .ac-num{ font-weight:800; flex:none; }
 @media (max-width: 900px){
   .rm-layout:has(#acTabla){ flex-direction:column; }
-  #acLateral{ flex:0 0 auto; width:auto; }
+  #acLateral{ flex:0 0 auto; width:auto; overflow:visible; }
+  .ac-lista{ max-height:60vh; }
 }
