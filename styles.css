@@ -2833,15 +2833,16 @@ table.tabla-lista-contador td.suave{ color:var(--ink-soft); }
 .tf-req{ color:var(--accent); font-weight:800; }
 /* Fila "Ubicación" de los modales de tienda: Dirección (3) + Provincia (1) + Código postal (1) */
 .tf-grid.tf-grid-5{ grid-template-columns:repeat(5, minmax(0,1fr)); }
+.tf-grid.tf-grid-3{ grid-template-columns:repeat(3, minmax(0,1fr)); }
 
 @media (max-width:680px){
-  .tf-grid, .tf-grid.tf-grid-5{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .tf-grid, .tf-grid.tf-grid-5, .tf-grid.tf-grid-3{ grid-template-columns:repeat(2, minmax(0,1fr)); }
   .tf-span-1, .tf-span-2{ grid-column:span 1; }
   .tf-span-3, .tf-span-4{ grid-column:span 2; }
   .tienda-modal-head, .tienda-modal-body, .tienda-modal-foot{ padding-left:18px; padding-right:18px; }
 }
 @media (max-width:440px){
-  .tf-grid, .tf-grid.tf-grid-5{ grid-template-columns:1fr; }
+  .tf-grid, .tf-grid.tf-grid-5, .tf-grid.tf-grid-3{ grid-template-columns:1fr; }
   .tf-span-1, .tf-span-2, .tf-span-3, .tf-span-4{ grid-column:span 1; }
   .modal-overlay#nuevaTiendaModalOverlay, .modal-overlay#modalEditarTiendaOverlay{ padding:10px; }
   .tienda-modal-box{ max-height:calc(100dvh - 20px); }
