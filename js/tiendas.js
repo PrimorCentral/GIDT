@@ -27,9 +27,29 @@
   let agenciasTiendasAbiertas = new Set(); // ids de agencia desplegados en "Gestión de tiendas"
   let filtroTiendasTexto = '';
   // Filtro (botón "Filtros"): agencias (ids), tránsitos ('24'…'144' o 'SIN'),
-  // supervisores y provincias (texto, o SIN_VALOR_FILTRO si no tienen) y tiendas (ids).
-  const filtroTiendas = { agencias: new Set(), transitos: new Set(), supervisores: new Set(), provincias: new Set(), tiendas: new Set() };
+  // supervisores, comunidades y provincias (texto, o SIN_VALOR_FILTRO si no tienen) y tiendas (ids).
+  const filtroTiendas = { agencias: new Set(), transitos: new Set(), supervisores: new Set(), comunidades: new Set(), provincias: new Set(), tiendas: new Set() };
   const SIN_VALOR_FILTRO = '__SIN__';
+  // Comunidad de cada tienda (campo obligatorio). Lista fija: las 17
+  // comunidades autónomas + Ceuta y Melilla y, fuera de España, el país.
+  // Para un país nuevo, añadirlo al final de la lista.
+  const COMUNIDADES_TIENDA = [
+    'ANDALUCÍA', 'ARAGÓN', 'ASTURIAS', 'BALEARES', 'CANARIAS', 'CANTABRIA',
+    'CASTILLA-LA MANCHA', 'CASTILLA Y LEÓN', 'CATALUÑA', 'CEUTA', 'COMUNIDAD VALENCIANA',
+    'EXTREMADURA', 'GALICIA', 'LA RIOJA', 'MADRID', 'MELILLA', 'MURCIA', 'NAVARRA', 'PAÍS VASCO',
+    'ANDORRA', 'ITALIA', 'PORTUGAL'
+  ];
+  window.COMUNIDADES_TIENDA = COMUNIDADES_TIENDA;
+  // Rellena un <select> de Comunidad; si la tienda tiene un valor que ya no
+  // está en la lista, se añade igualmente para no perderlo al guardar.
+  function rellenarSelectComunidad(sel, valor) {
+    if (!sel) return;
+    const v = (valor || '').trim().toUpperCase();
+    const lista = v && !COMUNIDADES_TIENDA.includes(v) ? [...COMUNIDADES_TIENDA, v] : COMUNIDADES_TIENDA;
+    sel.innerHTML = '<option value="">— Elegir —</option>' +
+      lista.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    sel.value = v;
+  }
   const MARCA_LABEL = { HABITUAL: 'Habitual', SABADO: 'Sábado', PRUEBA: 'Prueba', ESPECIAL: 'Especial' };
   const MARCA_CLASE = { HABITUAL: 'leve', SABADO: 'sabado', PRUEBA: 'prueba', ESPECIAL: 'especial' };
   const MARCA_BADGE_LETRA = { SABADO: 'S', ESPECIAL: 'E', PRUEBA: 'P' };
@@ -197,6 +217,7 @@
     if (!qNormalizada) return true;
     return normalizarTextoBusqueda(t.nombre).includes(qNormalizada)
       || normalizarTextoBusqueda(t.provincia).includes(qNormalizada)
+      || normalizarTextoBusqueda(t.comunidad).includes(qNormalizada)
       || normalizarTextoBusqueda(t.codigo_postal).includes(qNormalizada)
       || normalizarTextoBusqueda(t.numero_tienda).includes(qNormalizada)
       || normalizarTextoBusqueda(t.direccion).includes(qNormalizada)
@@ -211,7 +232,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
@@ -631,6 +652,7 @@
     { clave: 'nombre', etiqueta: 'Nombre' },
     { clave: 'hora_prevista', etiqueta: 'Hora prevista', formato: audHora },
     { clave: 'direccion', etiqueta: 'Dirección' },
+    { clave: 'comunidad', etiqueta: 'Comunidad' },
     { clave: 'provincia', etiqueta: 'Provincia' },
     { clave: 'codigo_postal', etiqueta: 'Código postal' },
     { clave: 'limite_palets', etiqueta: 'Límite palets' },
@@ -665,6 +687,7 @@
     if (!d.agencia_id) faltan.push('Agencia');
     if (enApertura) return faltan;
     if (!d.supervisor) faltan.push('Supervisor/a');
+    if (!d.comunidad) faltan.push('Comunidad');
     if (!d.provincia) faltan.push('Provincia');
     if (!d.codigo_postal) faltan.push('Código postal');
     if (!d.hora_prevista) faltan.push('Hora prevista');
@@ -703,6 +726,7 @@
     document.getElementById('metNombre').value = t.nombre || '';
     document.getElementById('metHora').value = t.hora_prevista ? t.hora_prevista.slice(0, 5) : '';
     document.getElementById('metDireccion').value = t.direccion || '';
+    rellenarSelectComunidad(document.getElementById('metComunidad'), t.comunidad);
     document.getElementById('metProvincia').value = t.provincia || '';
     document.getElementById('metCodigoPostal').value = t.codigo_postal || '';
     document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
@@ -1187,6 +1211,7 @@
     const nombre = document.getElementById('metNombre').value.trim().toUpperCase();
     const hora = document.getElementById('metHora').value;
     const direccion = document.getElementById('metDireccion').value.trim().toUpperCase();
+    const comunidad = document.getElementById('metComunidad').value;
     const provincia = document.getElementById('metProvincia').value.trim().toUpperCase();
     const codigoPostal = document.getElementById('metCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
     const limitePaletsRaw = document.getElementById('metLimitePalets').value;
@@ -1203,7 +1228,7 @@
     const tAntes = tiendasGestionCache.find(x => x.id === editarTiendaId);
     const editandoApertura = !!tAntes?.en_apertura;
     const faltan = camposObligatoriosQueFaltan({
-      numero_tienda: numeroTienda, nombre, agencia_id: tAntes?.agencia_id, supervisor, provincia,
+      numero_tienda: numeroTienda, nombre, agencia_id: tAntes?.agencia_id, supervisor, comunidad, provincia,
       codigo_postal: codigoPostal, hora_prevista: hora, limite_palets: limitePaletsRaw
     }, editandoApertura);
     if (faltan.length) {
@@ -1245,6 +1270,7 @@
         nombre,
         hora_prevista: hora || null,
         direccion: direccion || null,
+        comunidad: comunidad || null,
         provincia: provincia || null,
         codigo_postal: codigoPostal || null,
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
@@ -1739,6 +1765,7 @@
     document.getElementById('ntNombre').value = '';
     document.getElementById('ntHora').value = '';
     document.getElementById('ntDireccion').value = '';
+    rellenarSelectComunidad(document.getElementById('ntComunidad'), '');
     document.getElementById('ntProvincia').value = '';
     document.getElementById('ntCodigoPostal').value = '';
     document.getElementById('ntLimitePalets').value = '';
@@ -1774,6 +1801,7 @@
     const agenciaId = Number(document.getElementById('ntAgencia').value);
     const hora = document.getElementById('ntHora').value;
     const direccion = document.getElementById('ntDireccion').value.trim().toUpperCase();
+    const comunidad = document.getElementById('ntComunidad').value;
     const provincia = document.getElementById('ntProvincia').value.trim().toUpperCase();
     const codigoPostal = document.getElementById('ntCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
     const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
@@ -1792,7 +1820,7 @@
     // Campos obligatorios al crear una tienda. En apertura solo Nº, nombre
     // y agencia: el resto se puede completar antes de activarla.
     const faltan = camposObligatoriosQueFaltan({
-      numero_tienda: numeroTienda, nombre, agencia_id: agenciaId, supervisor, provincia,
+      numero_tienda: numeroTienda, nombre, agencia_id: agenciaId, supervisor, comunidad, provincia,
       codigo_postal: codigoPostal, hora_prevista: hora, limite_palets: limitePaletsRaw
     }, enApertura);
     if (faltan.length) {
@@ -1832,6 +1860,7 @@
         agencia_id: agenciaId,
         hora_prevista: hora || null,
         direccion: direccion || null,
+        comunidad: comunidad || null,
         provincia: provincia || null,
         codigo_postal: codigoPostal || null,
         limite_palets: limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null,
@@ -2221,6 +2250,7 @@
     if (filtroTiendas.agencias.size && !filtroTiendas.agencias.has(t.agencia_id)) return false;
     if (filtroTiendas.transitos.size && !filtroTiendas.transitos.has(claveTransito(t))) return false;
     if (filtroTiendas.supervisores.size && !filtroTiendas.supervisores.has(claveTextoFiltro(t.supervisor))) return false;
+    if (filtroTiendas.comunidades.size && !filtroTiendas.comunidades.has(claveTextoFiltro(t.comunidad))) return false;
     if (filtroTiendas.provincias.size && !filtroTiendas.provincias.has(claveTextoFiltro(t.provincia))) return false;
     if (filtroTiendas.tiendas.size && !filtroTiendas.tiendas.has(t.id)) return false;
     return true;
@@ -2248,6 +2278,9 @@
     const etiquetaTexto = (v) => v === SIN_VALOR_FILTRO ? 'Sin indicar' : v;
     if (filtroTiendas.supervisores.size) {
       partes.push(`Supervisor/a: ${nombresLista([...filtroTiendas.supervisores].map(etiquetaTexto))}`);
+    }
+    if (filtroTiendas.comunidades.size) {
+      partes.push(`Comunidad: ${nombresLista([...filtroTiendas.comunidades].map(etiquetaTexto))}`);
     }
     if (filtroTiendas.provincias.size) {
       partes.push(`Provincia: ${nombresLista([...filtroTiendas.provincias].map(etiquetaTexto))}`);
@@ -2338,6 +2371,8 @@
     };
     const lSup = document.getElementById('filtroTiendasSupervisorLista');
     if (lSup) lSup.innerHTML = listaTexto('supervisor').map(v => fila('supervisores', v, v === SIN_VALOR_FILTRO ? 'Sin indicar' : v)).join('');
+    const lCom = document.getElementById('filtroTiendasComunidadLista');
+    if (lCom) lCom.innerHTML = listaTexto('comunidad').map(v => fila('comunidades', v, v === SIN_VALOR_FILTRO ? 'Sin indicar' : v)).join('');
     const lProv = document.getElementById('filtroTiendasProvinciaLista');
     if (lProv) lProv.innerHTML = listaTexto('provincia').map(v => fila('provincias', v, v === SIN_VALOR_FILTRO ? 'Sin indicar' : v)).join('');
 

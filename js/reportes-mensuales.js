@@ -54,7 +54,22 @@ let rmInicializado = false;
 let rmInformesPorDia = new Map();
 
 // motivos = códigos del reporte (CODIGOS_INFORME[].codigo, p. ej. '7', 'F').
-const rmFiltros = { agencias: new Set(), tiendas: new Set(), motivos: new Set(), soloConIncidencias: false };
+// comunidades = texto de tiendas.comunidad (p. ej. 'ANDALUCÍA').
+const rmFiltros = { agencias: new Set(), tiendas: new Set(), comunidades: new Set(), motivos: new Set(), soloConIncidencias: false };
+
+// Comunidad de una tienda (texto en mayúsculas, o '' si no tiene).
+function rmComunidadDeTienda(tiendaId) {
+  const t = tiendasCache.find(x => x.id === tiendaId);
+  return (t && t.comunidad ? String(t.comunidad).trim().toUpperCase() : '');
+}
+// Comunidades que tienen las tiendas del reporte, en el orden de la lista
+// fija de Gestión de tiendas (las que no estén en ella, al final).
+function rmComunidadesDisponibles() {
+  const orden = window.COMUNIDADES_TIENDA || [];
+  const hay = new Set(tiendasCache.filter(rmMarcaEntraEnReporte).map(t => (t.comunidad || '').trim().toUpperCase()).filter(Boolean));
+  const pos = c => { const i = orden.indexOf(c); return i < 0 ? 999 : i; };
+  return [...hay].sort((a, b) => pos(a) - pos(b) || a.localeCompare(b, 'es'));
+}
 
 // Filtro de Motivo: devuelve una copia de `celdas` en la que los días con
 // un código que NO está entre los elegidos quedan marcados como
@@ -466,6 +481,7 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
         agenciaNombre: seg.agenciaNombre,
         tiendaId: t.id,
         tiendaNombre: t.nombre,
+        tiendaComunidad: t.comunidad || null,
         tiendaProvincia: t.provincia || null,
         diaInicio: seg.diaInicio,
         diaFin: seg.diaFin,
@@ -482,7 +498,8 @@ function rmConstruirTodasLasFilas(cambiosPorTienda, puntualAgenciaPorTienda, tot
 function rmFilasSegunFiltros(todasLasFilas) {
   return todasLasFilas.filter(f =>
     (!rmFiltros.agencias.size || rmFiltros.agencias.has(f.agenciaId)) &&
-    (!rmFiltros.tiendas.size || rmFiltros.tiendas.has(f.tiendaId))
+    (!rmFiltros.tiendas.size || rmFiltros.tiendas.has(f.tiendaId)) &&
+    (!rmFiltros.comunidades.size || rmFiltros.comunidades.has((f.tiendaComunidad || '').trim().toUpperCase()))
   );
 }
 
@@ -534,6 +551,16 @@ function rmConstruirPanelFiltros() {
     listaTd.dataset.built = '1';
   }
 
+  const listaCo = document.getElementById('rmFiltrosComunidadesLista');
+  if (listaCo && !listaCo.dataset.built) {
+    listaCo.innerHTML = rmComunidadesDisponibles().map(c => `
+      <label class="filtro-check">
+        <input type="checkbox" value="${escapeHtml(c)}" data-filtro="comunidad">
+        <span>${escapeHtml(c)}</span>
+      </label>`).join('');
+    listaCo.dataset.built = '1';
+  }
+
   const listaMo = document.getElementById('rmFiltrosMotivosLista');
   if (listaMo && !listaMo.dataset.built && typeof CODIGOS_INFORME !== 'undefined') {
     listaMo.innerHTML = CODIGOS_INFORME.map(c => `
@@ -559,7 +586,7 @@ function rmConstruirPanelFiltros() {
       const grupo = cb.dataset.filtro;
       const set = rmSetDeGrupoFiltro(grupo);
       if (!set) return;
-      const val = grupo === 'motivo' ? cb.value : Number(cb.value);
+      const val = (grupo === 'motivo' || grupo === 'comunidad') ? cb.value : Number(cb.value);
       if (cb.checked) set.add(val); else set.delete(val);
       rmActualizarBadgeFiltros();
       rmActualizarValoresSelects();
@@ -572,6 +599,7 @@ function rmConstruirPanelFiltros() {
 function rmSetDeGrupoFiltro(grupo) {
   if (grupo === 'agencia') return rmFiltros.agencias;
   if (grupo === 'tienda') return rmFiltros.tiendas;
+  if (grupo === 'comunidad') return rmFiltros.comunidades;
   if (grupo === 'motivo') return rmFiltros.motivos;
   return null;
 }
@@ -614,7 +642,7 @@ function rmActualizarValoresSelects() {
 }
 
 function rmActualizarBadgeFiltros() {
-  const total = rmFiltros.agencias.size + rmFiltros.tiendas.size + rmFiltros.motivos.size + (rmFiltros.soloConIncidencias ? 1 : 0);
+  const total = rmFiltros.agencias.size + rmFiltros.tiendas.size + rmFiltros.comunidades.size + rmFiltros.motivos.size + (rmFiltros.soloConIncidencias ? 1 : 0);
   const badge = document.getElementById('rmFiltrosCount');
   const btn = document.getElementById('btnRmFiltros');
   if (total > 0) {
@@ -677,6 +705,7 @@ function rmEngancharFiltros() {
   document.getElementById('btnRmLimpiarFiltros').addEventListener('click', () => {
     rmFiltros.agencias.clear();
     rmFiltros.tiendas.clear();
+    rmFiltros.comunidades.clear();
     rmFiltros.motivos.clear();
     rmFiltros.soloConIncidencias = false;
     panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -853,6 +882,7 @@ async function rmRender() {
     <tr class="${f.esPuntual && !f.esSabado ? 'rm-fila-puntual' : ''}">
       <td class="rm-col-fija">${rmBadgeSabadoHtml(f)}${escapeHtml(f.agenciaNombre)}${f.esPuntual && !f.esSabado ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
+      <td class="rm-col-fija">${f.tiendaComunidad ? escapeHtml(f.tiendaComunidad) : '—'}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}
       <td class="rm-col-total"><b>${totalIncidencias}</b></td>
@@ -863,12 +893,12 @@ async function rmRender() {
       <table class="tabla-reporte-mensual">
         <thead>
           <tr>
-            <th>Agencia</th><th>Tienda</th><th>Provincia</th>
+            <th>Agencia</th><th>Tienda</th><th>Comunidad</th><th>Provincia</th>
             ${cabeceraDias}
             <th>Total</th>
           </tr>
         </thead>
-        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
+        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 5}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
 
@@ -926,6 +956,7 @@ async function rmContarIncidenciasMes(anio, mesIndex, hastaDia) {
     if (!c) return;
     if (rmFiltros.tiendas.size && !rmFiltros.tiendas.has(inc.tienda_id)) return;
     if (rmFiltros.agencias.size && !rmFiltros.agencias.has(inc.agencia_id)) return;
+    if (rmFiltros.comunidades.size && !rmFiltros.comunidades.has(rmComunidadDeTienda(inc.tienda_id))) return;
     if (rmFiltros.motivos.size && !rmFiltros.motivos.has(String(c.codigo))) return;
     tiendaDia.add(`${inc.tienda_id}|${fechaPorInforme.get(inc.informe_id)}`);
   });
@@ -995,7 +1026,7 @@ function rmPintarResumenMes({ totalInc, totalOk, diasEnviados, totalDias }) {
   const ultimoEnviado = diasEnviados.size ? Math.max(...diasEnviados) : 0;
   const revisadas = totalOk + totalInc;
   const pctOk = revisadas ? Math.round((totalOk / revisadas) * 100) : null;
-  const hayFiltros = rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.motivos.size || rmFiltros.soloConIncidencias;
+  const hayFiltros = rmFiltros.agencias.size || rmFiltros.tiendas.size || rmFiltros.comunidades.size || rmFiltros.motivos.size || rmFiltros.soloConIncidencias;
 
   cont.innerHTML = `
     <div class="rm-side-cab">
