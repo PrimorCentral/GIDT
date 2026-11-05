@@ -882,7 +882,6 @@ async function rmRender() {
     <tr class="${f.esPuntual && !f.esSabado ? 'rm-fila-puntual' : ''}">
       <td class="rm-col-fija">${rmBadgeSabadoHtml(f)}${escapeHtml(f.agenciaNombre)}${f.esPuntual && !f.esSabado ? ' <span class="rm-badge-puntual" title="Fila de los cambios puntuales de agencia de esta tienda en el mes">puntual</span>' : ''}</td>
       <td class="rm-col-fija">${escapeHtml(f.tiendaNombre)}</td>
-      <td class="rm-col-fija">${f.tiendaComunidad ? escapeHtml(f.tiendaComunidad) : '—'}</td>
       <td class="rm-col-fija">${f.tiendaProvincia ? escapeHtml(f.tiendaProvincia) : '—'}</td>
       ${html}
       <td class="rm-col-total"><b>${totalIncidencias}</b></td>
@@ -893,12 +892,12 @@ async function rmRender() {
       <table class="tabla-reporte-mensual">
         <thead>
           <tr>
-            <th>Agencia</th><th>Tienda</th><th>Comunidad</th><th>Provincia</th>
+            <th>Agencia</th><th>Tienda</th><th>Provincia</th>
             ${cabeceraDias}
             <th>Total</th>
           </tr>
         </thead>
-        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 5}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
+        <tbody>${filasHtml || `<tr><td colspan="${totalDias + 4}" style="text-align:center; padding:30px;">Sin tiendas para estos filtros.</td></tr>`}</tbody>
       </table>
     </div>`;
 
