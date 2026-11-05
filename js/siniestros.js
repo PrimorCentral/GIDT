@@ -461,9 +461,8 @@
   }
 
   document.getElementById('btnCerrarSiniestroModal').addEventListener('click', cerrarModalSiniestro);
-  document.getElementById('siniestroModalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'siniestroModalOverlay') cerrarModalSiniestro();
-  });
+  // Pinchar fuera del modal ya NO lo cierra (se cerraba sin querer al
+  // arrastrar fotos o al hacer clic al lado): solo se cierra con la ✕.
 
   async function subirFotosASiniestro(files) {
     if (!files.length) return;
