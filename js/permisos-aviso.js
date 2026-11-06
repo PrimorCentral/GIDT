@@ -37,6 +37,7 @@ const BOTONES_CON_PERMISO = [
   ['#utilBtnQuitarEspecial', 'informe_dia'],
   ['.util-btn-quitar-especial', 'informe_dia'],
   ['#btnNuevoPanelSiniestroManual', 'panel_siniestros'],
+  ['#btnImportarCobros', 'panel_siniestros'],
   // Cerrar y PDF del detalle quedan libres (no modifican nada).
   ['#psModalOverlay .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro)', 'panel_siniestros'],
   ['#psModalOverlay .cvd-editar', 'panel_siniestros'],
