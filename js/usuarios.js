@@ -158,12 +158,6 @@
     ], antes, despues);
     if (pinCambiado) cambios.push({ campo: 'PIN', antes: '••••', despues: 'PIN cambiado' });
 
-    const externoAntes = !!antes?.permisos?.usuario_externo;
-    const externoDespues = !!despues?.permisos?.usuario_externo;
-    if (externoAntes !== externoDespues) {
-      cambios.push({ campo: 'Usuario externo', antes: externoAntes ? 'Sí' : 'No', despues: externoDespues ? 'Sí (añadido)' : 'No (quitado)' });
-    }
-
     // Permisos: solo tienen sentido para operadores (el administrador
     // lo puede todo), así que solo se comparan si queda como operador.
     if (despues.rol === 'operador') {
@@ -189,18 +183,16 @@
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (el) el.checked = !!(permisos && permisos[clave]);
     });
-    const externo = document.getElementById(`${prefijo}Externo`);
-    if (externo) externo.checked = !!(permisos && permisos.usuario_externo);
   }
 
   // Permisos a guardar: los del panel solo cuentan para operadores (admin
-  // lo puede todo, lectura no puede nada), pero "Usuario externo" vale
-  // para cualquier rol, así que se guarda siempre. Lo lee la Edge Function
-  // gidt-login para saltarse la restricción por IP del centro de trabajo.
+  // lo puede todo, lectura no puede nada).
+  // "Usuario externo" (entrar desde fuera del centro de trabajo) ya no se
+  // toca desde la app: es la columna usuarios.usuario_externo, que solo se
+  // cambia desde Supabase (un trigger impide cambiarla desde la app). La
+  // lee la Edge Function gidt-login.
   function permisosAGuardar(prefijo, rol) {
-    const permisos = rol === 'operador' ? leerPermisosDeFormulario(prefijo) : {};
-    permisos.usuario_externo = !!document.getElementById(`${prefijo}Externo`)?.checked;
-    return permisos;
+    return rol === 'operador' ? leerPermisosDeFormulario(prefijo) : {};
   }
 
   // ---------------- Botón Guardar de los modales de usuario ----------------
@@ -217,7 +209,6 @@
       pin: valor(`${prefijo}Pin`),
       rol: valor(`${prefijo}Rol`),
       activo: !!document.getElementById(`${prefijo}Activo`)?.checked,
-      externo: !!document.getElementById(`${prefijo}Externo`)?.checked,
       permisos: leerPermisosDeFormulario(prefijo)
     });
   }

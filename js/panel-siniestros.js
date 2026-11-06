@@ -1652,12 +1652,71 @@ function psDetalleAuditoria(s) {
   return s?.id ? `Nº ${s.id} · ${lugar}` : lugar;
 }
 
+// Motivos que forman el siniestro: ROTURA CONFIRMADA y FALTAS (con su
+// submotivo, p. ej. "ROBO DE CAJAS", que se guarda en el mismo array).
+function psMotivosDelSiniestro() {
+  const subFaltas = (window.SUBMOTIVOS_POR_MOTIVO && window.SUBMOTIVOS_POR_MOTIVO['FALTAS']) || [];
+  return ['ROTURA CONFIRMADA', 'FALTAS', ...subFaltas];
+}
+
+// Quita de una incidencia solo los motivos del siniestro. Si le quedan
+// otros motivos, se actualiza (conservando sus observaciones); si no le
+// queda ninguno, se borra la incidencia entera.
+async function quitarMotivosSiniestroDeIncidencia(incidenciaId) {
+  const { data: inc, error: eSel } = await sb.from('incidencias')
+    .select('id, informe_id, tienda_id, tienda_nombre, agencia_nombre, motivo, observaciones')
+    .eq('id', incidenciaId).maybeSingle();
+  if (eSel) { console.error('No se pudo leer la incidencia asociada:', eSel); return; }
+  if (!inc) return;
+
+  const deSiniestro = psMotivosDelSiniestro();
+  const motivosAntes = inc.motivo || [];
+  const motivosDespues = motivosAntes.filter(m => !deSiniestro.includes(m));
+  const quedanMotivos = motivosDespues.length > 0;
+
+  if (quedanMotivos) {
+    const tipo = typeof calcularTipo === 'function' ? calcularTipo(motivosDespues) : undefined;
+    const cambios = {
+      motivo: motivosDespues,
+      marcada: true,
+      usuario: (typeof sesionActual !== 'undefined' && (sesionActual?.nombre || sesionActual?.usuario)) || null,
+      actualizado_en: new Date().toISOString()
+    };
+    if (tipo !== undefined) cambios.tipo = tipo;
+    const { error } = await sb.from('incidencias').update(cambios).eq('id', inc.id);
+    if (error) { console.error('No se pudieron quitar los motivos del siniestro de la incidencia:', error); return; }
+  } else {
+    const { error } = await sb.from('incidencias').delete().eq('id', inc.id);
+    if (error) { console.error('No se pudo borrar la incidencia asociada:', error); return; }
+  }
+
+  // Si el informe de ese día ya se había enviado a las agencias, se deja
+  // constancia en el registro de cambios (igual que al quitar motivos a mano).
+  if (typeof registrarCambioInformeSiEnviado === 'function' && inc.informe_id) {
+    try {
+      const { data: informe } = await sb.from('informes_diarios')
+        .select('id, fecha, informe_enviado').eq('id', inc.informe_id).maybeSingle();
+      registrarCambioInformeSiEnviado(informe, {
+        tiendaId: inc.tienda_id,
+        tiendaNombre: inc.tienda_nombre,
+        agenciaNombre: inc.agencia_nombre,
+        motivosAntes,
+        motivosDespues,
+        observacionesAntes: inc.observaciones || '',
+        observacionesDespues: quedanMotivos ? (inc.observaciones || '') : ''
+      });
+    } catch (err) {
+      console.error('No se pudo registrar el cambio en el informe:', err);
+    }
+  }
+}
+
 async function eliminarPanelSiniestro() {
   if (!panelActivoId) return;
   const s = psSiniestroPorId(panelActivoId);
 
   const ok = await modalConfirm(
-    'Se borrará todo lo relacionado con este siniestro: fotos, factura, albarán, el registro original de "Siniestros del día" y la propia incidencia del informe del día en que se creó (aunque no sea hoy). Esta acción no se puede deshacer.',
+    'Se borrará todo lo relacionado con este siniestro: fotos, factura, albarán y el registro original de "Siniestros del día". En la incidencia del informe del día en que se creó (aunque no sea hoy) solo se quitarán los motivos del siniestro (ROTURA CONFIRMADA / FALTAS); si tenía otros motivos, la incidencia se mantiene con ellos y con sus observaciones. Esta acción no se puede deshacer.',
     { titulo: 'CONFIRMAR BORRAR SINIESTRO', danger: true, textoOk: 'Sí, borrar definitivamente' }
   );
   if (!ok) return;
@@ -1678,16 +1737,17 @@ async function eliminarPanelSiniestro() {
 
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
 
-      // Se borra el siniestro de verdad, y también la incidencia del informe
-      // del día en que se creó (esté hoy o en cualquier otro día): borrar
-      // desde aquí es la vía "oficial" para quitar un siniestro ya enviado,
-      // así que se limpia todo el rastro de una vez.
+      // Se borra el siniestro de verdad y, en la incidencia del informe del
+      // día en que se creó (esté hoy o en cualquier otro día), se quitan
+      // solo los motivos del siniestro (ROTURA CONFIRMADA / FALTAS y su
+      // submotivo). Si le quedan otros motivos, la incidencia se mantiene
+      // con ellos y con sus observaciones; si no le queda ninguno, se borra
+      // entera.
       const { error: eSin } = await sb.from('siniestros').delete().eq('id', s.siniestro_id);
       if (eSin) console.error('No se pudo borrar el siniestro original:', eSin);
 
       if (sinOriginal?.incidencia_id) {
-        const { error: eInc } = await sb.from('incidencias').delete().eq('id', sinOriginal.incidencia_id);
-        if (eInc) console.error('No se pudo borrar la incidencia asociada:', eInc);
+        await quitarMotivosSiniestroDeIncidencia(sinOriginal.incidencia_id);
       }
     } else {
       await Promise.all(urls.map(borrarDeStoragePorUrlGenerico));
