@@ -551,7 +551,7 @@
     }
   });
 
-  overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) cerrar(); });
+  // Pinchar fuera de la ventana no hace nada: solo se cierra con ✕, Cancelar o Esc.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && overlay.classList.contains('show') && !document.getElementById('psModalOverlay')?.classList.contains('show') && !document.getElementById('modalOverlay')?.classList.contains('show')) cerrar();
   });
