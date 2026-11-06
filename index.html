@@ -690,6 +690,7 @@
           </div>
           <div style="display:flex; gap:10px;">
             <button class="ps-btn-icon" id="btnRefrescarPanelSiniestros" title="Refrescar"><span class="ps-refresh-icon">🔄</span></button>
+            <button class="btn" id="btnImportarCobros" title="Marcar como cobrados los siniestros desde el Excel de cargos de contabilidad">📥 Importar cobros</button>
 
             <div class="filtros-wrap">
               <button class="btn" id="btnPsExportar" title="Exportar el panel de siniestros a PDF">
@@ -2129,6 +2130,13 @@
   </div>
 </div>
 
+<!-- Modal: importar cobros desde el Excel de contabilidad (Panel siniestros) — js/importar-cobros.js.
+     Va antes de psModalOverlay a propósito: al pulsar «Ver» en una fila, el
+     detalle del siniestro se abre por encima de esta ventana. -->
+<div class="modal-overlay" id="importarCobrosOverlay">
+  <div class="modal-box ic-box" id="importarCobrosBox" role="dialog" aria-modal="true"></div>
+</div>
+
 <div class="modal-overlay" id="psModalOverlay">
   <div class="ps-modal-conjunto con-cabecera">
     <!-- Barra de título con los botones (mismo estilo que Editar tienda) -->
@@ -3046,6 +3054,7 @@
 <script src="js/siniestros.js"></script>
 <script src="js/panel-siniestros.js"></script>
 <script src="js/panel-siniestros-exportar.js"></script>
+<script src="js/importar-cobros.js"></script>
 <script src="js/inicio-panel.js"></script>
 <script src="js/informe-pdf.js"></script>
 <script src="js/reportes-mensuales-envio.js"></script>
