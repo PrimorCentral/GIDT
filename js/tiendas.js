@@ -523,7 +523,7 @@
               <td class="celda-cp">${t.codigo_postal ? escapeHtml(t.codigo_postal) : '—'}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
-              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}</td>
+              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}${estrellaLimEspTablaHtml(t)}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
@@ -2959,6 +2959,19 @@
   // El modal trabaja sobre limEspMet, que se graba con el Guardar de
   // Editar tienda (cuenta para "cambios sin guardar").
   // ---------------------------------------------------------------
+  // Estrella pequeña junto al número en la columna "Límite palets" de la
+  // tabla: naranja si el límite especial está activado, gris si hay
+  // periodos pero está apagado; sin periodos pendientes, nada. Al pasar el
+  // ratón: "Límite especial: X palets / Del dd/mm al dd/mm" (uno por periodo).
+  function estrellaLimEspTablaHtml(t) {
+    const periodos = limEspVigentes(t.limites_especiales);
+    if (!periodos.length) return '';
+    const ddmm = iso => fechaISOaCorta(iso).slice(0, 5);
+    const titulo = periodos.map(p => `Límite especial: ${p.palets} palets\nDel ${ddmm(p.desde)} al ${ddmm(p.hasta)}`).join('\n\n')
+      + (t.limite_especial_activo ? '' : '\n(desactivado)');
+    return `<span class="lp-tabla-star${t.limite_especial_activo ? '' : ' gris'}" title="${escapeHtml(titulo)}">★</span>`;
+  }
+
   let limEspMet = { activo: false, periodos: [] };
 
   function limEspHoyISO() { return fechaLocalISO(new Date()); }

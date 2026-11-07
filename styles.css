@@ -3676,3 +3676,5 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .le-add:hover{ background:var(--panel-muted); color:var(--ink); }
 .le-nota{ margin:12px 0 10px; font-size:11.5px; color:var(--ink-soft); }
 .le-modal .err{ margin:0 0 12px; color:var(--grave); font-size:12.5px; }
+.lp-tabla-star{ margin-left:5px; font-size:13px; color:#F59E0B; cursor:help; }
+.lp-tabla-star.gris{ color:#9CA3AF; }
