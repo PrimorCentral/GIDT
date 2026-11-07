@@ -18,6 +18,7 @@ const CHANGELOG_GIDT = [
       { tipo: 'nuevo',      texto: 'Gestión de tiendas: nuevo filtro «Límites palets especiales». El de entrega LXV pasa a llamarse «Tiendas LXV»' },
       { tipo: 'nuevo',      texto: 'Nuevo permiso «Configurar límite palets y límites especiales»: permite cambiar el límite de palets y los límites especiales de una tienda sin poder modificar el resto de su ficha' },
       { tipo: 'mejora',     texto: 'El permiso «Tiendas y agencias» incluye ya «Configurar pruebas» y «Configurar límite palets y límites especiales»' },
+      { tipo: 'mejora',     texto: 'Editar tienda: si otra persona ha guardado la misma tienda mientras estaba abierta, se avisa y no se pierden sus cambios' },
       { tipo: 'mejora',     texto: 'Si la sesión caduca con la aplicación abierta, se avisa y se vuelve al inicio de sesión' },
       { tipo: 'correccion', texto: 'Al cerrar sesión ya no se cierran también las sesiones del mismo usuario abiertas en otras ventanas u ordenadores' }
     ]

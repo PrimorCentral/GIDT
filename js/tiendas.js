@@ -867,6 +867,8 @@
     // Foto de los campos recién cargados: sirve para saber si hay cambios
     // sin guardar antes de abrir Cambiar agencia u Horario por días.
     fotoFormEditarTienda = estadoFormEditarTienda();
+    // Cómo estaba la tienda al abrir (para detectar cambios de otro usuario).
+    metBaseTienda = baseConflictoTienda(t);
     actualizarBotonGuardarEditarTienda();
 
     overlay.classList.add('show');
@@ -878,6 +880,7 @@
     aplicarModoPruebasEditarTienda(false);
     editarTiendaId = null;
     fotoFormEditarTienda = null;
+    metBaseTienda = null;
     const btnG = document.getElementById('modalEditarTiendaBtnGuardar');
     if (btnG) btnG.classList.add('sin-cambios');
   }
@@ -1286,6 +1289,86 @@
 
   // Guardado en "modo pruebas": solo los campos de la tarjeta Prueba.
   // Aunque alguien desbloqueara otro campo a mano, aquí no se lee nada más.
+  // ---------------- Cambios de otro usuario mientras está abierta ----------------
+  // Igual que en el Panel siniestros: la lista de tiendas se carga al entrar
+  // en Gestión de tiendas, así que Editar tienda puede abrirse con datos
+  // antiguos. Para no pisar lo que haya guardado otra persona:
+  //  1) Al abrir la ficha se guarda cómo estaba (metBaseTienda).
+  //  2) Al Guardar se vuelve a leer la tienda de la base de datos; si alguien
+  //     ha cambiado algún campo de la ficha, no se graba nada y se avisa.
+  //  3) Si no hay conflicto, solo se graban los campos que se han cambiado.
+  const CAMPOS_CONFLICTO_TIENDA = [
+    'numero_tienda', 'nombre', 'hora_prevista', 'direccion', 'comunidad', 'provincia', 'codigo_postal',
+    'limite_palets', 'limite_hora_entrega', 'supervisor', 'recogida_semanal_dia', 'agencia_recogida',
+    'transito_horas', 'sabado_agencia_id', 'sabado_hora', 'prueba_agencia_id', 'prueba_hora', 'prueba_fechas',
+    'entrega_lxv', 'limite_especial_activo', 'limites_especiales', 'agencia_id', 'apertura_prevista'
+  ];
+  const CAMPOS_TIENDA_HORA = ['hora_prevista', 'limite_hora_entrega', 'sabado_hora', 'prueba_hora'];
+  const CAMPOS_TIENDA_NUM = ['limite_palets', 'recogida_semanal_dia', 'transito_horas', 'sabado_agencia_id', 'prueba_agencia_id', 'agencia_id'];
+  const CAMPOS_TIENDA_BOOL = ['entrega_lxv', 'limite_especial_activo'];
+  let metBaseTienda = null;
+
+  // Valor comparable de un campo (para que "09:00" y "09:00:00", "" y null,
+  // o el mismo array en otro orden cuenten como iguales).
+  function normCampoTienda(k, v) {
+    if (CAMPOS_TIENDA_BOOL.includes(k)) return v ? '1' : '0';
+    if (v == null || v === '') return '';
+    if (CAMPOS_TIENDA_HORA.includes(k)) return String(v).slice(0, 5);
+    if (CAMPOS_TIENDA_NUM.includes(k)) return String(Number(v));
+    if (k === 'prueba_fechas') return Array.isArray(v) ? [...v].map(String).sort().join(',') : String(v);
+    if (k === 'limites_especiales') {
+      if (!Array.isArray(v)) return JSON.stringify(v);
+      return JSON.stringify(v.map(p => [String(p.desde).slice(0, 10), String(p.hasta).slice(0, 10), Number(p.palets)]).sort());
+    }
+    return String(v).trim();
+  }
+
+  function baseConflictoTienda(t) {
+    const m = {};
+    CAMPOS_CONFLICTO_TIENDA.forEach(k => { m[k] = t ? (t[k] ?? null) : null; });
+    return m;
+  }
+
+  // Deja solo los campos que han cambiado respecto a cómo se abrió la ficha
+  // (los que no son de la ficha, p. ej. orden, se dejan siempre).
+  function soloCamposCambiadosTienda(datos) {
+    const r = {};
+    Object.keys(datos).forEach(k => {
+      if (!metBaseTienda || !CAMPOS_CONFLICTO_TIENDA.includes(k) || normCampoTienda(k, datos[k]) !== normCampoTienda(k, metBaseTienda[k])) r[k] = datos[k];
+    });
+    return r;
+  }
+
+  // true si otra persona ha guardado la tienda mientras estaba abierta (y ya
+  // ha avisado y vuelto a abrir la ficha con los datos actuales).
+  async function conflictoEditarTienda() {
+    if (editarTiendaId == null || !metBaseTienda) return false;
+    const id = editarTiendaId;
+    const { data: actual, error } = await sb.from('tiendas').select(CAMPOS_CONFLICTO_TIENDA.join(', ')).eq('id', id).maybeSingle();
+    if (error) throw error;
+    if (!actual) return false;
+    const cambiada = CAMPOS_CONFLICTO_TIENDA.some(k => normCampoTienda(k, actual[k]) !== normCampoTienda(k, metBaseTienda[k]));
+    if (!cambiada) return false;
+    // Quién y cuándo: el último registro de esa tienda en el historial.
+    let quien = 'Otro usuario', cuando = '';
+    try {
+      const { data: reg } = await sb.from('registro_acciones').select('usuario, creado_en')
+        .eq('tienda_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle();
+      if (reg?.usuario) quien = reg.usuario;
+      if (reg?.creado_en && typeof formatearFechaHoraCorta === 'function') cuando = ` (${formatearFechaHoraCorta(new Date(reg.creado_en))})`;
+    } catch (_) { /* sin historial: mensaje genérico */ }
+    const nombre = tiendasGestionCache.find(x => x.id === id)?.nombre || 'esta tienda';
+    await modalAlert(
+      `${quien} guardó cambios en la tienda "${nombre}"${cuando}, mientras la tenías abierta.\n\nPara no borrar lo que ha guardado, tus cambios no se han guardado. Pulsa «Cargar cambios» para ver la ficha actual y, si hace falta, vuelve a hacer tu cambio.`,
+      { titulo: 'Tienda modificada por otro usuario', icono: '⚠️', danger: true, textoOk: 'Cargar cambios' }
+    );
+    await cargarAgenciasYTiendas();
+    // Después de que el Guardar termine de restaurarse, se vuelve a abrir
+    // la ficha con los datos actuales.
+    setTimeout(() => { if (tiendasGestionCache.some(x => x.id === id)) abrirModalEditarTienda(id); }, 0);
+    return true;
+  }
+
   // Guardar en "modo restringido": solo se graban los campos de los
   // permisos que tiene (Prueba y/o Límite palets + límites especiales).
   async function guardarSoloPruebaEditarTienda() {
@@ -1322,13 +1405,16 @@
     const btnGuardar = document.getElementById('modalEditarTiendaBtnGuardar');
     botonGuardando(btnGuardar, true);
     try {
-      const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
+      if (await conflictoEditarTienda()) return;
+      const datosACambiar = soloCamposCambiadosTienda(datosNuevos);
+      if (!Object.keys(datosACambiar).length) { cerrarModalEditarTienda(); return; }
+      const { error } = await sb.from('tiendas').update(datosACambiar).eq('id', editarTiendaId);
       if (error) throw error;
       if (typeof registrarAccion === 'function') {
         const cambios = typeof auditoriaCalcularCambios === 'function'
           ? auditoriaCalcularCambios(
-            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosNuevos, c.clave)),
-            tEditada, datosNuevos) : null;
+            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosACambiar, c.clave)),
+            tEditada, datosACambiar) : null;
         registrarAccion('tiendas', accion, tEditada.nombre, cambios, { tiendaId: editarTiendaId });
       }
       cerrarModalEditarTienda();
@@ -1443,7 +1529,13 @@
           datosNuevos.orden = Math.max(0, ...tiendasGestionCache.filter(x => x.agencia_id === agenciaApertura).map(x => x.orden)) + 1;
         }
       }
-      const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
+      // ¿La ha guardado otro usuario mientras estaba abierta? Entonces no
+      // se graba nada (ya ha avisado y vuelve a abrir la ficha actual).
+      if (await conflictoEditarTienda()) return;
+      // Solo los campos que se han cambiado, para no pisar nada más.
+      const datosACambiar = soloCamposCambiadosTienda(datosNuevos);
+      if (!Object.keys(datosACambiar).length) { cerrarModalEditarTienda(); return; }
+      const { error } = await sb.from('tiendas').update(datosACambiar).eq('id', editarTiendaId);
       if (error) throw error;
       // Entrega de sábado activada, desactivada o cambiada de agencia: se deja
       // constancia con la fecha de hoy (tienda_sabado_historial), que es lo
@@ -1469,8 +1561,8 @@
             // Solo los campos que se guardan en esta edición: la agencia y la
             // apertura prevista solo van cuando se tocan (tienda en apertura),
             // y si no, se compararían con "vacío" como si se hubieran borrado.
-            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosNuevos, c.clave)),
-            tEditada, datosNuevos) : null;
+            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosACambiar, c.clave)),
+            tEditada, datosACambiar) : null;
         registrarAccion('tiendas', 'Editar tienda', nombre, cambios, { tiendaId: editarTiendaId });
       }
       cerrarModalEditarTienda();
