@@ -32,6 +32,9 @@
   const SIN_VALOR_FILTRO = '__SIN__';
   // Casilla "Solo tiendas con entrega LXV" del panel de filtros.
   let filtroTiendasSoloLxv = false;
+  // Casilla "Límites palets especiales": tiendas con algún periodo de
+  // límite especial pendiente o en curso (activado o no).
+  let filtroTiendasSoloLimEsp = false;
   // Comunidad de cada tienda (campo obligatorio). Lista fija: las 17
   // comunidades autónomas + Ceuta y Melilla y, fuera de España, el país.
   // Para un país nuevo, añadirlo al final de la lista.
@@ -2335,7 +2338,7 @@
   ];
 
   function hayFiltroTiendas() {
-    return filtroTiendasSoloLxv || Object.values(filtroTiendas).some(set => set.size > 0);
+    return filtroTiendasSoloLxv || filtroTiendasSoloLimEsp || Object.values(filtroTiendas).some(set => set.size > 0);
   }
 
   // Grupos cuyo valor es un id numérico (el resto son texto).
@@ -2361,6 +2364,7 @@
     if (filtroTiendas.provincias.size && !filtroTiendas.provincias.has(claveTextoFiltro(t.provincia))) return false;
     if (filtroTiendas.tiendas.size && !filtroTiendas.tiendas.has(t.id)) return false;
     if (filtroTiendasSoloLxv && !t.entrega_lxv) return false;
+    if (filtroTiendasSoloLimEsp && !limEspVigentes(t.limites_especiales).length) return false;
     return true;
   }
 
@@ -2398,6 +2402,7 @@
       partes.push(`Tiendas: ${nombresLista(nombres)}`);
     }
     if (filtroTiendasSoloLxv) partes.push('Con entrega LXV');
+    if (filtroTiendasSoloLimEsp) partes.push('Con límites palets especiales');
     return partes;
   }
 
@@ -2412,7 +2417,7 @@
     const barra = document.getElementById('barraFiltroTiendas');
     const badge = document.getElementById('filtrosTiendasCount');
     const btn = document.getElementById('btnFiltrosTiendas');
-    const numGrupos = Object.values(filtroTiendas).filter(s => s.size).length + (filtroTiendasSoloLxv ? 1 : 0);
+    const numGrupos = Object.values(filtroTiendas).filter(s => s.size).length + (filtroTiendasSoloLxv ? 1 : 0) + (filtroTiendasSoloLimEsp ? 1 : 0);
     if (badge) { badge.textContent = numGrupos; badge.style.display = numGrupos ? '' : 'none'; }
     btn?.classList.toggle('activo', numGrupos > 0);
     if (!barra) return;
@@ -2511,6 +2516,9 @@
     filtroTiendasSoloLxv = false;
     const chkLxv = document.getElementById('filtroTiendasLxv');
     if (chkLxv) chkLxv.checked = false;
+    filtroTiendasSoloLimEsp = false;
+    const chkLimEsp = document.getElementById('filtroTiendasLimEsp');
+    if (chkLimEsp) chkLimEsp.checked = false;
     document.querySelectorAll('#filtrosTiendasPanel .filtro-select-lista input[type="checkbox"]').forEach(cb => { cb.checked = false; });
     actualizarValoresFiltroTiendas();
     renderAcordeonTiendas();
@@ -2540,6 +2548,10 @@
     document.getElementById('btnLimpiarFiltrosTiendas')?.addEventListener('click', limpiarFiltroTiendas);
     document.getElementById('filtroTiendasLxv')?.addEventListener('change', (e) => {
       filtroTiendasSoloLxv = e.target.checked;
+      renderAcordeonTiendas();
+    });
+    document.getElementById('filtroTiendasLimEsp')?.addEventListener('change', (e) => {
+      filtroTiendasSoloLimEsp = e.target.checked;
       renderAcordeonTiendas();
     });
   }
@@ -2994,7 +3006,7 @@
     return `<div class="le-fila${vigente ? ' vigente' : ''}">
         <input type="date" class="form-input le-desde" value="${p?.desde || ''}">
         <input type="date" class="form-input le-hasta" value="${p?.hasta || ''}">
-        <input type="number" class="form-input le-palets" min="0" step="1" value="${p?.palets ?? ''}">
+        <input type="number" class="form-input le-palets" min="1" step="1" value="${p?.palets ?? ''}">
         <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">🗑️</button>
       </div>`;
   }
@@ -3042,7 +3054,7 @@
       if (hasta < desde) return { error: `En el periodo ${n} la fecha hasta es anterior a la fecha desde.` };
       if (hasta < hoy) return { error: `El periodo ${n} ya ha pasado (termina el ${fechaISOaCorta(hasta)}).` };
       const palets = Number(paletsRaw);
-      if (!Number.isInteger(palets) || palets < 0) return { error: `En el periodo ${n} los palets deben ser un número entero.` };
+      if (!Number.isInteger(palets) || palets < 1) return { error: `En el periodo ${n} los palets deben ser un número entero mayor que 0.` };
       periodos.push({ desde, hasta, palets });
     }
     periodos.sort((a, b) => a.desde.localeCompare(b.desde));
