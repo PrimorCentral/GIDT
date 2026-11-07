@@ -10,6 +10,19 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.9',
+    fecha: '2026-11-07',
+    cambios: [
+      { tipo: 'nuevo',      texto: 'Gestión de tiendas: límite especial de palets por fechas. Se configura desde la estrella del campo Límite palets en Editar tienda y admite varios periodos; entre esas fechas manda sobre cualquier otro límite, también en SALIDAS. Los periodos ya pasados se quitan solos' },
+      { tipo: 'nuevo',      texto: 'Gestión de tiendas: las tiendas con límite especial muestran una estrella en la columna Límite palets; al pasar el ratón se ven los palets y las fechas' },
+      { tipo: 'nuevo',      texto: 'Gestión de tiendas: nuevo filtro «Límites palets especiales». El de entrega LXV pasa a llamarse «Tiendas LXV»' },
+      { tipo: 'nuevo',      texto: 'Nuevo permiso «Configurar límite palets y límites especiales»: permite cambiar el límite de palets y los límites especiales de una tienda sin poder modificar el resto de su ficha' },
+      { tipo: 'mejora',     texto: 'El permiso «Tiendas y agencias» incluye ya «Configurar pruebas» y «Configurar límite palets y límites especiales»' },
+      { tipo: 'mejora',     texto: 'Si la sesión caduca con la aplicación abierta, se avisa y se vuelve al inicio de sesión' },
+      { tipo: 'correccion', texto: 'Al cerrar sesión ya no se cierran también las sesiones del mismo usuario abiertas en otras ventanas u ordenadores' }
+    ]
+  },
+  {
     version: '1.8.8',
     fecha: '2026-11-07',
     cambios: [
