@@ -134,7 +134,7 @@
       if (!el) return;
       // "Configurar pruebas" forzado por "Tiendas y agencias": se guarda su
       // valor propio (el que tenía antes), no el forzado.
-      if (el.disabled && el.dataset.propio != null) permisos[clave] = el.dataset.propio === '1';
+      if (el.dataset.propio != null) permisos[clave] = el.dataset.propio === '1';
       else permisos[clave] = el.checked;
     });
     return permisos;
@@ -149,14 +149,12 @@
     if (!chkT || !chkP) return;
     const label = chkP.closest('.permiso-item');
     if (chkT.checked) {
-      if (!chkP.disabled) chkP.dataset.propio = chkP.checked ? '1' : '0';
+      if (chkP.dataset.propio == null) chkP.dataset.propio = chkP.checked ? '1' : '0';
       chkP.checked = true;
-      chkP.disabled = true;
       label?.classList.add('permiso-incluido');
       if (label) label.title = 'Incluido en «Tiendas y agencias». Para quitarlo, quita primero ese permiso.';
     } else {
-      if (chkP.disabled) chkP.checked = chkP.dataset.propio === '1';
-      chkP.disabled = false;
+      if (chkP.dataset.propio != null) chkP.checked = chkP.dataset.propio === '1';
       delete chkP.dataset.propio;
       label?.classList.remove('permiso-incluido');
       if (label) label.title = '';
@@ -164,6 +162,14 @@
   }
   ['eu', 'nu'].forEach(prefijo => {
     document.getElementById(`${prefijo}Perm_config_tiendas`)?.addEventListener('change', () => sincronizarPruebasConTiendas(prefijo));
+    // Con Tiendas y agencias marcado, el check de Configurar pruebas se ve
+    // normal (en color) pero no se puede quitar.
+    document.getElementById(`${prefijo}Perm_config_pruebas`)?.addEventListener('click', (e) => {
+      if (document.getElementById(`${prefijo}Perm_config_tiendas`)?.checked) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    });
   });
 
   // Nombre legible de un permiso, sacado de la etiqueta del propio
@@ -210,7 +216,7 @@
 
   function fijarPermisosEnFormulario(prefijo, permisos) {
     const chkP = document.getElementById(`${prefijo}Perm_config_pruebas`);
-    if (chkP) { chkP.disabled = false; delete chkP.dataset.propio; }
+    if (chkP) delete chkP.dataset.propio;
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (el) el.checked = !!(permisos && permisos[clave]);

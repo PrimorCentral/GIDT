@@ -2253,10 +2253,8 @@ body.rol-lectura input[type="file"]{
 .perm-ico{ font-style:normal; font-size:14px; width:20px; text-align:center; flex:0 0 auto; }
 .permiso-item b:has(.perm-ico) + small{ padding-left:26px; }
 /* "Usuario externo": va en la columna de datos (visible para cualquier rol) */
-.permiso-item.permiso-incluido{ cursor:not-allowed; }
-.permiso-item.permiso-incluido input{ cursor:not-allowed; opacity:.55; }
-.permiso-item.permiso-incluido b,
-.permiso-item.permiso-incluido small{ opacity:.7; }
+.permiso-item.permiso-incluido,
+.permiso-item.permiso-incluido input{ cursor:not-allowed; }
 .permiso-item.permiso-incluido small::after{
   content:'Incluido en «Tiendas y agencias»'; display:block; margin-top:2px;
   font-weight:700; color:var(--accent);
