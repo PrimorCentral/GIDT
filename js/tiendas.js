@@ -234,7 +234,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv, limite_especial_activo, limites_especiales').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados()
     ]);
@@ -670,7 +670,11 @@
     { clave: 'prueba_fechas', etiqueta: 'Fechas de prueba', formato: f => (Array.isArray(f) && f.length ? [...f].sort().map(fechaISOaCorta) : null) },
     { clave: 'agencia_id', etiqueta: 'Agencia', formato: audAgencia },
     { clave: 'apertura_prevista', etiqueta: 'Apertura prevista', formato: f => (f ? fechaISOaCorta(f) : null) },
-    { clave: 'entrega_lxv', etiqueta: 'Entrega LXV', formato: v => (v ? 'Sí' : 'No') }
+    { clave: 'entrega_lxv', etiqueta: 'Entrega LXV', formato: v => (v ? 'Sí' : 'No') },
+    { clave: 'limite_especial_activo', etiqueta: 'Límite especial activado', formato: v => (v ? 'Sí' : 'No') },
+    { clave: 'limites_especiales', etiqueta: 'Límites especiales', formato: lista => (Array.isArray(lista) && lista.length
+      ? [...lista].sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map(x => `${fechaISOaCorta(x.desde)}–${fechaISOaCorta(x.hasta)}: ${x.palets} palets`)
+      : null) }
   ];
 
   let editarTiendaId = null;
@@ -729,7 +733,7 @@
     });
     if (!editarTiendaSoloPruebas) return;
     const cardPrueba = document.getElementById('metCardPrueba');
-    overlay.querySelectorAll('input, select, textarea').forEach(el => {
+    overlay.querySelectorAll('input, select, textarea, #metLimEspBtn').forEach(el => {
       if (cardPrueba && cardPrueba.contains(el)) return;
       if (el.disabled) return;
       el.disabled = true;
@@ -764,6 +768,9 @@
     document.getElementById('metProvincia').value = t.provincia || '';
     document.getElementById('metCodigoPostal').value = t.codigo_postal || '';
     document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
+    // Límite especial: se trabaja sobre una copia; se guarda con Guardar.
+    limEspMet = limEspDesdeTienda(t);
+    pintarEstrellaLimEsp();
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
     document.getElementById('metSupervisor').value = t.supervisor || '';
     // Agencia habitual: solo informativa (no editable desde este modal).
@@ -867,6 +874,7 @@
       valores.push(clave + '=' + ((el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? '1' : '0') : el.value));
     });
     valores.push('pruebaFechas=' + [...calPrueba.met.fechas].sort().join(','));
+    valores.push('limEsp=' + JSON.stringify(limEspMet));
     return valores.join('|');
   }
 
@@ -1376,7 +1384,12 @@
         prueba_hora: prueba.prueba_hora,
         prueba_fechas: prueba.prueba_fechas,
         // Sin la tarjeta en pantalla (index.html antiguo) no se toca lo guardado.
-        ...(document.getElementById('metEntregaLxv') ? { entrega_lxv: document.getElementById('metEntregaLxv').checked } : {})
+        ...(document.getElementById('metEntregaLxv') ? { entrega_lxv: document.getElementById('metEntregaLxv').checked } : {}),
+        // Igual: sin la estrella en pantalla no se toca el límite especial.
+        ...(document.getElementById('metLimEspBtn') ? {
+          limite_especial_activo: limEspMet.activo && limEspMet.periodos.length > 0,
+          limites_especiales: limEspMet.periodos
+        } : {})
       };
       if (editandoApertura) {
         datosNuevos.apertura_prevista = document.getElementById('metAperturaPrevista')?.value || null;
@@ -2923,6 +2936,154 @@
     el?.addEventListener('change', () => sincronizarTarjetaApertura(prefijo));
     el?.addEventListener('input', () => sincronizarTarjetaApertura(prefijo));
   });
+
+  // ---------------------------------------------------------------
+  // Límite especial de palets por fechas (estrella del campo Límite
+  // palets de Editar tienda). Vive en tiendas.limite_especial_activo y
+  // tiendas.limites_especiales = [{ desde, hasta, palets }]. Entre desde y
+  // hasta (ambos incluidos) manda sobre cualquier otro límite, también en
+  // SALIDAS. Los periodos ya pasados se quitan solos: no se muestran, no
+  // se aplican y desaparecen la próxima vez que se guarda la tienda.
+  // El modal trabaja sobre limEspMet, que se graba con el Guardar de
+  // Editar tienda (cuenta para "cambios sin guardar").
+  // ---------------------------------------------------------------
+  let limEspMet = { activo: false, periodos: [] };
+
+  function limEspHoyISO() { return fechaLocalISO(new Date()); }
+
+  // Periodos que aún no han pasado, ordenados por fecha de inicio.
+  function limEspVigentes(lista) {
+    const hoy = limEspHoyISO();
+    return (Array.isArray(lista) ? lista : [])
+      .filter(p => p && p.desde && p.hasta && p.hasta >= hoy && p.palets != null && p.palets !== '')
+      .map(p => ({ desde: String(p.desde).slice(0, 10), hasta: String(p.hasta).slice(0, 10), palets: Number(p.palets) }))
+      .sort((a, b) => a.desde.localeCompare(b.desde));
+  }
+
+  function limEspDesdeTienda(t) {
+    return { activo: !!t?.limite_especial_activo, periodos: limEspVigentes(t?.limites_especiales) };
+  }
+
+  // Periodo en vigor hoy (o null).
+  function limEspDeHoy(periodos) {
+    const hoy = limEspHoyISO();
+    return (periodos || []).find(p => p.desde <= hoy && hoy <= p.hasta) || null;
+  }
+
+  // ☆ gris = sin configurar · ★ naranja = activado · ★ gris = configurado
+  // pero apagado. "Límite especial activo" solo si hoy cae en un periodo.
+  function pintarEstrellaLimEsp() {
+    const btn = document.getElementById('metLimEspBtn');
+    if (!btn) return;
+    const { activo, periodos } = limEspMet;
+    const hay = periodos.length > 0;
+    const on = hay && activo;
+    btn.classList.toggle('on', on);
+    btn.classList.toggle('gris', hay && !activo);
+    btn.textContent = hay ? '★' : '☆';
+    const resumen = periodos.map(p => `${p.palets} palets del ${fechaISOaCorta(p.desde)} al ${fechaISOaCorta(p.hasta)}`).join('\n');
+    btn.title = !hay ? 'Sin límite especial · pulsa para configurarlo'
+      : (on ? `Límite especial:\n${resumen}` : `Límite especial desactivado:\n${resumen}`);
+    const aviso = document.getElementById('metLimEspAviso');
+    if (aviso) aviso.style.display = on && limEspDeHoy(periodos) ? '' : 'none';
+  }
+
+  function filaLimEspHtml(p) {
+    const hoy = limEspHoyISO();
+    const vigente = p && p.desde && p.hasta && p.desde <= hoy && hoy <= p.hasta;
+    return `<div class="le-fila${vigente ? ' vigente' : ''}">
+        <input type="date" class="form-input le-desde" value="${p?.desde || ''}">
+        <input type="date" class="form-input le-hasta" value="${p?.hasta || ''}">
+        <input type="number" class="form-input le-palets" min="0" step="1" value="${p?.palets ?? ''}">
+        <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">🗑️</button>
+      </div>`;
+  }
+
+  function anadirFilaLimEsp(p) {
+    document.getElementById('leFilas')?.insertAdjacentHTML('beforeend', filaLimEspHtml(p));
+  }
+
+  function abrirModalLimEsp() {
+    if (editarTiendaId == null || editarTiendaSoloPruebas) return;
+    const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    const overlay = document.getElementById('modalLimEspOverlay');
+    if (!t || !overlay) return;
+    const limNormal = document.getElementById('metLimitePalets').value;
+    document.getElementById('leMensaje').innerHTML =
+      `${escapeHtml(t.nombre)} · límite normal: <b>${limNormal !== '' ? escapeHtml(limNormal) : 'sin límite'}</b>. Entre estas fechas el especial manda sobre cualquier otro límite, también en SALIDAS.`;
+    document.getElementById('leActivo').checked = limEspMet.activo || !limEspMet.periodos.length;
+    const filas = document.getElementById('leFilas');
+    filas.innerHTML = '';
+    if (limEspMet.periodos.length) limEspMet.periodos.forEach(anadirFilaLimEsp);
+    else anadirFilaLimEsp(null);
+    const err = document.getElementById('leError');
+    err.style.display = 'none';
+    err.textContent = '';
+    overlay.classList.add('show');
+  }
+
+  function cerrarModalLimEsp() {
+    document.getElementById('modalLimEspOverlay')?.classList.remove('show');
+  }
+
+  // Lee y valida las filas. Devuelve { error } o { periodos }.
+  function leerFilasLimEsp() {
+    const hoy = limEspHoyISO();
+    const periodos = [];
+    const filas = [...document.querySelectorAll('#leFilas .le-fila')];
+    for (let i = 0; i < filas.length; i++) {
+      const f = filas[i];
+      const desde = f.querySelector('.le-desde').value;
+      const hasta = f.querySelector('.le-hasta').value;
+      const paletsRaw = f.querySelector('.le-palets').value.trim();
+      if (!desde && !hasta && paletsRaw === '') continue; // fila vacía: se ignora
+      const n = i + 1;
+      if (!desde || !hasta || paletsRaw === '') return { error: `Al periodo ${n} le falta la fecha desde, la fecha hasta o los palets.` };
+      if (hasta < desde) return { error: `En el periodo ${n} la fecha hasta es anterior a la fecha desde.` };
+      if (hasta < hoy) return { error: `El periodo ${n} ya ha pasado (termina el ${fechaISOaCorta(hasta)}).` };
+      const palets = Number(paletsRaw);
+      if (!Number.isInteger(palets) || palets < 0) return { error: `En el periodo ${n} los palets deben ser un número entero.` };
+      periodos.push({ desde, hasta, palets });
+    }
+    periodos.sort((a, b) => a.desde.localeCompare(b.desde));
+    for (let i = 1; i < periodos.length; i++) {
+      if (periodos[i].desde <= periodos[i - 1].hasta) {
+        return { error: `Hay periodos que se solapan (${fechaISOaCorta(periodos[i - 1].desde)}–${fechaISOaCorta(periodos[i - 1].hasta)} y ${fechaISOaCorta(periodos[i].desde)}–${fechaISOaCorta(periodos[i].hasta)}).` };
+      }
+    }
+    return { periodos };
+  }
+
+  function aceptarModalLimEsp() {
+    const r = leerFilasLimEsp();
+    const err = document.getElementById('leError');
+    if (r.error) {
+      err.textContent = r.error;
+      err.style.display = 'block';
+      return;
+    }
+    limEspMet = { activo: r.periodos.length > 0 && document.getElementById('leActivo').checked, periodos: r.periodos };
+    pintarEstrellaLimEsp();
+    cerrarModalLimEsp();
+    actualizarBotonGuardarEditarTienda();
+  }
+
+  document.getElementById('metLimEspBtn')?.addEventListener('click', abrirModalLimEsp);
+  document.getElementById('leBtnAnadir')?.addEventListener('click', () => anadirFilaLimEsp(null));
+  document.getElementById('leFilas')?.addEventListener('click', e => {
+    const del = e.target.closest('.le-del');
+    if (!del) return;
+    del.closest('.le-fila')?.remove();
+    if (!document.querySelector('#leFilas .le-fila')) anadirFilaLimEsp(null);
+  });
+  document.getElementById('leBtnQuitarTodos')?.addEventListener('click', () => {
+    document.getElementById('leFilas').innerHTML = '';
+    anadirFilaLimEsp(null);
+  });
+  document.getElementById('leBtnCancelar')?.addEventListener('click', cerrarModalLimEsp);
+  document.getElementById('leBtnAceptar')?.addEventListener('click', aceptarModalLimEsp);
+  // Como el horario por días: no se cierra al clicar fuera, solo con
+  // Cancelar/Aceptar.
 
   // ---------------------------------------------------------------
   // Modal "Horario semanal": permite poner, por tienda, una hora

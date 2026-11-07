@@ -3647,3 +3647,32 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
   .ic-hide-m{ display:none; }
   .ic-foot-btns{ margin-left:0; width:100%; justify-content:flex-end; }
 }
+
+/* ---------------------------------------------------------------
+   Límite especial de palets (Editar tienda): estrella dentro del campo
+   Límite palets y modal de periodos. ☆ gris = sin configurar,
+   ★ naranja = activo, ★ gris = configurado pero apagado.
+   --------------------------------------------------------------- */
+.lp-wrap{ position:relative; }
+.lp-wrap .form-input{ padding-right:40px; }
+.lp-star{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px; border:0; border-radius:8px; background:transparent; font-size:19px; line-height:1; color:#C4C9D2; cursor:pointer; padding:0; }
+.lp-star:hover{ background:var(--panel-muted); color:#9CA3AF; }
+.lp-star.on{ color:#F59E0B; text-shadow:0 0 6px rgba(245,158,11,.35); }
+.lp-star.on:hover{ background:#FFF1E6; color:#EA8A00; }
+.lp-star.gris{ color:#9CA3AF; }
+.lp-star:disabled{ cursor:default; opacity:.6; }
+.lp-star:disabled:hover{ background:transparent; }
+.lp-aviso{ margin:4px 0 0; font-size:11px; font-weight:600; color:#C2410C; }
+.modal-box.le-modal{ max-width:460px; }
+.le-modal .le-sw{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--ink); margin:4px 0 12px; cursor:pointer; }
+.le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 24px; gap:6px; align-items:center; }
+.le-cab{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; margin-bottom:4px; }
+.le-fila{ margin-bottom:6px; }
+.le-fila .form-input{ height:34px; padding:0 4px 0 6px; font-size:12.5px; min-width:0; width:100%; }
+.le-fila.vigente .form-input{ border-color:#FDBA8C; background:#FFF7ED; }
+.le-del{ border:0; background:transparent; cursor:pointer; font-size:14px; opacity:.7; padding:0; }
+.le-del:hover{ opacity:1; }
+.le-add{ border:1px dashed var(--border); background:transparent; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer; width:100%; }
+.le-add:hover{ background:var(--panel-muted); color:var(--ink); }
+.le-nota{ margin:12px 0 10px; font-size:11.5px; color:var(--ink-soft); }
+.le-modal .err{ margin:0 0 12px; color:var(--grave); font-size:12.5px; }
