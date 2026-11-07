@@ -160,7 +160,10 @@
     if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
     if (!(await modalConfirm('¿Cerrar sesión?', { titulo: 'Cerrar sesión' }))) return;
     sessionStorage.removeItem(SESSION_KEY);
-    await sb.auth.signOut();
+    // Solo esta ventana: sin scope 'local', Supabase cierra TODAS las
+    // sesiones de ese usuario (otras ventanas u otros PC con el mismo
+    // usuario se quedaban sin sesión y mostraban todo a 0).
+    await sb.auth.signOut({ scope: 'local' });
     if (typeof activarVista === 'function') activarVista('inicio');
     mostrarLogin();
   });

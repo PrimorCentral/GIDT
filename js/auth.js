@@ -144,7 +144,7 @@
       if (error) throw error;
 
       if (!data) {
-        await sb.auth.signOut();
+        await sb.auth.signOut({ scope: 'local' });
         mostrarErrorLogin('Usuario incorrecto.');
         return;
       }
@@ -230,3 +230,51 @@
       btnTogglePin.setAttribute('aria-label', mostrando ? 'Mostrar contraseña' : 'Ocultar contraseña');
     });
   }
+
+  // ---------------------------------------------------------------
+  // Sesión de Supabase perdida (caducada o cerrada desde otro sitio)
+  // ---------------------------------------------------------------
+  // Si la sesión de Supabase Auth deja de valer mientras la app sigue
+  // abierta (p. ej. tras horas sin tocarla, o porque se cerró desde otra
+  // ventana), las consultas vuelven vacías por RLS y la app enseñaba todo
+  // a 0 como si no hubiera datos. Ahora, en ese caso, se avisa y se vuelve
+  // a la pantalla de inicio de sesión.
+  let avisoSesionPerdidaMostrado = false;
+  async function sesionSupabasePerdida() {
+    if (!getSesion() || avisoSesionPerdidaMostrado) return;
+    avisoSesionPerdidaMostrado = true;
+    sessionStorage.removeItem(SESSION_KEY);
+    sesionActual = null;
+    try { await sb.auth.signOut({ scope: 'local' }); } catch (_) { /* ya no hay sesión */ }
+    if (typeof activarVista === 'function') activarVista('inicio');
+    mostrarLogin();
+    if (typeof modalAlert === 'function') {
+      await modalAlert('La sesión ha caducado. Vuelve a iniciar sesión para seguir trabajando.', {
+        titulo: 'Sesión caducada',
+        icono: '🔒'
+      });
+    }
+    avisoSesionPerdidaMostrado = false;
+  }
+
+  // Supabase avisa con SIGNED_OUT cuando no puede renovar la sesión. Si en
+  // ese momento la app aún tiene sesión propia (no es un "Cerrar sesión"
+  // pulsado a mano, que borra antes SESSION_KEY), es que se ha perdido.
+  sb.auth.onAuthStateChange((evento) => {
+    if (evento === 'SIGNED_OUT' && getSesion()) setTimeout(sesionSupabasePerdida, 0);
+  });
+
+  // Al volver a la app (tras tenerla minimizada, el PC suspendido…), se
+  // comprueba la sesión antes de nada: getSession() la renueva si hace
+  // falta y, si ya no existe, se avisa.
+  async function comprobarSesionSupabase() {
+    if (!getSesion()) return;
+    try {
+      const { data } = await sb.auth.getSession();
+      if (!data?.session) sesionSupabasePerdida();
+    } catch (_) { /* sin conexión: se reintenta la próxima vez */ }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') comprobarSesionSupabase();
+  });
+  window.addEventListener('focus', comprobarSesionSupabase);
