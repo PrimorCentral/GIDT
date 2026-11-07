@@ -10,6 +10,17 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.8.8',
+    fecha: '2026-11-07',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Nuevo permiso "Configurar pruebas": permite configurar las entregas de prueba de una tienda sin poder modificar el resto de su ficha' },
+      { tipo: 'nuevo',  texto: 'Panel siniestros: nuevo botón "Importar cobros" para marcar los siniestros cobrados o anulados a partir del Excel de contabilidad' },
+      { tipo: 'mejora', texto: 'Informe del día: Utilidades muestra también las entregas de prueba de hoy' },
+      { tipo: 'mejora', texto: 'Panel siniestros: al borrar un siniestro solo se quitan de la incidencia sus motivos; si tenía otros, la incidencia se conserva' },
+      { tipo: 'mejora', texto: 'El permiso "Usuario externo" ya no aparece en la ficha de usuario' }
+    ]
+  },
+  {
     version: '1.8.7',
     fecha: '2026-11-05',
     cambios: [
