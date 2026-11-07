@@ -131,10 +131,40 @@
     const permisos = {};
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
-      if (el) permisos[clave] = el.checked;
+      if (!el) return;
+      // "Configurar pruebas" forzado por "Tiendas y agencias": se guarda su
+      // valor propio (el que tenía antes), no el forzado.
+      if (el.disabled && el.dataset.propio != null) permisos[clave] = el.dataset.propio === '1';
+      else permisos[clave] = el.checked;
     });
     return permisos;
   }
+
+  // "Tiendas y agencias" incluye "Configurar pruebas": con la primera
+  // marcada, la segunda sale marcada y bloqueada. Al quitar Tiendas y
+  // agencias, Configurar pruebas vuelve a como estaba antes.
+  function sincronizarPruebasConTiendas(prefijo) {
+    const chkT = document.getElementById(`${prefijo}Perm_config_tiendas`);
+    const chkP = document.getElementById(`${prefijo}Perm_config_pruebas`);
+    if (!chkT || !chkP) return;
+    const label = chkP.closest('.permiso-item');
+    if (chkT.checked) {
+      if (!chkP.disabled) chkP.dataset.propio = chkP.checked ? '1' : '0';
+      chkP.checked = true;
+      chkP.disabled = true;
+      label?.classList.add('permiso-incluido');
+      if (label) label.title = 'Incluido en «Tiendas y agencias». Para quitarlo, quita primero ese permiso.';
+    } else {
+      if (chkP.disabled) chkP.checked = chkP.dataset.propio === '1';
+      chkP.disabled = false;
+      delete chkP.dataset.propio;
+      label?.classList.remove('permiso-incluido');
+      if (label) label.title = '';
+    }
+  }
+  ['eu', 'nu'].forEach(prefijo => {
+    document.getElementById(`${prefijo}Perm_config_tiendas`)?.addEventListener('change', () => sincronizarPruebasConTiendas(prefijo));
+  });
 
   // Nombre legible de un permiso, sacado de la etiqueta del propio
   // formulario (así no hay que mantener dos listas de nombres).
@@ -179,10 +209,13 @@
   }
 
   function fijarPermisosEnFormulario(prefijo, permisos) {
+    const chkP = document.getElementById(`${prefijo}Perm_config_pruebas`);
+    if (chkP) { chkP.disabled = false; delete chkP.dataset.propio; }
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (el) el.checked = !!(permisos && permisos[clave]);
     });
+    sincronizarPruebasConTiendas(prefijo);
   }
 
   // Permisos a guardar: los del panel solo cuentan para operadores (admin
