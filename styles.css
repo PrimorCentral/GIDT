@@ -3433,14 +3433,20 @@ body:not(.perm-config_tiendas) #metBtnBaja{ opacity:.6; }
 #modalEditarTiendaOverlay.modo-pruebas [data-bloq-pruebas]{
   background:var(--panel-muted); color:var(--ink-soft); cursor:not-allowed; opacity:1;
 }
-#modalEditarTiendaOverlay.modo-pruebas .tienda-modal-body .tf-seccion,
+#modalEditarTiendaOverlay.modo-pruebas .tienda-modal-body .tf-seccion:not(.tf-permitida),
 #modalEditarTiendaOverlay.modo-pruebas #metCardSabado,
 #modalEditarTiendaOverlay.modo-pruebas #metCardLxv,
 #modalEditarTiendaOverlay.modo-pruebas #metCardActiva,
 #modalEditarTiendaOverlay.modo-pruebas #metCardApertura{ opacity:.6; }
 #modalEditarTiendaOverlay.modo-pruebas #metCardSabado .ea-toggle,
 #modalEditarTiendaOverlay.modo-pruebas #metCardLxv .ea-toggle{ cursor:not-allowed; }
-#modalEditarTiendaOverlay.modo-pruebas #metCardPrueba{ box-shadow:0 0 0 2px #a9dcbf; }
+#modalEditarTiendaOverlay.modo-pruebas #metCardPrueba:not(.ea-no-permitida){ box-shadow:0 0 0 2px #a9dcbf; }
+/* Sin "Configurar pruebas" (solo límites): la tarjeta Prueba también bloqueada. */
+#modalEditarTiendaOverlay.modo-pruebas #metCardPrueba.ea-no-permitida{ opacity:.6; }
+#modalEditarTiendaOverlay.modo-pruebas #metCardPrueba.ea-no-permitida .ea-toggle{ cursor:not-allowed; }
+/* Con "Configurar límite palets y límites especiales": el campo Límite
+   palets (con su estrella) resaltado; el resto de la sección, bloqueado. */
+#modalEditarTiendaOverlay.modo-pruebas .lp-permitido .form-input{ box-shadow:0 0 0 2px #FDBA8C; }
 /* Camión 🚚 de la lista Aperturas: en / fuera de los conteos de SALIDAS.
    No se atenúa sin permiso config_tiendas (lo puede usar cualquiera). */
 .mini-btn.btn-salidas-camion{ font-size:15px; line-height:1; padding:4px 8px; border-radius:7px; margin-right:6px; vertical-align:middle; }

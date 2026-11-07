@@ -711,22 +711,31 @@
   // config_pruebas el modal se abre en "modo pruebas": todo bloqueado
   // salvo la tarjeta Prueba, y al guardar solo se graban sus campos.
   // Devuelve true si NO hay permiso (y ya ha mostrado el aviso).
+  // Lo mismo con "Configurar límite palets y límites especiales"
+  // (config_limites): se abre con todo bloqueado salvo el Límite palets y
+  // su estrella. Con los dos permisos, se pueden tocar ambas cosas.
   function sinPermisoEditarTienda() {
-    if (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas') && !tienePermiso('config_pruebas')) {
+    if (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas') && !tienePermiso('config_pruebas') && !tienePermiso('config_limites')) {
       if (typeof mostrarModalSinPermiso === 'function') mostrarModalSinPermiso();
       return true;
     }
     return false;
   }
 
-  // true si el modal Editar tienda está abierto en "modo pruebas".
+  // true si el modal Editar tienda está abierto en "modo restringido" (sin
+  // Tiendas y agencias): solo se puede tocar lo de los permisos de abajo.
   let editarTiendaSoloPruebas = false;
+  let editarTiendaPermPruebas = false;   // tarjeta Prueba (config_pruebas)
+  let editarTiendaPermLimites = false;   // Límite palets + estrella (config_limites)
 
   // Bloquea (o desbloquea) todos los campos del modal Editar tienda que no
   // son de la tarjeta Prueba. Solo toca los que bloquea él mismo
   // (data-bloq-pruebas), para no pisar los readonly/disabled de siempre.
   function aplicarModoPruebasEditarTienda(soloPruebas) {
     editarTiendaSoloPruebas = !!soloPruebas;
+    const tp = clave => typeof tienePermiso === 'function' && tienePermiso(clave);
+    editarTiendaPermPruebas = editarTiendaSoloPruebas && tp('config_pruebas');
+    editarTiendaPermLimites = editarTiendaSoloPruebas && tp('config_limites');
     const overlay = document.getElementById('modalEditarTiendaOverlay');
     if (!overlay) return;
     overlay.classList.toggle('modo-pruebas', editarTiendaSoloPruebas);
@@ -734,14 +743,30 @@
       el.disabled = false;
       el.removeAttribute('data-bloq-pruebas');
     });
+    overlay.querySelectorAll('.tf-permitida, .lp-permitido, .ea-no-permitida').forEach(el => el.classList.remove('tf-permitida', 'lp-permitido', 'ea-no-permitida'));
     if (!editarTiendaSoloPruebas) return;
+    // Aviso de arriba según lo que se puede tocar.
+    const aviso = document.getElementById('metAvisoPruebas');
+    if (aviso) {
+      const partes = [];
+      if (editarTiendaPermPruebas) partes.push('la entrega de <b>Prueba</b>');
+      if (editarTiendaPermLimites) partes.push('el <b>Límite palets</b> y los <b>límites especiales</b> ⭐');
+      aviso.innerHTML = `${editarTiendaPermPruebas ? '🧪' : '⭐'} Solo puedes modificar ${partes.join(' y ')}. El resto de la ficha es de solo lectura.`;
+    }
     const cardPrueba = document.getElementById('metCardPrueba');
+    const permitidos = ['metLimitePalets', 'metLimEspBtn'];
     overlay.querySelectorAll('input, select, textarea, #metLimEspBtn').forEach(el => {
-      if (cardPrueba && cardPrueba.contains(el)) return;
+      if (editarTiendaPermPruebas && cardPrueba && cardPrueba.contains(el)) return;
+      if (editarTiendaPermLimites && permitidos.includes(el.id)) return;
       if (el.disabled) return;
       el.disabled = true;
       el.setAttribute('data-bloq-pruebas', '1');
     });
+    if (editarTiendaPermLimites) {
+      document.getElementById('metLimitePalets')?.closest('.tf-seccion')?.classList.add('tf-permitida');
+      document.getElementById('metLimitePalets')?.closest('.lp-wrap')?.classList.add('lp-permitido');
+    }
+    if (!editarTiendaPermPruebas) cardPrueba?.classList.add('ea-no-permitida');
   }
 
   function abrirModalEditarTienda(tiendaId) {
@@ -1261,22 +1286,39 @@
 
   // Guardado en "modo pruebas": solo los campos de la tarjeta Prueba.
   // Aunque alguien desbloqueara otro campo a mano, aquí no se lee nada más.
+  // Guardar en "modo restringido": solo se graban los campos de los
+  // permisos que tiene (Prueba y/o Límite palets + límites especiales).
   async function guardarSoloPruebaEditarTienda() {
     const tEditada = tiendasGestionCache.find(x => x.id === editarTiendaId);
     if (!tEditada) return;
     const errEl = document.getElementById('metError');
     errEl.style.display = 'none';
-    const prueba = leerCamposPrueba('met', tEditada.agencia_id);
-    if (prueba.error) {
-      errEl.textContent = prueba.error;
-      errEl.style.display = 'block';
-      return;
+    const datosNuevos = {};
+    if (editarTiendaPermPruebas) {
+      const prueba = leerCamposPrueba('met', tEditada.agencia_id);
+      if (prueba.error) {
+        errEl.textContent = prueba.error;
+        errEl.style.display = 'block';
+        return;
+      }
+      datosNuevos.prueba_agencia_id = prueba.prueba_agencia_id;
+      datosNuevos.prueba_hora = prueba.prueba_hora;
+      datosNuevos.prueba_fechas = prueba.prueba_fechas;
     }
-    const datosNuevos = {
-      prueba_agencia_id: prueba.prueba_agencia_id,
-      prueba_hora: prueba.prueba_hora,
-      prueba_fechas: prueba.prueba_fechas
-    };
+    if (editarTiendaPermLimites) {
+      const limitePaletsRaw = document.getElementById('metLimitePalets').value;
+      if (limitePaletsRaw === '' && !tEditada.en_apertura) {
+        errEl.textContent = 'Faltan campos obligatorios: Límite palets.';
+        errEl.style.display = 'block';
+        return;
+      }
+      datosNuevos.limite_palets = limitePaletsRaw !== '' ? Number(limitePaletsRaw) : null;
+      datosNuevos.limite_especial_activo = limEspMet.activo && limEspMet.periodos.length > 0;
+      datosNuevos.limites_especiales = limEspMet.periodos;
+    }
+    if (!Object.keys(datosNuevos).length) return;
+    const accion = editarTiendaPermPruebas && editarTiendaPermLimites ? 'Configurar prueba y límites de palets'
+      : (editarTiendaPermLimites ? 'Configurar límites de palets' : 'Configurar prueba');
     const btnGuardar = document.getElementById('modalEditarTiendaBtnGuardar');
     botonGuardando(btnGuardar, true);
     try {
@@ -1287,13 +1329,13 @@
           ? auditoriaCalcularCambios(
             CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosNuevos, c.clave)),
             tEditada, datosNuevos) : null;
-        registrarAccion('tiendas', 'Configurar prueba', tEditada.nombre, cambios, { tiendaId: editarTiendaId });
+        registrarAccion('tiendas', accion, tEditada.nombre, cambios, { tiendaId: editarTiendaId });
       }
       cerrarModalEditarTienda();
-      if (typeof mostrarToast === 'function') mostrarToast(`Prueba de "${tEditada.nombre}" guardada correctamente`, { posicion: 'abajo' });
+      if (typeof mostrarToast === 'function') mostrarToast(`Tienda "${tEditada.nombre}" guardada correctamente`, { posicion: 'abajo' });
       cargarAgenciasYTiendas();
     } catch (err) {
-      console.error('Error guardando la prueba de la tienda:', err);
+      console.error('Error guardando la tienda (modo restringido):', err);
       errEl.textContent = 'No se pudo guardar el cambio.';
       errEl.style.display = 'block';
     } finally {
@@ -3029,7 +3071,7 @@
   }
 
   function abrirModalLimEsp() {
-    if (editarTiendaId == null || editarTiendaSoloPruebas) return;
+    if (editarTiendaId == null || (editarTiendaSoloPruebas && !editarTiendaPermLimites)) return;
     const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
     const overlay = document.getElementById('modalLimEspOverlay');
     if (!t || !overlay) return;

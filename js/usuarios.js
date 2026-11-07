@@ -5,7 +5,7 @@
   const CLAVES_PERMISOS = [
     'informe_dia', 'enviar_informe', 'editar_informes_pasados',
     'panel_siniestros', 'siniestros_dia', 'enviar_facturacion',
-    'config_tiendas', 'config_pruebas', 'config_emails', 'config_facturacion', 'config_cc_transporte',
+    'config_tiendas', 'config_pruebas', 'config_limites', 'config_emails', 'config_facturacion', 'config_cc_transporte',
     'config_gravedad_motivos',
     'gestion_usuarios', 'borrar', 'enviar_reporte_mensual', 'ver_auditoria',
     'ver_log_cambios_informes'
@@ -132,43 +132,51 @@
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (!el) return;
-      // "Configurar pruebas" forzado por "Tiendas y agencias": se guarda su
-      // valor propio (el que tenía antes), no el forzado.
+      // "Configurar pruebas" / "Configurar límite palets…" forzados por
+      // "Tiendas y agencias": se guarda su valor propio (el que tenía
+      // antes), no el forzado.
       if (el.dataset.propio != null) permisos[clave] = el.dataset.propio === '1';
       else permisos[clave] = el.checked;
     });
     return permisos;
   }
 
-  // "Tiendas y agencias" incluye "Configurar pruebas": con la primera
-  // marcada, la segunda sale marcada y bloqueada. Al quitar Tiendas y
-  // agencias, Configurar pruebas vuelve a como estaba antes.
+  // "Tiendas y agencias" incluye "Configurar pruebas" y "Configurar límite
+  // palets y límites especiales": con la primera marcada, las otras salen
+  // marcadas y bloqueadas. Al quitar Tiendas y agencias, vuelven a como
+  // estaban antes.
+  const PERMISOS_INCLUIDOS_EN_TIENDAS = ['config_pruebas', 'config_limites'];
   function sincronizarPruebasConTiendas(prefijo) {
     const chkT = document.getElementById(`${prefijo}Perm_config_tiendas`);
-    const chkP = document.getElementById(`${prefijo}Perm_config_pruebas`);
-    if (!chkT || !chkP) return;
-    const label = chkP.closest('.permiso-item');
-    if (chkT.checked) {
-      if (chkP.dataset.propio == null) chkP.dataset.propio = chkP.checked ? '1' : '0';
-      chkP.checked = true;
-      label?.classList.add('permiso-incluido');
-      if (label) label.title = 'Incluido en «Tiendas y agencias». Para quitarlo, quita primero ese permiso.';
-    } else {
-      if (chkP.dataset.propio != null) chkP.checked = chkP.dataset.propio === '1';
-      delete chkP.dataset.propio;
-      label?.classList.remove('permiso-incluido');
-      if (label) label.title = '';
-    }
+    if (!chkT) return;
+    PERMISOS_INCLUIDOS_EN_TIENDAS.forEach(clave => {
+      const chkP = document.getElementById(`${prefijo}Perm_${clave}`);
+      if (!chkP) return;
+      const label = chkP.closest('.permiso-item');
+      if (chkT.checked) {
+        if (chkP.dataset.propio == null) chkP.dataset.propio = chkP.checked ? '1' : '0';
+        chkP.checked = true;
+        label?.classList.add('permiso-incluido');
+        if (label) label.title = 'Incluido en «Tiendas y agencias». Para quitarlo, quita primero ese permiso.';
+      } else {
+        if (chkP.dataset.propio != null) chkP.checked = chkP.dataset.propio === '1';
+        delete chkP.dataset.propio;
+        label?.classList.remove('permiso-incluido');
+        if (label) label.title = '';
+      }
+    });
   }
   ['eu', 'nu'].forEach(prefijo => {
     document.getElementById(`${prefijo}Perm_config_tiendas`)?.addEventListener('change', () => sincronizarPruebasConTiendas(prefijo));
-    // Con Tiendas y agencias marcado, el check de Configurar pruebas se ve
-    // normal (en color) pero no se puede quitar.
-    document.getElementById(`${prefijo}Perm_config_pruebas`)?.addEventListener('click', (e) => {
-      if (document.getElementById(`${prefijo}Perm_config_tiendas`)?.checked) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
+    // Con Tiendas y agencias marcado, estos checks se ven normales (en
+    // color) pero no se pueden quitar.
+    PERMISOS_INCLUIDOS_EN_TIENDAS.forEach(clave => {
+      document.getElementById(`${prefijo}Perm_${clave}`)?.addEventListener('click', (e) => {
+        if (document.getElementById(`${prefijo}Perm_config_tiendas`)?.checked) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      });
     });
   });
 
@@ -215,8 +223,10 @@
   }
 
   function fijarPermisosEnFormulario(prefijo, permisos) {
-    const chkP = document.getElementById(`${prefijo}Perm_config_pruebas`);
-    if (chkP) delete chkP.dataset.propio;
+    PERMISOS_INCLUIDOS_EN_TIENDAS.forEach(clave => {
+      const chkP = document.getElementById(`${prefijo}Perm_${clave}`);
+      if (chkP) delete chkP.dataset.propio;
+    });
     CLAVES_PERMISOS.forEach(clave => {
       const el = document.getElementById(`${prefijo}Perm_${clave}`);
       if (el) el.checked = !!(permisos && permisos[clave]);
