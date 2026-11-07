@@ -309,7 +309,7 @@
             </div>
           </div>
           <div class="filtros-wrap">
-            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales y entregas especiales de hoy">
+            <button class="btn" id="btnUtilidadesInforme" title="Cambios puntuales, entregas especiales y pruebas de hoy">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2-2 2.5-2.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Utilidades
               <span class="filtros-count" id="utilidadesCount" style="display:none;"></span>
@@ -384,6 +384,8 @@
                 </div>
                 <div id="utilListaAjustes" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);"></div>
                 <div id="utilListaEspeciales" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); display:none;"></div>
+                <!-- Pruebas de hoy (se configuran en la ficha de la tienda): solo informativo, en las dos pestañas. -->
+                <div id="utilListaPruebas" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); display:none;"></div>
               </div>
             </div>
           </div>
@@ -1556,6 +1558,7 @@
       <div>
         <h3 class="modal-title" id="modalEditarTiendaTitulo">Editar tienda</h3>
         <p class="tienda-modal-sub">Modifica los datos y pulsa Guardar. Los campos marcados con <span class="tf-req">*</span> son obligatorios.</p>
+        <p class="tienda-aviso-pruebas" id="metAvisoPruebas">🧪 Solo puedes modificar la entrega de <b>Prueba</b>. El resto de la ficha es de solo lectura.</p>
         <p id="metError" class="err" style="display:none;"></p>
       </div>
       <div class="tienda-modal-head-acciones">
@@ -2485,6 +2488,10 @@
               <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
             </label>
             <label class="permiso-item">
+              <input type="checkbox" id="euPerm_config_pruebas">
+              <span><b><i class="perm-ico">🧪</i>Configurar pruebas</b><small>Configurar entregas de prueba de una tienda, sin poder tocar el resto de su ficha.</small></span>
+            </label>
+            <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_emails">
               <span><b><i class="perm-ico">✉️</i>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
             </label>
@@ -2710,6 +2717,10 @@
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_tiendas">
               <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+            </label>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_config_pruebas">
+              <span><b><i class="perm-ico">🧪</i>Configurar pruebas</b><small>Configurar entregas de prueba de una tienda, sin poder tocar el resto de su ficha.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_emails">

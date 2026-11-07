@@ -256,6 +256,7 @@ async function abrirUtilidadesPanel() {
   construirSelectAgenciaUtilidades();
   renderListaAjustesPuntuales();
   renderListaEntregasEspeciales();
+  renderListaPruebasHoy();
   seleccionarTiendaUtilidades(null);
 
   posicionarUtilidadesPanel();
@@ -534,7 +535,8 @@ function actualizarBadgeUtilidades() {
   const badge = document.getElementById('utilidadesCount');
   if (!badge || !btnUtilidadesInforme) return;
   const total = Object.keys(informeHoyCache?.ajustes_puntuales || {}).length
-    + Object.keys(informeHoyCache?.entregas_especiales || {}).length;
+    + Object.keys(informeHoyCache?.entregas_especiales || {}).length
+    + pruebasDeHoy().length;
   if (total > 0) {
     badge.textContent = total;
     badge.style.display = '';
@@ -543,6 +545,43 @@ function actualizarBadgeUtilidades() {
     badge.style.display = 'none';
     btnUtilidadesInforme.classList.remove('activo');
   }
+}
+
+// Entregas de prueba de hoy: viven en la ficha de cada tienda
+// (tiendas.prueba_fechas), no en el informe, así que se sacan con la misma
+// función que usa el Informe del día para pintar sus filas de prueba.
+function pruebasDeHoy() {
+  if (!informeHoyCache || typeof entregasAdicionalesEnFecha !== 'function' || !Array.isArray(tiendasCache)) return [];
+  return entregasAdicionalesEnFecha(hoy, informeHoyCache).filter(e => e.entrega === 'PRUEBA');
+}
+
+// Lista informativa de las pruebas de hoy (sale en las dos pestañas). No
+// tiene botones: las pruebas se cambian en Gestión de tiendas.
+function renderListaPruebasHoy() {
+  const cont = document.getElementById('utilListaPruebas');
+  if (!cont) return;
+  const lista = pruebasDeHoy();
+  if (!lista.length) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  const badge = typeof badgeMarcaHtml === 'function' ? badgeMarcaHtml('PRUEBA') : '';
+  cont.style.display = '';
+  cont.innerHTML = `
+    <p style="margin:0 0 8px; font-size:12px; font-weight:700; color:var(--ink);">Entregas de prueba de hoy</p>
+    ${lista.map(({ tiendaId }) => {
+      const t = tiendasCache.find(x => x.id === tiendaId);
+      const tp = tiendaEfectivaHoyEntrega(tiendaId, 'PRUEBA');
+      const agP = agenciasCache.find(a => a.id === tp?.agencia_id);
+      const agH = agenciasCache.find(a => a.id === tiendaEfectivaHoy(tiendaId)?.agencia_id);
+      const partes = [`Prueba → ${escapeHtml(agP?.nombre || '—')}`];
+      if (tp?.hora_prevista) partes.push(tp.hora_prevista.slice(0, 5));
+      return `
+        <div class="util-ajuste-item">
+          <div>
+            <b>${badge}${escapeHtml(t?.nombre || `Tienda #${tiendaId}`)}</b>
+            <div style="font-size:11.5px; color:var(--ink-soft);">${partes.join(' · ')} · además de ${escapeHtml(agH?.nombre || '—')}</div>
+          </div>
+        </div>`;
+    }).join('')}
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft);">Las pruebas se configuran en Gestión de tiendas (ficha de la tienda → Prueba).</p>`;
 }
 
 function renderListaAjustesPuntuales() {

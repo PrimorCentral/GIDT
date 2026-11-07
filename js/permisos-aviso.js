@@ -44,7 +44,11 @@ const BOTONES_CON_PERMISO = [
   ['#btnEnviarSiniestro', 'siniestros_dia'],
   ['[id^="btnEnviarFacturacion"]', 'enviar_facturacion'],
   ['#btnNuevaTienda', 'config_tiendas'],
-  ['#view-config-tiendas .agencia-body .mini-btn', 'config_tiendas'],
+  // El lápiz ✏️ (data-editar) no va aquí: lo deja pasar también el permiso
+  // "Configurar pruebas" (abre Editar tienda solo con la tarjeta Prueba);
+  // el aviso lo da sinPermisoEditarTienda() en tiendas.js.
+  ['#view-config-tiendas .agencia-body .mini-btn:not([data-editar])', 'config_tiendas'],
+  ['#metBtnBaja', 'config_tiendas'],
   ['[data-cancelar-programado]', 'config_tiendas'],
   ['[data-activar-tienda]', 'config_tiendas'],
   ['#metBtnActivar', 'config_tiendas'],

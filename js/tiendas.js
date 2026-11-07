@@ -698,15 +698,43 @@
     return faltan;
   }
 
-  // Editar tienda exige el permiso config_tiendas venga de donde venga
-  // (lápiz de la tabla, filas de las listas de los contadores, etc.).
+  // Editar tienda exige el permiso config_tiendas o, al menos, el de
+  // "Configurar pruebas" (config_pruebas), venga de donde venga (lápiz de
+  // la tabla, filas de las listas de los contadores, etc.). Con solo
+  // config_pruebas el modal se abre en "modo pruebas": todo bloqueado
+  // salvo la tarjeta Prueba, y al guardar solo se graban sus campos.
   // Devuelve true si NO hay permiso (y ya ha mostrado el aviso).
   function sinPermisoEditarTienda() {
-    if (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas')) {
+    if (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas') && !tienePermiso('config_pruebas')) {
       if (typeof mostrarModalSinPermiso === 'function') mostrarModalSinPermiso();
       return true;
     }
     return false;
+  }
+
+  // true si el modal Editar tienda está abierto en "modo pruebas".
+  let editarTiendaSoloPruebas = false;
+
+  // Bloquea (o desbloquea) todos los campos del modal Editar tienda que no
+  // son de la tarjeta Prueba. Solo toca los que bloquea él mismo
+  // (data-bloq-pruebas), para no pisar los readonly/disabled de siempre.
+  function aplicarModoPruebasEditarTienda(soloPruebas) {
+    editarTiendaSoloPruebas = !!soloPruebas;
+    const overlay = document.getElementById('modalEditarTiendaOverlay');
+    if (!overlay) return;
+    overlay.classList.toggle('modo-pruebas', editarTiendaSoloPruebas);
+    overlay.querySelectorAll('[data-bloq-pruebas]').forEach(el => {
+      el.disabled = false;
+      el.removeAttribute('data-bloq-pruebas');
+    });
+    if (!editarTiendaSoloPruebas) return;
+    const cardPrueba = document.getElementById('metCardPrueba');
+    overlay.querySelectorAll('input, select, textarea').forEach(el => {
+      if (cardPrueba && cardPrueba.contains(el)) return;
+      if (el.disabled) return;
+      el.disabled = true;
+      el.setAttribute('data-bloq-pruebas', '1');
+    });
   }
 
   function abrirModalEditarTienda(tiendaId) {
@@ -715,6 +743,9 @@
     const overlay = document.getElementById('modalEditarTiendaOverlay');
     if (!t || !overlay) return;
     editarTiendaId = tiendaId;
+    // Primero se desbloquea todo (por si la última vez fue en modo pruebas);
+    // el modo pruebas se aplica al final, con los campos ya rellenos.
+    aplicarModoPruebasEditarTienda(false);
 
     document.getElementById('metNumero').value = t.numero_tienda || '';
     // Nº de tienda: una vez grabado ya no se puede cambiar (enlaza la tienda
@@ -797,17 +828,19 @@
     errEl.textContent = '';
 
     refrescarAccionesModalEditar();
+    aplicarModoPruebasEditarTienda(typeof tienePermiso === 'function' && !tienePermiso('config_tiendas'));
     // Foto de los campos recién cargados: sirve para saber si hay cambios
     // sin guardar antes de abrir Cambiar agencia u Horario por días.
     fotoFormEditarTienda = estadoFormEditarTienda();
     actualizarBotonGuardarEditarTienda();
 
     overlay.classList.add('show');
-    setTimeout(() => document.getElementById('metNombre').focus(), 30);
+    if (!editarTiendaSoloPruebas) setTimeout(() => document.getElementById('metNombre').focus(), 30);
   }
 
   function cerrarModalEditarTienda() {
     document.getElementById('modalEditarTiendaOverlay')?.classList.remove('show');
+    aplicarModoPruebasEditarTienda(false);
     editarTiendaId = null;
     fotoFormEditarTienda = null;
     const btnG = document.getElementById('modalEditarTiendaBtnGuardar');
@@ -1215,8 +1248,53 @@
     ) || null;
   }
 
+  // Guardado en "modo pruebas": solo los campos de la tarjeta Prueba.
+  // Aunque alguien desbloqueara otro campo a mano, aquí no se lee nada más.
+  async function guardarSoloPruebaEditarTienda() {
+    const tEditada = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    if (!tEditada) return;
+    const errEl = document.getElementById('metError');
+    errEl.style.display = 'none';
+    const prueba = leerCamposPrueba('met', tEditada.agencia_id);
+    if (prueba.error) {
+      errEl.textContent = prueba.error;
+      errEl.style.display = 'block';
+      return;
+    }
+    const datosNuevos = {
+      prueba_agencia_id: prueba.prueba_agencia_id,
+      prueba_hora: prueba.prueba_hora,
+      prueba_fechas: prueba.prueba_fechas
+    };
+    const btnGuardar = document.getElementById('modalEditarTiendaBtnGuardar');
+    botonGuardando(btnGuardar, true);
+    try {
+      const { error } = await sb.from('tiendas').update(datosNuevos).eq('id', editarTiendaId);
+      if (error) throw error;
+      if (typeof registrarAccion === 'function') {
+        const cambios = typeof auditoriaCalcularCambios === 'function'
+          ? auditoriaCalcularCambios(
+            CAMPOS_AUDITORIA_TIENDA.filter(c => Object.prototype.hasOwnProperty.call(datosNuevos, c.clave)),
+            tEditada, datosNuevos) : null;
+        registrarAccion('tiendas', 'Configurar prueba', tEditada.nombre, cambios, { tiendaId: editarTiendaId });
+      }
+      cerrarModalEditarTienda();
+      if (typeof mostrarToast === 'function') mostrarToast(`Prueba de "${tEditada.nombre}" guardada correctamente`, { posicion: 'abajo' });
+      cargarAgenciasYTiendas();
+    } catch (err) {
+      console.error('Error guardando la prueba de la tienda:', err);
+      errEl.textContent = 'No se pudo guardar el cambio.';
+      errEl.style.display = 'block';
+    } finally {
+      botonGuardando(btnGuardar, false);
+    }
+  }
+
   async function guardarModalEditarTienda() {
     if (editarTiendaId == null) return;
+    if (editarTiendaSoloPruebas || (typeof tienePermiso === 'function' && !tienePermiso('config_tiendas'))) {
+      return guardarSoloPruebaEditarTienda();
+    }
     // Nº grabado = fijo (aunque alguien quitara el bloqueo del campo a mano).
     const tGrabada = tiendasGestionCache.find(x => x.id === editarTiendaId);
     const numeroGrabado = tGrabada?.numero_tienda && String(tGrabada.numero_tienda).trim() ? String(tGrabada.numero_tienda) : null;

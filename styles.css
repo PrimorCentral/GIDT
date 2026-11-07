@@ -2137,7 +2137,8 @@ body:not(.perm-siniestros_dia) #siniestroFotosLabel{
    Informe del día según el permiso de Tiendas y agencias en vez del de
    Informe del día. */
 body:not(.perm-config_tiendas) #btnNuevaTienda,
-body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn{
+body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn:not([data-editar]),
+body:not(.perm-config_tiendas):not(.perm-config_pruebas) #view-config-tiendas .agencia-body .mini-btn[data-editar]{
   opacity:.6;
 }
 
@@ -3411,7 +3412,29 @@ table.tabla-tiendas tr.fila-apertura td.celda-nombre{ color:#5B2F91; }
 body:not(.perm-config_tiendas) #metBtnActivar,
 body:not(.perm-config_tiendas) #metBtnCambiarAgencia,
 body:not(.perm-config_tiendas) #metBtnHorarioSemana,
-body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar{ opacity:.6; }
+body:not(.perm-config_tiendas) #modalListaContadorOverlay .btn-activar,
+body:not(.perm-config_tiendas) #metBtnBaja{ opacity:.6; }
+
+/* Editar tienda en "modo pruebas" (permiso Configurar pruebas sin el de
+   Tiendas y agencias): todo bloqueado salvo la tarjeta Prueba. */
+.tienda-aviso-pruebas{
+  display:none; margin:8px 0 0; padding:7px 11px; border-radius:8px;
+  background:#e8f6ee; border:1px solid #a9dcbf; color:#1f6b43;
+  font-size:12.5px; font-weight:600; line-height:1.35;
+}
+#modalEditarTiendaOverlay.modo-pruebas .tienda-aviso-pruebas{ display:block; }
+#modalEditarTiendaOverlay.modo-pruebas .tienda-modal-sub{ display:none; }
+#modalEditarTiendaOverlay.modo-pruebas [data-bloq-pruebas]{
+  background:var(--panel-muted); color:var(--ink-soft); cursor:not-allowed; opacity:1;
+}
+#modalEditarTiendaOverlay.modo-pruebas .tienda-modal-body .tf-seccion,
+#modalEditarTiendaOverlay.modo-pruebas #metCardSabado,
+#modalEditarTiendaOverlay.modo-pruebas #metCardLxv,
+#modalEditarTiendaOverlay.modo-pruebas #metCardActiva,
+#modalEditarTiendaOverlay.modo-pruebas #metCardApertura{ opacity:.6; }
+#modalEditarTiendaOverlay.modo-pruebas #metCardSabado .ea-toggle,
+#modalEditarTiendaOverlay.modo-pruebas #metCardLxv .ea-toggle{ cursor:not-allowed; }
+#modalEditarTiendaOverlay.modo-pruebas #metCardPrueba{ box-shadow:0 0 0 2px #a9dcbf; }
 /* Camión 🚚 de la lista Aperturas: en / fuera de los conteos de SALIDAS.
    No se atenúa sin permiso config_tiendas (lo puede usar cualquiera). */
 .mini-btn.btn-salidas-camion{ font-size:15px; line-height:1; padding:4px 8px; border-radius:7px; margin-right:6px; vertical-align:middle; }
