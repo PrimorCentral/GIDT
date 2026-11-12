@@ -406,7 +406,7 @@ async function rmeEnviarGrupo(clave, grupos, cont) {
     return;
   }
   if (!grupo.emails.length) {
-    await modalAlert('Esta agencia (o grupo) no tiene emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
+    await modalAlert('Esta agencia (o grupo) no tiene emails configurados. Añádelos en Gestión → Agencias.', { titulo: 'Sin destinatarios' });
     return;
   }
   if (!pdfDisponible()) {
@@ -509,7 +509,7 @@ async function rmeEnviarTodosPendientes(grupos) {
   const conEmails = pendientes.filter(g => g.emails.length);
   const sinEmails = pendientes.filter(g => !g.emails.length);
   if (!conEmails.length) {
-    await modalAlert('Las agencias pendientes no tienen emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
+    await modalAlert('Las agencias pendientes no tienen emails configurados. Añádelos en Gestión → Agencias.', { titulo: 'Sin destinatarios' });
     return;
   }
   if (!pdfDisponible()) {

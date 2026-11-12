@@ -13,12 +13,14 @@
 // usuario si falla, así que solo deja constancia en consola.
 
 const CATEGORIAS_AUDITORIA = {
-  tiendas: 'Tiendas y agencias',
+  tiendas: 'Tiendas',
+  agencias: 'Agencias',
+  supervisores: 'Supervisores',
   usuarios: 'Usuarios',
   informes: 'Informes',
   reportes_mensuales: 'Reportes mensuales',
   siniestros: 'Siniestros',
-  gravedad_motivos: 'Gravedad de motivos'
+  gravedad_motivos: 'Tipos incidencias'
 };
 
 // cambios (opcional): lista [{ campo, antes, despues }] con lo que se

@@ -17,6 +17,45 @@
   function nombreAgenciaFiltro(a) {
     return a.activo === false ? `${a.nombre} (de baja)` : a.nombre;
   }
+  // Supervisores (Gestión → Supervisores, js/supervisores.js): el campo
+  // Supervisor/a de la ficha de tienda es una lista con sus nombres
+  // abreviados. En la tienda se sigue guardando ese nombre abreviado
+  // (tiendas.supervisor), enlazado en la base de datos con la tabla
+  // `supervisores`: si se cambia el nombre abreviado de un supervisor, sus
+  // tiendas se actualizan solas, y no se puede borrar uno con tiendas.
+  let supervisoresCache = [];
+  async function cargarSupervisoresCache() {
+    try {
+      const { data, error } = await sb.from('supervisores')
+        .select('id, nombre_abreviado, nombre_completo, email, telefono')
+        .order('nombre_abreviado');
+      if (error) throw error;
+      supervisoresCache = data || [];
+    } catch (err) {
+      // Si falla la carga, la lista se monta con los supervisores que ya
+      // tienen las tiendas (ver nombresSupervisores), para no dejarla vacía.
+      console.error('No se pudieron cargar los supervisores:', err);
+      supervisoresCache = [];
+    }
+    return supervisoresCache;
+  }
+  function nombresSupervisores() {
+    const nombres = supervisoresCache.length
+      ? supervisoresCache.map(s => s.nombre_abreviado)
+      : tiendasGestionCache.map(t => t.supervisor);
+    return [...new Set(nombres.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  }
+  // Rellena un <select> de Supervisor/a. Si la tienda tiene un valor que
+  // no está en la lista, se añade como opción para no perderlo.
+  function rellenarSelectSupervisor(sel, valor) {
+    if (!sel) return;
+    const v = valor || '';
+    const nombres = nombresSupervisores();
+    if (v && !nombres.includes(v)) nombres.unshift(v);
+    sel.innerHTML = '<option value="">— Elige supervisor/a —</option>'
+      + nombres.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    sel.value = v;
+  }
   let tiendasCache = [];
   // tiendasGestionCache: TODAS las fichas (también las tiendas en apertura),
   // solo para esta pantalla. tiendasCache: las que ya existen de verdad (sin
@@ -239,7 +278,8 @@
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
       sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv, limite_especial_activo, limites_especiales').order('orden'),
       cargarBajasTiendas(),
-      cargarCambiosProgramados()
+      cargarCambiosProgramados(),
+      cargarSupervisoresCache()
     ]);
     if (e1 || e2) { console.error(e1 || e2); return; }
     agenciasCache = ags || [];
@@ -260,6 +300,11 @@
       s.innerHTML = `<option value="">— Elige agencia —</option>`
         + agenciasActivas().map(a => `<option value="${a.id}">${escapeHtml(a.nombre)}</option>`).join('');
       s.value = previo;
+    });
+    // Listas de Supervisor/a (Nueva tienda / Editar tienda), sin perder lo elegido.
+    ['ntSupervisor', 'metSupervisor'].forEach(id => {
+      const s = document.getElementById(id);
+      if (s) rellenarSelectSupervisor(s, s.value);
     });
 
     renderAcordeonTiendas();
@@ -800,7 +845,7 @@
     limEspMet = limEspDesdeTienda(t);
     pintarEstrellaLimEsp();
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
-    document.getElementById('metSupervisor').value = t.supervisor || '';
+    rellenarSelectSupervisor(document.getElementById('metSupervisor'), t.supervisor);
     // Agencia habitual: solo informativa (no editable desde este modal).
     const metAgInfo = document.getElementById('metAgenciaInfo');
     if (metAgInfo) metAgInfo.value = agenciasCache.find(a => a.id === t.agencia_id)?.nombre || '—';
@@ -2013,7 +2058,7 @@
     document.getElementById('ntCodigoPostal').value = '';
     document.getElementById('ntLimitePalets').value = '';
     document.getElementById('ntLimiteHora').value = '';
-    document.getElementById('ntSupervisor').value = '';
+    rellenarSelectSupervisor(document.getElementById('ntSupervisor'), '');
     document.getElementById('ntRecogidaDia').value = '';
     document.getElementById('ntAgenciaRecogida').value = '';
     document.getElementById('ntTransito').value = '';

@@ -1019,7 +1019,7 @@ async function enviarCorreoAgenciaDesdePanel() {
     if (eAg) throw eAg;
     const emails = ag?.emails || [];
     if (!emails.length) {
-      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Configuración → Gestión de agencias.', { titulo: 'Sin destinatarios' });
+      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Gestión → Agencias.', { titulo: 'Sin destinatarios' });
       return;
     }
 
@@ -2300,7 +2300,7 @@ async function ofrecerEnvioFacturacion(s, { trasAdjuntar = false } = {}) {
     if (eDest) throw eDest;
     const destinatarios = (dest || []).map(d => d.email);
     if (!destinatarios.length) {
-      await modalAlert('No hay destinatarios de Facturación configurados. Añádelos en Configuración → Emails.', { titulo: 'Sin destinatarios' });
+      await modalAlert('No hay destinatarios de Facturación configurados. Añádelos en Gestión → Agencias.', { titulo: 'Sin destinatarios' });
       return;
     }
 

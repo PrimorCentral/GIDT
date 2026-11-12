@@ -2141,6 +2141,11 @@ body:not(.perm-config_tiendas) #view-config-tiendas .agencia-body .mini-btn:not(
 body:not(.perm-config_tiendas):not(.perm-config_pruebas) #view-config-tiendas .agencia-body .mini-btn[data-editar]{
   opacity:.6;
 }
+/* Gestión → Supervisores: mismo permiso que Tiendas (avisa al pulsar). */
+body:not(.perm-config_tiendas) #btnNuevoSupervisor,
+body:not(.perm-config_tiendas) #tablaSupervisoresBody .usr-ico{
+  opacity:.6;
+}
 
 /* Sin permiso de "Emails y nombre comercial": página visible (si
    perm-config_emails la deja ver) pero sin poder añadir agencia,
@@ -2256,7 +2261,7 @@ body.rol-lectura input[type="file"]{
 .permiso-item.permiso-incluido,
 .permiso-item.permiso-incluido input{ cursor:not-allowed; }
 .permiso-item.permiso-incluido small::after{
-  content:'Incluido en «Tiendas y agencias»'; display:block; margin-top:2px;
+  content:'Incluido en «Tiendas»'; display:block; margin-top:2px;
   font-weight:700; color:var(--accent);
 }
 .permiso-item.permiso-externo{
@@ -2409,6 +2414,20 @@ main:has(#view-config-usuarios.active){ padding-bottom:14px; }
 #view-config-usuarios table.tabla-usuarios td{ padding:6px 14px; }
 #view-config-usuarios .usr-ico{ width:28px; height:28px; }
 #view-config-usuarios .usr-ico svg{ width:15px; height:15px; }
+/* Gestión → Supervisores: misma pantalla (título y cabecera fijos, solo
+   se desplaza la lista). */
+#view-config-supervisores.active{
+  display:flex; flex-direction:column;
+  height:100%;
+  min-height:0;
+}
+#view-config-supervisores .page-head{ flex:0 0 auto; }
+main:has(#view-config-supervisores.active){ padding-bottom:14px; }
+#view-config-supervisores .usuarios-lista{ flex:0 1 auto; min-height:0; overflow:auto; }
+#view-config-supervisores table.tabla-usuarios thead th{ position:sticky; top:0; z-index:2; padding:9px 14px; box-shadow:inset 0 -1px 0 var(--border); }
+#view-config-supervisores table.tabla-usuarios td{ padding:6px 14px; }
+#view-config-supervisores .usr-ico{ width:28px; height:28px; }
+#view-config-supervisores .usr-ico svg{ width:15px; height:15px; }
 
 .rm-layout{
   display:flex; align-items:stretch; gap:16px;

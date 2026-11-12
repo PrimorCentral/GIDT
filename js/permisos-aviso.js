@@ -56,6 +56,10 @@ const BOTONES_CON_PERMISO = [
   ['#metBtnHorarioSemana', 'config_tiendas'],
   ['#matBtnGuardar', 'config_tiendas'],
   ['#mmaBtnGuardar', 'config_tiendas'],
+  // Gestión → Supervisores: mismo permiso que Tiendas.
+  ['#btnNuevoSupervisor', 'config_tiendas'],
+  ['#tablaSupervisoresBody .usr-ico', 'config_tiendas'],
+  ['#btnGuardarSupervisor', 'config_tiendas'],
   ['#btnNuevaAgencia', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-comercial]', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-grupo]', 'config_emails'],

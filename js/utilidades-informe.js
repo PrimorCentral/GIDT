@@ -581,7 +581,7 @@ function renderListaPruebasHoy() {
           </div>
         </div>`;
     }).join('')}
-    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft);">Las pruebas se configuran en Gestión de tiendas (ficha de la tienda → Prueba).</p>`;
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-soft);">Las pruebas se configuran en Gestión → Tiendas (ficha de la tienda → Prueba).</p>`;
 }
 
 function renderListaAjustesPuntuales() {

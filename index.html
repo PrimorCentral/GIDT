@@ -129,7 +129,7 @@
         <button class="tab-btn" id="btnInformesDropdown">📋 Informes diarios<span class="dot" id="dotIncidencias"></span><span class="caret">▾</span></button>
         <button class="tab-btn" id="btnSiniestrosDropdown">📦 Siniestros<span class="dot" id="dotSiniestros"></span><span class="caret">▾</span></button>
         <button class="tab-btn" id="btnAnalisisDropdown">📈 Análisis<span class="caret">▾</span></button>
-        <button class="tab-btn" id="btnConfigDropdown">⚙️ Configuración<span class="caret">▾</span></button>
+        <button class="tab-btn" id="btnConfigDropdown">⚙️ Gestión<span class="caret">▾</span></button>
       </div>
       <div class="dropdown" id="informesDropdown">
         <button data-view="incidencias">📅 Informe del día</button>
@@ -141,9 +141,10 @@
         <button data-view="panel-siniestros">🗂️ Panel siniestros</button>
       </div>
       <div class="dropdown" id="configDropdown">
-        <button data-view="config-tiendas">🏪 Gestión de tiendas</button>
-        <button data-view="config-emails">✉️ Gestión de agencias</button>
-        <button data-view="config-gravedad-motivos">⚖️ Gravedad de motivos</button>
+        <button data-view="config-tiendas">🏪 Tiendas</button>
+        <button data-view="config-emails">✉️ Agencias</button>
+        <button data-view="config-gravedad-motivos">⚖️ Tipos incidencias</button>
+        <button data-view="config-supervisores">🧑‍💼 Supervisores</button>
         <button data-view="config-usuarios">👤 Usuarios</button>
         <button data-view="config-auditoria">🕵️ Registro de auditoría</button>
       </div>
@@ -928,7 +929,7 @@
     <section class="view" id="view-config-tiendas">
       <div class="page-head" id="pageHeadTiendas">
         <div>
-          <h1>🏪 Gestión de tiendas</h1>
+          <h1>🏪 Tiendas</h1>
           <p>Alta, baja y reordenación por agencia.</p>
         </div>
         <div class="tiendas-contadores" id="tiendasContadores"></div>
@@ -1071,7 +1072,7 @@
     <section class="view" id="view-config-emails">
       <div class="page-head">
         <div>
-          <h1>✉️ Gestión de agencias</h1>
+          <h1>✉️ Agencias</h1>
           <p>Destinatarios de los informes e incidencias.</p>
         </div>
         <div style="display:flex; gap:10px;">
@@ -1103,7 +1104,7 @@
     <section class="view" id="view-config-gravedad-motivos">
       <div class="page-head">
         <div>
-          <h1>⚖️ Gravedad de motivos</h1>
+          <h1>⚖️ Tipos incidencias</h1>
           <p>Clasificación y orden de los motivos de incidencia, usados en Análisis y en el Reporte mensual.</p>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
@@ -1117,6 +1118,38 @@
         🎨 Pulsa el <b>código de color</b> de un motivo para cambiar su color en el Reporte mensual y en los PDF.
       </div>
       <div id="contenidoGravedadMotivos"></div>
+    </section>
+
+    <!-- ============ GESTIÓN: SUPERVISORES (js/supervisores.js) ============ -->
+    <section class="view" id="view-config-supervisores">
+      <div class="page-head">
+        <div>
+          <h1>🧑‍💼 Supervisores</h1>
+          <p>Alta y datos de contacto de los supervisores/as de tienda.</p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarSupervisores" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn primary" id="btnNuevoSupervisor">➕ Nuevo supervisor</button>
+        </div>
+      </div>
+
+      <div class="card usuarios-lista">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Nombre abreviado</th>
+              <th>Nombre completo</th>
+              <th>Correo electrónico</th>
+              <th>Teléfono</th>
+              <th style="text-align:center;">Tiendas</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tablaSupervisoresBody">
+            <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando supervisores…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
@@ -1173,12 +1206,14 @@
               <label class="form-label">Categoría</label>
               <select id="audFiltroCategoria" class="form-input">
                 <option value="">Todas</option>
-                <option value="tiendas">Tiendas y agencias</option>
+                <option value="tiendas">Tiendas</option>
+                <option value="agencias">Agencias</option>
+                <option value="supervisores">Supervisores</option>
                 <option value="usuarios">Usuarios</option>
                 <option value="informes">Informes</option>
                 <option value="reportes_mensuales">Reportes mensuales</option>
                 <option value="siniestros">Siniestros</option>
-                <option value="gravedad_motivos">Gravedad de motivos</option>
+                <option value="gravedad_motivos">Tipos incidencias</option>
               </select>
             </div>
             <div>
@@ -1385,7 +1420,7 @@
               <div class="filtros-modal-body">
                 <p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);">
                   Se envía el mismo cuadro de esta pantilla (<b id="rmEnviarMesTexto">—</b>) a cada agencia, en PDF adjunto.
-                  Las agencias con el mismo "grupo de envío" (Configuración → Gestión de agencias) se juntan en un único PDF y correo.
+                  Las agencias con el mismo "grupo de envío" (Gestión → Agencias) se juntan en un único PDF y correo.
                 </p>
                 <div class="rme-toolbar">
                   <span id="rmeResumenTexto" class="rme-sub">—</span>
@@ -1589,7 +1624,7 @@
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Supervisor/a <span class="tf-req tf-req-apertura">*</span></label>
-              <input type="text" id="metSupervisor" class="form-input">
+              <select id="metSupervisor" class="form-input"></select>
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Agencia</label>
@@ -2516,10 +2551,10 @@
             </label>
           </div>
           <div class="permisos-col">
-            <h4>Configuración</h4>
+            <h4>Gestión</h4>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_tiendas">
-              <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+              <span><b><i class="perm-ico">🏬</i>Tiendas</b><small>Dar de alta tiendas y supervisores, y editar sus datos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_pruebas">
@@ -2531,7 +2566,7 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_emails">
-              <span><b><i class="perm-ico">✉️</i>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+              <span><b><i class="perm-ico">✉️</i>Agencias</b><small>Dar de alta y de baja agencias, y editar su nombre comercial, grupo de envío y destinatarios.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_facturacion">
@@ -2543,7 +2578,7 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="euPerm_config_gravedad_motivos">
-              <span><b><i class="perm-ico">⚖️</i>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
+              <span><b><i class="perm-ico">⚖️</i>Tipos incidencias</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
             </label>
           </div>
           <div class="permisos-col">
@@ -2751,10 +2786,10 @@
             </label>
           </div>
           <div class="permisos-col">
-            <h4>Configuración</h4>
+            <h4>Gestión</h4>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_tiendas">
-              <span><b><i class="perm-ico">🏬</i>Tiendas y agencias</b><small>Dar de alta agencias y tiendas, y editar sus datos.</small></span>
+              <span><b><i class="perm-ico">🏬</i>Tiendas</b><small>Dar de alta tiendas y supervisores, y editar sus datos.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_pruebas">
@@ -2766,7 +2801,7 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_emails">
-              <span><b><i class="perm-ico">✉️</i>Emails y nombre comercial</b><small>Editar destinatarios y nombre comercial de cada agencia.</small></span>
+              <span><b><i class="perm-ico">✉️</i>Agencias</b><small>Dar de alta y de baja agencias, y editar su nombre comercial, grupo de envío y destinatarios.</small></span>
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_facturacion">
@@ -2778,7 +2813,7 @@
             </label>
             <label class="permiso-item">
               <input type="checkbox" id="nuPerm_config_gravedad_motivos">
-              <span><b><i class="perm-ico">⚖️</i>Gravedad de motivos</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
+              <span><b><i class="perm-ico">⚖️</i>Tipos incidencias</b><small>Cambiar la clasificación (Leve/Moderado/Grave) y el orden de los motivos, crear motivos nuevos y cambiar sus colores.</small></span>
             </label>
           </div>
           <div class="permisos-col">
@@ -2847,6 +2882,40 @@
   </div>
 </div>
 
+<!-- Modal: nuevo / editar supervisor (Gestión → Supervisores) — js/supervisores.js -->
+<div class="modal-overlay" id="supervisorModalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="supervisorModalTitulo" style="max-width:480px; position:relative;">
+    <button class="filtros-modal-close" id="btnCerrarSupervisor" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" id="supervisorModalTitulo">➕ Nuevo supervisor</h3>
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+      <div>
+        <label class="form-label">Nombre abreviado <span class="tf-req">*</span></label>
+        <input type="text" id="supAbreviado" class="form-input" placeholder="Ej: LAURA" maxlength="30" autocomplete="off">
+      </div>
+      <div>
+        <label class="form-label">Nombre completo <span class="tf-req">*</span></label>
+        <input type="text" id="supNombreCompleto" class="form-input" placeholder="Ej: LAURA GARCÍA LÓPEZ" maxlength="120" autocomplete="off">
+      </div>
+      <div>
+        <label class="form-label">Correo electrónico</label>
+        <input type="text" id="supEmail" class="form-input" placeholder="nombre@primor.eu (opcional)" maxlength="150" autocomplete="off" inputmode="email">
+      </div>
+      <div>
+        <label class="form-label">Teléfono</label>
+        <input type="text" id="supTelefono" class="form-input" placeholder="Ej: 600 000 000 (opcional)" maxlength="30" autocomplete="off" inputmode="tel">
+      </div>
+    </div>
+
+    <p class="err" id="supError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn" id="btnCancelarSupervisor">Cancelar</button>
+      <button class="btn primary" id="btnGuardarSupervisor">💾 Crear supervisor</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: nueva tienda -->
 <div class="modal-overlay" id="nuevaTiendaModalOverlay">
   <div class="modal-box tienda-modal-box dos-col" role="dialog" aria-modal="true" aria-labelledby="nuevaTiendaTitulo">
@@ -2882,7 +2951,7 @@
             </div>
             <div class="tf-campo tf-span-2">
               <label class="form-label">Supervisor/a <span class="tf-req tf-req-apertura">*</span></label>
-              <input type="text" id="ntSupervisor" class="form-input" placeholder="Ej. María Pérez">
+              <select id="ntSupervisor" class="form-input"></select>
             </div>
           </div>
         </section>
@@ -3075,6 +3144,7 @@
 <script src="js/auditoria.js"></script>
 <script src="js/informes-cambios-log.js"></script>
 <script src="js/tiendas.js"></script>
+<script src="js/supervisores.js"></script>
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
 <script src="js/cc-config.js"></script>

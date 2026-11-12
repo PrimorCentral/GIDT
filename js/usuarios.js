@@ -157,7 +157,7 @@
         if (chkP.dataset.propio == null) chkP.dataset.propio = chkP.checked ? '1' : '0';
         chkP.checked = true;
         label?.classList.add('permiso-incluido');
-        if (label) label.title = 'Incluido en «Tiendas y agencias». Para quitarlo, quita primero ese permiso.';
+        if (label) label.title = 'Incluido en «Tiendas». Para quitarlo, quita primero ese permiso.';
       } else {
         if (chkP.dataset.propio != null) chkP.checked = chkP.dataset.propio === '1';
         delete chkP.dataset.propio;

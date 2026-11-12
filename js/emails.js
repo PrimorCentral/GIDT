@@ -140,7 +140,7 @@
       // asignado una tienda desde que se cargó la lista).
       const numTiendas = (await contarTiendasPorAgencia()).get(agenciaId) || 0;
       if (numTiendas) {
-        await modalAlert(`${nombreAgencia} todavía tiene ${numTiendas} tienda${numTiendas === 1 ? '' : 's'} asignada${numTiendas === 1 ? '' : 's'} (como agencia habitual, de sábado o de prueba). Reasígnala${numTiendas === 1 ? '' : 's'} en Gestión de tiendas antes de darla de baja.`, { titulo: 'No se puede dar de baja' });
+        await modalAlert(`${nombreAgencia} todavía tiene ${numTiendas} tienda${numTiendas === 1 ? '' : 's'} asignada${numTiendas === 1 ? '' : 's'} (como agencia habitual, de sábado o de prueba). Reasígnala${numTiendas === 1 ? '' : 's'} en Gestión → Tiendas antes de darla de baja.`, { titulo: 'No se puede dar de baja' });
         await cargarEmailsAgencias();
         return;
       }
