@@ -65,7 +65,37 @@ function auditoriaCalcularCambios(campos, antes, despues) {
   return cambios;
 }
 
+// auditoriaCache: solo las acciones de la página que se está viendo.
 let auditoriaCache = [];
+// Paginación (igual que el Panel siniestros): 30 por página. Cada página
+// se pide a la base de datos cuando se abre, no se descarga todo de golpe.
+const AUD_POR_PAGINA = 30;
+let audPagina = 1;
+
+function renderPaginacionAuditoria(total) {
+  const cont = document.getElementById('audPaginacion');
+  if (!cont) return;
+  if (!total) { cont.innerHTML = ''; return; }
+  const totalPaginas = Math.max(1, Math.ceil(total / AUD_POR_PAGINA));
+  const desde = (audPagina - 1) * AUD_POR_PAGINA + 1;
+  const hasta = Math.min(total, audPagina * AUD_POR_PAGINA);
+  // Números de página visibles: primera, última y las de alrededor de la actual.
+  const nums = [];
+  for (let p = 1; p <= totalPaginas; p++) {
+    if (p === 1 || p === totalPaginas || Math.abs(p - audPagina) <= 2) nums.push(p);
+    else if (nums[nums.length - 1] !== '…') nums.push('…');
+  }
+  cont.innerHTML = `
+    <span>Mostrando <b>${desde}–${hasta}</b> de <b>${total}</b> acci${total === 1 ? 'ón' : 'ones'}</span>
+    ${totalPaginas > 1 ? `<div class="ps-pag-botones">
+      <button type="button" class="ps-pag-btn" data-pag="${audPagina - 1}" ${audPagina === 1 ? 'disabled' : ''} title="Página anterior">‹</button>
+      ${nums.map(n => n === '…' ? '<span class="ps-pag-puntos">…</span>' : `<button type="button" class="ps-pag-btn${n === audPagina ? ' activa' : ''}" data-pag="${n}">${n}</button>`).join('')}
+      <button type="button" class="ps-pag-btn" data-pag="${audPagina + 1}" ${audPagina === totalPaginas ? 'disabled' : ''} title="Página siguiente">›</button>
+    </div>` : ''}`;
+  cont.querySelectorAll('.ps-pag-btn[data-pag]').forEach(btn => btn.addEventListener('click', () => {
+    cargarAuditoria(Number(btn.dataset.pag));
+  }));
+}
 
 function rellenarFiltroUsuariosAuditoria() {
   const sel = document.getElementById('audFiltroUsuario');
@@ -101,9 +131,11 @@ async function prepararVistaAuditoria() {
   }
 }
 
-async function cargarAuditoria() {
+// pagina: la que se quiere ver. "Consultar" y "Limpiar" vuelven a la 1.
+async function cargarAuditoria(pagina) {
   const tbody = document.getElementById('tablaAuditoriaBody');
   if (!tbody) return;
+  audPagina = Number.isInteger(pagina) && pagina > 0 ? pagina : 1;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">Cargando registro…</td></tr>';
 
   if (typeof usuariosCache !== 'undefined' && !usuariosCache.length && typeof cargarUsuarios === 'function') {
@@ -117,20 +149,31 @@ async function cargarAuditoria() {
 
   try {
     mostrarCargandoGlobal();
+    const inicio = (audPagina - 1) * AUD_POR_PAGINA;
     let query = sb.from('registro_acciones')
-      .select('id, usuario, categoria, accion, detalle, cambios, creado_en')
+      .select('id, usuario, categoria, accion, detalle, cambios, creado_en', { count: 'exact' })
       .order('creado_en', { ascending: false })
-      .limit(300);
+      .order('id', { ascending: false })
+      .range(inicio, inicio + AUD_POR_PAGINA - 1);
     if (usuario) query = query.eq('usuario', usuario);
     if (categoria) query = query.eq('categoria', categoria);
     if (desde) query = query.gte('creado_en', `${desde}T00:00:00`);
     if (hasta) query = query.lte('creado_en', `${hasta}T23:59:59`);
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
 
     auditoriaCache = data || [];
+    const total = count != null ? count : inicio + auditoriaCache.length;
+    // Si la página pedida ya no existe (se han borrado registros o se ha
+    // quedado corta), se vuelve a la última que sí tiene datos.
+    if (!auditoriaCache.length && total > 0 && audPagina > 1) {
+      return cargarAuditoria(Math.max(1, Math.ceil(total / AUD_POR_PAGINA)));
+    }
     rellenarFiltroUsuariosAuditoria();
+    renderPaginacionAuditoria(total);
+    const scroll = document.querySelector('#view-config-auditoria .aud-lista');
+    if (scroll) scroll.scrollTop = 0;
 
     if (!auditoriaCache.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--ink-soft);">No hay acciones registradas con estos filtros.</td></tr>';
@@ -152,18 +195,19 @@ async function cargarAuditoria() {
   } catch (err) {
     console.error('Error cargando el registro de auditoría:', err);
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--grave);">Error al cargar el registro.</td></tr>';
+    renderPaginacionAuditoria(0);
   } finally {
     ocultarCargandoGlobal();
   }
 }
 
-document.getElementById('btnAudConsultar')?.addEventListener('click', cargarAuditoria);
+document.getElementById('btnAudConsultar')?.addEventListener('click', () => cargarAuditoria(1));
 document.getElementById('btnAudLimpiar')?.addEventListener('click', () => {
   document.getElementById('audFiltroUsuario').value = '';
   document.getElementById('audFiltroCategoria').value = '';
   document.getElementById('audDesde').value = '';
   document.getElementById('audHasta').value = '';
-  cargarAuditoria();
+  cargarAuditoria(1);
 });
 
 // ---------------------------------------------------------------
