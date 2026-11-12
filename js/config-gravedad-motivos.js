@@ -424,11 +424,9 @@ async function guardarGravedadMotivos() {
     gravedadMotivosCache = gravedadMotivosEdicion.map(f => ({ ...f }));
     codigosEdicion = codigosBase();
     pintarGravedadMotivos();
-    const ok = document.getElementById('gravedadGuardadoOk');
-    if (ok) {
-      ok.style.display = 'inline';
-      setTimeout(() => { ok.style.display = 'none'; }, 2500);
-    }
+    // Aviso de guardado: el mismo mensaje verde de abajo que en Editar
+    // tienda y en el Panel siniestros (antes salía "Guardado ✓" junto al botón).
+    if (typeof mostrarToast === 'function') mostrarToast('Tipos incidencias guardados correctamente', { posicion: 'abajo' });
   } catch (err) {
     console.error('Error guardando la gravedad de motivos:', err);
     await modalAlert('No se pudo guardar. Inténtalo de nuevo.', { titulo: 'Error' });

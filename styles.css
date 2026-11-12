@@ -3690,13 +3690,18 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .lp-aviso{ margin:4px 0 0; font-size:11px; font-weight:600; color:#C2410C; }
 .modal-box.le-modal{ max-width:460px; }
 .le-modal .le-sw{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--ink); margin:4px 0 12px; cursor:pointer; }
-.le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 24px; gap:6px; align-items:center; }
+.le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 28px; gap:6px; align-items:center; }
 .le-cab{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; margin-bottom:4px; }
 .le-fila{ margin-bottom:6px; }
 .le-fila .form-input{ height:34px; padding:0 4px 0 6px; font-size:12.5px; min-width:0; width:100%; }
 .le-fila.vigente .form-input{ border-color:#FDBA8C; background:#FFF7ED; }
-.le-del{ border:0; background:transparent; cursor:pointer; font-size:14px; opacity:.7; padding:0; }
-.le-del:hover{ opacity:1; }
+/* Quitar periodo: la misma ✕ redonda que cierra los modales. */
+.le-del{
+  width:27px; height:27px; border-radius:99px; border:none; cursor:pointer; padding:0;
+  background:rgba(122,52,0,.1); color:var(--accent-ink); font-size:14px; line-height:1;
+  display:flex; align-items:center; justify-content:center; justify-self:center;
+}
+.le-del:hover{ background:rgba(122,52,0,.18); }
 .le-add{ border:1px dashed var(--border); background:transparent; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer; width:100%; }
 .le-add:hover{ background:var(--panel-muted); color:var(--ink); }
 .le-nota{ margin:12px 0 10px; font-size:11.5px; color:var(--ink-soft); }

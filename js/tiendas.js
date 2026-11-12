@@ -3139,16 +3139,19 @@
   // Editar tienda (cuenta para "cambios sin guardar").
   // ---------------------------------------------------------------
   // Estrella pequeña junto al número en la columna "Límite palets" de la
-  // tabla: naranja si el límite especial está activado, gris si hay
-  // periodos pero está apagado; sin periodos pendientes, nada. Al pasar el
-  // ratón: "Límite especial: X palets / Del dd/mm al dd/mm" (uno por periodo).
+  // tabla: naranja SOLO si el límite especial está mandando hoy (activado
+  // y con la fecha de hoy dentro de un periodo); gris si hay periodos
+  // configurados pero hoy no manda (aún no ha llegado la fecha, o está
+  // apagado); sin periodos pendientes, nada. Al pasar el ratón:
+  // "Límite especial: X palets / Del dd/mm al dd/mm" (uno por periodo).
   function estrellaLimEspTablaHtml(t) {
     const periodos = limEspVigentes(t.limites_especiales);
     if (!periodos.length) return '';
     const ddmm = iso => fechaISOaCorta(iso).slice(0, 5);
+    const enVigor = !!t.limite_especial_activo && !!limEspDeHoy(periodos);
     const titulo = periodos.map(p => `Límite especial: ${p.palets} palets\nDel ${ddmm(p.desde)} al ${ddmm(p.hasta)}`).join('\n\n')
-      + (t.limite_especial_activo ? '' : '\n(desactivado)');
-    return `<span class="lp-tabla-star${t.limite_especial_activo ? '' : ' gris'}" title="${escapeHtml(titulo)}">★</span>`;
+      + (enVigor ? '' : (t.limite_especial_activo ? '\n(aún no ha empezado)' : '\n(desactivado)'));
+    return `<span class="lp-tabla-star${enVigor ? '' : ' gris'}" title="${escapeHtml(titulo)}">★</span>`;
   }
 
   let limEspMet = { activo: false, periodos: [] };
@@ -3174,22 +3177,24 @@
     return (periodos || []).find(p => p.desde <= hoy && hoy <= p.hasta) || null;
   }
 
-  // ☆ gris = sin configurar · ★ naranja = activado · ★ gris = configurado
-  // pero apagado. "Límite especial activo" solo si hoy cae en un periodo.
+  // ☆ gris = sin configurar · ★ naranja = mandando hoy (activado y hoy
+  // dentro de un periodo) · ★ gris = configurado pero hoy no manda (aún no
+  // ha llegado la fecha, o apagado).
   function pintarEstrellaLimEsp() {
     const btn = document.getElementById('metLimEspBtn');
     if (!btn) return;
     const { activo, periodos } = limEspMet;
     const hay = periodos.length > 0;
-    const on = hay && activo;
+    const on = hay && activo && !!limEspDeHoy(periodos);
     btn.classList.toggle('on', on);
-    btn.classList.toggle('gris', hay && !activo);
+    btn.classList.toggle('gris', hay && !on);
     btn.textContent = hay ? '★' : '☆';
     const resumen = periodos.map(p => `${p.palets} palets del ${fechaISOaCorta(p.desde)} al ${fechaISOaCorta(p.hasta)}`).join('\n');
     btn.title = !hay ? 'Sin límite especial · pulsa para configurarlo'
-      : (on ? `Límite especial:\n${resumen}` : `Límite especial desactivado:\n${resumen}`);
+      : (on ? `Límite especial activo:\n${resumen}`
+        : (activo ? `Límite especial configurado (aún no ha empezado):\n${resumen}` : `Límite especial desactivado:\n${resumen}`));
     const aviso = document.getElementById('metLimEspAviso');
-    if (aviso) aviso.style.display = on && limEspDeHoy(periodos) ? '' : 'none';
+    if (aviso) aviso.style.display = on ? '' : 'none';
   }
 
   function filaLimEspHtml(p) {
@@ -3199,7 +3204,7 @@
         <input type="date" class="form-input le-desde" value="${p?.desde || ''}">
         <input type="date" class="form-input le-hasta" value="${p?.hasta || ''}">
         <input type="number" class="form-input le-palets" min="1" step="1" value="${p?.palets ?? ''}">
-        <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">🗑️</button>
+        <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">✕</button>
       </div>`;
   }
 
