@@ -10,6 +10,19 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.9.0',
+    fecha: '2026-11-12',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Nueva pantalla Gestión → Supervisores: alta de supervisores con nombre abreviado, nombre completo, correo electrónico y teléfono' },
+      { tipo: 'nuevo',  texto: 'Tiendas: el campo Supervisor/a pasa a ser una lista con los supervisores dados de alta' },
+      { tipo: 'mejora', texto: 'El menú Configuración pasa a llamarse Gestión, con Tiendas, Agencias y Tipos incidencias (antes Gestión de tiendas, Gestión de agencias y Gravedad de motivos)' },
+      { tipo: 'mejora', texto: 'Permisos: «Tiendas y agencias» pasa a llamarse «Tiendas» (incluye Supervisores) y «Emails y nombre comercial» pasa a llamarse «Agencias»' },
+      { tipo: 'mejora', texto: 'Tiendas: la estrella del límite especial de palets solo sale en naranja cuando el límite está en vigor ese día; si está configurado pero aún no ha empezado, sale en gris' },
+      { tipo: 'mejora', texto: 'Registro de auditoría: 30 acciones por página, con la cabecera fija, y nuevas categorías Agencias y Supervisores' },
+      { tipo: 'mejora', texto: 'Tipos incidencias: nuevo aviso al guardar los cambios' }
+    ]
+  },
+  {
     version: '1.8.9',
     fecha: '2026-11-07',
     cambios: [
