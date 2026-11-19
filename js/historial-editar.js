@@ -372,10 +372,149 @@ async function confirmarDescartarEdicionHistorial() {
 
 function salirDeEdicionHistorial() {
   historialEditando = false;
+  limpiarSalidasFiltroHist();
   if (typeof mostrarFiltroSoloConIncidenciasHistorial === 'function') mostrarFiltroSoloConIncidenciasHistorial(false);
   if (!historialInformeActual) return;
   historialIncidenciasActual = historialTodasIncidencias.filter(i => i.marcada);
   renderHistorialInforme();
+}
+
+// ---------------- Cuenta atrás antes de que una fila salga del filtro ----------------
+// Igual que en el Informe del día: si al cambiar los motivos una fila deja
+// de cumplir los filtros activos (p. ej. con "Solo pendientes" se cambia
+// "Retraso pdte confirmar" por el motivo real), no desaparece al momento:
+// se queda con "Sale del filtro en N s". La cuenta se pausa mientras se
+// escribe en sus Observaciones o tiene el desplegable de motivos abierto.
+// Al acabar sale "✓ Listo" un momento y la fila sale del listado. (Aquí no
+// se guarda nada en BD hasta "Terminar de editar".)
+const SEGUNDOS_SALIDA_FILTRO_HIST = 8;
+const filasSaliendoFiltroHist = new Map(); // claveHist -> { segundos, pausa, listo, timer }
+
+// ¿La fila cumple los filtros que dependen de los motivos (tipo, motivo,
+// solo con incidencias, solo pendientes)? Agencia/marca/búsqueda no
+// cambian al tocar los motivos, así que no se miran aquí.
+function filaHistorialCumpleFiltrosMotivos(tiendaId, entrega) {
+  if (typeof filtrosHistorial === 'undefined') return true;
+  const motivosActuales = estadoEfectivoHistorial(tiendaId, entrega).motivos;
+  const marcada = motivosActuales.length > 0;
+  const tipoCalc = calcularTipo(motivosActuales);
+  const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
+  if (filtrosHistorial.soloConIncidencias && !marcada) return false;
+  if (filtrosHistorial.soloPendientes && !motivosActuales.some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA')) return false;
+  if (filtrosHistorial.tipos.size && (!tipoEfectivo || !filtrosHistorial.tipos.has(tipoEfectivo))) return false;
+  if (filtrosHistorial.motivos.size && !motivosActuales.some(m => filtrosHistorial.motivos.has(m))) return false;
+  return true;
+}
+
+function trDeFilaHist(clave) {
+  const { tiendaId, entrega } = partesClaveHist(clave);
+  return document.querySelector(`#contenidoHistorial tr[data-tienda="${tiendaId}"][data-entrega="${entrega}"]`);
+}
+
+function filaHistEnEdicion(tr) {
+  if (!tr) return false;
+  if (tr.querySelector('.motivo-select.open')) return true;
+  const activo = document.activeElement;
+  return !!(activo && tr.contains(activo) && activo.classList.contains('i-obs'));
+}
+
+function chipSalidaFiltroHistHtml(clave) {
+  const s = filasSaliendoFiltroHist.get(clave);
+  if (!s) return '';
+  if (s.listo) return '<span class="fila-sale-chip guardado">✓ Listo</span>';
+  if (s.pausa) return '<span class="fila-sale-chip pausa">✏️ En pausa mientras escribes</span>';
+  return `<span class="fila-sale-chip">⏳ Sale del filtro en <span class="seg">${s.segundos}</span> s</span>`;
+}
+
+function pintarChipSalidaFiltroHist(clave) {
+  const tr = trDeFilaHist(clave);
+  if (!tr) return;
+  const s = filasSaliendoFiltroHist.get(clave);
+  let wrap = tr.querySelector('.fila-sale-wrap');
+  if (!s) {
+    tr.classList.remove('fila-saliendo', 'fila-saliendo-ok');
+    if (wrap) wrap.remove();
+    return;
+  }
+  tr.classList.add('fila-saliendo');
+  tr.classList.toggle('fila-saliendo-ok', !!s.listo);
+  if (!wrap) {
+    wrap = document.createElement('span');
+    wrap.className = 'fila-sale-wrap';
+    tr.querySelector('.col-tienda')?.appendChild(wrap);
+  }
+  wrap.innerHTML = chipSalidaFiltroHistHtml(clave);
+}
+
+function iniciarSalidaFiltroHist(clave) {
+  if (!filasSaliendoFiltroHist.has(clave)) {
+    const s = { segundos: SEGUNDOS_SALIDA_FILTRO_HIST, pausa: false, listo: false, timer: null };
+    filasSaliendoFiltroHist.set(clave, s);
+    s.timer = setInterval(() => {
+      const tr = trDeFilaHist(clave);
+      if (!tr || !historialEditando) { cancelarSalidaFiltroHist(clave); return; }
+      s.pausa = filaHistEnEdicion(tr);
+      if (!s.pausa) {
+        s.segundos -= 1;
+        if (s.segundos <= 0) { finalizarSalidaFiltroHist(clave); return; }
+      }
+      pintarChipSalidaFiltroHist(clave);
+    }, 1000);
+  }
+  filasSaliendoFiltroHist.get(clave).pausa = filaHistEnEdicion(trDeFilaHist(clave));
+  pintarChipSalidaFiltroHist(clave);
+}
+
+function cancelarSalidaFiltroHist(clave) {
+  const s = filasSaliendoFiltroHist.get(clave);
+  if (!s) return;
+  clearInterval(s.timer);
+  filasSaliendoFiltroHist.delete(clave);
+  pintarChipSalidaFiltroHist(clave);
+}
+
+function limpiarSalidasFiltroHist() {
+  filasSaliendoFiltroHist.forEach(s => clearInterval(s.timer));
+  filasSaliendoFiltroHist.clear();
+}
+
+function finalizarSalidaFiltroHist(clave) {
+  const s = filasSaliendoFiltroHist.get(clave);
+  if (!s || s.listo) return;
+  clearInterval(s.timer);
+  s.listo = true;
+  pintarChipSalidaFiltroHist(clave);
+
+  setTimeout(() => {
+    filasSaliendoFiltroHist.delete(clave);
+    if (!historialEditando) return;
+    const { tiendaId, entrega } = partesClaveHist(clave);
+    const tr = trDeFilaHist(clave);
+    if (!historialFiltrosActivos() || filaHistorialCumpleFiltrosMotivos(tiendaId, entrega)) {
+      // Ya no hay filtro (o vuelve a cumplirlo): se queda, sin aviso.
+      pintarChipSalidaFiltroHist(clave);
+      return;
+    }
+    // Si se está editando otra fila, no se repinta todo (perdería el foco
+    // o cerraría su desplegable): solo se quita esta fila.
+    const cont = document.getElementById('contenidoHistorial');
+    const activo = document.activeElement;
+    const editando = cont && (cont.querySelector('.motivo-select.open')
+      || (activo && cont.contains(activo) && (activo.tagName === 'INPUT' || activo.tagName === 'TEXTAREA')));
+    if (editando) {
+      if (tr) tr.remove();
+    } else {
+      renderAcordeonHistorialEditable();
+    }
+  }, 900);
+}
+
+// Tras cambiar los motivos de una fila: si con filtros activos ha dejado de
+// cumplirlos, arranca su cuenta atrás; si los vuelve a cumplir, se cancela.
+function revisarSalidaFiltroHist(tiendaId, entrega) {
+  const clave = claveHist(tiendaId, entrega);
+  if (historialFiltrosActivos() && !filaHistorialCumpleFiltrosMotivos(tiendaId, entrega)) iniciarSalidaFiltroHist(clave);
+  else cancelarSalidaFiltroHist(clave);
 }
 
 // ---------------- Render del acordeón editable (con borrador + filtros) ----------------
@@ -441,16 +580,9 @@ function renderAcordeonHistorialEditable() {
       if (filtrosHistorial.marcas.size) tds = tds.filter(t => filtrosHistorial.marcas.has(typeof marcaDeFilaInforme === 'function' ? marcaDeFilaInforme(t) : t.marca));
       if (filtrosHistorial.tipos.size || filtrosHistorial.motivos.size || filtrosHistorial.soloConIncidencias || filtrosHistorial.soloPendientes) {
         tds = tds.filter(t => {
-          const estado = estadoEfectivoHistorial(t.id, t.entrega);
-          const motivosActuales = estado.motivos;
-          const marcada = motivosActuales.length > 0;
-          const tipoCalc = calcularTipo(motivosActuales);
-          const tipoEfectivo = marcada ? (tipoCalc || 'PENDIENTE') : null;
-          if (filtrosHistorial.soloConIncidencias && !marcada) return false;
-          if (filtrosHistorial.soloPendientes && !motivosActuales.some(m => m === 'RETRASO PDTE CONFIRMAR' || m === 'REVISANDO POSIBLE INCIDENCIA')) return false;
-          if (filtrosHistorial.tipos.size && (!tipoEfectivo || !filtrosHistorial.tipos.has(tipoEfectivo))) return false;
-          if (filtrosHistorial.motivos.size && !motivosActuales.some(m => filtrosHistorial.motivos.has(m))) return false;
-          return true;
+          // Fila en cuenta atrás para salir del filtro: se sigue mostrando.
+          if (filasSaliendoFiltroHist.has(claveHist(t.id, t.entrega))) return true;
+          return filaHistorialCumpleFiltrosMotivos(t.id, t.entrega);
         });
       }
     }
@@ -479,11 +611,15 @@ function renderAcordeonHistorialEditable() {
       const clave = claveHist(t.id, t.entrega);
       const tieneCambioSinGuardar = historialBorrador.has(clave) || historialSiniestrosDraft.has(clave);
 
+      const salida = filasSaliendoFiltroHist.get(clave);
+      const claseSalida = salida ? (' fila-saliendo' + (salida.listo ? ' fila-saliendo-ok' : '')) : '';
+      const chipSalida = salida ? `<span class="fila-sale-wrap">${chipSalidaFiltroHistHtml(clave)}</span>` : '';
+
       return `
-        <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${claseFila ? 'con-incidencia ' + claseFila : ''}">
+        <tr data-tienda="${t.id}" data-entrega="${t.entrega}" class="${(claseFila ? 'con-incidencia ' + claseFila : '') + claseSalida}">
           <td class="col-estado">${marcada ? '🔴' : '—'}</td>
           <td class="col-hora">${horaDelDia ? horaDelDia.slice(0,5) : '—'}</td>
-          <td class="col-tienda">${typeof badgeFilaInformeHtml === 'function' ? badgeFilaInformeHtml(t) : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}</td>
+          <td class="col-tienda">${typeof badgeFilaInformeHtml === 'function' ? badgeFilaInformeHtml(t) : badgeMarcaHtml(t.marca)}${escapeHtml(t.nombre)}${tieneCambioSinGuardar ? ' <span title="Cambio sin guardar todavía" style="opacity:.6;">✏️</span>' : ''}${chipSalida}</td>
           <td class="col-tipo">${badgeTipo}</td>
           <td class="col-motivo">
             <div class="motivo-select">
@@ -595,6 +731,7 @@ function renderAcordeonHistorialEditable() {
         }
 
         historialBorrador.set(clave, { motivos: [], observaciones: '' });
+        if (historialFiltrosActivos() && !filaHistorialCumpleFiltrosMotivos(tiendaId, entrega)) iniciarSalidaFiltroHist(clave);
         renderAcordeonHistorialEditable();
       });
     }
@@ -604,7 +741,15 @@ function renderAcordeonHistorialEditable() {
       inputObs.value = inputObs.value.toUpperCase();
       inputObs.setSelectionRange(pos, pos);
     });
-    inputObs.addEventListener('blur', guardar);
+    inputObs.addEventListener('blur', async (e) => {
+      await guardar();
+      // Fila en cuenta atrás para salir del filtro: al terminar de escribir
+      // las observaciones sale ya (salvo que se pase a otro control de la
+      // misma fila, p. ej. el desplegable de motivos).
+      if (filasSaliendoFiltroHist.has(clave) && !(e.relatedTarget && tr.contains(e.relatedTarget))) {
+        finalizarSalidaFiltroHist(clave);
+      }
+    });
 
     const motivoSel = tr.querySelector('.motivo-select');
     if (motivoSel) {
@@ -636,12 +781,10 @@ function renderAcordeonHistorialEditable() {
 // salvo que haya filtros o búsqueda activos: en ese caso, la fila podría
 // dejar de cumplirlos, así que se recalcula el listado completo.
 function actualizarFilaHistorial(tiendaId, tr) {
-  const hayFiltrosOBusqueda = (typeof historialFiltrosActivos === 'function' && historialFiltrosActivos()) ||
-    (document.getElementById('buscarTiendaHistorial')?.value || '').trim();
-  if (hayFiltrosOBusqueda) {
-    renderAcordeonHistorialEditable();
-    return;
-  }
+  if (!tr) { renderAcordeonHistorialEditable(); return; }
+  // La fila se actualiza en su sitio (también con filtros o búsqueda): si
+  // con el cambio deja de cumplir los filtros, no desaparece al momento,
+  // arranca su cuenta atrás (ver revisarSalidaFiltroHist, al final).
 
   const estado = estadoEfectivoHistorial(tiendaId, tr?.dataset?.entrega || 'HABITUAL');
   const motivosActuales = estado.motivos;
@@ -684,6 +827,8 @@ function actualizarFilaHistorial(tiendaId, tr) {
       contEl.remove();
     }
   }
+
+  revisarSalidaFiltroHist(tiendaId, tr.dataset.entrega || 'HABITUAL');
 }
 
 // ---------------- Guardar en el borrador (no en BD) al tocar una fila ----------------

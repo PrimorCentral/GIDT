@@ -53,8 +53,9 @@ function psxPosicionarPanel() {
   // El panel tiene bastante contenido (fechas + filtro activo + filtros
   // manuales); si no cupiera entero bajo el botón, que haga scroll
   // interno en el cuerpo en vez de salirse por abajo de la pantalla.
+  // Sin tope fijo de alto: usa todo el espacio que haya bajo el botón.
   const espacioAbajo = window.innerHeight - wrapRect.bottom - margen - 16;
-  panel.style.maxHeight = Math.min(560, Math.max(280, espacioAbajo)) + 'px';
+  panel.style.maxHeight = Math.max(280, espacioAbajo) + 'px';
 }
 
 function psxAbrirPanel() {
@@ -139,9 +140,10 @@ function psxActualizarUsoFiltro() {
   document.getElementById('psxFiltroResumen').textContent = psxResumenFiltroActivo();
   if (!hayFiltro) check.checked = false;
 
+  // Si se exporta con el filtro activo, los campos manuales no se usan: se
+  // ocultan (en vez de dejarlos en gris) para que el panel quepa sin scroll.
   const usar = hayFiltro && check.checked;
-  camposManual.style.opacity = usar ? '.45' : '';
-  camposManual.style.pointerEvents = usar ? 'none' : '';
+  camposManual.style.display = usar ? 'none' : '';
   camposManual.querySelectorAll('select, input').forEach(el => { el.disabled = usar; });
 }
 
