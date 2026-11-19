@@ -1038,6 +1038,46 @@
   }
 
   // ---------------------------------------------------------------
+  // Nº de siniestro (el id de su fila en el Panel siniestros) en los
+  // correos de siniestros:
+  //  - Asunto: "SINIESTRO Nº 156 – …" (en actualización/anulación va
+  //    detrás de "ACTUALIZACIÓN – " / "ANULACIÓN – ").
+  //  - Correos a la agencia: pastilla "SINIESTRO Nº 156" encima del título
+  //    y, antes de "Atentamente", la frase pidiendo que lo indiquen.
+  //  - Correo a Facturación: asunto + primera línea "Nº de siniestro: 156".
+  // ---------------------------------------------------------------
+
+  function asuntoConNumeroSiniestro(subject, numero) {
+    const m = subject.match(/^(ACTUALIZACIÓN – |ANULACIÓN – )/);
+    return m
+      ? `${m[1]}SINIESTRO Nº ${numero} – ${subject.slice(m[1].length)}`
+      : `SINIESTRO Nº ${numero} – ${subject}`;
+  }
+
+  function aplicarNumeroSiniestro(correo, numero) {
+    if (!numero) return correo;
+    const pastilla = `<table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 14px;"><tr><td style="padding: 5px 14px; background-color: #1e293b; border-radius: 20px; font-family: Arial, sans-serif; font-size: 12px; font-weight: 800; color: #ffffff; letter-spacing: 1px; white-space: nowrap;">SINIESTRO Nº ${numero}</td></tr></table>`;
+    const recordatorio = `<p style="margin: 0 0 18px; text-align: center; font-family: Arial, sans-serif; font-size: 13px; color: #64748b;">Para cualquier consulta o cargo sobre esta incidencia, indicad el <b style="color: #1e293b;">Nº de siniestro ${numero}</b>.</p>`;
+    const html = correo.html
+      .replace(/(<h2 )/, `${pastilla}$1`)
+      .replace(/(<p[^>]*>\s*Atentamente)/, `${recordatorio}$1`);
+    return {
+      subject: asuntoConNumeroSiniestro(correo.subject, numero),
+      html,
+      text: `Nº de siniestro: ${numero}\n\n${correo.text}\n\nPara cualquier consulta o cargo sobre esta incidencia, indicad el Nº de siniestro ${numero}.`
+    };
+  }
+
+  function aplicarNumeroSiniestroFacturacion(correo, numero) {
+    if (!numero) return correo;
+    return {
+      subject: asuntoConNumeroSiniestro(correo.subject, numero),
+      html: correo.html.replace(/(<p style="margin:0 0 14px;">Buenas)/, `<p style="margin:0 0 14px;"><b>Nº de siniestro: ${numero}</b></p>$1`),
+      text: `Nº de siniestro: ${numero}\n\n${correo.text}`
+    };
+  }
+
+  // ---------------------------------------------------------------
   // Correo a Facturación (envío del albarán + fotos de un siniestro del
   // Panel siniestros). Antes vivía en panel-siniestros.js — movida aquí
   // porque este archivo es el sitio de todas las plantillas de correo.

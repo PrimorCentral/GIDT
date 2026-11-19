@@ -100,6 +100,57 @@ const PS_TIPO_A_PLANTILLA = { ROTURA: 'ROTURA', FALTAS: 'FALTA', 'FALTAS Y ROTUR
 
 // s = fila de siniestrosHoyCache (id, tipo, fotos, fecha_limite, incidencia:{tiendas:{...,agencias:{...}}})
 // fechaInformeISO = informeHoyCache.fecha (fecha de recepción de la mercancía)
+// Se llama desde "Siniestros del día" justo ANTES de mandar el primer
+// correo, para que el siniestro ya tenga su Nº (id de la fila del panel)
+// y vaya en el correo. Si ya existe la fila, la reutiliza. Se crea como
+// "pendiente de enviar": si el correo falla, queda así en el panel (con
+// la franja naranja) y se puede mandar desde allí. Devuelve el id.
+async function psAsegurarFilaPanelAntesDeEnviar(s, fechaInformeISO) {
+  const { data: existente, error: eSel } = await sb.from('panel_siniestros')
+    .select('id').eq('siniestro_id', s.id).maybeSingle();
+  if (eSel) throw eSel;
+  if (existente) return existente.id;
+  const t = s.incidencia?.tiendas || {};
+  const ag = t.agencias || {};
+  const tipoPanel = PS_TIPO_DESDE_SINIESTRO[s.tipo] || 'ROTURA';
+  const { data: nueva, error: eIns } = await sb.from('panel_siniestros').insert({
+    siniestro_id: s.id,
+    fecha: fechaInformeISO,
+    correo_enviado: false,
+    agencia_id: ag.id || null,
+    agencia_nombre: ag.nombre || null,
+    tienda_id: t.id || null,
+    tienda_nombre: t.nombre || null,
+    tipo: tipoPanel,
+    fotos: s.fotos || [],
+    estado: 'PDTE COBRO',
+    recogida_limite: tipoPanel !== 'FALTAS' ? (s.fecha_limite || null) : null,
+    creado_por: sesionActual?.nombre || sesionActual?.usuario || null
+  }).select('id').single();
+  if (eIns) throw eIns;
+  return nueva.id;
+}
+
+// Cuando se quita un siniestro que nunca llegó a enviarse (se quitan sus
+// motivos en el informe), se borra también su fila del panel si se creó
+// para un envío que falló: solo si sigue sin enviar y sin omitir el envío.
+async function psBorrarFilaPanelSinEnviar({ siniestroId = null, incidenciaId = null } = {}) {
+  try {
+    let id = siniestroId;
+    if (!id && incidenciaId) {
+      const { data } = await sb.from('siniestros').select('id').eq('incidencia_id', incidenciaId).maybeSingle();
+      id = data?.id || null;
+    }
+    if (!id) return;
+    const { error } = await sb.from('panel_siniestros').delete()
+      .eq('siniestro_id', id).eq('correo_enviado', false).is('envio_omitido_en', null);
+    if (error) console.error('No se pudo quitar del panel el siniestro sin enviar:', error);
+    else if (panelCargado) cargarPanelSiniestros();
+  } catch (err) {
+    console.error('Error quitando del panel el siniestro sin enviar:', err);
+  }
+}
+
 async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
   try {
     const t = s.incidencia?.tiendas || {};
@@ -1100,9 +1151,9 @@ async function enviarCorreoAgenciaDesdePanel() {
     // palet en el propio almacén de la agencia, tras avisarnos ellos),
     // se usa la plantilla específica para ese caso, con otro asunto y
     // otro texto — no la de "entrega de mercancía en tienda".
-    const { subject, html, text } = s.origen === 'AGENCIA'
+    const { subject, html, text } = psConNumero(s.origen === 'AGENCIA'
       ? plantillaSiniestroAgencia({ ...sParaPlantilla, agenciaNombre: s.agencia_nombre }, s.fecha)
-      : plantillaSiniestro(sParaPlantilla, s.fecha);
+      : plantillaSiniestro(sParaPlantilla, s.fecha), s.id);
 
     await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
 
@@ -1120,6 +1171,15 @@ async function enviarCorreoAgenciaDesdePanel() {
     s.correo_enviado_en = correoEnviadoEn;
     s.correo_enviado_por = correoEnviadoPor;
     s.tipo_enviado = s.tipo;
+    // Si viene de "Siniestros del día", su fila allí también pasa a enviada
+    // (p. ej. si el primer envío desde allí falló y se ha mandado desde aquí).
+    if (s.siniestro_id) {
+      const { error: eSin } = await sb.from('siniestros').update({
+        estado: 'ENVIADO', enviado_en: correoEnviadoEn, enviado_por: correoEnviadoPor,
+        tipo_enviado: PS_TIPO_A_PLANTILLA[s.tipo] || null
+      }).eq('id', s.siniestro_id).eq('estado', 'PENDIENTE');
+      if (eSin) console.error('No se pudo marcar como enviado el siniestro de origen:', eSin);
+    }
     pintarBloqueEnvioAgencia(s);
     renderSeguimientoPanel(s);
     renderPanelSiniestros();
@@ -1140,6 +1200,12 @@ document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', () => {
   if (s && psPendienteReenvio(s)) reenviarActualizacionDesdePanel();
   else enviarCorreoAgenciaDesdePanel();
 });
+
+// Pone el Nº de siniestro (id de la fila del panel) en un correo a la
+// agencia (asunto, pastilla y frase final; ver email-plantillas.js).
+function psConNumero(correo, numero) {
+  return typeof aplicarNumeroSiniestro === 'function' ? aplicarNumeroSiniestro(correo, numero) : correo;
+}
 
 // ---------------- Reenvío de actualización / no reenviar ----------------
 
@@ -1227,11 +1293,11 @@ async function reenviarActualizacionDesdePanel() {
     document.getElementById('cargandoEnvioTexto').textContent = 'ENVIANDO ACTUALIZACIÓN A AGENCIA';
     document.getElementById('cargandoEnvioOverlay').classList.add('show');
 
-    const { subject, html, text } = plantillaActualizacionSiniestro(psPlantillaDeSiniestro(s, s.tipo), s.fecha, {
+    const { subject, html, text } = psConNumero(plantillaActualizacionSiniestro(psPlantillaDeSiniestro(s, s.tipo), s.fecha, {
       tipoAnterior: PS_TIPO_A_PLANTILLA[s.tipo_enviado],
       comunicadoEn: psUltimaComunicacion(s),
       agencia: s.origen === 'AGENCIA'
-    });
+    }), s.id);
     await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
 
     const tipoAntes = s.tipo_enviado;
@@ -1309,7 +1375,7 @@ async function psActualizarTipoDesdeSiniestro(siniestroId, tipoSiniestro, fechaL
   const enCache = panelCache.find(x => x.id === fila.id);
   if (enCache) Object.assign(enCache, cambios);
   if (typeof registrarAccion === 'function') {
-    registrarAccion('siniestros', 'Cambio de tipo de siniestro ya enviado', `${psDetalleAuditoria(actualizada)} · ${psTipoTxt(fila.tipo)} → ${psTipoTxt(tipoPanel)}`);
+    registrarAccion('siniestros', 'Cambio de tipo de siniestro', `${psDetalleAuditoria(actualizada)} · ${psTipoTxt(fila.tipo)} → ${psTipoTxt(tipoPanel)}`);
   }
   if (panelCargado) renderPanelSiniestros();
   return actualizada;
@@ -1666,10 +1732,10 @@ async function psEjecutarAnulacion(s, { avisar, quitar }) {
       const emails = await psEmailsAgencia(s.agencia_id);
       if (!emails.length) throw new Error('la agencia no tiene emails configurados');
       const tipoComunicado = s.tipo_enviado || s.tipo;
-      const { subject, html, text } = plantillaAnulacionSiniestro(psPlantillaDeSiniestro(s, tipoComunicado), s.fecha, {
+      const { subject, html, text } = psConNumero(plantillaAnulacionSiniestro(psPlantillaDeSiniestro(s, tipoComunicado), s.fecha, {
         comunicadoEn: psUltimaComunicacion(s),
         agencia: s.origen === 'AGENCIA'
-      });
+      }), s.id);
       await enviarEmail({ to: emails, subject, html, text, attachmentUrls: [] });
       await psRegistrarComunicacion(s, 'ANULACION');
       if (typeof registrarAccion === 'function') {
@@ -2709,9 +2775,11 @@ async function ofrecerEnvioFacturacion(s, { trasAdjuntar = false } = {}) {
       nombreComercial = ag?.nombre_comercial || null;
     }
 
-    const { subject, html, text } = s.origen === 'AGENCIA'
+    const correoFact = s.origen === 'AGENCIA'
       ? plantillaFacturacionAlbaranAgencia(s, nombreComercial)
       : plantillaFacturacionAlbaran(s, nombreComercial);
+    const { subject, html, text } = typeof aplicarNumeroSiniestroFacturacion === 'function'
+      ? aplicarNumeroSiniestroFacturacion(correoFact, s.id) : correoFact;
     const adjuntos = [...(s.fotos || []), s.albaran_url].filter(Boolean);
 
     await enviarEmail({ to: destinatarios, subject, html, text, attachmentUrls: adjuntos });

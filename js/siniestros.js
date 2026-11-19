@@ -104,7 +104,7 @@
         const nuevoTipo = tipoSiniestroDeMotivos(i.motivo);
         s.tipo = nuevoTipo;
         await sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
-        if (s.estado === 'ENVIADO' && typeof psActualizarTipoDesdeSiniestro === 'function') {
+        if (typeof psActualizarTipoDesdeSiniestro === 'function') {
           try { await psActualizarTipoDesdeSiniestro(s.id, nuevoTipo, s.fecha_limite); }
           catch (err) { console.error('No se pudo actualizar el tipo en el Panel siniestros:', err); }
         }
@@ -273,6 +273,7 @@
         // Ya no hay ROTURA CONFIRMADA ni FALTAS en esta incidencia:
         // si tenía un siniestro PENDIENTE asociado, lo quitamos.
         if (existente && existente.estado === 'PENDIENTE') {
+          if (typeof psBorrarFilaPanelSinEnviar === 'function') await psBorrarFilaPanelSinEnviar({ siniestroId: existente.id });
           const { error: eDel } = await sb.from('siniestros').delete().eq('id', existente.id);
           if (eDel) throw eDel;
         }
@@ -291,6 +292,10 @@
       } else if (existente.estado === 'PENDIENTE' && existente.tipo !== tipo) {
         const { error: eUpd } = await sb.from('siniestros').update({ tipo }).eq('id', existente.id);
         if (eUpd) throw eUpd;
+        // Por si ya tiene fila en el panel (envío que falló): mismo tipo allí.
+        if (typeof psActualizarTipoDesdeSiniestro === 'function') {
+          await psActualizarTipoDesdeSiniestro(existente.id, tipo, existente.fecha_limite);
+        }
       } else if (existente.estado === 'ENVIADO' && existente.tipo !== tipo) {
         // Ya se había mandado a la agencia: se cambia el tipo aquí y en el
         // Panel siniestros, y se avisa de que falta reenviar la
@@ -669,7 +674,14 @@
       // Fecha de recepción: la del informe del siniestro (puede ser de un día
       // anterior si se envía desde Inicio o el Historial de siniestros).
       const fechaInformeISO = s.fechaInforme || informeHoyCache?.fecha;
-      const { subject, html, text } = plantillaSiniestro(s, fechaInformeISO);
+      // Se da de alta en el Panel siniestros antes de enviar, para que el
+      // correo lleve ya el Nº de siniestro.
+      const numeroSiniestro = typeof psAsegurarFilaPanelAntesDeEnviar === 'function'
+        ? await psAsegurarFilaPanelAntesDeEnviar(s, fechaInformeISO) : null;
+      let { subject, html, text } = plantillaSiniestro(s, fechaInformeISO);
+      if (numeroSiniestro && typeof aplicarNumeroSiniestro === 'function') {
+        ({ subject, html, text } = aplicarNumeroSiniestro({ subject, html, text }, numeroSiniestro));
+      }
 
       await enviarEmail({
         to: emails,

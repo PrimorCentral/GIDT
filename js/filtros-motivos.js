@@ -288,6 +288,7 @@
     // usuario quien ya ha ido desmarcando uno a uno, no un borrado de golpe.
     if (!marcada && existente) {
       try {
+        if (typeof psBorrarFilaPanelSinEnviar === 'function') await psBorrarFilaPanelSinEnviar({ incidenciaId: existente.id });
         const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', existente.id);
         if (eSin) throw eSin;
 

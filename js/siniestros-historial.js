@@ -635,6 +635,7 @@
 
           try {
             // 1. Si tenía siniestro asociado, se borra primero (por la FK incidencia_id)
+            if (typeof psBorrarFilaPanelSinEnviar === 'function') await psBorrarFilaPanelSinEnviar({ incidenciaId: inc.id });
             const { error: eSin } = await sb.from('siniestros').delete().eq('incidencia_id', inc.id);
             if (eSin) throw eSin;
 
