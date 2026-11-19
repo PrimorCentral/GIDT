@@ -1673,7 +1673,8 @@
               <input type="time" id="metLimiteHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
+              <div class="lp-cab"><label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
+                <label class="lp-sin" title="La tienda no tiene tope de palets (se guarda como 0, igual que en SALIDAS)"><input type="checkbox" id="metLimSin"> Sin límite</label></div>
               <div class="lp-wrap">
                 <input type="number" id="metLimitePalets" class="form-input" min="0" step="1">
                 <button type="button" class="lp-star" id="metLimEspBtn" title="Sin límite especial · pulsa para configurarlo" aria-label="Límite especial de palets">☆</button>
@@ -3001,7 +3002,8 @@
               <input type="time" id="ntLimiteHora" class="form-input">
             </div>
             <div class="tf-campo tf-span-1">
-              <label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
+              <div class="lp-cab"><label class="form-label">Límite palets <span class="tf-req tf-req-apertura">*</span></label>
+                <label class="lp-sin" title="La tienda no tiene tope de palets (se guarda como 0, igual que en SALIDAS)"><input type="checkbox" id="ntLimSin"> Sin límite</label></div>
               <input type="number" id="ntLimitePalets" class="form-input" min="0" step="1" placeholder="Ej. 5">
             </div>
             <div class="tf-campo tf-span-1">

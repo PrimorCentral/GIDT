@@ -568,7 +568,7 @@
               <td class="celda-cp">${t.codigo_postal ? escapeHtml(t.codigo_postal) : '—'}</td>
               <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
-              <td class="celda-limite-palets">${t.limite_palets != null ? t.limite_palets : '—'}${estrellaLimEspTablaHtml(t)}</td>
+              <td class="celda-limite-palets">${textoLimitePalets(t.limite_palets, '—')}${estrellaLimEspTablaHtml(t)}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
               <td class="celda-supervisor">${t.supervisor ? escapeHtml(t.supervisor) : '—'}</td>
               <td class="celda-recogida-dia">${t.recogida_semanal_dia ? nombreDiaRecogida(t.recogida_semanal_dia) : '—'}</td>
@@ -697,6 +697,50 @@
   const audHora = v => (v ? String(v).slice(0, 5) : null);
   const audAgencia = id => (id == null || id === '' ? null : (agenciasCache.find(a => String(a.id) === String(id))?.nombre || `#${id}`));
   const audDia = n => (n ? (DIAS_SEMANA_ISO.find(d => d.iso === Number(n))?.label || String(n)) : null);
+  // ---------------------------------------------------------------
+  // Límite palets SIN LÍMITE: se guarda como 0 (igual que en SALIDAS, que
+  // lo lee como "sin límite"). En pantalla y en los Excel sale "NO".
+  // En Editar / Nueva tienda, la casilla "Sin límite" deja el campo en
+  // NO (bloqueado); al desmarcarla vuelve el número vacío.
+  // ---------------------------------------------------------------
+  function textoLimitePalets(v, vacio = '') {
+    if (v == null || v === '') return vacio;
+    return Number(v) === 0 ? 'NO' : v;
+  }
+  // prefijo: 'met' (Editar tienda) o 'nt' (Nueva tienda).
+  function pintarLimiteSin(prefijo, valor) {
+    const inp = document.getElementById(prefijo + 'LimitePalets');
+    const chk = document.getElementById(prefijo + 'LimSin');
+    if (!inp) return;
+    const sin = valor != null && valor !== '' && Number(valor) === 0;
+    if (chk) {
+      chk.checked = sin;
+      chk.closest('.lp-sin')?.classList.toggle('on', sin);
+    }
+    if (sin) {
+      inp.type = 'text'; inp.value = 'NO'; inp.disabled = true; inp.title = 'Sin límite de palets';
+    } else {
+      inp.type = 'number'; inp.disabled = false; inp.title = '';
+      inp.value = valor != null && valor !== '' ? valor : '';
+    }
+  }
+  // Valor para guardar: '0' si está marcado "Sin límite"; si no, lo escrito.
+  function leerLimitePalets(prefijo) {
+    const chk = document.getElementById(prefijo + 'LimSin');
+    if (chk?.checked) return '0';
+    return document.getElementById(prefijo + 'LimitePalets')?.value ?? '';
+  }
+  ['met', 'nt'].forEach(prefijo => {
+    document.getElementById(prefijo + 'LimSin')?.addEventListener('change', e => {
+      pintarLimiteSin(prefijo, e.target.checked ? 0 : null);
+      if (!e.target.checked) document.getElementById(prefijo + 'LimitePalets')?.focus();
+    });
+    // Si escriben 0 a mano, es lo mismo que "Sin límite".
+    document.getElementById(prefijo + 'LimitePalets')?.addEventListener('change', e => {
+      if (e.target.value !== '' && Number(e.target.value) === 0) pintarLimiteSin(prefijo, 0);
+    });
+  });
+
   const CAMPOS_AUDITORIA_TIENDA = [
     { clave: 'numero_tienda', etiqueta: 'Nº tienda' },
     { clave: 'nombre', etiqueta: 'Nombre' },
@@ -705,7 +749,7 @@
     { clave: 'comunidad', etiqueta: 'Comunidad' },
     { clave: 'provincia', etiqueta: 'Provincia' },
     { clave: 'codigo_postal', etiqueta: 'Código postal' },
-    { clave: 'limite_palets', etiqueta: 'Límite palets' },
+    { clave: 'limite_palets', etiqueta: 'Límite palets', formato: v => (v == null || v === '' ? null : textoLimitePalets(v)) },
     { clave: 'limite_hora_entrega', etiqueta: 'Límite hora entrega', formato: audHora },
     { clave: 'supervisor', etiqueta: 'Supervisor/a' },
     { clave: 'recogida_semanal_dia', etiqueta: 'Día de recogida', formato: audDia },
@@ -799,7 +843,7 @@
       aviso.innerHTML = `${editarTiendaPermPruebas ? '🧪' : '⭐'} Solo puedes modificar ${partes.join(' y ')}. El resto de la ficha es de solo lectura.`;
     }
     const cardPrueba = document.getElementById('metCardPrueba');
-    const permitidos = ['metLimitePalets', 'metLimEspBtn'];
+    const permitidos = ['metLimitePalets', 'metLimSin', 'metLimEspBtn'];
     overlay.querySelectorAll('input, select, textarea, #metLimEspBtn').forEach(el => {
       if (editarTiendaPermPruebas && cardPrueba && cardPrueba.contains(el)) return;
       if (editarTiendaPermLimites && permitidos.includes(el.id)) return;
@@ -840,7 +884,7 @@
     rellenarSelectComunidad(document.getElementById('metComunidad'), t.comunidad);
     document.getElementById('metProvincia').value = t.provincia || '';
     document.getElementById('metCodigoPostal').value = t.codigo_postal || '';
-    document.getElementById('metLimitePalets').value = t.limite_palets != null ? t.limite_palets : '';
+    pintarLimiteSin('met', t.limite_palets);
     // Límite especial: se trabaja sobre una copia; se guarda con Guardar.
     limEspMet = limEspDesdeTienda(t);
     pintarEstrellaLimEsp();
@@ -1434,7 +1478,7 @@
       datosNuevos.prueba_fechas = prueba.prueba_fechas;
     }
     if (editarTiendaPermLimites) {
-      const limitePaletsRaw = document.getElementById('metLimitePalets').value;
+      const limitePaletsRaw = leerLimitePalets('met');
       if (limitePaletsRaw === '' && !tEditada.en_apertura) {
         errEl.textContent = 'Faltan campos obligatorios: Límite palets.';
         errEl.style.display = 'block';
@@ -1489,7 +1533,7 @@
     const comunidad = document.getElementById('metComunidad').value;
     const provincia = document.getElementById('metProvincia').value.trim().toUpperCase();
     const codigoPostal = document.getElementById('metCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
-    const limitePaletsRaw = document.getElementById('metLimitePalets').value;
+    const limitePaletsRaw = leerLimitePalets('met');
     const limiteHora = document.getElementById('metLimiteHora').value;
     const supervisor = document.getElementById('metSupervisor').value.trim().toUpperCase();
     const recogidaDia = document.getElementById('metRecogidaDia').value;
@@ -2056,7 +2100,7 @@
     rellenarSelectComunidad(document.getElementById('ntComunidad'), '');
     document.getElementById('ntProvincia').value = '';
     document.getElementById('ntCodigoPostal').value = '';
-    document.getElementById('ntLimitePalets').value = '';
+    pintarLimiteSin('nt', null);
     document.getElementById('ntLimiteHora').value = '';
     rellenarSelectSupervisor(document.getElementById('ntSupervisor'), '');
     document.getElementById('ntRecogidaDia').value = '';
@@ -2092,7 +2136,7 @@
     const comunidad = document.getElementById('ntComunidad').value;
     const provincia = document.getElementById('ntProvincia').value.trim().toUpperCase();
     const codigoPostal = document.getElementById('ntCodigoPostal').value.replace(/\s+/g, '').toUpperCase();
-    const limitePaletsRaw = document.getElementById('ntLimitePalets').value;
+    const limitePaletsRaw = leerLimitePalets('nt');
     const limiteHora = document.getElementById('ntLimiteHora').value;
     const supervisor = document.getElementById('ntSupervisor').value.trim().toUpperCase();
     const recogidaDia = document.getElementById('ntRecogidaDia').value;
@@ -2283,7 +2327,7 @@
       t.hora_prevista ? t.hora_prevista.slice(0, 5) : '',
       t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '-',
       LETRA_DIA_RECOGIDA[t.recogida_semanal_dia] || '-',
-      t.limite_palets != null ? t.limite_palets : '-',
+      textoLimitePalets(t.limite_palets, '-'),
       t.transito_horas != null ? t.transito_horas : '-',
       t.supervisor || ''
     ];
@@ -2429,7 +2473,7 @@
         tiendasExcelCelda(fila, 6, t.codigo_postal || '', { halign: 'center', fill });
         tiendasExcelCelda(fila, 7, t.hora_prevista ? t.hora_prevista.slice(0, 5) : '', { halign: 'center', fill });
         tiendasExcelCelda(fila, 8, t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '', { halign: 'center', fill });
-        tiendasExcelCelda(fila, 9, t.limite_palets != null ? t.limite_palets : '', { halign: 'center', fill });
+        tiendasExcelCelda(fila, 9, textoLimitePalets(t.limite_palets, ''), { halign: 'center', fill });
         tiendasExcelCelda(fila, 10, t.supervisor || '', { halign: 'center', fill });
         tiendasExcelCelda(fila, 11, nombreDiaRecogida(t.recogida_semanal_dia), { halign: 'center', fill });
         tiendasExcelCelda(fila, 12, t.agencia_recogida || '', { halign: 'center', fill });
@@ -3226,9 +3270,9 @@
     const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
     const overlay = document.getElementById('modalLimEspOverlay');
     if (!t || !overlay) return;
-    const limNormal = document.getElementById('metLimitePalets').value;
+    const limNormal = leerLimitePalets('met');
     document.getElementById('leMensaje').innerHTML =
-      `${escapeHtml(t.nombre)} · límite normal: <b>${limNormal !== '' ? escapeHtml(limNormal) : 'sin límite'}</b>. Entre estas fechas el especial manda sobre cualquier otro límite, también en SALIDAS.`;
+      `${escapeHtml(t.nombre)} · límite normal: <b>${limNormal !== '' && Number(limNormal) !== 0 ? escapeHtml(limNormal) : 'sin límite'}</b>. Entre estas fechas el especial manda sobre cualquier otro límite, también en SALIDAS.`;
     document.getElementById('leActivo').checked = limEspMet.activo || !limEspMet.periodos.length;
     const filas = document.getElementById('leFilas');
     filas.innerHTML = '';

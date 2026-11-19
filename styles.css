@@ -3720,6 +3720,13 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .lp-star:disabled{ cursor:default; opacity:.6; }
 .lp-star:disabled:hover{ background:transparent; }
 .lp-aviso{ margin:4px 0 0; font-size:11px; font-weight:600; color:#C2410C; }
+/* Casilla "Sin límite" del Límite palets (Editar / Nueva tienda): se guarda 0 y el campo muestra NO */
+.lp-cab{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.lp-cab .form-label{ margin-bottom:0; }
+.lp-sin{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--ink-soft); cursor:pointer; margin:0 0 4px; white-space:nowrap; text-transform:none; letter-spacing:0; padding:1px 7px; border:1px solid var(--border); border-radius:999px; background:var(--panel); }
+.lp-sin input{ margin:0; accent-color:var(--accent,#f97316); cursor:pointer; width:12px; height:12px; }
+.lp-sin.on{ border-color:#FDBA8C; background:#FFEEDF; color:var(--accent-ink,#9A3412); }
+.lp-sin:has(input:disabled){ cursor:default; opacity:.6; }
 .modal-box.le-modal{ max-width:520px; }
 .le-modal .le-sw{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--ink); margin:4px 0 12px; cursor:pointer; }
 .le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 74px 28px; gap:6px; align-items:center; }
