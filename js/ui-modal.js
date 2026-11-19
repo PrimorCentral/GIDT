@@ -18,6 +18,12 @@
   let modalBloqueaClicFuera = false;
 
   function modalAlert(mensaje, { titulo = 'Aviso', icono = '', danger = false, textoOk = 'Aceptar' } = {}) {
+    // Justo después de "Cancelar consulta" (js/carga-global.js), las cargas
+    // cortadas acaban en su catch y querrían avisar de un error: se omite.
+    if (typeof consultaRecienCancelada === 'function' && consultaRecienCancelada()
+        && /error|no se pud|no se ha podido|fall/i.test(`${titulo} ${mensaje}`)) {
+      return Promise.resolve();
+    }
     return new Promise(resolve => {
       modalIconEl.style.display = icono ? '' : 'none';
       modalIconEl.textContent = icono;

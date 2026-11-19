@@ -12,5 +12,11 @@
       storage: window.sessionStorage,
       persistSession: true,
       autoRefreshToken: true
+    },
+    // Todas las consultas pasan por fetchCancelable (js/carga-global.js)
+    // para que el botón "Cancelar consulta" de la ventana de carga pueda
+    // cortarlas si tardan demasiado.
+    global: {
+      fetch: (...args) => (typeof fetchCancelable === 'function' ? fetchCancelable(...args) : fetch(...args))
     }
   });

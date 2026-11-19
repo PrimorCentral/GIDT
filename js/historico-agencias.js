@@ -229,7 +229,12 @@ function haConstruirTramos(t, cambios, inicio, hoy) {
   return tramos;
 }
 
+// Con la ventana de carga global (js/carga-global.js).
 async function renderVistaHistoricoAgencias() {
+  return conCargaGlobal(() => renderVistaHistoricoAgenciasSinCarga());
+}
+
+async function renderVistaHistoricoAgenciasSinCarga() {
   const cont = document.getElementById('haLista');
   if (!cont || haCargando) return;
   haCargando = true;

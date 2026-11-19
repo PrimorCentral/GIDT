@@ -191,7 +191,12 @@
     });
   }
 
+  // Con la ventana de carga global (js/carga-global.js).
   async function renderVistaIncidencias() {
+    return conCargaGlobal(() => renderVistaIncidenciasSinCarga());
+  }
+
+  async function renderVistaIncidenciasSinCarga() {
     const cont = document.getElementById('contenidoIncidencias');
     const toolbar = document.getElementById('incidenciasToolbar');
 

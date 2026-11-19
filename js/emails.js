@@ -73,7 +73,12 @@
         </div>`;
   }
 
+  // Con la ventana de carga global (js/carga-global.js).
   async function cargarEmailsAgencias() {
+    return conCargaGlobal(() => cargarEmailsAgenciasSinCarga());
+  }
+
+  async function cargarEmailsAgenciasSinCarga() {
     const cont = document.getElementById('listaEmailsAgencias');
     cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';
     try {

@@ -66,5 +66,5 @@ async function quitarEmailFacturacion(id) {
 
 // Se recarga SIEMPRE al entrar, para ver cambios de otros compañeros.
 document.querySelectorAll('[data-view="config-emails"]').forEach(el => {
-  el.addEventListener('click', () => { cargarEmailsFacturacion(); });
+  el.addEventListener('click', () => { conCargaGlobal(cargarEmailsFacturacion); });
 });

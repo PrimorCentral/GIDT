@@ -2467,7 +2467,7 @@
   // Se recarga SIEMPRE al entrar, para ver tiendas creadas/editadas por
   // otros compañeros sin tener que cerrar y volver a abrir la app.
   document.querySelectorAll('[data-view="config-tiendas"]').forEach(el => {
-    el.addEventListener('click', () => { cargarAgenciasYTiendas(); });
+    el.addEventListener('click', () => { conCargaGlobal(cargarAgenciasYTiendas); });
   });
   document.getElementById('btnRecargarTiendas')?.addEventListener('click', (e) =>
     recargarConGiro(e.currentTarget, cargarAgenciasYTiendas));

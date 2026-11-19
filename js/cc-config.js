@@ -70,5 +70,5 @@ async function quitarEmailCC(id) {
 
 // Se recarga SIEMPRE al entrar, para ver cambios de otros compañeros.
 document.querySelectorAll('[data-view="config-emails"]').forEach(el => {
-  el.addEventListener('click', () => { cargarEmailsCC(); });
+  el.addEventListener('click', () => { conCargaGlobal(cargarEmailsCC); });
 });

@@ -114,7 +114,12 @@
     return { incs, existentesPorIncidencia };
   }
 
+  // Con la ventana de carga global (js/carga-global.js).
   async function renderVistaSiniestros() {
+    return conCargaGlobal(() => renderVistaSiniestrosSinCarga());
+  }
+
+  async function renderVistaSiniestrosSinCarga() {
     const cont = document.getElementById('contenidoSiniestros');
     if (!informeHoyCache) {
       cont.innerHTML = `

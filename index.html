@@ -2046,7 +2046,14 @@
      etc.), independiente del modal de "enviando informe" de arriba. Lo
      controlan mostrarCargandoGlobal()/ocultarCargandoGlobal() (js/carga-global.js). -->
 <div class="modal-overlay carga-global-overlay" id="cargaGlobalOverlay" aria-hidden="true">
-  <div class="spinner spinner-grande"></div>
+  <div class="carga-global-box" id="cargaGlobalBox" role="status" aria-live="polite">
+    <div class="spinner spinner-grande"></div>
+    <p class="carga-global-texto">Cargando…</p>
+    <div class="carga-global-lento">
+      <p>Está tardando más de lo normal</p>
+      <button type="button" class="btn-cancelar-consulta" id="btnCancelarConsulta">✕ Cancelar consulta</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal de actualización disponible (no se cierra clicando fuera: la actualización no es opcional) -->

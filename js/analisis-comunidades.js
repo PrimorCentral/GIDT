@@ -302,7 +302,12 @@ function acPintarLateral() {
     </div>`;
 }
 
+// Con la ventana de carga global (js/carga-global.js).
 async function acCargarYPintar() {
+  return conCargaGlobal(() => acCargarYPintarSinCarga());
+}
+
+async function acCargarYPintarSinCarga() {
   const cont = document.getElementById('acTabla');
   if (!cont) return;
   const peticion = ++acPeticion;

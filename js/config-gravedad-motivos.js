@@ -216,7 +216,12 @@ document.addEventListener('click', (e) => {
 // pulsar "Guardar").
 let gravedadMotivosEdicion = null;
 
+// Con la ventana de carga global (js/carga-global.js).
 async function renderVistaGravedadMotivos() {
+  return conCargaGlobal(() => renderVistaGravedadMotivosSinCarga());
+}
+
+async function renderVistaGravedadMotivosSinCarga() {
   const cont = document.getElementById('contenidoGravedadMotivos');
   if (!cont) return;
   cont.innerHTML = '<div class="card"><div class="empty"><p>Cargando…</p></div></div>';

@@ -63,8 +63,10 @@ async function recargarConGiro(btn, ...cargas) {
       if (typeof confirmarDescartarEdicionGravedadMotivos === 'function' && !(await confirmarDescartarEdicionGravedadMotivos())) return;
       activarVista(btn.dataset.view);
       if (btn.dataset.view === 'inicio') {
-        if (typeof cargarKPIs === 'function') cargarKPIs();
-        if (typeof cargarInformeHoy === 'function') cargarInformeHoy();
+        conCargaGlobal(Promise.all([
+          typeof cargarKPIs === 'function' ? cargarKPIs() : null,
+          typeof cargarInformeHoy === 'function' ? cargarInformeHoy() : null
+        ]));
       }
     });
   });
