@@ -987,7 +987,7 @@ table.tabla-incidencias col.cg-obs{ width:auto; }
   /* El modal genérico (alert/confirm/prompt) puede invocarse desde dentro
      de otro modal ya abierto (p.ej. "¿Quitar el albarán?" desde el Panel
      siniestros), así que siempre debe quedar por encima de cualquier otro. */
-  #modalOverlay{ z-index:500; }
+  #modalOverlay{ z-index:550; } /* por encima de "Enviando…" (500): un aviso nunca puede quedar tapado */
   /* El modal de carga (spinner) también puede abrirse con otro modal ya
      abierto detrás (p.ej. "Subiendo foto…" sobre el detalle del siniestro),
      así que también debe quedar siempre por encima. */
@@ -3774,3 +3774,9 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .step-comunicacion.reenvio, .step-comunicacion.reenvio b{ color:var(--ok); }
 .step-comunicacion.no-reenvio, .step-comunicacion.no-reenvio b{ color:var(--ink-soft); }
 .step-comunicacion.anulacion, .step-comunicacion.anulacion b{ color:var(--ink-soft); }
+
+/* "Enviando…" que lleva demasiado tiempo abierto: aviso + botón para
+   cerrarlo y no quedarse bloqueado (js/carga-global.js). */
+.cargando-atascado{ display:none; flex-direction:column; align-items:center; gap:10px; margin-top:2px; }
+.cargando-modal-box.atascado .cargando-atascado{ display:flex; }
+.cargando-atascado p{ margin:0; font-size:12.5px; color:var(--ink-soft); line-height:1.45; }

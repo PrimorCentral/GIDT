@@ -120,3 +120,27 @@ function cancelarConsultaGlobal() {
 }
 
 document.getElementById('btnCancelarConsulta')?.addEventListener('click', cancelarConsultaGlobal);
+
+// ---------------------------------------------------------------
+// Seguro anti-bloqueo de la ventana "Enviando…" (#cargandoEnvioOverlay):
+// si lleva abierta más de ENVIO_ATASCADO_MS, se añade un botón para
+// cerrarla, para que la app nunca se quede bloqueada sin salida.
+// ---------------------------------------------------------------
+const ENVIO_ATASCADO_MS = 60000;
+(function vigilarVentanaEnvio() {
+  const overlay = document.getElementById('cargandoEnvioOverlay');
+  const box = overlay?.querySelector('.cargando-modal-box');
+  if (!overlay || !box) return;
+  let timer = null;
+  const comprobar = () => {
+    if (overlay.classList.contains('show')) {
+      if (!timer) timer = setTimeout(() => box.classList.add('atascado'), ENVIO_ATASCADO_MS);
+    } else {
+      clearTimeout(timer);
+      timer = null;
+      box.classList.remove('atascado');
+    }
+  };
+  new MutationObserver(comprobar).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  document.getElementById('btnCerrarCargandoEnvio')?.addEventListener('click', () => overlay.classList.remove('show'));
+})();
