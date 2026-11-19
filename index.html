@@ -477,6 +477,9 @@
           <input type="text" id="buscarTiendaIncidencias" class="form-input" placeholder="🔎 Buscar tienda…" style="max-width:220px;">
           <button class="btn perm-gated-log-cambios" id="btnLogCambiosHoy" style="display:none; white-space:nowrap; flex-shrink:0;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
           <span id="informeEnviadoBadge" class="badge-envio enviado" style="display:none; white-space:nowrap; flex-shrink:0;"></span>
+          <span id="informeActualizacionBadge" class="badge-envio pendiente" style="display:none; white-space:nowrap; flex-shrink:0;"></span>
+          <button class="btn" id="btnEditarInformeHoy" style="display:none; white-space:nowrap; flex-shrink:0;" title="Modificar el informe ya enviado">✏️ Editar</button>
+          <button class="btn primary" id="btnTerminarEdicionHoy" style="display:none; white-space:nowrap; flex-shrink:0;">✅ Terminar de editar</button>
           <button class="btn primary" id="btnEnviarInforme" style="white-space:nowrap; flex-shrink:0;">📧 Enviar informe</button>
         </div>
       </div>
@@ -500,6 +503,7 @@
           <button class="btn primary" id="btnBuscarHistorial">Consultar</button>
           <button class="btn" id="btnEditarHistorial" style="display:none;" title="Editar este informe">✏️ Editar informe</button>
           <button class="btn perm-gated-log-cambios" id="btnLogCambiosHistorial" style="display:none;" title="Ver qué se ha cambiado desde que se envió el informe">🕘 Log de cambios</button>
+          <button class="btn primary" id="btnActualizacionHistorial" style="display:none; white-space:nowrap;">🔄 Enviar actualización</button>
           <div class="filtros-wrap" id="historialFiltrosWrap" style="display:none; align-items:center; gap:8px;">
             <button class="btn" id="btnHistorialFiltros">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -2034,6 +2038,31 @@
   </div>
 </div>
 
+<!-- Modal "¿Enviar las actualizaciones a las agencias?": cambios hechos en
+     un informe ya enviado (js/informe-actualizacion.js) -->
+<div class="modal-overlay" id="iactModalOverlay">
+  <div class="modal-box envio-modal-box iact-modal-box" role="dialog" aria-modal="true" aria-labelledby="iactTitulo">
+    <button class="filtros-modal-close" id="iactBtnCerrar" style="position:absolute; right:16px; top:16px;">✕</button>
+    <div class="envio-modal-head">
+      <div class="envio-modal-icon reenvio">🔄</div>
+      <div>
+        <h3 class="modal-title" id="iactTitulo">¿Enviar las actualizaciones a las agencias?</h3>
+        <p class="envio-modal-sub" id="iactSub"></p>
+      </div>
+    </div>
+    <div class="envio-alerta envio-alerta-reenvio">
+      <span class="envio-alerta-icon">ℹ️</span>
+      <p><b>Cada agencia recibirá solo sus tiendas cambiadas.</b>Las agencias que desmarques se quedan pendientes para más tarde.</p>
+    </div>
+    <div class="iact-lista" id="iactLista"></div>
+    <div class="modal-footer">
+      <button class="btn" id="iactBtnAhoraNo">Ahora no</button>
+      <button class="btn" id="iactBtnNoComunicar">🚫 No comunicar</button>
+      <button class="btn primary" id="iactBtnEnviar">✉️ Enviar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de carga (envío del informe en curso) -->
 <div class="modal-overlay" id="cargandoEnvioOverlay">
   <div class="modal-box cargando-modal-box" role="alert" aria-live="assertive">
@@ -3178,6 +3207,7 @@
 <script src="js/email-plantillas.js"></script>
 <script src="js/email-service.js"></script>
 <script src="js/informe-envio.js"></script>
+<script src="js/informe-actualizacion.js"></script>
 <script src="js/siniestros.js"></script>
 <script src="js/panel-siniestros.js"></script>
 <script src="js/panel-siniestros-exportar.js"></script>

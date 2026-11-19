@@ -48,6 +48,22 @@ function iclogDescripcion(row) {
   return partes.length ? partes.join(' · ') : 'Modificó la incidencia.';
 }
 
+// Si el cambio se comunicó a la agencia (ver js/informe-actualizacion.js).
+const ICLOG_COMUNICADO = {
+  ACTUALIZACION: { cls: 'ok', txt: '✉️ Comunicado a la agencia' },
+  INFORME_COMPLETO: { cls: 'ok', txt: '✉️ Incluido al reenviar el informe' },
+  NO_COMUNICAR: { cls: 'gris', txt: '🚫 No comunicado (decisión)' },
+  SIN_CAMBIO: { cls: 'gris', txt: 'Sin cambio final que comunicar' }
+};
+function iclogComunicadoHtml(row) {
+  if (row.comunicado_accion === 'ANTERIOR') return '';
+  if (!row.comunicado_en) return '<div class="iclog-comunicado pendiente">⏳ Sin comunicar a la agencia</div>';
+  const def = ICLOG_COMUNICADO[row.comunicado_accion];
+  if (!def) return '';
+  const quien = [row.comunicado_por, formatearFechaHoraCorta(new Date(row.comunicado_en))].filter(Boolean).join(' · ');
+  return `<div class="iclog-comunicado ${def.cls}">${def.txt}${quien ? ` <span>· ${escapeHtml(quien)}</span>` : ''}</div>`;
+}
+
 const iclogOverlay = document.getElementById('iclogOverlay');
 const iclogLista = document.getElementById('iclogLista');
 const iclogFecha = document.getElementById('iclogFecha');
@@ -69,7 +85,7 @@ async function abrirLogCambios(contexto) {
   try {
     const { data, error } = await sb
       .from('informes_cambios_log')
-      .select('id, tienda_nombre, agencia_nombre, tipo_cambio, motivos_antes, motivos_despues, observaciones_antes, observaciones_despues, usuario, creado_en')
+      .select('id, tienda_nombre, agencia_nombre, tipo_cambio, motivos_antes, motivos_despues, observaciones_antes, observaciones_despues, usuario, creado_en, comunicado_en, comunicado_por, comunicado_accion')
       .eq('informe_id', informe.id)
       .order('creado_en', { ascending: false })
       .limit(300);
@@ -94,6 +110,7 @@ async function abrirLogCambios(contexto) {
           <span class="iclog-meta">${escapeHtml(row.usuario || '—')} · ${formatearFechaHoraCorta(new Date(row.creado_en))}</span>
         </div>
         <div class="iclog-fila-detalle">${escapeHtml(iclogDescripcion(row))}</div>
+        ${iclogComunicadoHtml(row)}
       </div>
     `).join('');
   } catch (err) {

@@ -29,6 +29,7 @@ const BOTONES_CON_PERMISO = [
   ['#btnGenerarInformeEmpty', 'informe_dia'],
   ['#btnGenerarInformeDesdeIncidencias', 'informe_dia'],
   ['#btnEditarPalets', 'informe_dia'],
+  ['#btnEditarInformeHoy', 'informe_dia'],
   ['.btn-borrar-motivos', 'informe_dia'],
   ['#utilBtnGuardarAjuste', 'informe_dia'],
   ['#utilBtnQuitarAjuste', 'informe_dia'],

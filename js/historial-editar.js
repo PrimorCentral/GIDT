@@ -103,6 +103,8 @@ async function activarEdicionHistorial() {
   historialSiniestrosDraft = new Map();
   historialEditando = true;
   if (typeof mostrarFiltroSoloConIncidenciasHistorial === 'function') mostrarFiltroSoloConIncidenciasHistorial(true);
+  const btnAct = document.getElementById('btnActualizacionHistorial');
+  if (btnAct) btnAct.style.display = 'none';
   renderAcordeonHistorialEditable();
 }
 
@@ -293,6 +295,13 @@ async function finalizarEdicionHistorial() {
     historialBorrador = new Map();
     historialSiniestrosDraft = new Map();
     salirDeEdicionHistorial();
+    // Si el informe ya se había enviado a las agencias: "¿Enviar las
+    // actualizaciones a las agencias?" (solo sale si hay cambios netos).
+    if (typeof abrirVentanaActualizacionInforme === 'function' && historialInformeActual?.informe_enviado) {
+      if (typeof esperarRegistrosCambioInforme === 'function') await esperarRegistrosCambioInforme();
+      await abrirVentanaActualizacionInforme(historialInformeActual);
+      if (typeof iaActualizarPendientesHistorial === 'function') await iaActualizarPendientesHistorial();
+    }
     await avisarSiniestrosCambiadosHistorial(filasPanelCambiadas);
   } catch (err) {
     console.error('Error guardando los cambios del histórico:', err);
@@ -377,6 +386,7 @@ function salirDeEdicionHistorial() {
   if (!historialInformeActual) return;
   historialIncidenciasActual = historialTodasIncidencias.filter(i => i.marcada);
   renderHistorialInforme();
+  if (typeof iaActualizarPendientesHistorial === 'function') iaActualizarPendientesHistorial();
 }
 
 // ---------------- Cuenta atrás antes de que una fila salga del filtro ----------------
@@ -674,7 +684,7 @@ function renderAcordeonHistorialEditable() {
         ${informe.total_palets ? ` · ${informe.total_palets} palets previstos` : ''} · Estado: ${estadoTexto}
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:12px; color:var(--ink-soft); font-weight:700;">✏️ Editando — no se envía nada a las agencias</span>
+        <span style="font-size:12px; color:var(--ink-soft); font-weight:700;">${(typeof iaInformeAdmiteActualizacion === 'function' && iaInformeAdmiteActualizacion(informe)) ? '✏️ Editando — al terminar podrás avisar a las agencias de los cambios' : '✏️ Editando — no se envía nada a las agencias'}</span>
         ${avisoBorrador}
         <button class="btn" id="btnSalirEdicionHistorial">Salir</button>
         <button class="btn primary" id="btnTerminarEdicionHistorial">Terminar de editar</button>

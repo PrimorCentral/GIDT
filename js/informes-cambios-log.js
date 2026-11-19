@@ -70,7 +70,18 @@ async function registrarCambioInforme(informeId, fecha, datos) {
 // enviado a las agencias en el momento del cambio. Nunca debe romper
 // el guardado real si falla, así que no se espera (fire-and-forget)
 // desde las llamadas.
+// Los registros en curso se guardan aquí para que "Terminar de editar"
+// (ver js/informe-actualizacion.js) pueda esperar a que estén todos en BD
+// antes de calcular qué cambios hay que comunicar a las agencias.
+const registrosCambioInformeEnCurso = new Set();
+
 function registrarCambioInformeSiEnviado(informe, datos) {
   if (!informe || !informe.informe_enviado) return;
-  registrarCambioInforme(informe.id, informe.fecha, datos);
+  const p = registrarCambioInforme(informe.id, informe.fecha, datos);
+  registrosCambioInformeEnCurso.add(p);
+  p.finally(() => registrosCambioInformeEnCurso.delete(p));
+}
+
+async function esperarRegistrosCambioInforme() {
+  if (registrosCambioInformeEnCurso.size) await Promise.allSettled(Array.from(registrosCambioInformeEnCurso));
 }

@@ -10,6 +10,16 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.9.2',
+    fecha: '2026-11-19',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Informe del día: si se modifica un informe ya enviado, se puede mandar a las agencias una actualización solo con las tiendas que han cambiado (nuevas, modificadas o anuladas), o indicar que no hace falta' },
+      { tipo: 'nuevo',  texto: 'Historial de informes: al terminar de editar un informe ya enviado, se pregunta si se quieren enviar las actualizaciones a las agencias' },
+      { tipo: 'mejora', texto: 'Informe del día: una vez enviado, el informe queda bloqueado y se modifica con el botón Editar, para evitar cambios por error' },
+      { tipo: 'mejora', texto: 'Log de cambios: cada cambio indica si se ha comunicado a la agencia' }
+    ]
+  },
+  {
     version: '1.9.1',
     fecha: '2026-11-19',
     cambios: [

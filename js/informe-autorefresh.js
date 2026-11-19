@@ -76,6 +76,7 @@
         if (typeof actualizarBadgePaletsPrevistos === 'function') actualizarBadgePaletsPrevistos();
         if (typeof actualizarKpiIncidencias === 'function') actualizarKpiIncidencias();
         if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
+        if (typeof iaActualizarPendientesHoy === 'function') iaActualizarPendientesHoy();
       } catch (err) {
         console.error('Error en la auto-actualización del informe del día:', err);
       }

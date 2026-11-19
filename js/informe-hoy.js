@@ -42,6 +42,8 @@
     actualizarKpiIncidencias();
     if (typeof actualizarKpiSiniestrosDesdeDB === 'function') actualizarKpiSiniestrosDesdeDB();
     if (typeof renderBotonEnviarInforme === 'function') renderBotonEnviarInforme();
+    // Cambios hechos tras el envío que aún no se han comunicado.
+    if (typeof iaActualizarPendientesHoy === 'function') iaActualizarPendientesHoy();
   }
 
   // Tarjeta compacta "Informe de hoy" de Inicio: cabecera con el enlace
@@ -240,6 +242,8 @@
     if (wrapFiltros) wrapFiltros.style.display = 'none';
     if (btnEditar) btnEditar.style.display = 'none';
     if (btnLog) btnLog.style.display = 'none';
+    const btnAct = document.getElementById('btnActualizacionHistorial');
+    if (btnAct) btnAct.style.display = 'none';
     historialInformeActual = null;
     historialIncidenciasActual = [];
     historialEditando = false;
@@ -288,6 +292,7 @@
       if (btnLog) btnLog.style.display = informe.informe_enviado ? '' : 'none';
 
       renderHistorialInforme();
+      if (typeof iaActualizarPendientesHistorial === 'function') iaActualizarPendientesHistorial();
     } catch (err) {
       console.error('Error cargando historial de informe:', err);
       cont.innerHTML = `

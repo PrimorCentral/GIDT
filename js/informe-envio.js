@@ -522,9 +522,37 @@ function renderBotonEnviarInforme() {
     }
   }
 
+  // Enviado de verdad: el informe queda bloqueado y se edita con
+  // "✏️ Editar informe" / "✅ Terminar de editar" (informe-actualizacion.js).
+  // Si hay cambios sin comunicar, el botón principal pasa a ser
+  // "🔄 Enviar actualización" (solo a las agencias con cambios).
+  const enviadoDeVerdad = enviado && !cerradoSinInc;
+  const editando = enviadoDeVerdad && typeof informeHoyEditando !== 'undefined' && informeHoyEditando;
+  const pendientesAct = (enviadoDeVerdad && typeof iaPendientesHoyN !== 'undefined') ? iaPendientesHoyN : 0;
+  const btnEditar = document.getElementById('btnEditarInformeHoy');
+  const btnTerminar = document.getElementById('btnTerminarEdicionHoy');
+  const badgeAct = document.getElementById('informeActualizacionBadge');
+  if (btnEditar) btnEditar.style.display = (enviadoDeVerdad && !editando) ? '' : 'none';
+  if (btnTerminar) btnTerminar.style.display = editando ? '' : 'none';
+  // Mientras se edita, una etiqueta lo recuerda. El nº de cambios sin
+  // comunicar va dentro del propio botón (la cabecera no da para más).
+  if (badgeAct) {
+    badgeAct.textContent = '✏️ Editando';
+    badgeAct.style.display = editando ? '' : 'none';
+  }
+  if (typeof iaAplicarBloqueoHoy === 'function') iaAplicarBloqueoHoy();
+
   if (!btn) return;
   // Cerrado sin incidencias y sigue sin ninguna: no hay nada más que hacer.
-  btn.style.display = (cerradoSinInc && !hayIncidencias) ? 'none' : '';
+  // Mientras se edita, el botón de envío se esconde (se envía al terminar).
+  btn.style.display = ((cerradoSinInc && !hayIncidencias) || editando) ? 'none' : '';
+  if (enviadoDeVerdad && pendientesAct) {
+    btn.classList.add('primary');
+    btn.textContent = `🔄 Enviar actualización (${pendientesAct})`;
+    btn.title = `${pendientesAct} cambio${pendientesAct === 1 ? '' : 's'} sin comunicar: se envían a cada agencia solo sus tiendas cambiadas`;
+    return;
+  }
+  btn.title = '';
   if (!enviado && !hayIncidencias) {
     btn.classList.add('primary');
     btn.textContent = '✅ Cerrar sin incidencias';
@@ -576,6 +604,13 @@ async function cerrarInformeSinIncidencias() {
 async function enviarInformeDelDia() {
   if (!informeHoyCache) {
     await modalAlert('No hay informe abierto para hoy.', { titulo: 'Sin informe' });
+    return;
+  }
+
+  // Ya enviado y con cambios sin comunicar: solo la actualización.
+  if (typeof iaPendientesHoyN !== 'undefined' && iaPendientesHoyN > 0
+      && informeHoyCache.informe_enviado && !informeCerradoSinIncidencias(informeHoyCache)) {
+    await abrirVentanaActualizacionInforme(informeHoyCache);
     return;
   }
 
@@ -659,6 +694,12 @@ async function enviarInformeDelDia() {
         console.error('Error marcando informe como enviado:', err);
         errorGuardandoEstado = err.message || 'Error desconocido';
       }
+      // El informe completo ya incluye cualquier cambio anterior: se dan
+      // por comunicados (dejan de salir en "cambios sin comunicar").
+      if (typeof iaMarcarTodoComunicado === 'function') {
+        try { await iaMarcarTodoComunicado(informeHoyCache.id, 'INFORME_COMPLETO'); }
+        catch (err) { console.error('Error marcando cambios como comunicados:', err); }
+      }
     }
   } finally {
     ocultarCargandoEnvio();
@@ -673,7 +714,8 @@ async function enviarInformeDelDia() {
     registrarAccion('informes', 'Enviar informe a agencias', `${nombreHoja || ''} — ${exitosos.length} agencia${exitosos.length === 1 ? '' : 's'}`.trim());
   }
 
-  renderBotonEnviarInforme();
+  if (typeof iaActualizarPendientesHoy === 'function') await iaActualizarPendientesHoy();
+  else renderBotonEnviarInforme();
 
   let mensajeFinal = `Enviado correctamente a ${exitosos.length} agencia${exitosos.length === 1 ? '' : 's'}.`;
   if (fallidos.length) {
