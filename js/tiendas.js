@@ -721,7 +721,7 @@
     { clave: 'entrega_lxv', etiqueta: 'Entrega LXV', formato: v => (v ? 'Sí' : 'No') },
     { clave: 'limite_especial_activo', etiqueta: 'Límite especial activado', formato: v => (v ? 'Sí' : 'No') },
     { clave: 'limites_especiales', etiqueta: 'Límites especiales', formato: lista => (Array.isArray(lista) && lista.length
-      ? [...lista].sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map(x => `${fechaISOaCorta(x.desde)}–${fechaISOaCorta(x.hasta)}: ${x.palets} palets`)
+      ? [...lista].sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map(x => `${fechaISOaCorta(x.desde)}–${fechaISOaCorta(x.hasta)}: ${x.sin_limite ? 'sin límite' : x.palets + ' palets'}`)
       : null) }
   ];
 
@@ -1363,7 +1363,7 @@
     if (k === 'prueba_fechas') return Array.isArray(v) ? [...v].map(String).sort().join(',') : String(v);
     if (k === 'limites_especiales') {
       if (!Array.isArray(v)) return JSON.stringify(v);
-      return JSON.stringify(v.map(p => [String(p.desde).slice(0, 10), String(p.hasta).slice(0, 10), Number(p.palets)]).sort());
+      return JSON.stringify(v.map(p => [String(p.desde).slice(0, 10), String(p.hasta).slice(0, 10), p.sin_limite ? 'SIN' : Number(p.palets)]).sort());
     }
     return String(v).trim();
   }
@@ -3131,7 +3131,9 @@
   // ---------------------------------------------------------------
   // Límite especial de palets por fechas (estrella del campo Límite
   // palets de Editar tienda). Vive en tiendas.limite_especial_activo y
-  // tiendas.limites_especiales = [{ desde, hasta, palets }]. Entre desde y
+  // tiendas.limites_especiales = [{ desde, hasta, palets }] (o, si el
+  // periodo es SIN LÍMITE, { desde, hasta, palets: null, sin_limite: true }:
+  // en esas fechas la tienda no tiene tope, también en SALIDAS). Entre desde y
   // hasta (ambos incluidos) manda sobre cualquier otro límite, también en
   // SALIDAS. Los periodos ya pasados se quitan solos: no se muestran, no
   // se aplican y desaparecen la próxima vez que se guarda la tienda.
@@ -3149,7 +3151,7 @@
     if (!periodos.length) return '';
     const ddmm = iso => fechaISOaCorta(iso).slice(0, 5);
     const enVigor = !!t.limite_especial_activo && !!limEspDeHoy(periodos);
-    const titulo = periodos.map(p => `Límite especial: ${p.palets} palets\nDel ${ddmm(p.desde)} al ${ddmm(p.hasta)}`).join('\n\n')
+    const titulo = periodos.map(p => `Límite especial: ${limEspTexto(p)}\nDel ${ddmm(p.desde)} al ${ddmm(p.hasta)}`).join('\n\n')
       + (enVigor ? '' : (t.limite_especial_activo ? '\n(aún no ha empezado)' : '\n(desactivado)'));
     return `<span class="lp-tabla-star${enVigor ? '' : ' gris'}" title="${escapeHtml(titulo)}">★</span>`;
   }
@@ -3162,10 +3164,15 @@
   function limEspVigentes(lista) {
     const hoy = limEspHoyISO();
     return (Array.isArray(lista) ? lista : [])
-      .filter(p => p && p.desde && p.hasta && p.hasta >= hoy && p.palets != null && p.palets !== '')
-      .map(p => ({ desde: String(p.desde).slice(0, 10), hasta: String(p.hasta).slice(0, 10), palets: Number(p.palets) }))
+      .filter(p => p && p.desde && p.hasta && p.hasta >= hoy && (p.sin_limite || (p.palets != null && p.palets !== '')))
+      .map(p => p.sin_limite
+        ? { desde: String(p.desde).slice(0, 10), hasta: String(p.hasta).slice(0, 10), palets: null, sin_limite: true }
+        : { desde: String(p.desde).slice(0, 10), hasta: String(p.hasta).slice(0, 10), palets: Number(p.palets) })
       .sort((a, b) => a.desde.localeCompare(b.desde));
   }
+
+  // "9 palets" o "sin límite", para los textos al pasar el ratón.
+  function limEspTexto(p) { return p.sin_limite ? 'sin límite' : `${p.palets} palets`; }
 
   function limEspDesdeTienda(t) {
     return { activo: !!t?.limite_especial_activo, periodos: limEspVigentes(t?.limites_especiales) };
@@ -3189,7 +3196,7 @@
     btn.classList.toggle('on', on);
     btn.classList.toggle('gris', hay && !on);
     btn.textContent = hay ? '★' : '☆';
-    const resumen = periodos.map(p => `${p.palets} palets del ${fechaISOaCorta(p.desde)} al ${fechaISOaCorta(p.hasta)}`).join('\n');
+    const resumen = periodos.map(p => `${limEspTexto(p)} del ${fechaISOaCorta(p.desde)} al ${fechaISOaCorta(p.hasta)}`).join('\n');
     btn.title = !hay ? 'Sin límite especial · pulsa para configurarlo'
       : (on ? `Límite especial activo:\n${resumen}`
         : (activo ? `Límite especial configurado (aún no ha empezado):\n${resumen}` : `Límite especial desactivado:\n${resumen}`));
@@ -3200,10 +3207,12 @@
   function filaLimEspHtml(p) {
     const hoy = limEspHoyISO();
     const vigente = p && p.desde && p.hasta && p.desde <= hoy && hoy <= p.hasta;
-    return `<div class="le-fila${vigente ? ' vigente' : ''}">
+    const sin = !!p?.sin_limite;
+    return `<div class="le-fila${vigente ? ' vigente' : ''}${sin ? ' sin-limite' : ''}">
         <input type="date" class="form-input le-desde" value="${p?.desde || ''}">
         <input type="date" class="form-input le-hasta" value="${p?.hasta || ''}">
-        <input type="number" class="form-input le-palets" min="1" step="1" value="${p?.palets ?? ''}">
+        <input type="${sin ? 'text' : 'number'}" class="form-input le-palets" min="1" step="1" value="${sin ? '∞' : (p?.palets ?? '')}"${sin ? ' disabled title="Sin límite"' : ''}>
+        <label class="le-sin" title="En estas fechas la tienda no tiene tope de palets"><input type="checkbox" class="le-sin-chk"${sin ? ' checked' : ''}> Sin límite</label>
         <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">✕</button>
       </div>`;
   }
@@ -3244,9 +3253,17 @@
       const f = filas[i];
       const desde = f.querySelector('.le-desde').value;
       const hasta = f.querySelector('.le-hasta').value;
-      const paletsRaw = f.querySelector('.le-palets').value.trim();
-      if (!desde && !hasta && paletsRaw === '') continue; // fila vacía: se ignora
+      const sinLimite = f.querySelector('.le-sin-chk')?.checked;
+      const paletsRaw = sinLimite ? '' : f.querySelector('.le-palets').value.trim();
+      if (!desde && !hasta && paletsRaw === '' && !sinLimite) continue; // fila vacía: se ignora
       const n = i + 1;
+      if (sinLimite) {
+        if (!desde || !hasta) return { error: `Al periodo ${n} le falta la fecha desde o la fecha hasta.` };
+        if (hasta < desde) return { error: `En el periodo ${n} la fecha hasta es anterior a la fecha desde.` };
+        if (hasta < hoy) return { error: `El periodo ${n} ya ha pasado (termina el ${fechaISOaCorta(hasta)}).` };
+        periodos.push({ desde, hasta, palets: null, sin_limite: true });
+        continue;
+      }
       if (!desde || !hasta || paletsRaw === '') return { error: `Al periodo ${n} le falta la fecha desde, la fecha hasta o los palets.` };
       if (hasta < desde) return { error: `En el periodo ${n} la fecha hasta es anterior a la fecha desde.` };
       if (hasta < hoy) return { error: `El periodo ${n} ya ha pasado (termina el ${fechaISOaCorta(hasta)}).` };
@@ -3284,6 +3301,22 @@
     if (!del) return;
     del.closest('.le-fila')?.remove();
     if (!document.querySelector('#leFilas .le-fila')) anadirFilaLimEsp(null);
+  });
+  // Casilla "Sin límite" de cada periodo: los palets pasan a ∞ (sin
+  // escribir); al desmarcarla vuelve el campo numérico vacío.
+  document.getElementById('leFilas')?.addEventListener('change', e => {
+    const chk = e.target.closest('.le-sin-chk');
+    if (!chk) return;
+    const fila = chk.closest('.le-fila');
+    const inp = fila?.querySelector('.le-palets');
+    if (!inp) return;
+    fila.classList.toggle('sin-limite', chk.checked);
+    if (chk.checked) {
+      inp.type = 'text'; inp.value = '∞'; inp.disabled = true; inp.title = 'Sin límite';
+    } else {
+      inp.type = 'number'; inp.value = ''; inp.disabled = false; inp.title = '';
+      inp.focus();
+    }
   });
   document.getElementById('leBtnQuitarTodos')?.addEventListener('click', () => {
     document.getElementById('leFilas').innerHTML = '';

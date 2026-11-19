@@ -3701,13 +3701,18 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .lp-star:disabled{ cursor:default; opacity:.6; }
 .lp-star:disabled:hover{ background:transparent; }
 .lp-aviso{ margin:4px 0 0; font-size:11px; font-weight:600; color:#C2410C; }
-.modal-box.le-modal{ max-width:460px; }
+.modal-box.le-modal{ max-width:520px; }
 .le-modal .le-sw{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--ink); margin:4px 0 12px; cursor:pointer; }
-.le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 28px; gap:6px; align-items:center; }
+.le-cab,.le-fila{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 74px 28px; gap:6px; align-items:center; }
 .le-cab{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; margin-bottom:4px; }
 .le-fila{ margin-bottom:6px; }
 .le-fila .form-input{ height:34px; padding:0 4px 0 6px; font-size:12.5px; min-width:0; width:100%; }
 .le-fila.vigente .form-input{ border-color:#FDBA8C; background:#FFF7ED; }
+/* Casilla "Sin límite" de cada periodo: con ella marcada los palets salen ∞. */
+.le-sin{ display:flex; align-items:center; justify-content:center; gap:5px; height:34px; border:1px solid var(--border); border-radius:8px; font-size:11.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; background:var(--panel); white-space:nowrap; margin:0; }
+.le-sin input{ margin:0; accent-color:var(--accent,#f97316); cursor:pointer; }
+.le-fila.sin-limite .le-sin{ border-color:#FDBA8C; background:#FFEEDF; color:var(--accent-ink); }
+.le-fila .le-palets:disabled{ text-align:center; font-weight:800; font-size:16px; color:var(--accent-ink); -webkit-text-fill-color:var(--accent-ink); opacity:1; cursor:default; }
 /* Quitar periodo: la misma ✕ redonda que cierra los modales. */
 .le-del{
   width:27px; height:27px; border-radius:99px; border:none; cursor:pointer; padding:0;
