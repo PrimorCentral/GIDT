@@ -1125,6 +1125,7 @@ async function enviarCorreoAgenciaDesdePanel() {
     renderPanelSiniestros();
   } catch (err) {
     console.error('Error enviando el correo a la agencia desde el Panel siniestros:', err);
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
   } finally {
     document.getElementById('cargandoEnvioOverlay').classList.remove('show');
@@ -1196,9 +1197,18 @@ function psRefrescarTrasComunicacion(s) {
   }
 }
 
+// Si el navegador aún tiene la versión anterior de email-plantillas.js
+// (recién subida una actualización), avisa en vez de fallar a medias.
+async function psPlantillasNuevasCargadas() {
+  if (typeof plantillaActualizacionSiniestro === 'function' && typeof plantillaAnulacionSiniestro === 'function') return true;
+  await modalAlert('GIDT no ha terminado de actualizarse en este equipo. Cierra la app y vuelve a abrirla (o pulsa Ctrl + F5) e inténtalo de nuevo.', { titulo: 'Actualiza la app', icono: '🔄' });
+  return false;
+}
+
 async function reenviarActualizacionDesdePanel() {
   const s = psSiniestroPorId(panelActivoId);
   if (!s || !psPendienteReenvio(s)) return;
+  if (!(await psPlantillasNuevasCargadas())) return;
   const btn = document.getElementById('btnPsEnviarAgencia');
   const textoOriginal = btn.textContent;
   try {
@@ -1233,6 +1243,7 @@ async function reenviarActualizacionDesdePanel() {
     if (typeof mostrarToast === 'function') mostrarToast(`Actualización enviada a ${s.agencia_nombre || 'la agencia'}`, { posicion: 'abajo' });
   } catch (err) {
     console.error('Error reenviando la actualización a la agencia:', err);
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
     await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
   } finally {
     document.getElementById('cargandoEnvioOverlay').classList.remove('show');
@@ -1733,6 +1744,7 @@ async function guardarCamposPanelAhora() {
   // motivos del informe. Si se cancela, no se guarda nada.
   let accionesAnular = null;
   if (s && cambiados.includes('estado') && formulario.estado === 'ANULADO' && (psBaseDb?.estado || s.estado) !== 'ANULADO') {
+    if (s.correo_enviado && !(await psPlantillasNuevasCargadas())) return;
     accionesAnular = await psPreguntarAnulacion([s]);
     if (!accionesAnular) return;
   }

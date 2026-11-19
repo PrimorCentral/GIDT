@@ -9,7 +9,13 @@
   const modalBtnOk     = document.getElementById('modalBtnOk');
   const modalBtnCancel = document.getElementById('modalBtnCancel');
 
-  function _abrirModal() { modalOverlay.classList.add('show'); }
+  // Se mueve al final del <body> antes de abrirlo: así queda siempre por
+  // encima de cualquier otra ventana abierta (p. ej. "Enviando correo…"),
+  // y un aviso de error nunca se queda tapado sin poder pulsar Aceptar.
+  function _abrirModal() {
+    if (modalOverlay.parentNode && modalOverlay !== document.body.lastElementChild) document.body.appendChild(modalOverlay);
+    modalOverlay.classList.add('show');
+  }
   function _cerrarModal() { modalOverlay.classList.remove('show'); }
 
   // Cuando es true, clicar fuera del cuadro NO cierra el modal (se usa

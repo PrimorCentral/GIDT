@@ -701,6 +701,7 @@
       }
     } catch (err) {
       console.error('Error enviando siniestro:', err);
+      document.getElementById('cargandoEnvioOverlay').classList.remove('show');
       await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
     } finally {
       document.getElementById('cargandoEnvioOverlay').classList.remove('show');
