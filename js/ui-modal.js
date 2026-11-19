@@ -73,6 +73,55 @@
     });
   }
 
+  // Como modalConfirm, pero con casillas debajo del mensaje para elegir qué
+  // más hacer (p. ej. al anular un siniestro: "Avisar a la agencia" y
+  // "Quitar los motivos del informe").
+  //   opciones: [{ id, titulo, detalle, marcada = true }]
+  // Devuelve null si se cancela, o un objeto { [id]: true/false } si se acepta.
+  function modalConfirmOpciones(mensaje, opciones = [], { titulo = 'Confirmar', danger = false, textoOk = 'Aceptar', textoCancel = 'Cancelar', icono = '' } = {}) {
+    return new Promise(resolve => {
+      modalIconEl.style.display = icono ? '' : 'none';
+      modalIconEl.textContent = icono;
+      modalTitleEl.textContent = titulo;
+      modalTitleEl.classList.toggle('modal-title-danger', danger);
+      modalOverlay.querySelector('.modal-box')?.classList.toggle('modal-box-danger', danger);
+      modalMessageEl.textContent = mensaje;
+      modalInputEl.style.display = 'none';
+      modalBtnCancel.style.display = '';
+      modalBtnCancel.textContent = textoCancel;
+      modalBtnOk.textContent = textoOk;
+      modalBtnOk.className = danger ? 'btn danger' : 'btn primary';
+
+      const lista = document.createElement('div');
+      lista.className = 'modal-opciones' + (danger ? ' danger' : '');
+      lista.innerHTML = opciones.map(o => `
+        <label class="modal-opcion">
+          <input type="checkbox" data-opcion="${escapeHtml(o.id)}" ${o.marcada === false ? '' : 'checked'}>
+          <span><b>${escapeHtml(o.titulo)}</b>${o.detalle ? `<small>${escapeHtml(o.detalle)}</small>` : ''}</span>
+        </label>`).join('');
+      if (opciones.length) modalMessageEl.after(lista);
+      _abrirModal();
+
+      const onOk = () => {
+        const res = {};
+        lista.querySelectorAll('[data-opcion]').forEach(cb => { res[cb.dataset.opcion] = cb.checked; });
+        limpiar();
+        resolve(res);
+      };
+      const onCancel = () => { limpiar(); resolve(null); };
+      function limpiar() {
+        _cerrarModal();
+        lista.remove();
+        modalTitleEl.classList.remove('modal-title-danger');
+        modalOverlay.querySelector('.modal-box')?.classList.remove('modal-box-danger');
+        modalBtnOk.removeEventListener('click', onOk);
+        modalBtnCancel.removeEventListener('click', onCancel);
+      }
+      modalBtnOk.addEventListener('click', onOk);
+      modalBtnCancel.addEventListener('click', onCancel);
+    });
+  }
+
   function modalPrompt(mensaje, { titulo = 'Introduce un valor', placeholder = '', valorInicial = '', tipo = 'text' } = {}) {
     return new Promise(resolve => {
       modalIconEl.style.display = 'none';

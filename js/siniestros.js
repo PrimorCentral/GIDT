@@ -53,7 +53,7 @@
     const idsIncidencias = incs.map(i => i.id);
     const { data: existentes, error: e2 } = await sb
       .from('siniestros')
-      .select('id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por')
+      .select('id, incidencia_id, tipo, tipo_enviado, estado, fotos, fecha_limite, enviado_en, enviado_por')
       .in('incidencia_id', idsIncidencias);
     if (e2) throw e2;
 
@@ -83,7 +83,7 @@
         .upsert(nuevos, { onConflict: 'incidencia_id', ignoreDuplicates: true });
       if (e3) throw e3;
       const { data: creados, error: e4 } = await sb.from('siniestros')
-        .select('id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por')
+        .select('id, incidencia_id, tipo, tipo_enviado, estado, fotos, fecha_limite, enviado_en, enviado_por')
         .in('incidencia_id', faltantes.map(i => i.id));
       if (e4) throw e4;
       (creados || []).forEach(s => existentesPorIncidencia.set(s.incidencia_id, s));
@@ -91,17 +91,23 @@
 
     // 3.5. Si los motivos de una incidencia cambiaron después de crear su siniestro
     // (ej: era solo ROTURA y ahora también tiene FALTAS), recalculamos y sincronizamos
-    // el tipo — solo mientras esté PENDIENTE, para no tocar uno ya enviado.
+    // el tipo. Si ya estaba ENVIADO, también se actualiza (y su fila del Panel
+    // siniestros): queda "pendiente de reenviar" hasta que se mande la
+    // actualización a la agencia desde el panel. Los ANULADOS no se tocan.
     const desincronizados = incs.filter(i => {
       const s = existentesPorIncidencia.get(i.id);
-      return s && s.estado === 'PENDIENTE' && s.tipo !== tipoSiniestroDeMotivos(i.motivo);
+      return s && (s.estado === 'PENDIENTE' || s.estado === 'ENVIADO') && s.tipo !== tipoSiniestroDeMotivos(i.motivo);
     });
     if (desincronizados.length) {
-      await Promise.all(desincronizados.map(i => {
+      await Promise.all(desincronizados.map(async i => {
         const s = existentesPorIncidencia.get(i.id);
         const nuevoTipo = tipoSiniestroDeMotivos(i.motivo);
         s.tipo = nuevoTipo;
-        return sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
+        await sb.from('siniestros').update({ tipo: nuevoTipo }).eq('id', s.id);
+        if (s.estado === 'ENVIADO' && typeof psActualizarTipoDesdeSiniestro === 'function') {
+          try { await psActualizarTipoDesdeSiniestro(s.id, nuevoTipo, s.fecha_limite); }
+          catch (err) { console.error('No se pudo actualizar el tipo en el Panel siniestros:', err); }
+        }
       }));
     }
 
@@ -161,7 +167,8 @@
     const faltas = siniestrosHoyCache.filter(s => s.tipo === 'FALTA');
     const mixtos = siniestrosHoyCache.filter(s => s.tipo === 'MIXTO');
 
-    const badgeEstado = (estado) => {
+    const badgeEstado = (estado, s) => {
+      if (s && siniestroPendienteReenvio(s)) return '<span class="badge-envio reenviar">Reenviar</span>';
       if (estado === 'ENVIADO') return '<span class="badge-envio enviado">Enviado</span>';
       if (estado === 'ANULADO') return '<span class="badge-envio anulado">Anulado</span>';
       return '<span class="badge-envio pendiente">Pendiente</span>';
@@ -172,14 +179,15 @@
       const ag = t.agencias || {};
       const numFotos = (s.fotos || []).length;
       return `
-        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}" data-siniestro="${s.id}">
+        <div class="siniestro-card ${s.estado === 'ANULADO' ? 'anulado' : ''}${siniestroPendienteReenvio(s) ? ' cambiado' : ''}" data-siniestro="${s.id}">
           <div class="fila-top">
             <b>${escapeHtml(t.nombre || '—')}</b>
-            ${badgeEstado(s.estado)}
+            ${badgeEstado(s.estado, s)}
           </div>
           <div class="agencia">${escapeHtml(ag.nombre || 'Sin agencia')} · ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</div>
           ${s.incidencia.observaciones ? `<div class="obs">${escapeHtml(s.incidencia.observaciones)}</div>` : ''}
           <div class="fotos-mini">📷 ${numFotos} foto${numFotos===1?'':'s'}</div>
+          ${siniestroPendienteReenvio(s) ? `<div class="aviso">⚠️ ${escapeHtml(textoEnviadoComo(s))} · falta reenviar la actualización</div>` : ''}
         </div>`;
     };
 
@@ -246,11 +254,12 @@
   async function sincronizarSiniestroIncidencia(incidenciaId, motivos) {
     if (!informeHoyCache) return;
     const tipo = tipoSiniestroDeMotivos(motivos);
+    let filaPanelCambiada = null;
 
     try {
       const { data: existente, error: eSel } = await sb
         .from('siniestros')
-        .select('id, tipo, estado')
+        .select('id, tipo, estado, fecha_limite')
         .eq('incidencia_id', incidenciaId)
         .maybeSingle();
       if (eSel) throw eSel;
@@ -277,6 +286,15 @@
       } else if (existente.estado === 'PENDIENTE' && existente.tipo !== tipo) {
         const { error: eUpd } = await sb.from('siniestros').update({ tipo }).eq('id', existente.id);
         if (eUpd) throw eUpd;
+      } else if (existente.estado === 'ENVIADO' && existente.tipo !== tipo) {
+        // Ya se había mandado a la agencia: se cambia el tipo aquí y en el
+        // Panel siniestros, y se avisa de que falta reenviar la
+        // actualización (con opción de ir directamente a ese siniestro).
+        const { error: eUpd } = await sb.from('siniestros').update({ tipo }).eq('id', existente.id);
+        if (eUpd) throw eUpd;
+        if (typeof psActualizarTipoDesdeSiniestro === 'function') {
+          filaPanelCambiada = await psActualizarTipoDesdeSiniestro(existente.id, tipo, existente.fecha_limite);
+        }
       }
     } catch (err) {
       console.error('Error sincronizando siniestro de la incidencia:', err);
@@ -289,6 +307,11 @@
     if (document.getElementById('view-siniestros')?.classList.contains('active')) {
       renderVistaSiniestros();
     }
+
+    if (filaPanelCambiada) {
+      if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+      if (typeof psAvisarSiniestroActualizado === 'function') await psAvisarSiniestroActualizado(filaPanelCambiada);
+    }
   }
 
   // ---- Modal de detalle de siniestro ----
@@ -299,6 +322,17 @@
   // .fechaInforme (fecha de recepción), que sustituye a informeHoyCache.fecha
   // en la plantilla del correo y al registrarlo en el Panel siniestros.
   let siniestroExterno = null;
+
+  // Enviado a la agencia con un tipo y luego cambiado en el informe: falta
+  // mandar la actualización desde el Panel siniestros.
+  function siniestroPendienteReenvio(s) {
+    return !!s && s.estado === 'ENVIADO' && !!s.tipo_enviado && s.tipo !== s.tipo_enviado;
+  }
+  const TIPO_SINIESTRO_TXT = { ROTURA: 'ROTURA', FALTA: 'FALTAS', MIXTO: 'ROTURAS Y FALTAS' };
+  // "Enviado como ROTURA · ahora es ROTURAS Y FALTAS"
+  function textoEnviadoComo(s) {
+    return `Enviado como ${TIPO_SINIESTRO_TXT[s.tipo_enviado] || s.tipo_enviado} · ahora es ${TIPO_SINIESTRO_TXT[s.tipo] || s.tipo}`;
+  }
 
   function siniestroPorId(id) {
     if (siniestroExterno && siniestroExterno.id === id) return siniestroExterno;
@@ -317,7 +351,7 @@
       const { data: s, error } = await sb
         .from('siniestros')
         .select(`
-          id, incidencia_id, tipo, estado, fotos, fecha_limite, enviado_en, enviado_por,
+          id, incidencia_id, tipo, tipo_enviado, estado, fotos, fecha_limite, enviado_en, enviado_por,
           incidencia:incidencias (
             id, motivo, observaciones, tienda_nombre, tienda_hora_prevista,
             informes_diarios ( fecha ),
@@ -406,6 +440,10 @@
         ? `<div class="meta-row olvidado"><span class="ic">🚨</span>Siniestro del ${txtDia} sin enviar ni registrar en el Panel siniestros</div>`
         : `<div class="meta-row"><span class="ic">📅</span>Siniestro del ${txtDia}</div>`);
     }
+    const pendienteReenvio = siniestroPendienteReenvio(s);
+    if (pendienteReenvio) {
+      filas.push(`<div class="meta-row cambiado"><span class="ic">⚠️</span>${escapeHtmlSiniestro(textoEnviadoComo(s))}</div>`);
+    }
     filas.push(`<div class="meta-row"><span class="ic">🚚</span>${escapeHtmlSiniestro(ag.nombre || 'Sin agencia')} · Hora prevista ${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}</div>`);
     if (s.incidencia.observaciones) {
       filas.push(`<div class="meta-row"><span class="ic">📝</span>${escapeHtmlSiniestro(s.incidencia.observaciones)}</div>`);
@@ -440,9 +478,10 @@
     }
 
     const estadoEl = document.getElementById('siniestroModalEstado');
-    estadoEl.className = 'siniestro-estado' + (s.estado === 'ENVIADO' ? ' enviado' : s.estado === 'ANULADO' ? ' anulado' : '');
+    estadoEl.className = 'siniestro-estado' + (pendienteReenvio ? ' cambiado' : s.estado === 'ENVIADO' ? ' enviado' : s.estado === 'ANULADO' ? ' anulado' : '');
     document.getElementById('siniestroModalEstadoTxt').textContent =
-      s.estado === 'ENVIADO'
+      pendienteReenvio ? 'Pendiente de reenviar desde el Panel siniestros'
+      : s.estado === 'ENVIADO'
         ? (() => {
             if (!s.enviado_en) return 'Enviado';
             const f = new Date(s.enviado_en);
@@ -453,6 +492,8 @@
       : s.estado === 'ANULADO' ? '🚫 Anulado desde el Panel siniestros'
       : 'Pendiente de envío';
     document.getElementById('btnEnviarSiniestro').style.display = s.estado === 'PENDIENTE' ? '' : 'none';
+    const btnIrPanel = document.getElementById('btnSiniestroIrPanel');
+    if (btnIrPanel) btnIrPanel.style.display = pendienteReenvio ? '' : 'none';
     const sinFotos = !(s.fotos || []).length;
     document.getElementById('btnEnviarSiniestro').disabled = s.estado === 'PENDIENTE' && sinFotos;
     document.getElementById('btnEnviarSiniestro').title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
@@ -577,6 +618,25 @@
     }
   }
 
+  // Siniestro modificado tras enviarlo: el reenvío se hace desde el Panel
+  // siniestros, así que este botón lleva directamente a su detalle.
+  document.getElementById('btnSiniestroIrPanel')?.addEventListener('click', async () => {
+    const s = siniestroPorId(siniestroActivoId);
+    if (!s) return;
+    try {
+      const { data: fila, error } = await sb.from('panel_siniestros').select('id').eq('siniestro_id', s.id).maybeSingle();
+      if (error) throw error;
+      if (!fila) {
+        await modalAlert('Este siniestro no está en el Panel siniestros.', { titulo: 'No encontrado' });
+        return;
+      }
+      cerrarModalSiniestro();
+      if (typeof psIrADetalleSiniestro === 'function') await psIrADetalleSiniestro(fila.id);
+    } catch (err) {
+      console.error('Error abriendo el siniestro en el Panel siniestros:', err);
+    }
+  });
+
   document.getElementById('btnEnviarSiniestro').addEventListener('click', async () => {
     const s = siniestroPorId(siniestroActivoId);
     const t = s.incidencia.tiendas || {};
@@ -617,11 +677,13 @@
       const { error } = await sb.from('siniestros').update({
         estado: 'ENVIADO',
         enviado_en: new Date().toISOString(),
-        enviado_por: sesionActual?.nombre || sesionActual?.usuario || null
+        enviado_por: sesionActual?.nombre || sesionActual?.usuario || null,
+        tipo_enviado: s.tipo
       }).eq('id', s.id);
       if (error) throw error;
 
       s.estado = 'ENVIADO';
+      s.tipo_enviado = s.tipo;
       s.enviado_en = new Date().toISOString();
       s.enviado_por = sesionActual?.nombre || sesionActual?.usuario || null;
       registrarSiniestroEnPanelAutomatico(s, fechaInformeISO);

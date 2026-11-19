@@ -418,7 +418,7 @@
       pasoCargando(2);
       barra(0.7);
       const { data, error } = await sb.from('panel_siniestros')
-        .select('id, fecha, agencia_nombre, tienda_nombre, tipo, num_albaran, num_factura, valor, estado')
+        .select('id, fecha, agencia_id, agencia_nombre, tienda_nombre, tipo, tipo_enviado, origen, informacion, recogida_limite, num_albaran, num_factura, valor, estado, correo_enviado, correo_enviado_en, reenvios, siniestro_id, incidencia_id')
         .eq('estado', 'PDTE COBRO');
       if (error) throw error;
       finPaso(2, `(${(data || []).length})`);
@@ -447,11 +447,26 @@
     if (ocupado) return;
     const { marcados, cob, anu } = contar();
     if (!marcados.length) return;
-    const ok = await modalConfirm(
-      `Se van a marcar ${cob.length} ${cob.length === 1 ? 'siniestro' : 'siniestros'} como COBRADO${anu.length ? ` y ${anu.length} como ANULADO` : ''}.\n\n¿Continuar?`,
-      { titulo: 'Confirmar cobros', icono: '📥', textoOk: 'Confirmar' }
-    );
-    if (!ok) return;
+    // Si hay anulados, se pregunta además (como al anular a mano en el
+    // detalle) si avisar a las agencias y si quitar los motivos del informe.
+    let accionesAnular = null;
+    if (anu.length && typeof psPreguntarAnulacion === 'function') {
+      const partes = [];
+      if (cob.length) partes.push(`${cob.length} como COBRADO`);
+      partes.push(`${anu.length} como ANULADO`);
+      accionesAnular = await psPreguntarAnulacion(anu.map(it => it.s), {
+        mensaje: `Se van a marcar ${partes.join(' y ')}. Para ${anu.length === 1 ? 'el anulado' : `los ${anu.length} anulados`}, marca qué más quieres hacer:`,
+        titulo: 'Confirmar cobros',
+        textoOk: 'Confirmar'
+      });
+      if (!accionesAnular) return;
+    } else {
+      const ok = await modalConfirm(
+        `Se van a marcar ${cob.length} ${cob.length === 1 ? 'siniestro' : 'siniestros'} como COBRADO${anu.length ? ` y ${anu.length} como ANULADO` : ''}.\n\n¿Continuar?`,
+        { titulo: 'Confirmar cobros', icono: '📥', textoOk: 'Confirmar' }
+      );
+      if (!ok) return;
+    }
     ocupado = true;
     const btn = box.querySelector('#icBtnConfirmar');
     if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
@@ -476,6 +491,18 @@
         lista.forEach(it => { if (ids.has(it.s.id)) hechos[nuevo].push(it); });
       }
 
+      // Avisar a las agencias / quitar motivos de los que sí se anularon.
+      const erroresCorreo = [];
+      if (accionesAnular && (accionesAnular.avisar || accionesAnular.quitar) && hechos.ANULADO.length && typeof psEjecutarAnulacion === 'function') {
+        if (btn) btn.textContent = accionesAnular.avisar ? 'Avisando a las agencias…' : 'Quitando motivos…';
+        for (const it of hechos.ANULADO) {
+          Object.assign(it.s, { estado: 'ANULADO', anulado_en: ahora, anulado_por: usuario });
+          const err = await psEjecutarAnulacion(it.s, accionesAnular);
+          if (err) erroresCorreo.push(err);
+        }
+        if (typeof psRefrescarTrasAnulacion === 'function') psRefrescarTrasAnulacion();
+      }
+
       const total = hechos.COBRADO.length + hechos.ANULADO.length;
       const saltados = marcados.length - total;
       if (typeof registrarAccion === 'function' && total) {
@@ -490,6 +517,9 @@
       }
       cerrar(true);
       if (typeof cargarPanelSiniestros === 'function') cargarPanelSiniestros();
+      if (erroresCorreo.length) {
+        await modalAlert(`Los siniestros se han marcado, pero no se pudo mandar el correo de anulación de ${erroresCorreo.length === 1 ? 'este' : 'estos'}:\n\n${erroresCorreo.join('\n')}`, { titulo: 'Correos no enviados', icono: '⚠️', danger: true });
+      }
       if (saltados > 0) {
         await modalAlert(`Se han marcado ${total} siniestros.\n\n${saltados} no se han cambiado porque otro usuario los modificó mientras tanto (ya no estaban en PDTE COBRO).`, { titulo: 'Cobros importados', icono: '⚠️' });
       } else if (typeof mostrarToast === 'function') {

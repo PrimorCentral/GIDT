@@ -335,7 +335,7 @@ async function recargarConGiro(btn, ...cargas) {
     // albarán, sin factura, y recogidas con la fecha cumplida
     try {
       const { data, error } = await sb.from('panel_siniestros')
-        .select('estado, tipo, recogida_estado, recogida_limite, recogida_estado_en, valor, fecha, creado_en, albaran_url, factura_url, origen, correo_enviado, envio_omitido_en');
+        .select('estado, tipo, tipo_enviado, recogida_estado, recogida_limite, recogida_estado_en, valor, fecha, creado_en, albaran_url, factura_url, origen, correo_enviado, envio_omitido_en');
       if (!error && data) {
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
@@ -353,6 +353,22 @@ async function recargarConGiro(btn, ...cargas) {
             filtro: { sinCorreo: true },
             urgente: true,
             edad: edadTareaPendiente(sinEnviarAgencia, 'creado_en')
+          });
+        }
+
+        // Siniestros que cambiaron de tipo después de enviarlos (en el
+        // informe se añadieron o quitaron roturas/faltas) y todavía no se
+        // ha mandado la actualización a la agencia.
+        const pendientesReenvio = data.filter(s => typeof psPendienteReenvio === 'function' && psPendienteReenvio(s));
+        if (pendientesReenvio.length) {
+          const n = pendientesReenvio.length;
+          items.unshift({
+            icono: '🔄',
+            texto: `${n} siniestro${n === 1 ? '' : 's'} modificado${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'} de reenviar a la agencia`,
+            vista: 'panel-siniestros',
+            filtro: { sinCorreo: true },
+            urgente: true,
+            edad: edadTareaPendiente(pendientesReenvio, 'fecha')
           });
         }
 

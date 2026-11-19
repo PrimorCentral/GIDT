@@ -3726,3 +3726,32 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .le-modal .err{ margin:0 0 12px; color:var(--grave); font-size:12.5px; }
 .lp-tabla-star{ margin-left:5px; font-size:13px; color:#F59E0B; cursor:help; }
 .lp-tabla-star.gris{ color:#9CA3AF; }
+
+/* ===== Modal con casillas (modalConfirmOpciones, ui-modal.js) ===== */
+.modal-opciones{ display:flex; flex-direction:column; gap:8px; margin:12px 0 4px; text-align:left; }
+.modal-opcion{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; cursor:pointer; }
+.modal-opcion:hover{ background:var(--panel-muted); }
+.modal-opcion input{ margin:3px 0 0; flex:0 0 auto; accent-color:var(--accent); }
+.modal-opciones.danger .modal-opcion input{ accent-color:var(--grave); }
+.modal-opcion b{ display:block; font-size:13px; color:var(--ink); }
+.modal-opcion small{ display:block; font-size:12px; color:var(--ink-soft); line-height:1.4; margin-top:2px; font-weight:500; }
+
+/* ===== Siniestro modificado después de enviarlo a la agencia ===== */
+/* Siniestros del día */
+.badge-envio.reenviar{ background:var(--accent); color:#2A1200; }
+.siniestro-card.cambiado{ border-color:#FFD2AE; background:#FFF7F0; box-shadow:inset 3px 0 0 var(--accent), var(--shadow); }
+.siniestro-card.cambiado .aviso{ font-size:12px; color:var(--accent-ink); font-weight:700; margin-top:8px; }
+.siniestro-meta .meta-row.cambiado{ color:var(--accent-ink); font-weight:700; }
+.siniestro-estado.cambiado{ color:var(--accent-ink); }
+.siniestro-estado.cambiado .siniestro-estado-dot{ background:var(--accent); box-shadow:0 0 0 3px rgba(255,140,40,.18); }
+.siniestro-pie .btn{ white-space:nowrap; }
+/* Panel siniestros */
+.ps-chip-reenviar{ display:inline-block; font-size:10.5px; font-weight:800; text-transform:uppercase; padding:2px 8px; border-radius:99px; background:var(--accent); color:#2A1200; white-space:nowrap; vertical-align:middle; }
+#panelSiniestrosBody tr.ps-fila-reenviar td{ background:#FFF7F0; }
+#panelSiniestrosBody tr.ps-fila-reenviar td:first-child{ box-shadow:inset 3px 0 0 var(--accent); }
+.step-reenviar .step-chip{ background:var(--accent); color:#2A1200; }
+.step-comunicacion{ display:block; margin-top:8px; padding-top:8px; border-top:1px dashed #D5DAE0; }
+.step-comunicacion b{ font-weight:700; }
+.step-comunicacion.reenvio, .step-comunicacion.reenvio b{ color:var(--ok); }
+.step-comunicacion.no-reenvio, .step-comunicacion.no-reenvio b{ color:var(--ink-soft); }
+.step-comunicacion.anulacion, .step-comunicacion.anulacion b{ color:var(--ink-soft); }

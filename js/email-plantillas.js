@@ -822,6 +822,220 @@
   }
 
   // ---------------------------------------------------------------
+  // Correos POSTERIORES al primer aviso a la agencia (Panel siniestros):
+  //  - ACTUALIZACIÓN: el tipo del siniestro cambió después de enviarlo
+  //    (en el informe se añadieron o quitaron roturas/faltas). Es la
+  //    plantilla de siempre del tipo NUEVO, con un recuadro naranja arriba
+  //    que explica qué ha cambiado respecto al aviso anterior.
+  //  - ANULACIÓN: el siniestro pasa a ANULADO y se avisa a la agencia de
+  //    que no se le pasará cargo.
+  // Los tipos son los de plantilla: ROTURA / FALTA / MIXTO.
+  // ---------------------------------------------------------------
+
+  const TIPO_PLANTILLA_TXT = { ROTURA: 'roturas', FALTA: 'faltas', MIXTO: 'roturas y faltas' };
+
+  // "19/11/2026 a las 10:30" (hora de Madrid, la del navegador)
+  function fechaHoraEsCorreo(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()} a las ${hh}:${mi}`;
+  }
+
+  // Frase (HTML) que explica a la agencia el cambio de tipo.
+  function textoCambioTipoSiniestro(antes, despues) {
+    const conRoturas = t => t === 'ROTURA' || t === 'MIXTO';
+    const conFaltas = t => t === 'FALTA' || t === 'MIXTO';
+    const anadidas = [];
+    const quitadas = [];
+    if (conRoturas(despues) && !conRoturas(antes)) anadidas.push('roturas');
+    if (conFaltas(despues) && !conFaltas(antes)) anadidas.push('faltas');
+    if (conRoturas(antes) && !conRoturas(despues)) quitadas.push('roturas');
+    if (conFaltas(antes) && !conFaltas(despues)) quitadas.push('faltas');
+    if (anadidas.length && !quitadas.length) {
+      return `Además de las ${TIPO_PLANTILLA_TXT[antes]} que os comunicamos, se han detectado <b>${anadidas.join(' y ')}</b> en este mismo envío.`;
+    }
+    if (quitadas.length && !anadidas.length) {
+      return `Rectificamos el aviso anterior: finalmente <b>no hay ${quitadas.join(' ni ')}</b> en este envío. Se mantienen únicamente las ${TIPO_PLANTILLA_TXT[despues]} comunicadas.`;
+    }
+    // Cambio cruzado (p. ej. lo que se avisó como roturas son faltas)
+    return `Rectificamos el aviso anterior: lo que os comunicamos como <b>${TIPO_PLANTILLA_TXT[antes]}</b> son en realidad <b>${TIPO_PLANTILLA_TXT[despues]}</b>.`;
+  }
+
+  // Recuadro naranja que va encima del título del correo.
+  function cajaAvisoCorreoHtml(tituloHtml, cuerpoHtml) {
+    return `
+          <tr>
+            <td style="padding: 18px 40px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fff7ed" style="background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px;">
+                <tr>
+                  <td style="padding: 12px 16px; font-family: Arial, sans-serif; font-size: 13px; color: #9a3412; line-height: 1.5;">
+                    <b style="text-transform: uppercase;">${tituloHtml}</b><br>${cuerpoHtml}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+  }
+
+  // Mete un bloque justo al principio de la tarjeta blanca de la plantilla.
+  function insertarAlInicioDelCorreo(html, bloque) {
+    return html.replace(/(<table width="600"[^>]*>)/, `$1${bloque}`);
+  }
+
+  // sPlantilla: igual que para plantillaSiniestro (tipo NUEVO), opciones:
+  //   tipoAnterior: tipo con el que se comunicó la última vez
+  //   comunicadoEn: ISO de esa última comunicación
+  //   agencia: true si el origen es AGENCIA (usa esas plantillas)
+  function plantillaActualizacionSiniestro(sPlantilla, fechaInformeISO, { tipoAnterior, comunicadoEn, agencia = false } = {}) {
+    const base = agencia ? plantillaSiniestroAgencia(sPlantilla, fechaInformeISO) : plantillaSiniestro(sPlantilla, fechaInformeISO);
+    const cuando = fechaHoraEsCorreo(comunicadoEn);
+    const cambio = textoCambioTipoSiniestro(tipoAnterior, sPlantilla.tipo);
+    const titulo = cuando ? `Actualización del aviso enviado el ${cuando}` : 'Actualización del aviso anterior';
+    const html = insertarAlInicioDelCorreo(base.html, cajaAvisoCorreoHtml(titulo, `${cambio} Este correo sustituye al anterior.`));
+    const textoCambio = cambio.replace(/<[^>]+>/g, '');
+    return {
+      subject: `ACTUALIZACIÓN – ${base.subject}`,
+      html,
+      text: `${titulo.toUpperCase()}. ${textoCambio} Este correo sustituye al anterior.\n\n${base.text}`
+    };
+  }
+
+  function plantillaHtmlAnulacion({ tienda, fechaInformeStr, tipoTxt, cuandoTxt, lugarHtml, conRecogida }) {
+    const chipTienda = tienda ? `
+                  <td style="padding: 4px;">
+                    <table cellpadding="0" cellspacing="0" border="0" bgcolor="#fef2f2" style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 20px;">
+                      <tr>
+                        <td style="padding: 6px 16px; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: #ef4444; text-transform: uppercase; white-space: nowrap;">
+                          Tienda: ${escapeHtml(tienda.toUpperCase())}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>` : '';
+    const chipVerde = (txt) => `
+                              <td style="padding: 4px;">
+                                <table cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border: 1px solid #bbf7d0; border-radius: 12px;">
+                                  <tr><td align="center" style="padding: 12px 20px; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: #166534;">${txt}</td></tr>
+                                </table>
+                              </td>`;
+    return `
+<div style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f7fa">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border: 1px solid #edf2f7; border-radius: 24px;">
+          <tr>
+            <td align="center" style="padding: 32px 40px; border-bottom: 1px solid #f1f5f9;">
+              <h2 style="margin: 0; color: #1e293b; font-family: Arial, sans-serif; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">
+                ANULACIÓN DEL AVISO<br> DE INCIDENCIA EN LA ENTREGA
+              </h2>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td height="20" style="font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+              </table>
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>${chipTienda}
+                  <td style="padding: 4px;">
+                    <table cellpadding="0" cellspacing="0" border="0" bgcolor="#f1f5f9" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px;">
+                      <tr>
+                        <td style="padding: 6px 16px; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; white-space: nowrap;">
+                          ${tienda ? 'Recepción' : 'Fecha'}: ${fechaInformeStr}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px; background-color: #ffffff;">
+              <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">Buenas,</p>
+              <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+                Os escribimos en relación con el aviso de <b style="color: #000000;">${tipoTxt.toUpperCase()}</b> que os enviamos${cuandoTxt ? ` el <b style="color: #000000;">${cuandoTxt}</b>` : ''} ${lugarHtml}.
+              </p>
+              <p style="margin-top: 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+                Tras revisar de nuevo el caso, os confirmamos que esta incidencia <b style="color: #000000;">queda ANULADA</b>. Por favor, no tengáis en cuenta el aviso anterior.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0fdf4" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 20px;">
+                      <tr>
+                        <td align="center" style="padding: 26px 20px;">
+                          <div style="font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; color: #15803d; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 14px;">✅ INCIDENCIA ANULADA</div>
+                          <table cellpadding="0" cellspacing="0" border="0">
+                            <tr>${chipVerde('Sin cargo')}${conRecogida ? chipVerde('Sin recogida de mercancía') : ''}
+                            </tr>
+                          </table>
+                          <div style="font-family: Arial, sans-serif; font-size: 12px; color: #166534; font-style: italic; line-height: 18px; padding-top: 16px; max-width: 460px;">
+                            No se os pasará ningún cargo por esta incidencia${conRecogida ? ' y no es necesario pasar a recoger la mercancía' : ''}.
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+                <tr>
+                  <td align="center">
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0; text-align: center;">Atentamente,<br>
+                      <b style="color: #1e293b;">Departamento de Transporte</b>
+                    </p>
+                    <p style="margin-top: 16px; margin-bottom: 0; text-align: center;">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Primor_Logo.png/960px-Primor_Logo.png" alt="PRIMOR" width="150" style="display: inline-block; border:0; margin: 0 auto;">
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" bgcolor="#f8fafc" style="padding: 20px; border-top: 1px solid #f1f5f9;">
+              <span style="font-family: Arial, sans-serif; font-size: 9px; color: #cbd5e1; font-weight: 400; text-transform: uppercase; letter-spacing: 2px;">
+                CORREO GENERADO AUTOMATICAMENTE POR EL SISTEMA GIDT
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>`;
+  }
+
+  // sPlantilla.tipo = tipo con el que se comunicó la última vez a la agencia.
+  // opciones: comunicadoEn (ISO de esa última comunicación), agencia (origen AGENCIA).
+  function plantillaAnulacionSiniestro(sPlantilla, fechaInformeISO, { comunicadoEn, agencia = false } = {}) {
+    const base = agencia ? plantillaSiniestroAgencia(sPlantilla, fechaInformeISO) : plantillaSiniestro(sPlantilla, fechaInformeISO);
+    const tienda = sPlantilla.incidencia?.tiendas?.nombre || '';
+    const tipoTxt = TIPO_PLANTILLA_TXT[sPlantilla.tipo] || 'incidencias';
+    const cuandoTxt = fechaHoraEsCorreo(comunicadoEn);
+    const lugarHtml = agencia
+      ? (tienda
+          ? `sobre el palet de nuestra tienda <b style="color: #000000;">${escapeHtml(tienda.toUpperCase())}</b> que se reparó en vuestro almacén`
+          : 'sobre un palet nuestro que se reparó en vuestro almacén')
+      : (tienda
+          ? `sobre la mercancía recibida en nuestra tienda de <b style="color: #000000;">${escapeHtml(tienda.toUpperCase())}</b> (ver fecha de recepción arriba)`
+          : 'sobre un envío de mercancía (ver fecha arriba)');
+    const html = plantillaHtmlAnulacion({
+      tienda,
+      fechaInformeStr: fechaEs(fechaInformeISO),
+      tipoTxt,
+      cuandoTxt,
+      lugarHtml,
+      conRecogida: sPlantilla.tipo !== 'FALTA'
+    });
+    return {
+      subject: `ANULACIÓN – ${base.subject}`,
+      html,
+      text: `Anulamos el aviso de ${tipoTxt} que os enviamos${cuandoTxt ? ' el ' + cuandoTxt : ''}${tienda ? ` (tienda ${tienda})` : ''}. Esta incidencia queda ANULADA: no se os pasará ningún cargo${sPlantilla.tipo !== 'FALTA' ? ' y no es necesario recoger la mercancía' : ''}.`
+    };
+  }
 
   // ---------------------------------------------------------------
   // Correo a Facturación (envío del albarán + fotos de un siniestro del

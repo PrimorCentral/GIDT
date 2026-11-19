@@ -160,10 +160,10 @@ async function actualizarTipoSiniestroExistente(incidencia, informe) {
   }
 
   const panelId = await panelSiniestroDeIncidencia(incidencia.id);
-  if (!panelId) return;
-  const { data: panel, error: eSel } = await sb.from('panel_siniestros').select('id, tipo, recogida_limite').eq('id', panelId).single();
+  if (!panelId) return null;
+  const { data: panel, error: eSel } = await sb.from('panel_siniestros').select('*').eq('id', panelId).single();
   if (eSel) throw eSel;
-  if (panel.tipo === tipoPanel) return;
+  if (panel.tipo === tipoPanel) return null;
 
   const cambios = { tipo: tipoPanel, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
   if (tipoSin !== 'FALTA' && !panel.recogida_limite) {
@@ -177,6 +177,9 @@ async function actualizarTipoSiniestroExistente(incidencia, informe) {
     registrarAccion('siniestros', 'Cambio de tipo de siniestro desde el histórico',
       `${incidencia.tienda_nombre || '—'} · ${panel.tipo} → ${tipoPanel}`);
   }
+  // Se devuelve la fila ya cambiada: si se había enviado a la agencia con
+  // el tipo anterior, al terminar se avisa de que falta reenviarlo.
+  return { ...panel, ...cambios };
 }
 
 // ---------------- "Terminar de editar": vuelca el borrador a BD ----------------
@@ -187,6 +190,9 @@ async function finalizarEdicionHistorial() {
     return;
   }
 
+  // Siniestros ya enviados a la agencia cuyo tipo cambia con esta edición
+  // (para avisar al terminar de que falta reenviar la actualización).
+  const filasPanelCambiadas = [];
   try {
     // 0) Comprobación final: ninguna incidencia con NO ENTREGAN / FALTAS se
     // vuelca a BD sin su submotivo. Si alguna llega así, no se guarda nada.
@@ -269,7 +275,8 @@ async function finalizarEdicionHistorial() {
 
       // Siniestro ya existente (no es uno nuevo del borrador): actualizar su tipo.
       if (existente && !historialSiniestrosDraft.has(clave)) {
-        await actualizarTipoSiniestroExistente(guardada, historialInformeActual);
+        const filaCambiada = await actualizarTipoSiniestroExistente(guardada, historialInformeActual);
+        if (filaCambiada) filasPanelCambiadas.push(filaCambiada);
       }
     }
 
@@ -286,11 +293,30 @@ async function finalizarEdicionHistorial() {
     historialBorrador = new Map();
     historialSiniestrosDraft = new Map();
     salirDeEdicionHistorial();
+    await avisarSiniestrosCambiadosHistorial(filasPanelCambiadas);
   } catch (err) {
     console.error('Error guardando los cambios del histórico:', err);
     await modalAlert('No se pudieron guardar todos los cambios. Los que sí se aplicaron se han mantenido: revisa e inténtalo de nuevo.', { titulo: 'Error' });
     renderAcordeonHistorialEditable();
   }
+}
+
+// Tras terminar de editar: si algún siniestro que ya se había enviado a la
+// agencia ha cambiado de tipo, se avisa (con opción de ir al Panel).
+async function avisarSiniestrosCambiadosHistorial(filas) {
+  const pendientes = (filas || []).filter(f => typeof psPendienteReenvio === 'function' && psPendienteReenvio(f));
+  if (!pendientes.length) return;
+  if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+  if (pendientes.length === 1) {
+    if (typeof psAvisarSiniestroActualizado === 'function') await psAvisarSiniestroActualizado(pendientes[0]);
+    return;
+  }
+  const lista = pendientes.map(f => f.tienda_nombre || `Nº ${f.id}`).join(', ');
+  const ir = await modalConfirm(
+    `${pendientes.length} siniestros que ya se habían enviado a la agencia han cambiado de tipo (${lista}). El Panel siniestros ya está actualizado, pero falta mandar a las agencias el correo de actualización.`,
+    { titulo: 'Siniestros actualizados', icono: '🔄', textoOk: '🗂️ Ir al Panel siniestros', textoCancel: 'Más tarde' }
+  );
+  if (ir && typeof inicioIrA === 'function') await inicioIrA('panel-siniestros', { sinCorreo: true });
 }
 
 async function crearSiniestroPanelDesdeBorrador(incidencia, draftSin, informe) {

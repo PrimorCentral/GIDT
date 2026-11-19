@@ -67,6 +67,25 @@ function psFacturacionResuelta(s) {
 function psEnvioAgenciaResuelto(s) {
   return !!s.correo_enviado || !!s.envio_omitido_en;
 }
+
+// El correo se mandó a la agencia con un tipo (tipo_enviado) y después el
+// siniestro cambió de tipo (en el informe se añadieron o quitaron roturas
+// o faltas): la agencia todavía no lo sabe. Queda así hasta que se pulsa
+// "Reenviar actualización" o "No reenviar" en el detalle. Los anulados no.
+function psPendienteReenvio(s) {
+  return !!s.correo_enviado && s.estado !== 'ANULADO' && !!s.tipo_enviado && s.tipo !== s.tipo_enviado;
+}
+
+// Fecha (ISO) de la última vez que se escribió a la agencia sobre este
+// siniestro: el primer correo o el último reenvío de actualización.
+function psUltimaComunicacion(s) {
+  const reenvios = (s.reenvios || []).filter(r => r.accion === 'REENVIO');
+  return reenvios.length ? reenvios[reenvios.length - 1].en : s.correo_enviado_en;
+}
+
+// Texto corto del tipo, para los avisos: ROTURA / FALTAS / ROTURAS Y FALTAS
+const PS_TIPO_TXT_AVISO = { ROTURA: 'ROTURA', FALTAS: 'FALTAS', 'FALTAS Y ROTURAS': 'ROTURAS Y FALTAS' };
+function psTipoTxt(tipoPanel) { return PS_TIPO_TXT_AVISO[tipoPanel] || tipoPanel || '—'; }
 let panelActivoId = null;
 
 const PS_ORIGENES = ['', 'ALMACEN', 'WEB', 'RETIRADAS', 'AGENCIA', 'OTRO'];
@@ -95,13 +114,16 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
       .maybeSingle();
     if (eSel) throw eSel;
 
+    const tipoPanel = PS_TIPO_DESDE_SINIESTRO[s.tipo] || 'ROTURA';
     if (existente) {
       const { error: eUpd } = await sb.from('panel_siniestros')
         .update({
           correo_enviado: true,
           correo_enviado_en: s.enviado_en || new Date().toISOString(),
           correo_enviado_por: sesionActual?.nombre || sesionActual?.usuario || null,
-          fotos: s.fotos || []
+          fotos: s.fotos || [],
+          tipo: tipoPanel,
+          tipo_enviado: tipoPanel
         })
         .eq('id', existente.id);
       if (eUpd) throw eUpd;
@@ -116,7 +138,8 @@ async function registrarSiniestroEnPanelAutomatico(s, fechaInformeISO) {
         agencia_nombre: ag.nombre || null,
         tienda_id: t.id || null,
         tienda_nombre: t.nombre || null,
-        tipo: PS_TIPO_DESDE_SINIESTRO[s.tipo] || 'ROTURA',
+        tipo: tipoPanel,
+        tipo_enviado: tipoPanel,
         fotos: s.fotos || [],
         estado: 'PDTE COBRO',
         // La recogida solo aplica si hay algo roto físicamente que recoger
@@ -196,7 +219,9 @@ function siniestrosPanelFiltrados({ ignorarVisibilidad = false } = {}) {
     }
     if (f.sinFactura && s.factura_url) return false;
     if (f.sinAlbaran && s.albaran_url) return false;
-    if (f.sinCorreo && psEnvioAgenciaResuelto(s)) return false;
+    // "Sin enviar a agencia" incluye también los modificados después de
+    // enviarlos que aún no se han reenviado (la agencia no lo sabe).
+    if (f.sinCorreo && psEnvioAgenciaResuelto(s) && !psPendienteReenvio(s)) return false;
     if (texto) {
       const campo = [s.id, s.agencia_nombre, s.tienda_nombre, s.informacion, s.num_albaran, s.num_factura]
         .filter(Boolean).join(' ').toUpperCase();
@@ -322,13 +347,13 @@ function renderPanelSiniestros() {
       ? `${psFormatearFecha(s.recogida_limite)}${recogidaEstadoTexto ? `<br><span class="ps-recogida-mini">${recogidaEstadoTexto}</span>` : ''}`
       : 'NO APLICA';
     return `
-      <tr data-id="${s.id}" class="ps-fila${psEnvioAgenciaResuelto(s) ? '' : ' ps-correo-pendiente'}${psSeguimientoCompleto(s) ? ' ps-fila-completa' : ''}${s.estado === 'ANULADO' ? ' ps-fila-anulada' : ''}"${psSeguimientoCompleto(s) ? ' title="Seguimiento completado"' : ''}>
+      <tr data-id="${s.id}" class="ps-fila${psEnvioAgenciaResuelto(s) ? '' : ' ps-correo-pendiente'}${psPendienteReenvio(s) ? ' ps-fila-reenviar' : ''}${psSeguimientoCompleto(s) ? ' ps-fila-completa' : ''}${s.estado === 'ANULADO' ? ' ps-fila-anulada' : ''}"${psSeguimientoCompleto(s) ? ' title="Seguimiento completado"' : ''}>
         <td class="ps-col-num"><b>${s.id}</b></td>
         <td>${psFormatearFecha(s.fecha)}</td>
         <td><b>${escapeHtml(s.agencia_nombre || '—')}</b></td>
         <td>${s.tienda_nombre ? escapeHtml(s.tienda_nombre) : '<span class="ps-sin-tienda">Sin tienda</span>'}</td>
         <td>${escapeHtml(s.origen || '—')}</td>
-        <td>${psPillTipo(s.tipo)}${psEnvioAgenciaResuelto(s) ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}</td>
+        <td>${psPillTipo(s.tipo)}${psEnvioAgenciaResuelto(s) ? '' : ' <span class="ps-correo-pendiente-icono" title="Sin enviar a agencia">📧</span>'}${psPendienteReenvio(s) ? `<br><span class="ps-chip-reenviar" title="Se envió a la agencia como ${escapeHtml(psTipoTxt(s.tipo_enviado))}: falta reenviar la actualización">🔄 Reenviar</span>` : ''}</td>
         <td class="ps-col-info" title="${escapeHtml(s.informacion || '')}">${escapeHtml(s.informacion || '—')}</td>
         <td>${escapeHtml(s.num_albaran || '—')}${s.albaran_url ? ' 📄' : ''}</td>
         <td>${escapeHtml(s.num_factura || '—')}${tieneFactura ? ' 📄' : ''}</td>
@@ -737,16 +762,39 @@ async function abrirModalPanelSiniestro(id) {
 // "sin-enviar" en .ps-modal-box), igual que la fila en la tabla. En cuanto
 // se envía (o se omite el envío), todo esto desaparece y la información pasa
 // al paso "Enviado a agencia" del seguimiento (columna de la izquierda).
+// Si el siniestro se modificó después de enviarlo (psPendienteReenvio), el
+// mismo aviso cambia a "Modificado después de enviarlo a la agencia" con
+// los botones "No reenviar" / "Reenviar actualización".
 function pintarBloqueEnvioAgencia(s) {
   const aviso = document.getElementById('psAvisoAgencia');
   const btn = document.getElementById('btnPsEnviarAgencia');
+  const btnOmitir = document.getElementById('btnPsOmitirEnvio');
   const caja = aviso.closest('.ps-modal-box');
-  if (psEnvioAgenciaResuelto(s)) {
+  const ico = aviso.querySelector('.ps-aviso-agencia-ico');
+  const tituloEl = aviso.querySelector('.ps-aviso-agencia-txt b');
+  const pendienteReenvio = psPendienteReenvio(s);
+  aviso.dataset.modo = pendienteReenvio ? 'reenvio' : 'envio';
+  if (psEnvioAgenciaResuelto(s) && !pendienteReenvio) {
     aviso.style.display = 'none';
     caja.classList.remove('sin-enviar');
+  } else if (pendienteReenvio) {
+    aviso.style.display = '';
+    caja.classList.add('sin-enviar');
+    if (ico) ico.textContent = '🔄';
+    if (tituloEl) tituloEl.textContent = 'Modificado después de enviarlo a la agencia';
+    const cuando = psFormatearFechaHora(psUltimaComunicacion(s));
+    document.getElementById('psAvisoAgenciaTexto').textContent =
+      `Se envió a ${s.agencia_nombre || 'la agencia'} como ${psTipoTxt(s.tipo_enviado)}${cuando ? ` el ${cuando}` : ''}. Ahora es ${psTipoTxt(s.tipo)} y la agencia todavía no lo sabe.`;
+    btn.disabled = false;
+    btn.title = '';
+    btn.textContent = '✉️ Reenviar actualización';
+    if (btnOmitir) btnOmitir.textContent = '🚫 No reenviar';
   } else {
     aviso.style.display = '';
     caja.classList.add('sin-enviar');
+    if (ico) ico.textContent = '📧';
+    if (tituloEl) tituloEl.textContent = 'Pendiente de enviar a la agencia';
+    if (btnOmitir) btnOmitir.textContent = '🚫 Omitir envío';
     const sinFotos = !(s.fotos || []).length;
     btn.disabled = sinFotos;
     btn.title = sinFotos ? 'Añade al menos 1 foto para poder enviar' : '';
@@ -813,13 +861,25 @@ function renderSeguimientoPanel(s) {
 
   // 2) Enviado a agencia
   if (s.correo_enviado) {
+    // Debajo del primer envío, cada comunicación posterior: reenvío de
+    // actualización (verde), "no reenviar" (gris) o anulación (gris).
+    const TXT_ACCION = { REENVIO: '🔄 Reenviado (actualización)', NO_REENVIO: '🚫 Cambio no reenviado', ANULACION: '✉️ Anulación comunicada' };
+    const CLASE_ACCION = { REENVIO: 'reenvio', NO_REENVIO: 'no-reenvio', ANULACION: 'anulacion' };
+    const comunicaciones = (s.reenvios || []).map(r => {
+      const cambio = r.accion !== 'ANULACION' && r.tipo_anterior && r.tipo_nuevo
+        ? `${psTipoTxt(r.tipo_anterior)} → ${psTipoTxt(r.tipo_nuevo)}` : null;
+      return `<span class="step-comunicacion ${CLASE_ACCION[r.accion] || ''}"><b>${escapeHtml(TXT_ACCION[r.accion] || r.accion)}</b><br>${psLineasDetalle(cambio, r.por, psFormatearFechaHora(r.en))}</span>`;
+    }).join('');
+    const pendienteReenvio = psPendienteReenvio(s);
     pasos.push(psPasoSeguimientoHtml({
       estado: 'done', icono: '✓', titulo: 'Enviado a agencia',
+      clase: pendienteReenvio ? 'step-reenviar' : '',
       detalleHtml: psLineasDetalle(
         s.agencia_nombre ? `Correo a ${s.agencia_nombre}` : null,
         s.correo_enviado_por,
         psFormatearFechaHora(s.correo_enviado_en)
-      )
+      ) + comunicaciones,
+      chip: pendienteReenvio ? '⏳ Pendiente de reenviar' : ''
     }));
   } else if (s.envio_omitido_en) {
     pasos.push(psPasoSeguimientoHtml({
@@ -1051,13 +1111,15 @@ async function enviarCorreoAgenciaDesdePanel() {
     const { error } = await sb.from('panel_siniestros').update({
       correo_enviado: true,
       correo_enviado_en: correoEnviadoEn,
-      correo_enviado_por: correoEnviadoPor
+      correo_enviado_por: correoEnviadoPor,
+      tipo_enviado: s.tipo
     }).eq('id', panelActivoId);
     if (error) throw error;
 
     s.correo_enviado = true;
     s.correo_enviado_en = correoEnviadoEn;
     s.correo_enviado_por = correoEnviadoPor;
+    s.tipo_enviado = s.tipo;
     pintarBloqueEnvioAgencia(s);
     renderSeguimientoPanel(s);
     renderPanelSiniestros();
@@ -1070,7 +1132,199 @@ async function enviarCorreoAgenciaDesdePanel() {
     btn.textContent = textoOriginal;
   }
 }
-document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', enviarCorreoAgenciaDesdePanel);
+// El mismo botón sirve para el primer envío y para reenviar la
+// actualización cuando el siniestro cambió de tipo después de enviarlo.
+document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', () => {
+  const s = psSiniestroPorId(panelActivoId);
+  if (s && psPendienteReenvio(s)) reenviarActualizacionDesdePanel();
+  else enviarCorreoAgenciaDesdePanel();
+});
+
+// ---------------- Reenvío de actualización / no reenviar ----------------
+
+// Objeto que esperan las plantillas de email-plantillas.js a partir de una
+// fila del panel, con el tipo indicado (ROTURA / FALTAS / FALTAS Y ROTURAS).
+function psPlantillaDeSiniestro(s, tipoPanel) {
+  return {
+    tipo: PS_TIPO_A_PLANTILLA[tipoPanel] || 'ROTURA',
+    fecha_limite: s.recogida_limite,
+    incidencia: { tiendas: { nombre: s.tienda_nombre } },
+    informacion: s.informacion || null,
+    agenciaNombre: s.agencia_nombre
+  };
+}
+
+async function psEmailsAgencia(agenciaId) {
+  if (!agenciaId) return [];
+  const { data, error } = await sb.from('agencias').select('emails').eq('id', agenciaId).maybeSingle();
+  if (error) throw error;
+  return data?.emails || [];
+}
+
+// Anota en la fila del panel (y en su siniestro de origen) que la agencia
+// ya está al tanto del tipo actual, y guarda la comunicación en el historial.
+async function psRegistrarComunicacion(s, accion) {
+  const entrada = {
+    accion,
+    en: new Date().toISOString(),
+    por: sesionActual?.nombre || sesionActual?.usuario || null,
+    tipo_anterior: s.tipo_enviado || null,
+    tipo_nuevo: s.tipo
+  };
+  const reenvios = [...(s.reenvios || []), entrada];
+  const datos = { reenvios, actualizado_por: entrada.por };
+  if (accion !== 'ANULACION') datos.tipo_enviado = s.tipo;
+  const { error } = await sb.from('panel_siniestros').update(datos).eq('id', s.id);
+  if (error) throw error;
+  Object.assign(s, datos);
+  if (s.siniestro_id && accion !== 'ANULACION') {
+    const { error: eSin } = await sb.from('siniestros')
+      .update({ tipo_enviado: PS_TIPO_A_PLANTILLA[s.tipo] || null }).eq('id', s.siniestro_id);
+    if (eSin) console.error('No se pudo actualizar el siniestro de origen:', eSin);
+  }
+}
+
+function psRefrescarTrasComunicacion(s) {
+  if (panelActivoId === s.id) {
+    pintarBloqueEnvioAgencia(s);
+    renderSeguimientoPanel(s);
+  }
+  renderPanelSiniestros();
+  if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+  if (document.getElementById('view-siniestros')?.classList.contains('active') && typeof renderVistaSiniestros === 'function') {
+    renderVistaSiniestros();
+  }
+}
+
+async function reenviarActualizacionDesdePanel() {
+  const s = psSiniestroPorId(panelActivoId);
+  if (!s || !psPendienteReenvio(s)) return;
+  const btn = document.getElementById('btnPsEnviarAgencia');
+  const textoOriginal = btn.textContent;
+  try {
+    const emails = await psEmailsAgencia(s.agencia_id);
+    if (!emails.length) {
+      await modalAlert('Esta agencia no tiene emails configurados. Añádelos en Gestión → Agencias.', { titulo: 'Sin destinatarios' });
+      return;
+    }
+    const ok = await modalConfirm(
+      `Se enviará a ${s.agencia_nombre || 'la agencia'} un correo de actualización: se le comunicó como ${psTipoTxt(s.tipo_enviado)} y ahora es ${psTipoTxt(s.tipo)}. Irán adjuntas todas las fotos.`,
+      { titulo: 'Reenviar actualización', icono: '🔄', textoOk: '✉️ Reenviar' }
+    );
+    if (!ok) return;
+
+    btn.disabled = true;
+    document.getElementById('cargandoEnvioTexto').textContent = 'ENVIANDO ACTUALIZACIÓN A AGENCIA';
+    document.getElementById('cargandoEnvioOverlay').classList.add('show');
+
+    const { subject, html, text } = plantillaActualizacionSiniestro(psPlantillaDeSiniestro(s, s.tipo), s.fecha, {
+      tipoAnterior: PS_TIPO_A_PLANTILLA[s.tipo_enviado],
+      comunicadoEn: psUltimaComunicacion(s),
+      agencia: s.origen === 'AGENCIA'
+    });
+    await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
+
+    const tipoAntes = s.tipo_enviado;
+    await psRegistrarComunicacion(s, 'REENVIO');
+    if (typeof registrarAccion === 'function') {
+      registrarAccion('siniestros', 'Reenviar actualización a la agencia', `${psDetalleAuditoria(s)} · ${psTipoTxt(tipoAntes)} → ${psTipoTxt(s.tipo)}`);
+    }
+    psRefrescarTrasComunicacion(s);
+    if (typeof mostrarToast === 'function') mostrarToast(`Actualización enviada a ${s.agencia_nombre || 'la agencia'}`, { posicion: 'abajo' });
+  } catch (err) {
+    console.error('Error reenviando la actualización a la agencia:', err);
+    await modalAlert(`No se pudo enviar el correo: ${err.message}`, { titulo: 'Error de envío' });
+  } finally {
+    document.getElementById('cargandoEnvioOverlay').classList.remove('show');
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+// "No reenviar": la agencia ya está al tanto por otra vía (p. ej. por
+// teléfono). Se confirma deslizando y queda en el seguimiento quién y cuándo.
+async function noReenviarDesdePanel() {
+  const s = psSiniestroPorId(panelActivoId);
+  if (!s || !psPendienteReenvio(s)) return;
+  const ok = await modalDeslizarConfirmar(
+    `El siniestro Nº ${s.id} se quedará como ${psTipoTxt(s.tipo)} sin mandar a ${s.agencia_nombre || 'la agencia'} el correo de actualización (se le comunicó como ${psTipoTxt(s.tipo_enviado)}).`,
+    { titulo: '¿No reenviar la actualización?', icono: '🚫', textoDeslizar: 'Desliza para no reenviar', textoHecho: 'No se reenvía' }
+  );
+  if (!ok) return;
+  const btn = document.getElementById('btnPsOmitirEnvio');
+  btn.disabled = true;
+  try {
+    const tipoAntes = s.tipo_enviado;
+    await psRegistrarComunicacion(s, 'NO_REENVIO');
+    if (typeof registrarAccion === 'function') {
+      registrarAccion('siniestros', 'No reenviar actualización a la agencia', `${psDetalleAuditoria(s)} · ${psTipoTxt(tipoAntes)} → ${psTipoTxt(s.tipo)}`);
+    }
+    psRefrescarTrasComunicacion(s);
+  } catch (err) {
+    console.error('Error guardando "no reenviar":', err);
+    await modalAlert(`No se pudo guardar: ${err.message}`, { titulo: 'Error' });
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------------- Cambio de tipo tras el envío (desde el informe) ----------------
+
+// Cuando en el informe cambian los motivos de una incidencia cuyo siniestro
+// ya se envió a la agencia, se actualiza el tipo de su fila del panel (y la
+// fecha límite de recogida si pasa a tener o deja de tener roturas).
+// tipoSiniestro: ROTURA / FALTA / MIXTO. Devuelve la fila actualizada o null.
+async function psActualizarTipoDesdeSiniestro(siniestroId, tipoSiniestro, fechaLimiteSiniestro) {
+  const tipoPanel = PS_TIPO_DESDE_SINIESTRO[tipoSiniestro];
+  if (!siniestroId || !tipoPanel) return null;
+  const { data: fila, error: eSel } = await sb.from('panel_siniestros').select('*').eq('siniestro_id', siniestroId).maybeSingle();
+  if (eSel) throw eSel;
+  if (!fila || fila.tipo === tipoPanel) return fila || null;
+
+  const cambios = { tipo: tipoPanel, actualizado_por: sesionActual?.nombre || sesionActual?.usuario || null };
+  if (tipoPanel === 'FALTAS') cambios.recogida_limite = null;
+  else if (!fila.recogida_limite) {
+    let limite = fechaLimiteSiniestro || null;
+    if (!limite && fila.fecha) {
+      const d = new Date(fila.fecha + 'T00:00:00');
+      d.setDate(d.getDate() + 15);
+      limite = fechaLocalISO(d);
+    }
+    cambios.recogida_limite = limite;
+  }
+  const { error } = await sb.from('panel_siniestros').update(cambios).eq('id', fila.id);
+  if (error) throw error;
+  const actualizada = { ...fila, ...cambios };
+  const enCache = panelCache.find(x => x.id === fila.id);
+  if (enCache) Object.assign(enCache, cambios);
+  if (typeof registrarAccion === 'function') {
+    registrarAccion('siniestros', 'Cambio de tipo de siniestro ya enviado', `${psDetalleAuditoria(actualizada)} · ${psTipoTxt(fila.tipo)} → ${psTipoTxt(tipoPanel)}`);
+  }
+  if (panelCargado) renderPanelSiniestros();
+  return actualizada;
+}
+
+// Aviso "Siniestro actualizado" (Informe del día / edición del histórico):
+// el siniestro ya se había enviado y ahora tiene otro tipo. Ofrece ir al
+// Panel siniestros con el detalle de ese siniestro abierto.
+async function psAvisarSiniestroActualizado(fila) {
+  if (!fila || !psPendienteReenvio(fila)) return;
+  const cuando = psFormatearFechaHora(psUltimaComunicacion(fila));
+  const irAlPanel = await modalConfirm(
+    `${fila.tienda_nombre || 'El siniestro'} ya se había enviado a ${fila.agencia_nombre || 'la agencia'} como ${psTipoTxt(fila.tipo_enviado)}${cuando ? ` el ${cuando}` : ''}. Con este cambio ahora es ${psTipoTxt(fila.tipo)}. ` +
+    'El Panel siniestros ya está actualizado, pero falta mandar a la agencia el correo de actualización.',
+    { titulo: 'Siniestro actualizado', icono: '🔄', textoOk: '🗂️ Ir al Panel siniestros', textoCancel: 'Más tarde' }
+  );
+  if (irAlPanel) await psIrADetalleSiniestro(fila.id);
+}
+
+// Abre el Panel siniestros con el detalle del siniestro indicado.
+async function psIrADetalleSiniestro(id) {
+  if (typeof inicioAbrirSiniestro === 'function') return inicioAbrirSiniestro(id);
+  if (typeof activarVista === 'function') activarVista('panel-siniestros');
+  await cargarPanelSiniestros();
+  abrirModalPanelSiniestro(id);
+}
 
 // ---------------- Omitir envío a la agencia ----------------
 // Para siniestros en los que no hace falta mandar el correo de reclamación
@@ -1111,7 +1365,11 @@ async function omitirEnvioAgenciaDesdePanel() {
     btn.disabled = false;
   }
 }
-document.getElementById('btnPsOmitirEnvio')?.addEventListener('click', omitirEnvioAgenciaDesdePanel);
+document.getElementById('btnPsOmitirEnvio')?.addEventListener('click', () => {
+  const s = psSiniestroPorId(panelActivoId);
+  if (s && psPendienteReenvio(s)) noReenviarDesdePanel();
+  else omitirEnvioAgenciaDesdePanel();
+});
 
 // Confirmación "deslizar para confirmar" (como el desbloqueo del iPhone):
 // hay que arrastrar el círculo hasta el final; si se suelta antes, vuelve
@@ -1341,6 +1599,109 @@ async function psRecargarSiniestroAbierto(id) {
   renderPanelKpis();
 }
 
+// ---------------- Anular: avisar a la agencia y quitar motivos del informe ----------------
+
+const PS_MOTIVOS_TXT = { ROTURA: 'ROTURA CONFIRMADA', FALTAS: 'FALTAS', 'FALTAS Y ROTURAS': 'ROTURA CONFIRMADA y FALTAS' };
+
+// Pregunta (modal rojo con casillas) qué más hacer al pasar a ANULADO uno o
+// varios siniestros del panel. Devuelve null si se cancela, o
+// { avisar, quitar } con lo que se haya marcado.
+//   opciones.mensaje / titulo / textoOk: para usarlo desde Importar cobros.
+async function psPreguntarAnulacion(lista, { mensaje, titulo = 'Anular siniestro', textoOk = '🚫 Anular' } = {}) {
+  const conCorreo = lista.filter(s => s.correo_enviado);
+  const conIncidencia = lista.filter(s => s.siniestro_id || s.incidencia_id);
+  const uno = lista.length === 1 ? lista[0] : null;
+  const opciones = [];
+  if (conCorreo.length) {
+    opciones.push({
+      id: 'avisar',
+      titulo: '✉️ Avisar a la agencia por correo',
+      detalle: uno
+        ? `Se le envió como ${psTipoTxt(uno.tipo_enviado || uno.tipo)}${psUltimaComunicacion(uno) ? ' el ' + psFormatearFechaHora(psUltimaComunicacion(uno)) : ''}. Se le manda un correo diciendo que queda anulado y sin cargo.`
+        : `A las agencias de ${conCorreo.length === 1 ? 'el siniestro que ya se les envió' : `los ${conCorreo.length} siniestros que ya se les enviaron`} se les manda un correo diciendo que quedan anulados y sin cargo.`
+    });
+  }
+  if (conIncidencia.length) {
+    opciones.push({
+      id: 'quitar',
+      titulo: '📋 Quitar los motivos del informe',
+      detalle: uno
+        ? `En el informe del ${psFormatearFecha(uno.fecha)} se quita ${PS_MOTIVOS_TXT[uno.tipo] || 'ROTURA CONFIRMADA / FALTAS'} de ${uno.tienda_nombre || 'la tienda'}. Si tiene otros motivos, se mantienen con sus observaciones.`
+        : `En los informes de esos días se quitan ROTURA CONFIRMADA / FALTAS de ${conIncidencia.length === 1 ? 'su tienda' : `las ${conIncidencia.length} tiendas`}. Si tienen otros motivos, se mantienen con sus observaciones.`
+    });
+  }
+  const texto = mensaje || (uno
+    ? `El siniestro Nº ${uno.id} (${[uno.agencia_nombre, uno.tienda_nombre].filter(Boolean).join(' · ') || 'sin agencia'}) pasará a ANULADO y no se cobrará.${opciones.length ? ' Marca qué más quieres hacer:' : ''}`
+    : `${lista.length} siniestros pasarán a ANULADO y no se cobrarán.${opciones.length ? ' Marca qué más quieres hacer:' : ''}`);
+  const res = await modalConfirmOpciones(texto, opciones, { titulo, icono: '🚫', danger: true, textoOk });
+  if (!res) return null;
+  return { avisar: !!res.avisar, quitar: !!res.quitar };
+}
+
+// Hace lo marcado en psPreguntarAnulacion para un siniestro que YA se ha
+// guardado como ANULADO. Devuelve un texto de error si no se pudo mandar el
+// correo (para avisar al usuario), o null si todo fue bien.
+async function psEjecutarAnulacion(s, { avisar, quitar }) {
+  let errorCorreo = null;
+
+  // La fila de "Siniestros del día" también pasa a ANULADO.
+  if (s.siniestro_id) {
+    const { error } = await sb.from('siniestros').update({ estado: 'ANULADO' }).eq('id', s.siniestro_id);
+    if (error) console.error('No se pudo anular el siniestro de origen:', error);
+  }
+
+  if (avisar && s.correo_enviado) {
+    try {
+      const emails = await psEmailsAgencia(s.agencia_id);
+      if (!emails.length) throw new Error('la agencia no tiene emails configurados');
+      const tipoComunicado = s.tipo_enviado || s.tipo;
+      const { subject, html, text } = plantillaAnulacionSiniestro(psPlantillaDeSiniestro(s, tipoComunicado), s.fecha, {
+        comunicadoEn: psUltimaComunicacion(s),
+        agencia: s.origen === 'AGENCIA'
+      });
+      await enviarEmail({ to: emails, subject, html, text, attachmentUrls: [] });
+      await psRegistrarComunicacion(s, 'ANULACION');
+      if (typeof registrarAccion === 'function') {
+        registrarAccion('siniestros', 'Comunicar anulación a la agencia', psDetalleAuditoria(s));
+      }
+    } catch (err) {
+      console.error('Error enviando la anulación a la agencia:', err);
+      errorCorreo = `Nº ${s.id}${s.tienda_nombre ? ' · ' + s.tienda_nombre : ''}: ${err.message}`;
+    }
+  }
+
+  if (quitar) {
+    try {
+      let incidenciaId = null;
+      if (s.siniestro_id) {
+        const { data: sin } = await sb.from('siniestros').select('incidencia_id').eq('id', s.siniestro_id).maybeSingle();
+        incidenciaId = sin?.incidencia_id || null;
+      }
+      if (!incidenciaId) incidenciaId = s.incidencia_id || null;
+      if (incidenciaId) await quitarMotivosSiniestroDeIncidencia(incidenciaId);
+    } catch (err) {
+      console.error('Error quitando los motivos del informe al anular:', err);
+    }
+  }
+  return errorCorreo;
+}
+
+// Tras anular (con o sin quitar motivos), refresca lo que pueda estar a la
+// vista: informe del día, Siniestros del día, KPIs y Tareas pendientes.
+async function psRefrescarTrasAnulacion() {
+  try {
+    if (typeof cargarIncidenciasHoy === 'function' && typeof informeHoyCache !== 'undefined' && informeHoyCache) {
+      await cargarIncidenciasHoy();
+      if (document.getElementById('view-incidencias')?.classList.contains('active') && typeof renderVistaIncidencias === 'function') renderVistaIncidencias();
+    }
+    if (typeof actualizarKpiSiniestrosDesdeDB === 'function') await actualizarKpiSiniestrosDesdeDB();
+    if (document.getElementById('view-siniestros')?.classList.contains('active') && typeof renderVistaSiniestros === 'function') renderVistaSiniestros();
+    if (typeof cargarPendienteAtencion === 'function') cargarPendienteAtencion();
+  } catch (err) {
+    console.error('Error refrescando tras anular:', err);
+  }
+}
+
 async function guardarCamposPanelAhora() {
   if (!panelActivoId || !hayCambiosSinGuardarPanel()) return;
   const id = panelActivoId;
@@ -1366,6 +1727,14 @@ async function guardarCamposPanelAhora() {
   if (cambiados.includes('estado')) {
     datos.cobrado_en = meta.cobrado_en; datos.cobrado_por = meta.cobrado_por;
     datos.anulado_en = meta.anulado_en; datos.anulado_por = meta.anulado_por;
+  }
+
+  // Al pasar a ANULADO: se pregunta si avisar a la agencia y si quitar los
+  // motivos del informe. Si se cancela, no se guarda nada.
+  let accionesAnular = null;
+  if (s && cambiados.includes('estado') && formulario.estado === 'ANULADO' && (psBaseDb?.estado || s.estado) !== 'ANULADO') {
+    accionesAnular = await psPreguntarAnulacion([s]);
+    if (!accionesAnular) return;
   }
 
   if (btn) { btn.disabled = true; btn.classList.add('guardando'); }
@@ -1401,6 +1770,24 @@ async function guardarCamposPanelAhora() {
         psBaseForm = psCamposFormularioPanel();
         document.getElementById('psActualizadoTexto').textContent = psTextoUltimaModificacion(usuarioActual, ahora);
         renderSeguimientoPanel(s);
+      }
+    }
+    if (accionesAnular && s) {
+      const hayAlgo = accionesAnular.avisar || accionesAnular.quitar;
+      if (hayAlgo) {
+        document.getElementById('cargandoEnvioTexto').textContent = accionesAnular.avisar ? 'ENVIANDO ANULACIÓN A AGENCIA' : 'ANULANDO SINIESTRO';
+        document.getElementById('cargandoEnvioOverlay').classList.add('show');
+      }
+      let errorCorreo = null;
+      try {
+        errorCorreo = await psEjecutarAnulacion(s, accionesAnular);
+      } finally {
+        document.getElementById('cargandoEnvioOverlay').classList.remove('show');
+      }
+      if (panelActivoId === id) renderSeguimientoPanel(s);
+      psRefrescarTrasAnulacion();
+      if (errorCorreo) {
+        await modalAlert(`El siniestro se ha anulado, pero no se pudo mandar el correo a la agencia (${errorCorreo}).`, { titulo: 'Correo no enviado', icono: '⚠️', danger: true });
       }
     }
     renderPanelSiniestros();
