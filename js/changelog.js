@@ -10,6 +10,22 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.9.1',
+    fecha: '2026-11-19',
+    cambios: [
+      { tipo: 'nuevo',      texto: 'Panel siniestros: si un siniestro ya enviado cambia de tipo en el informe (se añaden o se quitan roturas o faltas), se avisa y se puede mandar a la agencia un correo de actualización o indicar que no hace falta' },
+      { tipo: 'nuevo',      texto: 'Al anular un siniestro, también desde Importar cobros, se puede avisar a la agencia por correo y quitar sus motivos del informe' },
+      { tipo: 'nuevo',      texto: 'Los correos de siniestros a las agencias y a Facturación llevan el Nº de siniestro' },
+      { tipo: 'nuevo',      texto: 'Tiendas: los límites especiales de palets admiten la opción «Sin límite»' },
+      { tipo: 'mejora',     texto: 'Nueva ventana de carga en todas las pantallas; si tarda más de 10 segundos, se puede cancelar la consulta' },
+      { tipo: 'mejora',     texto: 'Inicio: nueva tarea pendiente con los siniestros modificados que falta reenviar a la agencia' },
+      { tipo: 'mejora',     texto: 'Historial de informes: al editar un informe con filtros, la tienda que deja de cumplirlos no desaparece al momento, igual que en el Informe del día' },
+      { tipo: 'mejora',     texto: 'Panel siniestros: la ventana Exportar a PDF ya no necesita scroll cuando hay un filtro activo' },
+      { tipo: 'correccion', texto: 'Los avisos de error ya no quedan tapados por la ventana de envío; además, si un envío tarda demasiado, se puede cerrar esa ventana' },
+      { tipo: 'correccion', texto: 'Se ha corregido un espacio de más en el correo de roturas y faltas' }
+    ]
+  },
+  {
     version: '1.9.0',
     fecha: '2026-11-12',
     cambios: [
