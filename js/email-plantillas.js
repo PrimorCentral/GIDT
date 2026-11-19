@@ -256,7 +256,7 @@
                 <tr>
                   <td style="font-family: Arial, sans-serif; font-size: 15px; color: #475569; line-height: 1.6;">
                     Buenas,<br><br>
-                    Se han detectado varias incidencias en la mercancía recibida en nuestra tienda de <b style="color: #000000;">${tienda.toUpperCase()}</b> (ver fecha de recepción arriba), presentando bultos faltantes y bultos rotos y golpeados. <br><br><br><br>
+                    Se han detectado varias incidencias en la mercancía recibida en nuestra tienda de <b style="color: #000000;">${tienda.toUpperCase()}</b> (ver fecha de recepción arriba), presentando bultos faltantes y bultos rotos y golpeados.<br><br>
                     Tras haber revisado la mercancia en nuestra tienda, os podemos confirmar que se han producido algunas <b style="color: #000000;">ROTURAS</b> y <b style="color: #ef4444;">FALTAS</b>.<br><br>
                     Mis compañeros en los próximos días os pasará el cargo correspondiente.<br><br>
                     <strong>Es vital que tengáis especial cuidado con nuestra mercancía puesto que es muy frágil y costosa.</strong><br><br>
