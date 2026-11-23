@@ -193,7 +193,9 @@ function iaTablaCambiosHtml(cambios) {
   const filasHtml = cambios.map(c => {
     const hora = c.hora ? c.hora.slice(0, 5) : '—';
     const chipDef = IA_CHIP[c.tipo];
-    const chip = `<span style="display:inline-block; background:#ffffff; color:${chipDef.color}; border:1px solid ${chipDef.borde}; font-weight:800; font-size:11px; letter-spacing:.3px; padding:3px 9px; border-radius:99px; white-space:nowrap;">${chipDef.texto}</span>`;
+    // Pastilla como mini-tabla (no <span>): Outlook ignora padding, fondo y
+    // bordes redondeados de un <span> y lo pintaba como un enlace recuadrado.
+    const chip = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:separate; mso-table-lspace:0pt; mso-table-rspace:0pt; margin:0 auto;"><tr><td align="center" valign="middle" bgcolor="#ffffff" style="background:#ffffff; border:1px solid ${chipDef.borde}; border-radius:99px; padding:4px 10px; font-family:Arial, sans-serif; font-size:11px; font-weight:800; letter-spacing:.3px; line-height:14px; mso-line-height-rule:exactly; color:${chipDef.color}; text-decoration:none; white-space:nowrap;">${chipDef.texto}</td></tr></table>`;
 
     if (c.tipo === 'ANULADA') {
       const gris = '#94a3b8';
