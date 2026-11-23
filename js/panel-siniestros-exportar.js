@@ -305,7 +305,7 @@ function psxConstruirPdf(filas, fechaDesde, fechaHasta, filtroTexto) {
   const pendientes = filas.filter(f => f.estado === 'PDTE COBRO');
   const totalPendiente = pendientes.reduce((acc, f) => acc + (Number(f.valor) || 0), 0);
   const sinFactura = filas.filter(f => !f.num_factura).length;
-  const recogidaPendiente = filas.filter(f => f.tipo !== 'FALTAS' && f.recogida_limite && !f.recogida_estado).length;
+  const recogidaPendiente = filas.filter(f => f.estado !== 'ANULADO' && f.tipo !== 'FALTAS' && f.recogida_limite && !f.recogida_estado).length;
   const kpis = [
     { label: 'Siniestros', valor: String(filas.length) },
     { label: 'Importe total', valor: psFormatearValor(totalImporte) },

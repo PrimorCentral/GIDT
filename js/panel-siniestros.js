@@ -422,8 +422,9 @@ function renderPanelSiniestros() {
 // Devuelve true si el siniestro tiene una recogida pendiente de verdad
 // (aplica ROTURA/FALTAS Y ROTURAS, tiene fecha límite, y todavía no se ha
 // gestionado ni como "enviado a central" ni como "recogido por agencia").
+// Los anulados no cuentan: ya no hay nada que recoger.
 function psRecogidaPendiente(s) {
-  return s.tipo !== 'FALTAS' && !!s.recogida_limite && !s.recogida_estado;
+  return s.estado !== 'ANULADO' && s.tipo !== 'FALTAS' && !!s.recogida_limite && !s.recogida_estado;
 }
 
 function renderPanelKpis() {

@@ -426,8 +426,9 @@ async function recargarConGiro(btn, ...cargas) {
           });
         }
 
+        // Los anulados no cuentan (ni aquí ni en "en espera de tienda").
         const vencidas = data.filter(s =>
-          s.tipo !== 'FALTAS' && s.recogida_limite && !s.recogida_estado &&
+          s.estado !== 'ANULADO' && s.tipo !== 'FALTAS' && s.recogida_limite && !s.recogida_estado &&
           new Date(s.recogida_limite + 'T00:00:00') < hoy
         );
         if (vencidas.length) {
@@ -443,7 +444,7 @@ async function recargarConGiro(btn, ...cargas) {
         // Recogidas marcadas como "en espera de tienda": no cuentan como
         // vencidas sin gestionar (ya hay alguien detrás), pero conviene un
         // recordatorio aparte para hacer seguimiento de la respuesta.
-        const enEsperaTienda = data.filter(s => s.recogida_estado === 'EN ESPERA DE TIENDA');
+        const enEsperaTienda = data.filter(s => s.estado !== 'ANULADO' && s.recogida_estado === 'EN ESPERA DE TIENDA');
         if (enEsperaTienda.length) {
           items.push({
             icono: '🏬',
