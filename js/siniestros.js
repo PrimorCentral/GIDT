@@ -674,14 +674,12 @@
       // Fecha de recepción: la del informe del siniestro (puede ser de un día
       // anterior si se envía desde Inicio o el Historial de siniestros).
       const fechaInformeISO = s.fechaInforme || informeHoyCache?.fecha;
-      // Se da de alta en el Panel siniestros antes de enviar, para que el
-      // correo lleve ya el Nº de siniestro.
-      const numeroSiniestro = typeof psAsegurarFilaPanelAntesDeEnviar === 'function'
-        ? await psAsegurarFilaPanelAntesDeEnviar(s, fechaInformeISO) : null;
-      let { subject, html, text } = plantillaSiniestro(s, fechaInformeISO);
-      if (numeroSiniestro && typeof aplicarNumeroSiniestro === 'function') {
-        ({ subject, html, text } = aplicarNumeroSiniestro({ subject, html, text }, numeroSiniestro));
+      // Se da de alta en el Panel siniestros antes de enviar: si el correo
+      // falla, queda allí como pendiente de enviar.
+      if (typeof psAsegurarFilaPanelAntesDeEnviar === 'function') {
+        await psAsegurarFilaPanelAntesDeEnviar(s, fechaInformeISO);
       }
+      const { subject, html, text } = plantillaSiniestro(s, fechaInformeISO);
 
       await enviarEmail({
         to: emails,

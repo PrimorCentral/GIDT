@@ -10,6 +10,13 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.9.3',
+    fecha: '2026-11-23',
+    cambios: [
+      { tipo: 'mejora', texto: 'Los correos de siniestros a las agencias y a Facturación dejan de llevar el Nº de siniestro y vuelven a su formato anterior' }
+    ]
+  },
+  {
     version: '1.9.2',
     fecha: '2026-11-19',
     cambios: [

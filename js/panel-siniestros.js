@@ -1151,9 +1151,9 @@ async function enviarCorreoAgenciaDesdePanel() {
     // palet en el propio almacén de la agencia, tras avisarnos ellos),
     // se usa la plantilla específica para ese caso, con otro asunto y
     // otro texto — no la de "entrega de mercancía en tienda".
-    const { subject, html, text } = psConNumero(s.origen === 'AGENCIA'
+    const { subject, html, text } = s.origen === 'AGENCIA'
       ? plantillaSiniestroAgencia({ ...sParaPlantilla, agenciaNombre: s.agencia_nombre }, s.fecha)
-      : plantillaSiniestro(sParaPlantilla, s.fecha), s.id);
+      : plantillaSiniestro(sParaPlantilla, s.fecha);
 
     await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
 
@@ -1200,12 +1200,6 @@ document.getElementById('btnPsEnviarAgencia')?.addEventListener('click', () => {
   if (s && psPendienteReenvio(s)) reenviarActualizacionDesdePanel();
   else enviarCorreoAgenciaDesdePanel();
 });
-
-// Pone el Nº de siniestro (id de la fila del panel) en un correo a la
-// agencia (asunto, pastilla y frase final; ver email-plantillas.js).
-function psConNumero(correo, numero) {
-  return typeof aplicarNumeroSiniestro === 'function' ? aplicarNumeroSiniestro(correo, numero) : correo;
-}
 
 // ---------------- Reenvío de actualización / no reenviar ----------------
 
@@ -1293,11 +1287,11 @@ async function reenviarActualizacionDesdePanel() {
     document.getElementById('cargandoEnvioTexto').textContent = 'ENVIANDO ACTUALIZACIÓN A AGENCIA';
     document.getElementById('cargandoEnvioOverlay').classList.add('show');
 
-    const { subject, html, text } = psConNumero(plantillaActualizacionSiniestro(psPlantillaDeSiniestro(s, s.tipo), s.fecha, {
+    const { subject, html, text } = plantillaActualizacionSiniestro(psPlantillaDeSiniestro(s, s.tipo), s.fecha, {
       tipoAnterior: PS_TIPO_A_PLANTILLA[s.tipo_enviado],
       comunicadoEn: psUltimaComunicacion(s),
       agencia: s.origen === 'AGENCIA'
-    }), s.id);
+    });
     await enviarEmail({ to: emails, subject, html, text, attachmentUrls: s.fotos || [] });
 
     const tipoAntes = s.tipo_enviado;
@@ -1732,10 +1726,10 @@ async function psEjecutarAnulacion(s, { avisar, quitar }) {
       const emails = await psEmailsAgencia(s.agencia_id);
       if (!emails.length) throw new Error('la agencia no tiene emails configurados');
       const tipoComunicado = s.tipo_enviado || s.tipo;
-      const { subject, html, text } = psConNumero(plantillaAnulacionSiniestro(psPlantillaDeSiniestro(s, tipoComunicado), s.fecha, {
+      const { subject, html, text } = plantillaAnulacionSiniestro(psPlantillaDeSiniestro(s, tipoComunicado), s.fecha, {
         comunicadoEn: psUltimaComunicacion(s),
         agencia: s.origen === 'AGENCIA'
-      }), s.id);
+      });
       await enviarEmail({ to: emails, subject, html, text, attachmentUrls: [] });
       await psRegistrarComunicacion(s, 'ANULACION');
       if (typeof registrarAccion === 'function') {
@@ -2775,11 +2769,9 @@ async function ofrecerEnvioFacturacion(s, { trasAdjuntar = false } = {}) {
       nombreComercial = ag?.nombre_comercial || null;
     }
 
-    const correoFact = s.origen === 'AGENCIA'
+    const { subject, html, text } = s.origen === 'AGENCIA'
       ? plantillaFacturacionAlbaranAgencia(s, nombreComercial)
       : plantillaFacturacionAlbaran(s, nombreComercial);
-    const { subject, html, text } = typeof aplicarNumeroSiniestroFacturacion === 'function'
-      ? aplicarNumeroSiniestroFacturacion(correoFact, s.id) : correoFact;
     const adjuntos = [...(s.fotos || []), s.albaran_url].filter(Boolean);
 
     await enviarEmail({ to: destinatarios, subject, html, text, attachmentUrls: adjuntos });
