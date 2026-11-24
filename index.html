@@ -145,6 +145,12 @@
         <button data-view="config-emails">✉️ Agencias</button>
         <button data-view="config-gravedad-motivos">⚖️ Tipos incidencias</button>
         <button data-view="config-supervisores">👔 Supervisores</button>
+        <div class="dd-sub" id="ddSubOrganizacion">
+          <button type="button" class="dd-sub-btn" id="btnSubOrganizacion" aria-haspopup="true">🗂️ Organización<span class="dd-flecha" aria-hidden="true">▶</span></button>
+          <div class="dd-submenu">
+            <button data-view="config-festivos">🎉 Festivos</button>
+          </div>
+        </div>
         <button data-view="config-usuarios">👤 Usuarios</button>
         <button data-view="config-auditoria">🕵️ Registro de auditoría</button>
       </div>
@@ -1156,6 +1162,64 @@
       </div>
     </section>
 
+    <!-- ============ GESTIÓN → ORGANIZACIÓN: FESTIVOS (js/festivos.js) ============ -->
+    <section class="view" id="view-config-festivos">
+      <div class="page-head">
+        <div>
+          <h1>🎉 Festivos</h1>
+          <p>Calendario de festivos y apertura de las tiendas en cada festivo.</p>
+        </div>
+        <div class="fe-head-der">
+          <div class="util-tabs fe-tabs">
+            <button type="button" class="util-tab fe-tab activa" data-fe-tab="cal">📅 Calendario</button>
+            <button type="button" class="util-tab fe-tab" data-fe-tab="ap">🏪 Aperturas</button>
+          </div>
+          <button class="ps-btn-icon btn-recargar" id="btnRecargarFestivos" title="Recargar"><span class="ps-refresh-icon">🔄</span></button>
+          <button class="btn" id="btnBuscarFestivos">🔍 Buscar festivos</button>
+          <button class="btn primary" id="btnNuevoFestivo">➕ Nuevo festivo</button>
+        </div>
+      </div>
+
+      <!-- Pestaña Calendario -->
+      <div id="fePanelCal">
+        <div class="fe-cal-wrap">
+          <div class="card fe-card">
+            <div class="fe-cal-nav">
+              <h2 id="feMesTitulo">—</h2>
+              <div class="fe-flechas">
+                <button type="button" class="btn fe-nav" id="feMesAnterior" title="Mes anterior">◀</button>
+                <button type="button" class="btn fe-nav" id="feMesHoy">Hoy</button>
+                <button type="button" class="btn fe-nav" id="feMesSiguiente" title="Mes siguiente">▶</button>
+              </div>
+            </div>
+            <div class="fe-cal" id="feCalendario"></div>
+            <div class="fe-leyenda">
+              <span><i class="fe-ley nac"></i>Nacional (todas las tiendas de España)</span>
+              <span><i class="fe-ley aut"></i>Autonómico (por comunidad o país)</span>
+              <span><i class="fe-ley loc"></i>Local (tiendas concretas)</span>
+            </div>
+          </div>
+          <div class="card fe-card fe-lista">
+            <h3 id="feListaTitulo">Festivos del mes</h3>
+            <div id="feListaMes"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pestaña Aperturas -->
+      <div id="fePanelAp" style="display:none;">
+        <div class="card fe-card fe-ap-card">
+          <div class="fe-ap-top">
+            <div class="fe-campo"><label for="feApFestivo">Festivo</label><select id="feApFestivo" class="form-input fe-ap-festivo"></select></div>
+            <div class="fe-campo"><label for="feApComunidad">Comunidad</label><select id="feApComunidad" class="form-input"></select></div>
+            <div class="fe-campo"><label for="feApAgencia">Agencia</label><select id="feApAgencia" class="form-input"></select></div>
+            <div class="fe-campo fe-campo-buscar"><label for="feApBuscar">Buscar tienda</label><input type="text" id="feApBuscar" class="form-input" placeholder="Nombre o Nº de tienda" autocomplete="off"></div>
+          </div>
+          <div id="feApContenido"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ CONFIGURACIÓN: USUARIOS ============ -->
     <section class="view" id="view-config-usuarios">
       <div class="page-head">
@@ -1213,6 +1277,7 @@
                 <option value="tiendas">Tiendas</option>
                 <option value="agencias">Agencias</option>
                 <option value="supervisores">Supervisores</option>
+                <option value="festivos">Festivos</option>
                 <option value="usuarios">Usuarios</option>
                 <option value="informes">Informes</option>
                 <option value="reportes_mensuales">Reportes mensuales</option>
@@ -2672,6 +2737,13 @@
               <span><b><i class="perm-ico">📝</i>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
             </label>
           </div>
+          <div class="permisos-col">
+            <h4>Organización</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="euPerm_org_festivos">
+              <span><b><i class="perm-ico">🎉</i>Festivos</b><small>Dar de alta, editar y borrar festivos, y marcar la apertura de las tiendas en cada festivo.</small></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -2907,6 +2979,13 @@
               <span><b><i class="perm-ico">📝</i>Log de cambios de informes enviados</b><small>Ver qué se ha modificado en un informe después de enviarlo a las agencias.</small></span>
             </label>
           </div>
+          <div class="permisos-col">
+            <h4>Organización</h4>
+            <label class="permiso-item">
+              <input type="checkbox" id="nuPerm_org_festivos">
+              <span><b><i class="perm-ico">🎉</i>Festivos</b><small>Dar de alta, editar y borrar festivos, y marcar la apertura de las tiendas en cada festivo.</small></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -2980,6 +3059,65 @@
     <div class="modal-footer" style="margin-top:18px;">
       <button class="btn" id="btnCancelarSupervisor">Cancelar</button>
       <button class="btn primary" id="btnGuardarSupervisor">💾 Crear supervisor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo / editar festivo (js/festivos.js) -->
+<div class="modal-overlay" id="festivoModalOverlay">
+  <div class="modal-box fe-modal-box" role="dialog" aria-modal="true" aria-labelledby="festivoModalTitulo">
+    <button class="filtros-modal-close" id="btnCerrarFestivo" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" id="festivoModalTitulo">➕ Nuevo festivo</h3>
+    <p class="tienda-modal-sub" id="festivoModalSub" style="display:none;"></p>
+    <div class="fe-form">
+      <div class="fe-form-fila">
+        <div><label class="form-label" for="feFecha">Fecha <span class="tf-req">*</span></label><input type="date" id="feFecha" class="form-input"></div>
+        <div><label class="form-label" for="feNombre">Nombre <span class="tf-req">*</span></label><input type="text" id="feNombre" class="form-input" maxlength="120" placeholder="Ej: INMACULADA CONCEPCIÓN" autocomplete="off"></div>
+      </div>
+      <div>
+        <label class="form-label">Ámbito <span class="tf-req">*</span></label>
+        <div class="fe-ambito" id="feAmbito">
+          <button type="button" data-ambito="NACIONAL"><b>🇪🇸 Nacional</b><small>Todas las tiendas de España</small></button>
+          <button type="button" data-ambito="AUTONOMICO"><b>🗺️ Autonómico</b><small>Una o varias comunidades o países</small></button>
+          <button type="button" data-ambito="LOCAL"><b>📍 Local</b><small>Tiendas concretas</small></button>
+        </div>
+      </div>
+      <div id="feBloqueComunidades" style="display:none;">
+        <label class="form-label">Comunidades <span class="tf-req">*</span></label>
+        <div class="fe-comus" id="feComunidades"></div>
+      </div>
+      <div id="feBloqueTiendas" style="display:none;">
+        <label class="form-label">Tiendas <span class="tf-req">*</span></label>
+        <div class="fe-tiendas-sel" id="feTiendasSel"></div>
+        <input type="text" id="feTiendasBuscar" class="form-input" placeholder="Buscar tienda por nombre, Nº o provincia" autocomplete="off">
+        <div class="fe-tiendas-lista" id="feTiendasLista"></div>
+      </div>
+    </div>
+    <div class="fe-afecta" id="feAfecta" style="display:none;"></div>
+    <p class="err" id="feError" style="display:none; color:var(--grave); font-size:12.5px; margin:12px 0 0;"></p>
+    <div class="modal-footer fe-modal-footer">
+      <button class="btn fe-btn-borrar" id="btnBorrarFestivo" style="display:none;">🗑️ Borrar</button>
+      <span style="flex:1;"></span>
+      <button class="btn" id="btnCancelarFestivo">Cancelar</button>
+      <button class="btn primary" id="btnGuardarFestivo">💾 Crear festivo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: buscar festivos (js/festivos.js) -->
+<div class="modal-overlay" id="buscarFestivosModalOverlay">
+  <div class="modal-box fe-buscar-box" role="dialog" aria-modal="true" aria-labelledby="buscarFestivosTitulo">
+    <button class="filtros-modal-close" id="btnCerrarBuscarFestivos" style="position:absolute; right:16px; top:16px;">✕</button>
+    <h3 class="modal-title" id="buscarFestivosTitulo">🔍 Buscar festivos</h3>
+    <div class="fe-bus-top">
+      <div class="fe-campo"><label for="feBusAnio">Año</label><select id="feBusAnio" class="form-input" style="width:110px;"></select></div>
+      <div class="fe-campo"><label>Mostrar</label><div class="fe-bus-chips" id="feBusChips"></div></div>
+    </div>
+    <div class="fe-bus-lista" id="feBusLista"></div>
+    <p class="fe-bus-nota" id="feBusNota"></p>
+    <div class="modal-footer" style="margin-top:14px;">
+      <button class="btn" id="btnCancelarBuscarFestivos">Cancelar</button>
+      <button class="btn primary" id="btnAnadirFestivosBuscados" disabled>➕ Añadir festivos</button>
     </div>
   </div>
 </div>
@@ -3214,6 +3352,7 @@
 <script src="js/informes-cambios-log.js"></script>
 <script src="js/tiendas.js"></script>
 <script src="js/supervisores.js"></script>
+<script src="js/festivos.js"></script>
 <script src="js/emails.js"></script>
 <script src="js/facturacion-config.js"></script>
 <script src="js/cc-config.js"></script>

@@ -61,6 +61,11 @@ const BOTONES_CON_PERMISO = [
   ['#btnNuevoSupervisor', 'config_tiendas'],
   ['#tablaSupervisoresBody .usr-ico', 'config_tiendas'],
   ['#btnGuardarSupervisor', 'config_tiendas'],
+  ['#btnNuevoFestivo', 'org_festivos'],
+  ['#btnGuardarFestivo', 'org_festivos'],
+  ['#btnBorrarFestivo', 'org_festivos'],
+  ['#btnAnadirFestivosBuscados', 'org_festivos'],
+  ['#feApContenido .fe-seg button', 'org_festivos'],
   ['#btnNuevaAgencia', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-comercial]', 'config_emails'],
   ['#listaEmailsAgencias [data-editar-grupo]', 'config_emails'],
@@ -84,7 +89,7 @@ const BOTONES_CON_PERMISO = [
 // Modo LECTURA: mismo selector de botones de acción que ya usa
 // styles.css para atenuarlos (ver regla "body.rol-lectura button...").
 const SELECTOR_BOTONES_LECTURA =
-  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]):not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro), .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro), .link-accion, .mini-btn';
+  'button:not(.dropdown button):not(.toggle-seg-btn):not(.filtros-modal-close):not(.ps-kpi-detalle-btn):not(#btnRefrescarPanelSiniestros):not(.btn-recargar):not([data-view]):not(.fe-tab):not(.fe-nav):not(.fe-kpi):not(.dd-sub-btn):not(#btnBuscarFestivos):not(#btnCerrarBuscarFestivos):not(#btnCancelarBuscarFestivos):not(.fe-bus-chip):not(#btnCerrarFestivo):not(#btnCancelarFestivo):not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro), .btn:not(#btnCerrarPsModal):not(#btnImprimirPanelSiniestro):not(.fe-nav):not(#btnBuscarFestivos):not(#btnCancelarBuscarFestivos):not(#btnCancelarFestivo), .link-accion, .mini-btn';
 
 // Páginas del menú que antes se ocultaban del todo para operadores sin
 // el permiso (Gestión de usuarios, Registro de auditoría): ahora se ven

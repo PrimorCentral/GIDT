@@ -2280,7 +2280,7 @@ body.rol-lectura input[type="file"]{
 
 /* ========== Modal de usuario con panel de permisos ========== */
 .usuario-modal-box{
-  max-width:1240px; padding:0;
+  max-width:1560px; padding:0;
   display:flex; flex-direction:column;
   max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px);
   overflow:hidden;
@@ -2297,7 +2297,10 @@ body.rol-lectura input[type="file"]{
 .permisos-cabecera b{ font-size:14px; }
 .permisos-cabecera span{ display:block; font-size:12px; color:var(--ink-soft); margin-top:2px; }
 .permisos-columnas{
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:20px;
+}
+@media (max-width: 1400px){
+  .permisos-columnas{ grid-template-columns:repeat(2, 1fr); }
 }
 .permisos-col{
   background:var(--panel-muted); border:1px solid var(--border); border-radius:var(--radius);
@@ -3844,3 +3847,165 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .cargando-atascado{ display:none; flex-direction:column; align-items:center; gap:10px; margin-top:2px; }
 .cargando-modal-box.atascado .cargando-atascado{ display:flex; }
 .cargando-atascado p{ margin:0; font-size:12.5px; color:var(--ink-soft); line-height:1.45; }
+
+/* ========== Gestión → Organización (submenú del menú Gestión) ========== */
+.dropdown .dd-sub{ position:relative; }
+.dropdown .dd-sub > .dd-sub-btn{ display:flex; align-items:center; justify-content:space-between; gap:18px; width:100%; }
+.dropdown .dd-sub .dd-flecha{ font-size:10px; opacity:.7; }
+.dropdown .dd-sub.open > .dd-sub-btn{ background:var(--panel-muted); }
+.dropdown .dd-submenu{
+  position:absolute; top:-7px; left:100%; margin-left:6px; background:#fff; border:1px solid var(--border);
+  border-radius:12px; box-shadow:var(--shadow); padding:6px; min-width:170px; width:max-content; display:none; z-index:21;
+}
+.dropdown .dd-sub.open .dd-submenu{ display:block; }
+/* Puente invisible sobre el hueco entre "Organización" y el submenú, para que no se cierre al cruzarlo con el ratón */
+.dropdown .dd-submenu::before{ content:''; position:absolute; left:-10px; top:0; bottom:0; width:10px; }
+@media (max-width: 780px){
+  .dropdown .dd-submenu{ position:static; margin:2px 0 4px 14px; box-shadow:none; border:0; padding:0 0 0 6px; border-left:2px solid var(--border); border-radius:0; }
+  .dropdown .dd-submenu::before{ display:none; }
+  .dropdown .dd-sub .dd-flecha{ transform:rotate(90deg); }
+}
+
+/* ========== Gestión → Organización → Festivos (js/festivos.js) ========== */
+.fe-head-der{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+.fe-tabs{ width:300px; margin:0; }
+.fe-tabs .util-tab{ display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; }
+#view-config-festivos .fe-card{ padding:16px 18px; }
+.fe-cal-wrap{ display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:16px; align-items:start; }
+.fe-cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; }
+.fe-cal-nav h2{ margin:0; font-size:17px; }
+.fe-flechas{ display:flex; gap:6px; }
+.fe-cal{ display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:6px; }
+.fe-dow{ font-size:11px; font-weight:700; color:var(--ink-soft); text-align:center; padding:2px 0 4px; }
+.fe-dia{ min-height:84px; border:1px solid var(--border); border-radius:var(--radius); padding:6px 7px; background:#fff; display:flex; flex-direction:column; gap:4px; cursor:pointer; min-width:0; }
+.fe-dia:hover{ border-color:#C9D1DA; }
+.fe-dia.fe-vacio{ background:transparent; border-color:transparent; cursor:default; }
+.fe-dia.fe-finde{ background:var(--panel-muted); }
+.fe-dia.fe-hoy .fe-num{ background:var(--ink); color:#fff; }
+.fe-num{ font-size:12.5px; font-weight:700; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.fe-marca{ font-size:10.5px; font-weight:700; border-radius:6px; padding:3px 6px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+.fe-marca.nac{ background:var(--grave-bg); color:var(--grave); }
+.fe-marca.aut{ background:var(--moderado-bg); color:var(--moderado); }
+.fe-marca.loc{ background:#EEE6FB; color:#6B3FA0; }
+.fe-marca.fe-marca-mini{ display:inline-block; font-size:10px; padding:2px 6px; margin-right:6px; vertical-align:1px; overflow:visible; }
+.fe-mas{ font-size:10.5px; font-weight:700; color:var(--ink-soft); }
+.fe-leyenda{ display:flex; gap:14px; margin-top:12px; font-size:12px; color:var(--ink-soft); flex-wrap:wrap; }
+.fe-leyenda span{ display:flex; align-items:center; gap:6px; }
+.fe-ley{ width:12px; height:12px; border-radius:4px; display:inline-block; }
+.fe-ley.nac{ background:var(--grave-bg); border:1px solid var(--grave); }
+.fe-ley.aut{ background:var(--moderado-bg); border:1px solid var(--moderado); }
+.fe-ley.loc{ background:#EEE6FB; border:1px solid #6B3FA0; }
+.fe-lista h3{ margin:0 0 6px; font-size:14.5px; }
+.fe-item{ display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--border); }
+.fe-item:first-child{ border-top:0; }
+.fe-fecha{ flex:0 0 46px; text-align:center; background:var(--panel-muted); border-radius:8px; padding:5px 0; }
+.fe-fecha b{ display:block; font-size:17px; line-height:1.1; }
+.fe-fecha small{ font-size:10px; font-weight:700; color:var(--ink-soft); }
+.fe-item-txt{ flex:1; min-width:0; }
+.fe-item-txt strong{ font-size:13px; display:block; }
+.fe-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; }
+.fe-estado-ap{ font-size:11px; font-weight:700; margin-top:5px; }
+.fe-estado-ap.ok{ color:var(--ok); }
+.fe-estado-ap.pend{ color:var(--accent-ink); }
+.fe-estado-ap.neutro{ color:var(--ink-soft); }
+.fe-item-acc{ display:flex; gap:6px; }
+.fe-vacio-box{ text-align:center; padding:34px 16px; color:var(--ink-soft); }
+.fe-vacio-ico{ font-size:34px; }
+.fe-vacio-box h4{ color:var(--ink); margin:8px 0 6px; font-size:14.5px; }
+.fe-vacio-box p{ margin:0; font-size:12.5px; line-height:1.45; }
+/* Aperturas */
+.fe-ap-top{ display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px; }
+.fe-campo{ display:flex; flex-direction:column; gap:5px; }
+.fe-campo label{ font-size:11.5px; font-weight:700; color:var(--ink-soft); }
+.fe-ap-festivo{ min-width:340px; }
+.fe-campo-buscar{ flex:1; min-width:200px; }
+.fe-ap-kpis{ display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:12px; }
+.fe-kpi{ border:2px solid transparent; text-align:left; font:inherit; cursor:pointer; }
+.fe-kpi:hover{ border-color:var(--border); }
+.fe-kpi.on{ border-color:var(--ink); }
+.fe-kpi.fe-k-cierra b{ color:var(--grave); }
+.fe-kpi.fe-k-abre b{ color:var(--moderado); }
+.fe-kpi.fe-k-hab b{ color:var(--ok); }
+.fe-kpi.fe-k-sin{ background:#FFEEDF; }
+.fe-kpi.fe-k-sin b, .fe-kpi.fe-k-sin small{ color:var(--accent-ink); }
+.fe-kpi.fe-k-sin.cero{ background:var(--panel-muted); }
+.fe-kpi.fe-k-sin.cero b, .fe-kpi.fe-k-sin.cero small{ color:var(--ink-soft); }
+.fe-ap-masivo{ display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--panel-muted); border-radius:var(--radius); margin-bottom:10px; font-size:12.5px; flex-wrap:wrap; min-height:46px; }
+.fe-ap-masivo.apagado b{ font-weight:600; color:var(--ink-soft); }
+.fe-ap-masivo .fe-seg{ background:#fff; }
+.fe-ap-info{ margin-left:auto; color:var(--ink-soft); }
+.fe-btn-limpiar{ padding:5px 10px; font-size:12px; }
+.fe-scroll{ max-height:calc(100vh - 420px); min-height:220px; overflow:auto; }
+table.fe-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; }
+table.fe-tabla th{ text-align:left; font-size:11px; text-transform:uppercase; color:var(--ink-soft); padding:8px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); z-index:1; }
+table.fe-tabla td{ padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+table.fe-tabla tr.fe-sel td{ background:#FFF8F1; }
+.fe-tabla-vacia{ text-align:center; padding:26px; color:var(--ink-soft); }
+.fe-ap-celda{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.fe-seg{ display:inline-flex; background:var(--panel-muted); border-radius:9px; padding:3px; gap:2px; }
+.fe-seg button{ border:0; background:transparent; font:inherit; font-size:12px; font-weight:600; color:var(--ink-soft); padding:5px 10px; border-radius:7px; cursor:pointer; white-space:nowrap; }
+.fe-seg button:hover{ color:var(--ink); }
+.fe-seg button.on.cierra{ background:var(--grave); color:#fff; }
+.fe-seg button.on.hab{ background:var(--ok); color:#fff; }
+.fe-seg button.on.abre{ background:var(--moderado); color:#fff; }
+.fe-hora{ width:100px; padding:5px 7px; border:1px solid var(--border); border-radius:7px; font:inherit; font-size:12.5px; background:#fff; }
+.fe-pend{ font-size:11px; font-weight:700; color:var(--accent-ink); background:#FFEEDF; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+/* Modal festivo */
+.fe-modal-box{ max-width:680px; position:relative; }
+.fe-form{ display:flex; flex-direction:column; gap:14px; margin-top:12px; }
+.fe-form-fila{ display:grid; grid-template-columns:180px 1fr; gap:12px; }
+.fe-ambito{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+.fe-ambito button{ border:1.5px solid var(--border); background:#fff; border-radius:var(--radius); padding:10px; font:inherit; cursor:pointer; text-align:left; }
+.fe-ambito button b{ display:block; font-size:13px; }
+.fe-ambito button small{ display:block; font-size:11px; color:var(--ink-soft); margin-top:2px; line-height:1.3; }
+.fe-ambito button.on{ border-color:var(--accent); background:#FFF6EE; }
+.fe-comus{ display:grid; grid-template-columns:repeat(3, 1fr); gap:2px 12px; }
+.fe-comus label{ display:flex; align-items:center; gap:7px; font-size:12px; padding:4px 0; cursor:pointer; }
+.fe-comus label span{ flex:1; }
+.fe-comus label small{ font-size:10.5px; color:var(--ink-soft); font-weight:700; }
+.fe-comus .fe-pais span{ color:var(--ink-soft); }
+.fe-tiendas-sel{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.fe-chip-tienda{ display:inline-flex; align-items:center; gap:4px; background:#EEE6FB; color:#6B3FA0; font-size:12px; font-weight:700; padding:3px 4px 3px 10px; border-radius:999px; }
+.fe-chip-tienda button{ border:0; background:transparent; color:inherit; cursor:pointer; font-size:11px; padding:2px 5px; border-radius:50%; }
+.fe-tiendas-vacio{ font-size:12px; color:var(--ink-soft); padding:4px 0; }
+.fe-tiendas-lista{ max-height:190px; overflow:auto; border:1px solid var(--border); border-radius:var(--radius); margin-top:8px; padding:4px 10px; }
+.fe-tiendas-lista label{ display:flex; align-items:center; gap:8px; font-size:12.5px; padding:5px 0; border-top:1px solid var(--border); cursor:pointer; }
+.fe-tiendas-lista label:first-child{ border-top:0; }
+.fe-tiendas-lista small{ color:var(--ink-soft); }
+.fe-afecta{ margin-top:14px; padding:10px 12px; background:var(--moderado-bg); color:var(--moderado); border-radius:var(--radius); font-size:12.5px; font-weight:600; }
+.fe-afecta.cero{ background:var(--panel-muted); color:var(--ink-soft); }
+.fe-modal-footer{ margin-top:18px; display:flex; gap:10px; align-items:center; }
+.fe-btn-borrar{ color:var(--grave); }
+/* Buscador */
+.fe-buscar-box{ max-width:880px; position:relative; }
+.fe-bus-top{ display:flex; gap:12px; align-items:flex-end; margin:8px 0 12px; flex-wrap:wrap; }
+.fe-bus-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.fe-bus-chip{ border:1px solid var(--border); background:#fff; border-radius:999px; padding:6px 12px; font:inherit; font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer; }
+.fe-bus-chip.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+.fe-bus-chip b{ margin-left:5px; }
+.fe-bus-lista{ max-height:min(440px, calc(100vh - 330px)); overflow:auto; border:1px solid var(--border); border-radius:var(--radius); }
+.fe-bus-mes{ font-size:11px; font-weight:800; color:var(--ink-soft); background:var(--panel-muted); padding:6px 12px; position:sticky; top:0; z-index:1; }
+.fe-bus-fila{ display:grid; grid-template-columns:22px 62px minmax(0,1fr) 120px; gap:10px; align-items:center; padding:9px 12px; border-top:1px solid var(--border); font-size:12.5px; cursor:pointer; }
+.fe-bus-fila.ya{ opacity:.6; cursor:default; }
+.fe-bus-f{ font-weight:700; }
+.fe-bus-f small{ display:block; font-size:10.5px; color:var(--ink-soft); }
+.fe-bus-n{ font-weight:700; }
+.fe-bus-s{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.fe-bus-aviso{ color:var(--accent-ink); }
+.fe-bus-est{ font-size:11px; font-weight:800; padding:4px 9px; border-radius:999px; text-align:center; text-transform:uppercase; }
+.fe-bus-est.nuevo{ background:var(--moderado-bg); color:var(--moderado); }
+.fe-bus-est.ya{ background:var(--ok-bg); color:var(--ok); }
+.fe-bus-est.dif{ background:#FFEEDF; color:var(--accent-ink); }
+.fe-bus-est.no{ background:var(--panel-muted); color:var(--ink-soft); }
+.fe-bus-nota{ font-size:11.5px; color:var(--ink-soft); margin:10px 0 0; line-height:1.45; }
+@media (max-width: 1100px){
+  .fe-cal-wrap{ grid-template-columns:1fr; }
+  .fe-ap-kpis{ grid-template-columns:repeat(3, 1fr); }
+}
+@media (max-width: 700px){
+  .fe-form-fila, .fe-ambito{ grid-template-columns:1fr; }
+  .fe-comus{ grid-template-columns:repeat(2, 1fr); }
+  .fe-ap-festivo{ min-width:0; width:100%; }
+  .fe-bus-fila{ grid-template-columns:22px 52px minmax(0,1fr); }
+  .fe-bus-est{ grid-column:3; justify-self:start; }
+}

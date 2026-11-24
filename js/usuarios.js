@@ -8,7 +8,7 @@
     'config_tiendas', 'config_pruebas', 'config_limites', 'config_emails', 'config_facturacion', 'config_cc_transporte',
     'config_gravedad_motivos',
     'gestion_usuarios', 'borrar', 'enviar_reporte_mensual', 'ver_auditoria',
-    'ver_log_cambios_informes'
+    'ver_log_cambios_informes', 'org_festivos'
   ];
 
   // Iconos de las acciones de cada fila (Editar / Desactivar-Activar / Borrar).

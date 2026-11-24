@@ -16,6 +16,7 @@ const CATEGORIAS_AUDITORIA = {
   tiendas: 'Tiendas',
   agencias: 'Agencias',
   supervisores: 'Supervisores',
+  festivos: 'Festivos',
   usuarios: 'Usuarios',
   informes: 'Informes',
   reportes_mensuales: 'Reportes mensuales',
