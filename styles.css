@@ -3998,6 +3998,23 @@ table.fe-tabla tr.fe-sel td{ background:#FFF8F1; }
 .fe-bus-est.dif{ background:#FFEEDF; color:var(--accent-ink); }
 .fe-bus-est.no{ background:var(--panel-muted); color:var(--ink-soft); }
 .fe-bus-nota{ font-size:11.5px; color:var(--ink-soft); margin:10px 0 0; line-height:1.45; }
+/* Calendario a pantalla completa: en la pestaña Calendario la vista ocupa
+   todo el alto disponible y las semanas se estiran hasta abajo (mismo patrón
+   que el Panel de siniestros). Solo en escritorio; en pantallas estrechas,
+   donde la lista va debajo, se queda con el alto natural. */
+@media (min-width: 1101px){
+  main:has(#view-config-festivos.active #fePanelCal:not([style*="none"])){ padding-bottom:14px; }
+  .view.active#view-config-festivos:has(#fePanelCal:not([style*="none"])){
+    display:flex; flex-direction:column; height:100%; min-height:0;
+  }
+  #view-config-festivos #fePanelCal{ flex:1 1 auto; min-height:0; }
+  #view-config-festivos #fePanelCal .fe-cal-wrap{ height:100%; }
+  #view-config-festivos #fePanelCal .fe-cal-wrap > .fe-card:first-child{
+    height:100%; min-height:520px; display:flex; flex-direction:column; box-sizing:border-box;
+  }
+  #view-config-festivos .fe-cal{ flex:1 1 auto; min-height:0; grid-template-rows:auto; grid-auto-rows:minmax(84px, 1fr); }
+  #view-config-festivos .fe-leyenda{ flex:0 0 auto; }
+}
 @media (max-width: 1100px){
   .fe-cal-wrap{ grid-template-columns:1fr; }
   .fe-ap-kpis{ grid-template-columns:repeat(3, 1fr); }
