@@ -10,6 +10,14 @@
 // ---------------------------------------------------------------
 const CHANGELOG_GIDT = [
   {
+    version: '1.9.4',
+    fecha: '2026-11-24',
+    cambios: [
+      { tipo: 'nuevo',  texto: 'Tiendas: nueva hora especial por fechas (estrella junto a Hora prevista), con su propia hora para días concretos; mientras dura, manda sobre la hora prevista y el horario por días' },
+      { tipo: 'mejora', texto: 'Tiendas: la tabla marca con una estrella las tiendas con hora especial (naranja si está en vigor ese día) y el Informe del día ya sale con la hora cambiada' }
+    ]
+  },
+  {
     version: '1.9.3',
     fecha: '2026-11-23',
     cambios: [
