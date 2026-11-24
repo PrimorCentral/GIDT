@@ -276,7 +276,7 @@
     await aplicarCambiosProgramadosVencidos();
     const [{ data: ags, error: e1 }, { data: tds, error: e2 }] = await Promise.all([
       sb.from('agencias').select('id, nombre, orden, activo, baja_desde').order('orden'),
-      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv, limite_especial_activo, limites_especiales').order('orden'),
+      sb.from('tiendas').select('id, nombre, agencia_id, hora_prevista, horario_semana, marca, provincia, comunidad, codigo_postal, orden, activo, numero_tienda, direccion, limite_palets, limite_hora_entrega, supervisor, recogida_semanal_dia, agencia_recogida, transito_horas, sabado_agencia_id, sabado_hora, prueba_agencia_id, prueba_hora, prueba_fechas, creado_en, en_apertura, apertura_prevista, fecha_apertura, volcar_salidas, excluir_salidas, entrega_lxv, limite_especial_activo, limites_especiales, hora_especial_activa, horas_especiales').order('orden'),
       cargarBajasTiendas(),
       cargarCambiosProgramados(),
       cargarSupervisoresCache()
@@ -566,7 +566,7 @@
               <td class="celda-direccion">${t.direccion ? escapeHtml(t.direccion) : '—'}</td>
               <td class="celda-provincia">${t.provincia ? escapeHtml(t.provincia) : '—'}</td>
               <td class="celda-cp">${t.codigo_postal ? escapeHtml(t.codigo_postal) : '—'}</td>
-              <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}</td>
+              <td class="hora celda-hora">${t.hora_prevista ? t.hora_prevista.slice(0,5) : '—'}${badgeHorarioSemanaHtml(t)}${estrellaHoraEspTablaHtml(t)}</td>
               <td class="celda-limite-hora">${t.limite_hora_entrega ? t.limite_hora_entrega.slice(0,5) : '—'}</td>
               <td class="celda-limite-palets">${textoLimitePalets(t.limite_palets, '—')}${estrellaLimEspTablaHtml(t)}</td>
               <td class="celda-transito">${t.transito_horas != null ? t.transito_horas + ' h' : '—'}</td>
@@ -766,6 +766,10 @@
     { clave: 'limite_especial_activo', etiqueta: 'Límite especial activado', formato: v => (v ? 'Sí' : 'No') },
     { clave: 'limites_especiales', etiqueta: 'Límites especiales', formato: lista => (Array.isArray(lista) && lista.length
       ? [...lista].sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map(x => `${fechaISOaCorta(x.desde)}–${fechaISOaCorta(x.hasta)}: ${x.sin_limite ? 'sin límite' : x.palets + ' palets'}`)
+      : null) },
+    { clave: 'hora_especial_activa', etiqueta: 'Hora especial activada', formato: v => (v ? 'Sí' : 'No') },
+    { clave: 'horas_especiales', etiqueta: 'Horas especiales', formato: lista => (Array.isArray(lista) && lista.length
+      ? [...lista].sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map(x => `${fechaISOaCorta(x.desde)}–${fechaISOaCorta(x.hasta)}: ${horaEspTexto(x)}`)
       : null) }
   ];
 
@@ -844,7 +848,7 @@
     }
     const cardPrueba = document.getElementById('metCardPrueba');
     const permitidos = ['metLimitePalets', 'metLimSin', 'metLimEspBtn'];
-    overlay.querySelectorAll('input, select, textarea, #metLimEspBtn').forEach(el => {
+    overlay.querySelectorAll('input, select, textarea, #metLimEspBtn, #metHoraEspBtn').forEach(el => {
       if (editarTiendaPermPruebas && cardPrueba && cardPrueba.contains(el)) return;
       if (editarTiendaPermLimites && permitidos.includes(el.id)) return;
       if (el.disabled) return;
@@ -888,6 +892,9 @@
     // Límite especial: se trabaja sobre una copia; se guarda con Guardar.
     limEspMet = limEspDesdeTienda(t);
     pintarEstrellaLimEsp();
+    // Hora especial: igual, sobre una copia que se graba con Guardar.
+    horaEspMet = horaEspDesdeTienda(t);
+    pintarEstrellaHoraEsp();
     document.getElementById('metLimiteHora').value = t.limite_hora_entrega ? t.limite_hora_entrega.slice(0, 5) : '';
     rellenarSelectSupervisor(document.getElementById('metSupervisor'), t.supervisor);
     // Agencia habitual: solo informativa (no editable desde este modal).
@@ -995,6 +1002,7 @@
     });
     valores.push('pruebaFechas=' + [...calPrueba.met.fechas].sort().join(','));
     valores.push('limEsp=' + JSON.stringify(limEspMet));
+    valores.push('horaEsp=' + JSON.stringify(horaEspMet));
     return valores.join('|');
   }
 
@@ -1390,11 +1398,12 @@
     'numero_tienda', 'nombre', 'hora_prevista', 'direccion', 'comunidad', 'provincia', 'codigo_postal',
     'limite_palets', 'limite_hora_entrega', 'supervisor', 'recogida_semanal_dia', 'agencia_recogida',
     'transito_horas', 'sabado_agencia_id', 'sabado_hora', 'prueba_agencia_id', 'prueba_hora', 'prueba_fechas',
-    'entrega_lxv', 'limite_especial_activo', 'limites_especiales', 'agencia_id', 'apertura_prevista'
+    'entrega_lxv', 'limite_especial_activo', 'limites_especiales', 'agencia_id', 'apertura_prevista',
+    'hora_especial_activa', 'horas_especiales'
   ];
   const CAMPOS_TIENDA_HORA = ['hora_prevista', 'limite_hora_entrega', 'sabado_hora', 'prueba_hora'];
   const CAMPOS_TIENDA_NUM = ['limite_palets', 'recogida_semanal_dia', 'transito_horas', 'sabado_agencia_id', 'prueba_agencia_id', 'agencia_id'];
-  const CAMPOS_TIENDA_BOOL = ['entrega_lxv', 'limite_especial_activo'];
+  const CAMPOS_TIENDA_BOOL = ['entrega_lxv', 'limite_especial_activo', 'hora_especial_activa'];
   let metBaseTienda = null;
 
   // Valor comparable de un campo (para que "09:00" y "09:00:00", "" y null,
@@ -1408,6 +1417,11 @@
     if (k === 'limites_especiales') {
       if (!Array.isArray(v)) return JSON.stringify(v);
       return JSON.stringify(v.map(p => [String(p.desde).slice(0, 10), String(p.hasta).slice(0, 10), p.sin_limite ? 'SIN' : Number(p.palets)]).sort());
+    }
+    if (k === 'horas_especiales') {
+      if (!Array.isArray(v)) return JSON.stringify(v);
+      return JSON.stringify(v.map(p => [String(p.desde).slice(0, 10), String(p.hasta).slice(0, 10), String(p.hora || '').slice(0, 5),
+        Object.keys(p.dias || {}).sort().map(d => d + '=' + String(p.dias[d]).slice(0, 5)).join(',')]).sort());
     }
     return String(v).trim();
   }
@@ -1609,6 +1623,11 @@
         ...(document.getElementById('metLimEspBtn') ? {
           limite_especial_activo: limEspMet.activo && limEspMet.periodos.length > 0,
           limites_especiales: limEspMet.periodos
+        } : {}),
+        // Y sin la estrella de Hora prevista, no se toca la hora especial.
+        ...(document.getElementById('metHoraEspBtn') ? {
+          hora_especial_activa: horaEspMet.activo && horaEspMet.periodos.length > 0,
+          horas_especiales: horaEspMet.periodos
         } : {})
       };
       if (editandoApertura) {
@@ -3370,6 +3389,250 @@
   document.getElementById('leBtnAceptar')?.addEventListener('click', aceptarModalLimEsp);
   // Como el horario por días: no se cierra al clicar fuera, solo con
   // Cancelar/Aceptar.
+
+  // ---------------------------------------------------------------
+  // Hora especial por fechas (estrella del campo Hora prevista de Editar
+  // tienda). Vive en tiendas.hora_especial_activa y tiendas.horas_especiales
+  // = [{ desde, hasta, hora: 'HH:MM', dias: { '<día ISO 1-7>': 'HH:MM' } }].
+  // Entre desde y hasta (incluidos) manda sobre la hora prevista y sobre el
+  // horario por días; dentro del periodo, los días con hora en «dias» usan
+  // esa hora. Al añadir un periodo, sus casillas por días salen rellenas
+  // con el horario por días de la tienda (se pueden cambiar o vaciar).
+  // No toca el sábado con otra agencia ni el límite hora entrega, y no va
+  // a SALIDAS. Lo aplica tiendaConHorarioDia() (utilidades-informe.js).
+  // Igual que el límite especial: los periodos pasados se quitan solos y
+  // el modal trabaja sobre horaEspMet, que se graba con el Guardar.
+  // ---------------------------------------------------------------
+  let horaEspMet = { activo: false, periodos: [] };
+
+  // Periodos que aún no han pasado, ordenados por fecha de inicio.
+  function horaEspVigentes(lista) {
+    const hoy = limEspHoyISO();
+    return (Array.isArray(lista) ? lista : [])
+      .filter(p => p && p.desde && p.hasta && p.hora && String(p.hasta).slice(0, 10) >= hoy)
+      .map(p => {
+        const dias = {};
+        Object.keys(p.dias || {}).forEach(k => { if (LETRA_DIA_ISO[k] && p.dias[k]) dias[k] = String(p.dias[k]).slice(0, 5); });
+        const r = { desde: String(p.desde).slice(0, 10), hasta: String(p.hasta).slice(0, 10), hora: String(p.hora).slice(0, 5) };
+        if (Object.keys(dias).length) r.dias = dias;
+        return r;
+      })
+      .sort((a, b) => a.desde.localeCompare(b.desde));
+  }
+
+  function horaEspDesdeTienda(t) {
+    return { activo: !!t?.hora_especial_activa, periodos: horaEspVigentes(t?.horas_especiales) };
+  }
+
+  // "08:30 (L 09:00 · V 08:00)" para los textos al pasar el ratón.
+  function horaEspTexto(p) {
+    const dias = Object.keys(p.dias || {}).map(Number).sort((a, b) => a - b);
+    return p.hora + (dias.length ? ` (${dias.map(d => `${LETRA_DIA_ISO[d]} ${p.dias[String(d)]}`).join(' · ')})` : '');
+  }
+
+  // Hora que manda HOY con estos periodos (o null).
+  function horaEspDeHoy(periodos) {
+    const p = limEspDeHoy(periodos);
+    if (!p) return null;
+    const iso = String(new Date().getDay() || 7);
+    return (p.dias && p.dias[iso]) || p.hora;
+  }
+
+  // Estrella junto a la hora en la tabla de tiendas (como la de palets).
+  function estrellaHoraEspTablaHtml(t) {
+    const periodos = horaEspVigentes(t.horas_especiales);
+    if (!periodos.length) return '';
+    const ddmm = iso => fechaISOaCorta(iso).slice(0, 5);
+    const enVigor = !!t.hora_especial_activa && !!limEspDeHoy(periodos);
+    const titulo = periodos.map(p => `Hora especial: ${horaEspTexto(p)}\nDel ${ddmm(p.desde)} al ${ddmm(p.hasta)}`).join('\n\n')
+      + (enVigor ? '' : (t.hora_especial_activa ? '\n(aún no ha empezado)' : '\n(desactivada)'));
+    return `<span class="lp-tabla-star${enVigor ? '' : ' gris'}" title="${escapeHtml(titulo)}">★</span>`;
+  }
+
+  function pintarEstrellaHoraEsp() {
+    const btn = document.getElementById('metHoraEspBtn');
+    if (!btn) return;
+    const { activo, periodos } = horaEspMet;
+    const hay = periodos.length > 0;
+    const horaHoy = activo ? horaEspDeHoy(periodos) : null;
+    const on = hay && !!horaHoy;
+    btn.classList.toggle('on', on);
+    btn.classList.toggle('gris', hay && !on);
+    btn.textContent = hay ? '★' : '☆';
+    const resumen = periodos.map(p => `${horaEspTexto(p)} del ${fechaISOaCorta(p.desde)} al ${fechaISOaCorta(p.hasta)}`).join('\n');
+    btn.title = !hay ? 'Sin hora especial · pulsa para configurarla'
+      : (on ? `Hora especial activa:\n${resumen}`
+        : (activo ? `Hora especial configurada (aún no ha empezado):\n${resumen}` : `Hora especial desactivada:\n${resumen}`));
+    const aviso = document.getElementById('metHoraEspAviso');
+    if (aviso) {
+      aviso.style.display = on ? '' : 'none';
+      aviso.textContent = on ? `★ Hora especial activa: ${horaHoy}` : '';
+    }
+  }
+
+  // Un periodo: fila Desde/Hasta/Hora + casillas por días (L…D).
+  function filaHoraEspHtml(p) {
+    const hoy = limEspHoyISO();
+    const vigente = p && p.desde && p.hasta && p.desde <= hoy && hoy <= p.hasta;
+    const dias = p?.dias || {};
+    return `<div class="he-periodo${vigente ? ' vigente' : ''}">
+        <div class="le-fila he-fila">
+          <input type="date" class="form-input he-desde" value="${p?.desde || ''}">
+          <input type="date" class="form-input he-hasta" value="${p?.hasta || ''}">
+          <input type="text" class="form-input he-hora he-h24" inputmode="numeric" maxlength="5" placeholder="--:--" autocomplete="off" value="${p?.hora || ''}">
+          <button type="button" class="le-del" title="Quitar periodo" aria-label="Quitar periodo">✕</button>
+        </div>
+        <div class="he-dias">
+          <span class="he-dias-tit">🗓️ Por días</span>
+          ${DIAS_SEMANA_ISO.map(d => `<label class="he-dia" title="${d.label}"><span>${LETRA_DIA_ISO[d.iso]}</span><input type="text" class="form-input he-dia-hora he-h24" inputmode="numeric" maxlength="5" placeholder="--:--" autocomplete="off" data-dia="${d.iso}" value="${dias[String(d.iso)] || ''}"></label>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // Periodo nuevo: las casillas por días salen con el horario por días
+  // que tenga la tienda (si tiene).
+  function anadirFilaHoraEsp(p) {
+    let datos = p;
+    if (!datos) {
+      const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
+      const dias = {};
+      Object.keys(t?.horario_semana || {}).forEach(k => { if (LETRA_DIA_ISO[k] && t.horario_semana[k]) dias[k] = String(t.horario_semana[k]).slice(0, 5); });
+      datos = { desde: '', hasta: '', hora: '', dias };
+    }
+    document.getElementById('heFilas')?.insertAdjacentHTML('beforeend', filaHoraEspHtml(datos));
+  }
+
+  function abrirModalHoraEsp() {
+    if (editarTiendaId == null || editarTiendaSoloPruebas) return;
+    const t = tiendasGestionCache.find(x => x.id === editarTiendaId);
+    const overlay = document.getElementById('modalHoraEspOverlay');
+    if (!t || !overlay) return;
+    const horaNormal = document.getElementById('metHora')?.value || '';
+    const porDias = resumenHorarioSemana(t);
+    document.getElementById('heMensaje').innerHTML =
+      `${escapeHtml(t.nombre)} · hora prevista: <b>${horaNormal ? escapeHtml(horaNormal) : '—'}</b>`
+      + (porDias !== 'sin horas especiales' ? ` · horario por días: <b>${escapeHtml(porDias)}</b>` : '')
+      + `. Entre estas fechas manda la hora especial; en <b>Por días</b> pones una hora distinta para días concretos del periodo.`;
+    document.getElementById('heActivo').checked = horaEspMet.activo || !horaEspMet.periodos.length;
+    const filas = document.getElementById('heFilas');
+    filas.innerHTML = '';
+    if (horaEspMet.periodos.length) horaEspMet.periodos.forEach(anadirFilaHoraEsp);
+    else anadirFilaHoraEsp(null);
+    const err = document.getElementById('heError');
+    err.style.display = 'none';
+    err.textContent = '';
+    overlay.classList.add('show');
+  }
+
+  function cerrarModalHoraEsp() {
+    document.getElementById('modalHoraEspOverlay')?.classList.remove('show');
+  }
+
+  // Horas de esta ventana: casillas de texto en formato 24 h (el selector
+  // de hora del navegador puede salir con AM/PM según el equipo).
+  // Acepta "830", "0830", "8:30", "8" → "08:30" / "08:00". Devuelve
+  // "HH:MM", '' si está vacía o null si no es una hora válida.
+  function horaEsp24(valor) {
+    const v = String(valor || '').trim();
+    if (!v) return '';
+    let h, m;
+    const conPuntos = v.match(/^(\d{1,2})[:.,h](\d{0,2})$/);
+    if (conPuntos) { h = conPuntos[1]; m = conPuntos[2] || '0'; }
+    else if (/^\d{1,4}$/.test(v)) {
+      if (v.length <= 2) { h = v; m = '0'; }
+      else { h = v.slice(0, v.length - 2); m = v.slice(-2); }
+    } else return null;
+    const hh = Number(h), mm = Number(m);
+    if (!Number.isInteger(hh) || !Number.isInteger(mm) || hh > 23 || mm > 59) return null;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  }
+
+  // Lee y valida los periodos. Devuelve { error } o { periodos }.
+  function leerFilasHoraEsp() {
+    const hoy = limEspHoyISO();
+    const periodos = [];
+    const bloques = [...document.querySelectorAll('#heFilas .he-periodo')];
+    for (let i = 0; i < bloques.length; i++) {
+      const b = bloques[i];
+      const desde = b.querySelector('.he-desde').value;
+      const hasta = b.querySelector('.he-hasta').value;
+      const hora = horaEsp24(b.querySelector('.he-hora').value);
+      const dias = {};
+      let diaMal = null;
+      b.querySelectorAll('.he-dia-hora').forEach(inp => {
+        const h = horaEsp24(inp.value);
+        if (h === null) diaMal = diaMal || DIAS_SEMANA_ISO.find(d => String(d.iso) === inp.dataset.dia)?.label;
+        else if (h) dias[inp.dataset.dia] = h;
+      });
+      // Fila sin fechas ni hora: se ignora (aunque traiga el horario por días
+      // relleno de serie).
+      if (!desde && !hasta && !hora) continue;
+      const n = i + 1;
+      if (hora === null) return { error: `En el periodo ${n} la hora no es válida (formato 24 h, p. ej. 08:30).` };
+      if (diaMal) return { error: `En el periodo ${n} la hora del ${diaMal.toLowerCase()} no es válida (formato 24 h, p. ej. 08:30).` };
+      if (!desde || !hasta || !hora) return { error: `Al periodo ${n} le falta la fecha desde, la fecha hasta o la hora.` };
+      if (hasta < desde) return { error: `En el periodo ${n} la fecha hasta es anterior a la fecha desde.` };
+      if (hasta < hoy) return { error: `El periodo ${n} ya ha pasado (termina el ${fechaISOaCorta(hasta)}).` };
+      // Un día con la misma hora que la del periodo no hace falta guardarlo.
+      Object.keys(dias).forEach(k => { if (dias[k] === hora.slice(0, 5)) delete dias[k]; });
+      const p = { desde, hasta, hora: hora.slice(0, 5) };
+      if (Object.keys(dias).length) p.dias = dias;
+      periodos.push(p);
+    }
+    periodos.sort((a, b) => a.desde.localeCompare(b.desde));
+    for (let i = 1; i < periodos.length; i++) {
+      if (periodos[i].desde <= periodos[i - 1].hasta) {
+        return { error: `Hay periodos que se solapan (${fechaISOaCorta(periodos[i - 1].desde)}–${fechaISOaCorta(periodos[i - 1].hasta)} y ${fechaISOaCorta(periodos[i].desde)}–${fechaISOaCorta(periodos[i].hasta)}).` };
+      }
+    }
+    return { periodos };
+  }
+
+  function aceptarModalHoraEsp() {
+    const r = leerFilasHoraEsp();
+    const err = document.getElementById('heError');
+    if (r.error) {
+      err.textContent = r.error;
+      err.style.display = 'block';
+      return;
+    }
+    horaEspMet = { activo: r.periodos.length > 0 && document.getElementById('heActivo').checked, periodos: r.periodos };
+    pintarEstrellaHoraEsp();
+    cerrarModalHoraEsp();
+    actualizarBotonGuardarEditarTienda();
+  }
+
+  document.getElementById('metHoraEspBtn')?.addEventListener('click', abrirModalHoraEsp);
+  document.getElementById('heBtnAnadir')?.addEventListener('click', () => anadirFilaHoraEsp(null));
+  document.getElementById('heFilas')?.addEventListener('click', e => {
+    const del = e.target.closest('.le-del');
+    if (!del) return;
+    del.closest('.he-periodo')?.remove();
+    if (!document.querySelector('#heFilas .he-periodo')) anadirFilaHoraEsp(null);
+  });
+  // Formato 24 h: mientras se escribe solo admite cifras y ":"; al salir
+  // de la casilla se completa (830 → 08:30). Si no es válida se marca en rojo.
+  document.getElementById('heFilas')?.addEventListener('input', e => {
+    const inp = e.target.closest('.he-h24');
+    if (!inp) return;
+    const v = inp.value.replace(/[^\d:]/g, '');
+    if (v !== inp.value) inp.value = v;
+    inp.classList.remove('he-h24-mal');
+  });
+  document.getElementById('heFilas')?.addEventListener('focusout', e => {
+    const inp = e.target.closest('.he-h24');
+    if (!inp) return;
+    const h = horaEsp24(inp.value);
+    if (h === null) inp.classList.add('he-h24-mal');
+    else { inp.value = h; inp.classList.remove('he-h24-mal'); }
+  });
+  document.getElementById('heBtnQuitarTodos')?.addEventListener('click', () => {
+    document.getElementById('heFilas').innerHTML = '';
+    anadirFilaHoraEsp(null);
+  });
+  document.getElementById('heBtnCancelar')?.addEventListener('click', cerrarModalHoraEsp);
+  document.getElementById('heBtnAceptar')?.addEventListener('click', aceptarModalHoraEsp);
+  // Como el resto de modales de la ficha: no se cierra al clicar fuera.
 
   // ---------------------------------------------------------------
   // Modal "Horario semanal": permite poner, por tienda, una hora

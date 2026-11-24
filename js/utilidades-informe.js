@@ -16,6 +16,8 @@
 //   1) el horario semanal especial de la tienda (tiendas.horario_semana,
 //      configurado en Gestión de tiendas) para el día de la semana de
 //      la fecha del informe — p. ej. Martes y Viernes con otra hora;
+//   1b) por encima, la hora especial por fechas (tiendas.horas_especiales,
+//      estrella de Hora prevista), con su propia hora por días;
 //   2) por encima de lo anterior, un ajuste puntual de "Utilidades"
 //      (solo para el informe de hoy), que sigue teniendo la última
 //      palabra si existe.
@@ -42,6 +44,25 @@ function horaSemanalDeTienda(t, fecha) {
   return t.horario_semana[String(iso)] || null;
 }
 
+// Hora especial por fechas (estrella de Hora prevista en Editar tienda):
+// tiendas.hora_especial_activa + tiendas.horas_especiales =
+// [{ desde, hasta, hora: 'HH:MM', dias: { '<día ISO>': 'HH:MM' } }].
+// Entre desde y hasta (incluidos) manda sobre la hora prevista y sobre el
+// horario por días; dentro del periodo, un día con hora propia en «dias»
+// usa esa hora. No toca el sábado con otra agencia ni el límite hora entrega.
+function periodoHoraEspecialDeTienda(t, fecha) {
+  if (!t?.hora_especial_activa || !Array.isArray(t.horas_especiales)) return null;
+  const f = fechaISODe(fecha);
+  return t.horas_especiales.find(p => p && p.desde && p.hasta && p.hora
+    && String(p.desde).slice(0, 10) <= f && f <= String(p.hasta).slice(0, 10)) || null;
+}
+
+function horaEspecialDeTienda(t, fecha) {
+  const p = periodoHoraEspecialDeTienda(t, fecha);
+  if (!p) return null;
+  return (p.dias && p.dias[String(diaIsoDeFecha(fecha))]) || p.hora;
+}
+
 // Tienda "base" para una fecha dada: la de tiendasCache, con hora_prevista
 // sustituida por la del horario semanal especial si ese día lo tiene.
 // Si es SÁBADO y la tienda tiene "Entrega de sábado" (sabado_agencia_id),
@@ -52,17 +73,19 @@ function tiendaConHorarioDia(tiendaId, fecha) {
   const t = tiendasCache.find(x => x.id === tiendaId);
   if (!t) return null;
   const horaSemanal = horaSemanalDeTienda(t, fecha);
-  const base = horaSemanal ? { ...t, hora_prevista: horaSemanal } : t;
   const esSabado = diaIsoDeFecha(fecha) === 6;
   if (esSabado && t.sabado_agencia_id != null && t.sabado_agencia_id !== t.agencia_id) {
+    // Sábado con otra agencia: la hora especial no lo toca.
     return {
-      ...base,
+      ...t,
       agencia_id: t.sabado_agencia_id,
-      hora_prevista: t.sabado_hora || base.hora_prevista,
+      hora_prevista: t.sabado_hora || horaSemanal || t.hora_prevista,
       entregaSabado: true
     };
   }
-  return base;
+  const horaEspecial = horaEspecialDeTienda(t, fecha);
+  if (horaEspecial) return { ...t, hora_prevista: horaEspecial, horaEspecial: true };
+  return horaSemanal ? { ...t, hora_prevista: horaSemanal } : t;
 }
 
 function tiendaEfectivaHoy(tiendaId) {
@@ -512,7 +535,11 @@ function seleccionarTiendaUtilidades(tiendaId) {
   const horaInput = document.getElementById('utilNuevaHora');
   const horaOriginal = document.getElementById('utilHoraOriginal');
   horaInput.value = aj?.hora_prevista || '';
-  const horaBaseTexto = horaSemanalHoy
+  const baseHoy = tiendaConHorarioDia(tiendaId, hoy);
+  const perEspHoy = baseHoy?.horaEspecial ? periodoHoraEspecialDeTienda(t, hoy) : null;
+  const horaBaseTexto = perEspHoy
+    ? `${baseHoy.hora_prevista.slice(0, 5)} (hora especial hasta el ${String(perEspHoy.hasta).slice(8, 10)}/${String(perEspHoy.hasta).slice(5, 7)})`
+    : horaSemanalHoy
     ? `${horaSemanalHoy.slice(0, 5)} (horario especial de los ${dias[hoy.getDay()].toLowerCase()}s)`
     : (t.hora_prevista ? t.hora_prevista.slice(0, 5) : '—');
   horaOriginal.textContent = aj?.hora_prevista

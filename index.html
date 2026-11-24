@@ -1670,7 +1670,11 @@
           <div class="tf-grid">
             <div class="tf-campo tf-span-1">
               <label class="form-label">Hora prevista <span class="tf-req tf-req-apertura">*</span></label>
-              <input type="time" id="metHora" class="form-input">
+              <div class="lp-wrap">
+                <input type="time" id="metHora" class="form-input">
+                <button type="button" class="lp-star" id="metHoraEspBtn" title="Sin hora especial · pulsa para configurarla" aria-label="Hora especial de entrega">☆</button>
+              </div>
+              <p class="lp-aviso" id="metHoraEspAviso" style="display:none;"></p>
             </div>
             <div class="tf-campo tf-span-1">
               <label class="form-label">Límite hora entrega</label>
@@ -1877,6 +1881,27 @@
       <div style="display:flex; gap:10px;">
         <button type="button" class="btn" id="leBtnCancelar">Cancelar</button>
         <button type="button" class="btn primary" id="leBtnAceptar">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: hora especial de entrega por fechas (estrella de Hora prevista) -->
+<div class="modal-overlay" id="modalHoraEspOverlay">
+  <div class="modal-box le-modal he-modal" role="dialog" aria-modal="true" aria-labelledby="heTitulo">
+    <h3 class="modal-title" id="heTitulo">⭐ Hora especial de entrega</h3>
+    <p class="modal-message" id="heMensaje"></p>
+    <label class="le-sw"><input type="checkbox" class="ea-switch" id="heActivo"> Activado</label>
+    <div class="le-cab he-fila"><span>Desde</span><span>Hasta</span><span>Hora</span><span></span></div>
+    <div id="heFilas"></div>
+    <button type="button" class="le-add" id="heBtnAnadir">＋ Añadir periodo</button>
+    <p class="le-nota">Días de «Por días» en blanco = la hora del periodo. Al añadir un periodo salen rellenos con el horario por días de la tienda: cámbialos o vacíalos si en esas fechas no aplican. No cambia el sábado con otra agencia ni el límite hora entrega. Al pasar la fecha final, el periodo se quita solo; con el interruptor apagado se usan la hora prevista y el horario por días.</p>
+    <p id="heError" class="err" style="display:none;"></p>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button type="button" class="btn" id="heBtnQuitarTodos">Quitar todos</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn" id="heBtnCancelar">Cancelar</button>
+        <button type="button" class="btn primary" id="heBtnAceptar">Aceptar</button>
       </div>
     </div>
   </div>

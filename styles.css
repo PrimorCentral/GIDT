@@ -3795,6 +3795,20 @@ main:has(#view-analisis-comunidades.active){ padding-bottom:14px; }
 .le-modal .err{ margin:0 0 12px; color:var(--grave); font-size:12.5px; }
 .lp-tabla-star{ margin-left:5px; font-size:13px; color:#F59E0B; cursor:help; }
 .lp-tabla-star.gris{ color:#9CA3AF; }
+/* Hora especial por fechas (estrella de Hora prevista) */
+.modal-box.he-modal{ max-width:640px; }
+.he-modal .le-cab.he-fila, .he-modal .le-fila.he-fila{ grid-template-columns:minmax(0,1fr) minmax(0,1fr) 110px 28px; }
+.he-periodo{ margin-bottom:10px; }
+.he-periodo .le-fila{ margin-bottom:4px; }
+.he-periodo.vigente .he-fila .form-input{ border-color:#FDBA8C; background:#FFF7ED; }
+.he-dias{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:4px 6px; padding:6px 8px 8px; border:1px dashed #C9DCFB; border-radius:8px; background:#F7FAFF; }
+.he-dias-tit{ flex:0 0 100%; font-size:11px; font-weight:700; color:var(--moderado); white-space:nowrap; }
+.he-dia{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:0; flex:1 1 0; min-width:0; font-size:10.5px; font-weight:700; color:var(--ink-soft); }
+.he-dia .form-input{ height:30px; width:100%; min-width:0; padding:0 4px; font-size:12.5px; text-align:center; }
+.he-dia .form-input::-webkit-calendar-picker-indicator{ display:none; }
+.he-modal .he-hora{ text-align:center; font-weight:600; }
+.he-modal .he-h24.he-h24-mal{ border-color:var(--grave); background:#FFF5F5; }
+@media (max-width:640px){ .he-dias{ flex-wrap:wrap; } .he-dia{ flex:0 0 calc(25% - 5px); } }
 
 /* ===== Modal con casillas (modalConfirmOpciones, ui-modal.js) ===== */
 .modal-opciones{ display:flex; flex-direction:column; gap:8px; margin:12px 0 4px; text-align:left; }
